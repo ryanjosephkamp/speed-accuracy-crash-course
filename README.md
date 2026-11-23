@@ -14,11 +14,12 @@ Chapter 6, the kernel and the theorem, is the first chapter built.
 | Path | What it holds |
 |---|---|
 | `paper/` | The paper's `main.tex`, generated numbers, and Table 1's rows at the tag `paper-v1.2`, and the number LaTeX gave each label (`labels.json`), copied by `tools/vendor_paper.py` |
-| `book/content/` | The book's text: the contents page (`book.py`) and each chapter (`ch06.py`) |
+| `book/content/` | The book's text: the contents page (`book.py`), each chapter (`ch06.py`), and the claim map's graph (`map.json`: 50 claims, 118 uses) |
 | `book/build.py` | Builds `docs/` from the content and the paper; every number is a macro from `numbers.tex` and every cross-reference a label |
 | `book/texconv.py` | Converts excerpts of `main.tex` to HTML for the Exact setting of the depth dial |
 | `book/assets/js/kernel.js` | The chapter's model: the bound, the kernel, its transform, the transfer function, the start law, and the sampler |
 | `book/assets/js/model.js` | The dynamic program and the per-moment bound, shared with the paper's site |
+| `book/assets/js/claim-map.js` | The claim map in four views (Focus, Layers, Outline, Book path), with the reader's choice kept in their browser |
 | `book/assets/js/ch06.js`, `say-ch06.js` | Chapter 6's plates, and the sentences under them as functions of their numbers |
 | `tools/check_book.mjs` | The checks; writes `book/checks.json`, which the build prints under each plate |
 | `tools/math/render.mjs` | Sets the TeX in the built pages as SVG, so the pages load no math library |

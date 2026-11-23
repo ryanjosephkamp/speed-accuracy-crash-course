@@ -1,0 +1,1205 @@
+{
+"chapters": [
+{
+"items": [
+"def:per-moment",
+"exp:showcase"
+],
+"num": 1,
+"title": "The question"
+},
+{
+"items": [
+"def:evidence",
+"def:posterior",
+"def:reflected",
+"sf:strong"
+],
+"num": 2,
+"title": "The ideas you need"
+},
+{
+"items": [
+"def:reward-cost",
+"asm:cost",
+"def:value",
+"eq:constant-bound",
+"eq:Bprime"
+],
+"num": 3,
+"title": "The model"
+},
+{
+"items": [
+"lem:structure",
+"def:stopping-time",
+"sf:stopping"
+],
+"num": 4,
+"title": "The bound's shape"
+},
+{
+"items": [
+"lem:envelope",
+"prop:regularity",
+"prop:exact",
+"rem:speed"
+],
+"num": 5,
+"title": "The exact equation"
+},
+{
+"items": [
+"def:kernel",
+"lem:kernel",
+"thm:main",
+"claim:pm-order-eps"
+],
+"num": 6,
+"title": "The kernel and the theorem"
+},
+{
+"items": [
+"cor:transfer",
+"cor:limits",
+"prop:loss",
+"conj:loss"
+],
+"num": 7,
+"title": "What the kernel says"
+},
+{
+"items": [
+"def:avg-cost",
+"def:weighted",
+"prop:rule",
+"alg:weighted",
+"claim:not-faster"
+],
+"num": 8,
+"title": "The weighted rule"
+},
+{
+"items": [
+"method:reference",
+"method:scoring",
+"method:monitoring",
+"exp:sinusoid",
+"exp:sweep",
+"app:numerics"
+],
+"num": 9,
+"title": "Measuring, and the theory checked"
+},
+{
+"items": [
+"exp:random",
+"exp:heldout",
+"claim:pm-close-in-reward",
+"exp:loss-formula",
+"exp:loss-scaling"
+],
+"num": 10,
+"title": "The rules on random schedules"
+},
+{
+"items": [
+"ext:unknown",
+"ext:lopsided"
+],
+"num": 11,
+"title": "Two extensions"
+},
+{
+"items": [
+"claim:urgency",
+"claim:palmer-scale",
+"claim:smith-weakness",
+"claim:novelty",
+"claim:limitations",
+"claim:code-and-data"
+],
+"num": 12,
+"title": "Prediction, prior work, what's open"
+}
+],
+"edges": [
+[
+"eq:constant-bound",
+"def:per-moment"
+],
+[
+"def:per-moment",
+"exp:showcase"
+],
+[
+"def:weighted",
+"exp:showcase"
+],
+[
+"method:reference",
+"exp:showcase"
+],
+[
+"def:evidence",
+"def:posterior"
+],
+[
+"def:posterior",
+"def:reflected"
+],
+[
+"def:reflected",
+"sf:strong"
+],
+[
+"def:posterior",
+"def:reward-cost"
+],
+[
+"asm:cost",
+"def:reward-cost"
+],
+[
+"def:reflected",
+"def:value"
+],
+[
+"def:reward-cost",
+"def:value"
+],
+[
+"def:reflected",
+"eq:constant-bound"
+],
+[
+"def:value",
+"eq:constant-bound"
+],
+[
+"eq:constant-bound",
+"eq:Bprime"
+],
+[
+"def:value",
+"lem:structure"
+],
+[
+"def:reflected",
+"lem:structure"
+],
+[
+"sf:strong",
+"lem:structure"
+],
+[
+"eq:constant-bound",
+"lem:structure"
+],
+[
+"lem:structure",
+"def:stopping-time"
+],
+[
+"sf:stopping",
+"def:stopping-time"
+],
+[
+"sf:strong",
+"sf:stopping"
+],
+[
+"lem:structure",
+"sf:stopping"
+],
+[
+"eq:constant-bound",
+"sf:stopping"
+],
+[
+"lem:structure",
+"lem:envelope"
+],
+[
+"sf:stopping",
+"lem:envelope"
+],
+[
+"def:stopping-time",
+"lem:envelope"
+],
+[
+"lem:structure",
+"prop:regularity"
+],
+[
+"lem:envelope",
+"prop:regularity"
+],
+[
+"def:reflected",
+"prop:regularity"
+],
+[
+"sf:strong",
+"prop:regularity"
+],
+[
+"lem:envelope",
+"prop:exact"
+],
+[
+"prop:regularity",
+"prop:exact"
+],
+[
+"def:reflected",
+"prop:exact"
+],
+[
+"asm:cost",
+"prop:exact"
+],
+[
+"prop:exact",
+"rem:speed"
+],
+[
+"eq:constant-bound",
+"def:kernel"
+],
+[
+"def:reflected",
+"def:kernel"
+],
+[
+"def:kernel",
+"lem:kernel"
+],
+[
+"eq:constant-bound",
+"lem:kernel"
+],
+[
+"prop:exact",
+"thm:main"
+],
+[
+"lem:structure",
+"thm:main"
+],
+[
+"lem:kernel",
+"thm:main"
+],
+[
+"eq:Bprime",
+"thm:main"
+],
+[
+"asm:cost",
+"thm:main"
+],
+[
+"prop:rule",
+"claim:pm-order-eps"
+],
+[
+"thm:main",
+"claim:pm-order-eps"
+],
+[
+"thm:main",
+"cor:transfer"
+],
+[
+"lem:kernel",
+"cor:transfer"
+],
+[
+"lem:kernel",
+"cor:limits"
+],
+[
+"cor:transfer",
+"cor:limits"
+],
+[
+"eq:constant-bound",
+"cor:limits"
+],
+[
+"lem:structure",
+"prop:loss"
+],
+[
+"prop:regularity",
+"prop:loss"
+],
+[
+"eq:constant-bound",
+"prop:loss"
+],
+[
+"prop:loss",
+"conj:loss"
+],
+[
+"prop:rule",
+"conj:loss"
+],
+[
+"thm:main",
+"def:avg-cost"
+],
+[
+"def:kernel",
+"def:avg-cost"
+],
+[
+"def:kernel",
+"def:weighted"
+],
+[
+"def:per-moment",
+"def:weighted"
+],
+[
+"def:weighted",
+"prop:rule"
+],
+[
+"thm:main",
+"prop:rule"
+],
+[
+"lem:kernel",
+"prop:rule"
+],
+[
+"cor:transfer",
+"prop:rule"
+],
+[
+"def:weighted",
+"alg:weighted"
+],
+[
+"def:kernel",
+"alg:weighted"
+],
+[
+"method:monitoring",
+"alg:weighted"
+],
+[
+"alg:weighted",
+"claim:not-faster"
+],
+[
+"def:value",
+"method:reference"
+],
+[
+"method:reference",
+"method:scoring"
+],
+[
+"cor:transfer",
+"exp:sinusoid"
+],
+[
+"def:weighted",
+"exp:sinusoid"
+],
+[
+"method:reference",
+"exp:sinusoid"
+],
+[
+"thm:main",
+"exp:sweep"
+],
+[
+"method:reference",
+"exp:sweep"
+],
+[
+"method:scoring",
+"app:numerics"
+],
+[
+"alg:weighted",
+"app:numerics"
+],
+[
+"def:per-moment",
+"exp:random"
+],
+[
+"def:weighted",
+"exp:random"
+],
+[
+"method:scoring",
+"exp:random"
+],
+[
+"method:monitoring",
+"exp:random"
+],
+[
+"def:per-moment",
+"exp:heldout"
+],
+[
+"def:weighted",
+"exp:heldout"
+],
+[
+"def:avg-cost",
+"exp:heldout"
+],
+[
+"cor:limits",
+"exp:heldout"
+],
+[
+"method:scoring",
+"exp:heldout"
+],
+[
+"method:monitoring",
+"exp:heldout"
+],
+[
+"prop:loss",
+"claim:pm-close-in-reward"
+],
+[
+"exp:heldout",
+"claim:pm-close-in-reward"
+],
+[
+"conj:loss",
+"exp:loss-formula"
+],
+[
+"method:scoring",
+"exp:loss-formula"
+],
+[
+"conj:loss",
+"exp:loss-scaling"
+],
+[
+"prop:loss",
+"exp:loss-scaling"
+],
+[
+"method:scoring",
+"exp:loss-scaling"
+],
+[
+"rem:speed",
+"ext:unknown"
+],
+[
+"thm:main",
+"ext:unknown"
+],
+[
+"def:weighted",
+"ext:unknown"
+],
+[
+"lem:envelope",
+"ext:lopsided"
+],
+[
+"prop:regularity",
+"ext:lopsided"
+],
+[
+"thm:main",
+"ext:lopsided"
+],
+[
+"cor:limits",
+"claim:urgency"
+],
+[
+"cor:transfer",
+"claim:urgency"
+],
+[
+"thm:main",
+"claim:urgency"
+],
+[
+"cor:limits",
+"claim:palmer-scale"
+],
+[
+"cor:transfer",
+"claim:palmer-scale"
+],
+[
+"def:evidence",
+"claim:palmer-scale"
+],
+[
+"thm:main",
+"claim:smith-weakness"
+],
+[
+"def:weighted",
+"claim:smith-weakness"
+],
+[
+"cor:limits",
+"claim:smith-weakness"
+],
+[
+"prop:exact",
+"claim:novelty"
+],
+[
+"lem:kernel",
+"claim:novelty"
+],
+[
+"thm:main",
+"claim:novelty"
+],
+[
+"prop:rule",
+"claim:novelty"
+],
+[
+"conj:loss",
+"claim:limitations"
+],
+[
+"thm:main",
+"claim:limitations"
+],
+[
+"exp:sweep",
+"claim:limitations"
+],
+[
+"ext:unknown",
+"claim:limitations"
+],
+[
+"ext:lopsided",
+"claim:limitations"
+]
+],
+"nodes": {
+"alg:weighted": {
+"ch": 8,
+"depth": 7,
+"kind": "Algorithm",
+"label": "Alg 1 · As computed",
+"name": "Algorithm 1 · The weighted look-ahead rule as computed",
+"page": 11,
+"sec": "5",
+"status": "definition",
+"statusLabel": "Definition"
+},
+"app:numerics": {
+"ch": 9,
+"depth": 8,
+"kind": "Method",
+"label": "Numerical details",
+"name": "Numerical details and stability",
+"page": 29,
+"sec": "C",
+"status": "numerical",
+"statusLabel": "Measured"
+},
+"asm:cost": {
+"ch": 3,
+"depth": 0,
+"kind": "Assumption",
+"label": "Bounded cost",
+"name": "The cost of time is continuous and bounded between two positive constants",
+"page": 4,
+"sec": "2",
+"status": "definition",
+"statusLabel": "Definition"
+},
+"claim:code-and-data": {
+"ch": 12,
+"depth": 0,
+"kind": "Claim",
+"label": "Code and data",
+"name": "Code and data",
+"page": 21,
+"sec": "Code and data",
+"status": "definition",
+"statusLabel": "Definition"
+},
+"claim:limitations": {
+"ch": 12,
+"depth": 15,
+"kind": "Claim",
+"label": "Limitations",
+"name": "Limitations, as the paper states them",
+"page": 21,
+"sec": "9",
+"status": "definition",
+"statusLabel": "Definition"
+},
+"claim:not-faster": {
+"ch": 8,
+"depth": 8,
+"kind": "Claim",
+"label": "Not faster",
+"name": "The rule is not faster than the dynamic program",
+"page": 11,
+"sec": "5",
+"status": "numerical",
+"statusLabel": "Measured"
+},
+"claim:novelty": {
+"ch": 12,
+"depth": 14,
+"kind": "Claim",
+"label": "What's new",
+"name": "What is new, to the author's knowledge (narrowed in v1.2)",
+"page": 3,
+"sec": "1, 8",
+"status": "cited",
+"statusLabel": "Cited"
+},
+"claim:palmer-scale": {
+"ch": 12,
+"depth": 14,
+"kind": "Claim",
+"label": "Palmer scale",
+"name": "The lead in milliseconds for a real task",
+"page": 21,
+"sec": "9",
+"status": "computed",
+"statusLabel": "Computed from closed forms"
+},
+"claim:pm-close-in-reward": {
+"ch": 10,
+"depth": 15,
+"kind": "Claim",
+"label": "Close in reward",
+"name": "In reward, the per-moment rule is already close to optimal",
+"page": 2,
+"sec": "1, 9",
+"status": "numerical",
+"statusLabel": "Measured"
+},
+"claim:pm-order-eps": {
+"ch": 6,
+"depth": 14,
+"kind": "Claim",
+"label": "Bound error, first order",
+"name": "The per-moment rule's bound error is first order; the corrected rule's is smaller",
+"page": 1,
+"sec": "Abstract, 1",
+"status": "proved",
+"statusLabel": "Proved"
+},
+"claim:smith-weakness": {
+"ch": 12,
+"depth": 14,
+"kind": "Claim",
+"label": "What control computes",
+"name": "What moment-by-moment control would have to compute",
+"page": 2,
+"sec": "1, 8",
+"status": "cited",
+"statusLabel": "Cited"
+},
+"claim:urgency": {
+"ch": 12,
+"depth": 14,
+"kind": "Claim",
+"label": "Urgency lead",
+"name": "The normative urgency signal leads the cost",
+"page": 20,
+"sec": "9",
+"status": "formal",
+"statusLabel": "Formal, not proved"
+},
+"conj:loss": {
+"ch": 7,
+"depth": 14,
+"kind": "Conjecture",
+"label": "Conj 11 · Loss formula",
+"name": "Conjecture 11 · Leading-order loss",
+"page": 9,
+"sec": "4.4",
+"status": "conjecture",
+"statusLabel": "Conjecture"
+},
+"cor:limits": {
+"ch": 7,
+"depth": 13,
+"kind": "Corollary",
+"label": "Cor 9 · Limits",
+"name": "Corollary 9 · Limits (slow changes, mean look-ahead, fast changes)",
+"page": 8,
+"sec": "4.3",
+"status": "proved",
+"statusLabel": "Proved"
+},
+"cor:transfer": {
+"ch": 7,
+"depth": 12,
+"kind": "Corollary",
+"label": "Cor 8 · Transfer",
+"name": "Corollary 8 · Transfer function",
+"page": 8,
+"sec": "4.3",
+"status": "proved",
+"statusLabel": "Proved"
+},
+"def:avg-cost": {
+"ch": 8,
+"depth": 12,
+"kind": "Rule",
+"label": "Averaged-cost rule",
+"name": "The averaged-cost rule b_avg",
+"page": 9,
+"sec": "5",
+"status": "proved",
+"statusLabel": "Proved"
+},
+"def:evidence": {
+"ch": 2,
+"depth": 0,
+"kind": "Definition",
+"label": "Evidence and units",
+"name": "Evidence and units",
+"page": 3,
+"sec": "2",
+"status": "definition",
+"statusLabel": "Definition"
+},
+"def:kernel": {
+"ch": 6,
+"depth": 5,
+"kind": "Definition",
+"label": "Kernel w",
+"name": "The kernel w (survival flux at the bound)",
+"page": 7,
+"sec": "4.1",
+"status": "definition",
+"statusLabel": "Definition"
+},
+"def:per-moment": {
+"ch": 1,
+"depth": 5,
+"kind": "Rule",
+"label": "Per-moment rule",
+"name": "The per-moment rule",
+"page": 2,
+"sec": "1, 2",
+"status": "definition",
+"statusLabel": "Definition"
+},
+"def:posterior": {
+"ch": 2,
+"depth": 1,
+"kind": "Definition",
+"label": "Posterior g",
+"name": "Posterior and the filtered diffusion",
+"page": 4,
+"sec": "2",
+"status": "cited",
+"statusLabel": "Cited"
+},
+"def:reflected": {
+"ch": 2,
+"depth": 2,
+"kind": "Definition",
+"label": "Y = |X| and its generator",
+"name": "The reflected process Y = |X|, its generator, and three facts about g",
+"page": 4,
+"sec": "2",
+"status": "proved",
+"statusLabel": "Proved"
+},
+"def:reward-cost": {
+"ch": 3,
+"depth": 2,
+"kind": "Definition",
+"label": "The objective",
+"name": "Reward, cost of time, and the objective",
+"page": 4,
+"sec": "2",
+"status": "definition",
+"statusLabel": "Definition"
+},
+"def:stopping-time": {
+"ch": 4,
+"depth": 7,
+"kind": "Definition",
+"label": "Decision time τ*",
+"name": "The optimal decision time tau*",
+"page": 6,
+"sec": "3",
+"status": "definition",
+"statusLabel": "Definition"
+},
+"def:value": {
+"ch": 3,
+"depth": 3,
+"kind": "Definition",
+"label": "Value V",
+"name": "The value function",
+"page": 4,
+"sec": "2",
+"status": "definition",
+"statusLabel": "Definition"
+},
+"def:weighted": {
+"ch": 8,
+"depth": 6,
+"kind": "Definition",
+"label": "Def 12 · Weighted rule",
+"name": "Definition 12 · The weighted look-ahead rule",
+"page": 10,
+"sec": "5",
+"status": "definition",
+"statusLabel": "Definition"
+},
+"eq:Bprime": {
+"ch": 3,
+"depth": 5,
+"kind": "Proposition",
+"label": "B′(c)",
+"name": "The slope of the constant-cost bound",
+"page": 4,
+"sec": "2",
+"status": "proved",
+"statusLabel": "Proved"
+},
+"eq:constant-bound": {
+"ch": 3,
+"depth": 4,
+"kind": "Proposition",
+"label": "B(c): constant cost",
+"name": "The constant-cost bound B(c)",
+"page": 4,
+"sec": "2",
+"status": "proved",
+"statusLabel": "Proved"
+},
+"exp:heldout": {
+"ch": 10,
+"depth": 14,
+"kind": "Experiment",
+"label": "210 held-out",
+"name": "Held-out schedules (210, seed 20261111) and five more rules",
+"page": 13,
+"sec": "6.4",
+"status": "numerical",
+"statusLabel": "Measured"
+},
+"exp:loss-formula": {
+"ch": 10,
+"depth": 15,
+"kind": "Experiment",
+"label": "Loss formula test",
+"name": "The loss formula, checked",
+"page": 14,
+"sec": "6.5",
+"status": "numerical",
+"statusLabel": "Measured"
+},
+"exp:loss-scaling": {
+"ch": 10,
+"depth": 15,
+"kind": "Experiment",
+"label": "Loss scaling",
+"name": "How the loss scales with the size of the change",
+"page": 15,
+"sec": "6.5",
+"status": "numerical",
+"statusLabel": "Measured"
+},
+"exp:random": {
+"ch": 10,
+"depth": 7,
+"kind": "Experiment",
+"label": "90 development",
+"name": "Development schedules (90, seed 2026)",
+"page": 12,
+"sec": "6.3",
+"status": "numerical",
+"statusLabel": "Measured"
+},
+"exp:showcase": {
+"ch": 1,
+"depth": 7,
+"kind": "Experiment",
+"label": "Figure 1 schedules",
+"name": "The four schedules of Figure 1",
+"page": 4,
+"sec": "2, 5, 6.3",
+"status": "numerical",
+"statusLabel": "Measured"
+},
+"exp:sinusoid": {
+"ch": 9,
+"depth": 13,
+"kind": "Experiment",
+"label": "Sinusoid check",
+"name": "First-order theory against the dynamic program (sinusoid)",
+"page": 12,
+"sec": "6.2",
+"status": "numerical",
+"statusLabel": "Measured"
+},
+"exp:sweep": {
+"ch": 9,
+"depth": 12,
+"kind": "Experiment",
+"label": "Wider sweep",
+"name": "Theorem 7 across costs, frequencies, and sizes",
+"page": 12,
+"sec": "6.2",
+"status": "numerical",
+"statusLabel": "Measured"
+},
+"ext:lopsided": {
+"ch": 11,
+"depth": 12,
+"kind": "Extension",
+"label": "Unequal rewards",
+"name": "Unequal rewards, one kernel per bound",
+"page": 17,
+"sec": "7.2, B",
+"status": "formal",
+"statusLabel": "Formal, not proved"
+},
+"ext:unknown": {
+"ch": 11,
+"depth": 12,
+"kind": "Extension",
+"label": "Unknown reliability",
+"name": "Unknown evidence reliability, through information time",
+"page": 16,
+"sec": "7.1",
+"status": "formal",
+"statusLabel": "Formal, not proved"
+},
+"lem:envelope": {
+"ch": 5,
+"depth": 8,
+"kind": "Lemma",
+"label": "Lemma 2 · Envelope",
+"name": "Lemma 2 · Envelope identity",
+"page": 6,
+"sec": "3",
+"status": "proved",
+"statusLabel": "Proved"
+},
+"lem:kernel": {
+"ch": 6,
+"depth": 6,
+"kind": "Lemma",
+"label": "Lemma 6 · Kernel",
+"name": "Lemma 6 · Two descriptions of the kernel",
+"page": 7,
+"sec": "4.1",
+"status": "proved",
+"statusLabel": "Proved"
+},
+"lem:structure": {
+"ch": 4,
+"depth": 5,
+"kind": "Lemma",
+"label": "Lemma 1 · Structure",
+"name": "Lemma 1 · Structure",
+"page": 4,
+"sec": "3",
+"status": "proved",
+"statusLabel": "Proved"
+},
+"method:monitoring": {
+"ch": 9,
+"depth": 0,
+"kind": "Method",
+"label": "Monitoring shift",
+"name": "Discrete-monitoring correction",
+"page": 12,
+"sec": "6.1",
+"status": "cited",
+"statusLabel": "Cited"
+},
+"method:reference": {
+"ch": 9,
+"depth": 4,
+"kind": "Method",
+"label": "Reference program",
+"name": "The reference policy (dynamic program on the evidence grid)",
+"page": 11,
+"sec": "6.1",
+"status": "numerical",
+"statusLabel": "Measured"
+},
+"method:scoring": {
+"ch": 9,
+"depth": 5,
+"kind": "Method",
+"label": "Scoring, no sampling",
+"name": "Scoring without Monte Carlo",
+"page": 11,
+"sec": "6.1",
+"status": "numerical",
+"statusLabel": "Measured"
+},
+"prop:exact": {
+"ch": 5,
+"depth": 10,
+"kind": "Proposition",
+"label": "Prop 4 · Exact equation",
+"name": "Proposition 4 · Exact equation for the bound",
+"page": 6,
+"sec": "3",
+"status": "proved",
+"statusLabel": "Proved"
+},
+"prop:loss": {
+"ch": 7,
+"depth": 10,
+"kind": "Proposition",
+"label": "Prop 10 · Loss bound",
+"name": "Proposition 10 · Second-order loss",
+"page": 9,
+"sec": "4.4",
+"status": "proved",
+"statusLabel": "Proved"
+},
+"prop:regularity": {
+"ch": 5,
+"depth": 9,
+"kind": "Proposition",
+"label": "Prop 3 · Regularity",
+"name": "Proposition 3 · Regularity (nondegeneracy, Hölder continuity, smooth fit)",
+"page": 6,
+"sec": "3",
+"status": "proved",
+"statusLabel": "Proved"
+},
+"prop:rule": {
+"ch": 8,
+"depth": 13,
+"kind": "Proposition",
+"label": "Prop 13 · First-order exact",
+"name": "Proposition 13 · Near a constant cost, the rule is well defined and first-order exact",
+"page": 10,
+"sec": "5",
+"status": "proved",
+"statusLabel": "Proved"
+},
+"rem:speed": {
+"ch": 5,
+"depth": 11,
+"kind": "Remark",
+"label": "Rem 5 · Scale and speed",
+"name": "Remark 5 · Scale and speed",
+"page": 7,
+"sec": "3",
+"status": "formal",
+"statusLabel": "Formal, not proved"
+},
+"sf:stopping": {
+"ch": 4,
+"depth": 6,
+"kind": "Standing fact",
+"label": "Optimal stopping",
+"name": "Optimal stopping applies after capping the bound",
+"page": 24,
+"sec": "A",
+"status": "proved",
+"statusLabel": "Proved"
+},
+"sf:strong": {
+"ch": 2,
+"depth": 3,
+"kind": "Standing fact",
+"label": "Strong solutions",
+"name": "Strong solutions of the reflected equation",
+"page": 24,
+"sec": "A",
+"status": "cited",
+"statusLabel": "Cited"
+},
+"thm:main": {
+"ch": 6,
+"depth": 11,
+"kind": "Theorem",
+"label": "Theorem 7 · First order",
+"name": "Theorem 7 · The first-order theorem",
+"page": 8,
+"sec": "4.2",
+"status": "proved",
+"statusLabel": "Proved"
+}
+},
+"order": [
+"def:per-moment",
+"exp:showcase",
+"def:evidence",
+"def:posterior",
+"def:reflected",
+"sf:strong",
+"def:reward-cost",
+"asm:cost",
+"def:value",
+"eq:constant-bound",
+"eq:Bprime",
+"lem:structure",
+"def:stopping-time",
+"sf:stopping",
+"lem:envelope",
+"prop:regularity",
+"prop:exact",
+"rem:speed",
+"def:kernel",
+"lem:kernel",
+"thm:main",
+"claim:pm-order-eps",
+"cor:transfer",
+"cor:limits",
+"prop:loss",
+"conj:loss",
+"def:avg-cost",
+"def:weighted",
+"prop:rule",
+"alg:weighted",
+"claim:not-faster",
+"method:reference",
+"method:scoring",
+"method:monitoring",
+"exp:sinusoid",
+"exp:sweep",
+"app:numerics",
+"exp:random",
+"exp:heldout",
+"claim:pm-close-in-reward",
+"exp:loss-formula",
+"exp:loss-scaling",
+"ext:unknown",
+"ext:lopsided",
+"claim:urgency",
+"claim:palmer-scale",
+"claim:smith-weakness",
+"claim:novelty",
+"claim:limitations",
+"claim:code-and-data"
+],
+"source": "claim map at paper-v1.2"
+}

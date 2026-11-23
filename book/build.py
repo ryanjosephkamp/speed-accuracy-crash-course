@@ -256,6 +256,42 @@ def figure_html(stem, depth):
             f"<figcaption><b>Figure {num}.</b> <span class='cap'>{cap} From the paper, redrawn in this page's inks.</span></figcaption></figure>")
 
 
+MAP = json.loads((HERE / "content/map.json").read_text())
+
+
+def map_links(depth):
+    """Links from the map to the built chapters: { claim id: href } relative to a page at this depth."""
+    out = {}
+    for num, _, _, module in load("book").CHAPTERS:
+        if not module:
+            continue
+        mod = load(module)
+        slug = mod.CHAPTER["slug"]
+        mine = [k for k, n in MAP["nodes"].items() if n["ch"] == mod.CHAPTER["num"]]
+        missing = [k for k in mine if k not in mod.MAP_LINKS]
+        if missing:
+            fail(f"chapter {num}'s claims without a section in MAP_LINKS: {missing}")
+        for k in mine:
+            here = depth == 1 and slug == CURRENT_SLUG[0]
+            out[k] = (f"#{mod.MAP_LINKS[k]}" if here else f"{'../' * depth}{slug}/index.html#{mod.MAP_LINKS[k]}")
+    return out
+
+
+CURRENT_SLUG = [None]
+
+
+def map_html(depth, chapter=None, focus="thm:main"):
+    links = html.escape(json.dumps(map_links(depth)), quote=True)
+    ch = "" if chapter is None else f" data-chapter='{chapter}'"
+    return (f"<div class='cmap is-wide' data-claim-map{ch} data-focus='{focus}' data-links=\"{links}\">"
+            f"<p class='cm-how'>The claim map needs JavaScript.</p></div>")
+
+
+def map_data():
+    return ("<script type='application/json' id='map-data'>"
+            + json.dumps(MAP, ensure_ascii=False).replace("<", "\\u003c") + "</script>")
+
+
 def qs_html(qs):
     items = []
     for q, a in qs:
@@ -370,6 +406,7 @@ def shell(*, title, desc, body, depth, leaf, current, bar_title, thumbs_html, sc
 # ---------------------------------------------------------------- pages
 def chapter_page(mod):
     C, PL, ST = mod.CHAPTER, mod.PLATES, mod.STRIPS
+    CURRENT_SLUG[0] = C["slug"]
     plate_no = 0
     chips = []
     body = []
@@ -397,6 +434,8 @@ def chapter_page(mod):
                 parts.append(qs_html(rest[0]))
             elif kind == "miss":
                 parts.append(miss_html(rest[0]))
+            elif kind == "map":
+                parts.append(map_html(1, C["num"], rest[0]))
             elif kind == "limits":
                 parts.append(f"<div class='limits'>{md(rest[0])}</div>")
             else:
@@ -423,7 +462,7 @@ def chapter_page(mod):
 <div class="hero-foot"><nav class="chips" aria-label="The live plates in this chapter"><span class="chips-h" aria-hidden="true">Live plates</span>{chip_html}</nav></div>
 </header>"""
     intro = f"<div class='intro'>{md(C['intro'])}</div>"
-    page_body = (f"<div class='col chapter-top'>{hero}{intro}\n" + "\n".join(body) + "</div>")
+    page_body = (f"<div class='col chapter-top'>{hero}{intro}\n" + "\n".join(body) + "</div>" + map_data())
     turn = ("<nav class='turn' aria-label='Turn the page'>"
             f"<a class='prev' rel='prev' href='../index.html'><span class='dir'>Back to</span><span class='no'>·</span><span class='name'>Contents</span></a>"
             "</nav>")
@@ -438,6 +477,7 @@ def chapter_page(mod):
 
 def contents_page():
     book = load("book")
+    CURRENT_SLUG[0] = None
     rows = []
     for num, title, line, module in book.CHAPTERS:
         if module:
@@ -471,8 +511,12 @@ def contents_page():
 <h2 id="h-contents">Contents</h2>
 <ol class="contents">{''.join(rows)}</ol>
 </section>
-<section class="map-slot" id="map" aria-labelledby="h-map"><h3 id="h-map">{html.escape(book.MAP_SLOT[0])}</h3><p>{inline(book.MAP_SLOT[1])}</p></section>
-</div>"""
+<section class="sec" id="map" aria-labelledby="h-map">
+<h2 id="h-map">{html.escape(book.MAP_SLOT[0])}</h2>
+<p>{inline(book.MAP_SLOT[1])}</p>
+{map_html(0)}
+</section>
+</div>{map_data()}"""
     turn = ("<nav class='turn' aria-label='Turn the page'>"
             f"<a class='next' rel='next' href='kernel/index.html' style='--accent:{SPOT[0]};--accent-night:{SPOT[1]}'>"
             "<span class='dir'>First chapter built</span><span class='no'>6</span><span class='name'>The kernel and the theorem</span></a></nav>")

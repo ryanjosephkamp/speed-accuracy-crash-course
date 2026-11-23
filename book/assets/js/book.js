@@ -157,3 +157,15 @@ function readingLine() {
 menus(); theme(); depth(); readingLine();
 // live plates get a lift button once their charts are drawn
 export function liftReady(fig) { const b = fig.querySelector(".btn-lift"); if (b && b.hidden) wireLift(b); }
+
+// ---- the claim map: mounted when it nears the screen, from the data the page carries ----------------------------
+document.querySelectorAll("[data-claim-map]").forEach((el) => onVisible(el, async () => {
+  try {
+    const data = JSON.parse(document.getElementById("map-data").textContent);
+    const { mountMap } = await import("./claim-map.js");
+    mountMap(el, { data, chapter: el.dataset.chapter ? +el.dataset.chapter : null, focus: el.dataset.focus || "thm:main", links: JSON.parse(el.dataset.links || "{}") });
+  } catch (e) {
+    el.innerHTML = '<p class="plate-fail">The claim map could not load.</p>';
+    console.error(e);
+  }
+}, "400px"));

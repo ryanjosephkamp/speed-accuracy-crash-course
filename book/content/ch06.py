@@ -26,6 +26,9 @@ One caution runs through every page. That a small change moves the bound by a we
 """,
 }
 
+# where each of this chapter's claims is taught, for the claim map's links
+MAP_LINKS = {"def:kernel": "weights", "lem:kernel": "second-way", "thm:main": "theorem", "claim:pm-order-eps": "yours"}
+
 PLATES = {
     "scale": {
         "title": "Shrink the change",
@@ -225,6 +228,16 @@ Here is that comparison on the schedule you chose on the contents page. The page
 Two cautions about the bottom chart. The guide lines are guides only: for a Lipschitz change the theorem bounds the corrected error by a constant times $\varepsilon^2$, which doesn't fix the slope you see at these sizes. And a deadline, or the rising cost (which grows without bound), is outside the theorem; the page still computes them, and says so.
 """),
             ("exact", "61-65|We show|smoothly.,610-622", "The paper's words: the abstract, and {{ref:prop:rule}}"),
+        ],
+    },
+    {
+        "id": "map",
+        "title": "Where this chapter sits",
+        "blocks": [
+            ("plain", r"""
+The paper's claims and the places one uses another, with this chapter's four printed heavier: the kernel, its two descriptions and transform ({{ref:lem:kernel}}), {{ref:thm:main}}, and the comparison of the two shortcuts. {{ref:thm:main}} is the claim the most others use: eleven of them, namely the comparison at the end of this chapter, the transfer function (chapter 7), the averaged-cost and weighted rules (chapter 8), the first-order sweep (chapter 9), both extensions (chapter 11), and four of the closing claims (chapter 12).
+"""),
+            ("map", "thm:main"),
         ],
     },
     {

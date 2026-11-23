@@ -386,9 +386,6 @@ details.answer > div { padding: 2px 14px 4px; }
 .contents .live .st { color: var(--wb); }
 .contents a:hover .t { text-decoration: underline; text-underline-offset: 0.18em; }
 .contents .soon .t { color: var(--ink-2); }
-.map-slot { margin: 2rem 0; padding: 18px 16px; border: 1px dashed var(--rule); color: var(--ink-2); }
-.map-slot h3 { margin: 0 0 6px; color: var(--ink); }
-.map-slot p { margin: 0; font-size: 0.95rem; }
 
 /* the drawing pad on the contents page */
 .pad svg.chart { touch-action: pan-y; }
@@ -425,3 +422,99 @@ details.answer > div { padding: 2px 14px 4px; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
 }
+
+/* ---------------------------------------------------------------- the claim map (claim-map.js) */
+/* On the paper, not a print: each claim is a small print card. Slate marks what a claim uses and green what uses
+   it, everywhere; the accent fills the claim in hand; this chapter's claims are printed heavier on a gray card. */
+.cmap { position: relative; margin: 1.4rem 0 2rem; font-family: var(--sans); }
+@media (min-width: 1024px) { .col .cmap.is-wide { margin-inline: calc((var(--measure) - min(var(--wide), 100vw - 6rem)) / 2); } }
+.cm-top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 10px 18px; margin-bottom: 10px; }
+.cm-switch .seg-row { border-color: var(--rule); }
+.cm-switch span { color: var(--ink-2); border-right-color: var(--rule); }
+.cm-switch input:checked + span { background: var(--ink); color: var(--paper); }
+.cm-switch input:hover:not(:checked) + span { color: var(--ink); }
+.cm-switch legend { color: var(--ink-2); }
+.cm-key { display: flex; flex-wrap: wrap; gap: 3px 12px; margin: 0; padding: 0; list-style: none; color: var(--ink-2); font: 500 0.76rem/1.3 var(--sans); }
+.cm-key li { margin: 0; }
+.cm-here-key { display: inline-block; width: 14px; height: 10px; margin-right: 6px; vertical-align: -1px; background: var(--print-2); border: 1.5px solid var(--ink); }
+.cm-how { margin: 0 0 10px; color: var(--ink-2); font: 400 0.95rem/1.5 var(--serif); }
+.cm-info { min-height: 2.8em; margin: 10px 0 0; font: 500 0.88rem/1.45 var(--sans); }
+.cm-info a, .cmap .center-card a, .cmap .oitem .m a { color: inherit; text-decoration-color: var(--accent); text-decoration-thickness: 2px; }
+.cmap .node {
+  font: 560 0.78rem/1.2 var(--sans); font-stretch: 88%; color: var(--print-ink); background: var(--print);
+  border: 1px solid var(--print-line); border-radius: 0; padding: 7px 9px; cursor: pointer; text-align: left; min-height: 34px;
+}
+.cmap .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; background: var(--print-dim); box-sizing: border-box; }
+.cmap .dot.s-definition { background: transparent; border: 1.5px solid var(--ink-2); }
+.cmap .dot.s-proved { background: var(--ink); }
+.cmap .dot.s-numerical { background: var(--wb); }
+.cmap .dot.s-formal, .cmap .dot.s-conjecture { background: var(--accent); }
+.cmap .dot.s-cited, .cmap .dot.s-computed { background: var(--pm); }
+.cmap .node.here { background: var(--print-2); border-color: var(--ink); font-weight: 720; }
+.cmap .node.far { opacity: 0.6; font-size: 0.72rem; padding: 5px 7px; min-height: 28px; }
+.cmap .node.on { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.cmap .node.on .dot { background: var(--on-accent); border-color: var(--on-accent); }
+.cmap .node.up { border-color: var(--pm); box-shadow: inset 3px 0 0 var(--pm); }
+.cmap .node.down { border-color: var(--wb); box-shadow: inset 3px 0 0 var(--wb); }
+.cmap .none { font: 500 0.8rem var(--sans); color: var(--ink-2); }
+.cmap .cm-controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 12px; }
+.cmap .cm-select { flex: 1 1 14rem; min-width: 0; }
+.cmap .btn { color: var(--ink); border-color: var(--rule); }
+/* Focus */
+.cm-hood { position: relative; }
+.cm-hood svg, .cm-layers svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+.cm-hood svg path { fill: none; stroke-width: 1.4; }
+.cm-hood svg path.up, .cm-layers svg path.up { stroke: var(--pm); }
+.cm-hood svg path.down, .cm-layers svg path.down { stroke: var(--wb); }
+.hood-row { position: relative; z-index: 1; display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; padding: 10px 0; }
+.hood-row + .hood-row { margin-top: 18px; }
+.hood-tag { width: 100%; text-align: center; font: 650 0.76rem/1 var(--sans); font-stretch: 86%; color: var(--ink-2); }
+.hood-tag span { background: var(--paper); padding: 2px 8px; }
+.hood-row.uses .node { border-color: var(--pm); box-shadow: inset 3px 0 0 var(--pm); }
+.hood-row.usedby .node { border-color: var(--wb); box-shadow: inset 3px 0 0 var(--wb); }
+.cmap .center-card { position: relative; z-index: 1; margin: 22px auto; max-width: 26rem; background: var(--print); border: 1px solid var(--accent); padding: 12px 14px; color: var(--print-ink); }
+.cmap .center-card.here { background: var(--print-2); }
+.cmap .center-card .k { font: 650 0.76rem/1.2 var(--sans); font-stretch: 86%; color: var(--print-dim); }
+.cmap .center-card h3 { font: 720 1.2rem/1.2 var(--sans); font-stretch: 84%; margin: 6px 0 4px; }
+.cmap .center-card p { margin: 0; font: 500 0.82rem/1.45 var(--sans); color: var(--print-dim); }
+/* Layers */
+.cm-layers { position: relative; }
+.cm-layers svg path { fill: none; stroke: var(--rule); stroke-width: 1; }
+.cm-layers svg path.up, .cm-layers svg path.down { stroke-width: 1.6; }
+.cm-layers .layer { position: relative; z-index: 1; display: grid; grid-template-columns: 2rem 1fr; gap: 6px; align-items: start; padding: 8px 0; }
+.cm-layers .layer + .layer { margin-top: 26px; }
+.cm-layers .ln { font: 740 0.9rem/2.2 var(--sans); font-stretch: 78%; color: var(--ink-2); }
+.cm-layers .row { display: flex; flex-wrap: wrap; gap: 6px; }
+.cm-layers.sel .node { opacity: 0.35; }
+.cm-layers.sel .node.on, .cm-layers.sel .node.up, .cm-layers.sel .node.down, .cm-layers.sel .node.here { opacity: 1; }
+/* Outline */
+.cm-outline details { border-top: 1px solid var(--rule); padding: 6px 0; }
+.cm-outline details.here > summary { color: var(--ink); }
+.cm-outline details.here > summary .cn { color: var(--spot); }
+.cm-outline summary { cursor: pointer; font: 700 1rem/1.3 var(--sans); font-stretch: 86%; padding: 8px 0; color: var(--ink); }
+.cm-outline summary .cn { color: var(--ink-2); margin-right: 8px; }
+.cm-outline summary .cc { font: 500 0.76rem var(--sans); color: var(--ink-2); margin-left: 6px; }
+.cm-outline .oitem { padding: 10px 0 10px 12px; border-left: 2px solid var(--rule); margin: 6px 0 6px 4px; scroll-margin-top: 80px; }
+.cm-outline details.here .oitem { border-left-color: var(--ink); }
+.cm-outline .oitem.flash { border-left-color: var(--accent); background: var(--paper-2); }
+.cm-outline .oitem .t { font: 650 0.92rem/1.3 var(--sans); }
+.cm-outline .oitem .m { font: 500 0.76rem/1.45 var(--sans); color: var(--ink-2); }
+.cm-outline .ln2 { display: flex; flex-wrap: wrap; gap: 4px; align-items: baseline; margin-top: 4px; font: 500 0.76rem var(--sans); }
+.cm-outline .ln2 .k { color: var(--ink-2); margin-right: 2px; min-width: 4.6rem; }
+.cm-outline .ln2 a { text-decoration: none; padding: 3px 6px; border: 1px solid var(--rule); color: var(--ink); }
+.cm-outline .ln2.uses a { border-color: var(--pm); }
+.cm-outline .ln2.usedby a { border-color: var(--wb); }
+/* Book path */
+.cm-arcs { position: relative; }
+.cm-arcs svg { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
+.cm-arcs svg path { fill: none; stroke: var(--rule); stroke-width: 1; }
+.cm-arcs svg path.fwd { stroke: var(--hot); stroke-dasharray: 3 3; }
+.cm-arcs svg path.up { stroke: var(--pm); stroke-width: 1.8; stroke-dasharray: none; }
+.cm-arcs svg path.down { stroke: var(--wb); stroke-width: 1.8; stroke-dasharray: none; }
+.cm-arcs svg circle { fill: var(--ink-2); }
+.cm-arcs .astop { position: relative; z-index: 1; display: flex; align-items: center; height: 34px; padding-left: var(--g, 90px); }
+.cm-arcs .astop .node { padding: 4px 8px; min-height: 28px; font-size: 0.76rem; }
+.cm-arcs .achap { position: relative; z-index: 1; height: 34px; display: flex; align-items: flex-end; padding: 0 0 6px var(--g, 90px); font: 720 0.84rem/1 var(--sans); font-stretch: 84%; color: var(--ink-2); }
+.cm-arcs .achap.here { color: var(--ink); }
+.cm-arcs.sel .astop .node { opacity: 0.4; }
+.cm-arcs.sel .astop .node.on, .cm-arcs.sel .astop .node.up, .cm-arcs.sel .astop .node.down, .cm-arcs.sel .astop .node.here { opacity: 1; }

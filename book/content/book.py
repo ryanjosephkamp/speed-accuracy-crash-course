@@ -12,7 +12,7 @@ SCHEDULE_INTRO = r"""Pick a schedule for the cost of time, or draw one. The book
 
 MAP_SLOT = (
     "The claim map",
-    r"""Every result in the paper and what it rests on, as one picture you can walk through, with the book's chapters along it. It arrives with the next chapters.""",
+    r"""Every claim in the paper and the places one uses another: 50 claims and 118 uses. Pick a way to draw it; your browser keeps the choice for every page of the book. A built chapter's claims link to the page that teaches them.""",
 )
 
 # number, title, one line, module (built chapters only)
