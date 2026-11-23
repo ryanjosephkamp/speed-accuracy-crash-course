@@ -1,0 +1,12 @@
+{
+ "repository": "https://github.com/ryanjosephkamp/speed-accuracy-tradeoff",
+ "tag": "paper-v1.2",
+ "commit": "7db71f17d5309e1fa2b4774cc90585c2b13e819f",
+ "files": [
+  "paper/main.tex",
+  "paper/references.bib",
+  "paper/generated/numbers.tex",
+  "paper/generated/tab_sinusoid.tex",
+  "paper/labels.json"
+ ]
+}

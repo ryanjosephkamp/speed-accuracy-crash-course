@@ -1,0 +1,94 @@
+/* The thumb index: a strip of painted tabs down the right edge of the page, one per part of a book (or per section
+   of a page), each in its part's ink, like the cut tabs on a dictionary's fore-edge. A flag names the tab under the
+   pointer or the keyboard's focus. On a touch screen, a thumb pressed on a tab scrubs the strip (thumb-index.js).
+
+   Reads the specimen tokens (--ink, --paper, --ink-2, --ink-3, --rule-2, --shade, --accent-ink, --fat), each with a
+   fallback. Each tab sets its own ink inline: style="--c: <day ink>; --c-night: <night ink>". */
+:root {
+  --ti-top: 60px;     /* where the strip starts: just under a 52 px running head */
+  --ti-paint: 12px;   /* the painted tab's width at rest */
+  --ti-hit: 24px;     /* how far in from the edge a mouse finds a tab */
+  --ti-inset: 0px;    /* how far the painted tab is cut in from the screen's edge */
+  --ti-pad: var(--ti-paint);  /* what the page's column keeps clear on its right */
+}
+.thumb-index {
+  position: fixed; z-index: 45; right: 0; top: var(--ti-top);
+  max-height: calc(100vh - var(--ti-top) - 12px); max-height: calc(100dvh - var(--ti-top) - 12px);
+  width: var(--ti-hit); display: flex; flex-direction: column;
+  /* the strip ends at its last tab, and only the tabs take a press: the rail between them is not a target */
+  pointer-events: none;
+}
+.thumb-index a {
+  --tab: var(--c, var(--ink-3, #66665f));
+  --w: var(--ti-paint);
+  position: relative; flex: 0 1 72px; min-height: 22px; pointer-events: auto;
+}
+.thumb-index a.sec { --w: 8px; flex-basis: 56px; }
+:root[data-theme="dark"] .thumb-index a { --tab: var(--c-night, var(--c, var(--ink-3, #96968f))); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .thumb-index a { --tab: var(--c-night, var(--c, var(--ink-3, #96968f))); }
+}
+/* the painted tab; the link around it is its hit area */
+.thumb-index a::before {
+  content: ""; position: absolute; top: 1px; bottom: 1px; right: var(--ti-inset); width: var(--w);
+  background: var(--tab); transform-origin: 100% 50%; transition: transform 0.14s;
+}
+.thumb-index a:hover::before, .thumb-index a[aria-current]::before, .thumb-index a.is-on::before { transform: scaleX(1.8); }
+/* the focus ring sits inside the tab, so the screen's edge never clips it */
+.thumb-index a:focus-visible { outline: 2px solid var(--accent-ink, #285cc2); outline-offset: -3px; }
+
+/* The flag: a slip of ink beside the strip with the tab's name, its numeral in the part's ink. A clear bridge spans
+   the gap to the strip, so a mouse can cross onto the flag without losing it. */
+.thumb-flag {
+  position: fixed; z-index: 46; right: calc(var(--ti-hit) + 6px); transform: translateY(-50%);
+  display: flex; align-items: baseline; gap: 0.5em;
+  width: max-content; max-width: min(24rem, calc(100vw - var(--ti-hit) - 28px));
+  padding: 6px 10px 7px; background: var(--ink, #121211); color: var(--paper, #f6f6f2);
+  font: 650 0.82rem/1.2 var(--fat, system-ui, sans-serif); font-variation-settings: "opsz" 14;
+  text-wrap: balance; overflow-wrap: anywhere;
+  box-shadow: 0 6px 16px -8px rgba(var(--shade, 18, 18, 17), 0.6);
+  pointer-events: auto;
+}
+.thumb-flag::after { content: ""; position: absolute; top: 0; bottom: 0; left: 100%; width: 8px; }
+.thumb-flag[hidden] { display: none; }
+.thumb-flag .flag-no { font-weight: 800; color: var(--flag-ink, inherit); }
+/* scrubbing with a thumb: a larger flag above and beside the thumb, clear of it */
+.thumb-flag.is-scrub {
+  right: calc(var(--ti-hit) + 20px); max-width: calc(100vw - var(--ti-hit) - 36px); pointer-events: none;
+  padding: 10px 14px 11px; font-size: 1rem; box-shadow: 0 10px 24px -10px rgba(var(--shade, 18, 18, 17), 0.55);
+}
+.thumb-flag.is-scrub::after { display: none; }
+.thumb-flag.is-scrub .flag-no { font-size: 1.3rem; }
+/* slid away from the strip: the slip stays opaque on the lighter ink and says the reader will stay */
+.thumb-flag.is-off { background: var(--ink-2, #50504b); }
+
+/* On a touch screen (any pointer that is a finger, so touch laptops count) the strip is 56 px wide and each tab at
+   least 48 px tall. The painted tab is cut in 30 px from the screen's edge, like a dictionary's notch, so a thumb
+   starts its press outside the system's back-swipe zone (about 24 to 30 px on Android); a thin bleed of the same ink
+   marks the edge. The page's column keeps clear of the strip, so a thumb aimed at a tab can't hit the page's own
+   buttons, and the strip never scrolls the page or opens a callout. */
+@media (any-pointer: coarse) {
+  :root { --ti-top: 58px; --ti-hit: 56px; --ti-inset: 30px; --ti-pad: max(var(--ti-paint), calc(var(--ti-hit) - var(--gutter, 16px))); }
+  .thumb-index { max-height: calc(100vh - var(--ti-top) - 8px); max-height: calc(100dvh - var(--ti-top) - 8px); gap: 4px; touch-action: none; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+  .thumb-index a { min-height: 48px; touch-action: none; -webkit-tap-highlight-color: transparent; }
+  .thumb-index a::before { border-radius: 3px; }
+  .thumb-index a::after { content: ""; position: absolute; top: 1px; bottom: 1px; right: 0; width: 3px; background: var(--tab); opacity: 0.7; }
+  .thumb-index a[aria-current]::before, .thumb-index a.is-on::before { transform: scaleX(1.5); }
+  .thumb-index a[aria-current]::after, .thumb-index a.is-on::after { opacity: 1; }
+  .thumb-flag { pointer-events: none; }
+  /* the page's own column keeps clear of the strip */
+  body:has(> .thumb-index) { padding-right: var(--ti-pad); }
+}
+/* A screen too short for every tab at 48 px (a phone held sideways): the tabs share the height, so every one still
+   shows and the strip still scrubs. */
+@media (any-pointer: coarse) and (max-height: 420px) {
+  .thumb-index { top: 54px; height: calc(100vh - 58px); height: calc(100dvh - 58px); max-height: none; gap: 2px; }
+  .thumb-index a, .thumb-index a.sec { flex: 1 1 0; min-height: 0; }
+}
+/* Forced colors: the tabs keep an outline in the system's colors, and the current one is filled. */
+@media (forced-colors: active) {
+  .thumb-index a::before { border: 1px solid LinkText; }
+  .thumb-index a[aria-current]::before, .thumb-index a.is-on::before { background: Highlight; forced-color-adjust: none; }
+  .thumb-flag { border: 1px solid CanvasText; }
+}
+@media (prefers-reduced-motion: reduce) { .thumb-index a::before { transition: none; } }

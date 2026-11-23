@@ -1,0 +1,11 @@
+{
+  "name": "crash-course",
+  "note": "The Crash Course's chart palette, from the Decision Machine's tokens. paper is the print sheet a figure is drawn for (charts are written transparent); ink the main series and text; ink2 tick labels; ink3 quiet reference lines; axis the spines and ticks; grid the gridlines; accent the look-ahead green; s1 to s4 a slate ramp, darkest first by day and lightest first by night.",
+  "font": {"file": "../../book/assets/fonts/archivo-latin.woff2", "name": "Crash Course Chart", "axes": {"wdth": 90}, "fallback": ["DejaVu Sans"]},
+  "spot": "green",
+  "spots": {"green": ["#0a734f", "#2fd39a"], "slate": ["#56637d", "#8f9bb3"], "rust": ["#b8330a", "#ff6a36"]},
+  "light": {"paper": "#f8f9fa", "ink": "#141518", "ink2": "#555b63", "ink3": "#8a9099", "axis": "#9aa0a6", "grid": "#e1e4e8",
+            "s1": "#141518", "s2": "#3c4a63", "s3": "#6f7f9c", "s4": "#a9b4c8", "mat": "#f8f9fa", "mat_line": "#cbcfd3"},
+  "dark": {"paper": "#000000", "ink": "#eceeea", "ink2": "#9aa0a6", "ink3": "#6b7178", "axis": "#4a5056", "grid": "#1d2023",
+           "s1": "#eceeea", "s2": "#b8c3d6", "s3": "#8592ab", "s4": "#56627a", "mat": "#111315", "mat_line": "#2f3337"}
+}

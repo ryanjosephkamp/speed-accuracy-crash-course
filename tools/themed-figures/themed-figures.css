@@ -1,0 +1,22 @@
+/* Themed figures, the page's side: a figure carries a light and a dark print, and the page shows the one that
+   matches its theme. The theme follows the system until <html data-theme="light"> or "dark" overrides it. Give
+   both images loading="lazy": a browser doesn't fetch a lazy image that isn't displayed, so only one print loads. */
+.fig-night { display: none; }
+:root[data-theme="dark"] .fig-day { display: none; }
+:root[data-theme="dark"] .fig-night { display: block; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .fig-day { display: none; }
+  :root:not([data-theme="light"]) .fig-night { display: block; }
+}
+
+/* A printed plate: the print on its mount (charts are transparent and drawn for the mount's paper), and its
+   caption. By night the mount is the second paper, so the dark print sits a step above the page. */
+.themed-figure { margin: 2.2rem 0; }
+.themed-figure .mount { background: var(--mount, #fcfcfa); padding: 12px; border: 1px solid var(--rule-2, #96968f);
+  box-shadow: 0 1px 2px rgba(var(--shade, 18, 18, 17), 0.08), 0 12px 24px -16px rgba(var(--shade, 18, 18, 17), 0.35); }
+.themed-figure .mount img { width: 100%; height: auto; }
+:root[data-theme="dark"] .themed-figure .mount { background: var(--paper-2, #20201e); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .themed-figure .mount { background: var(--paper-2, #20201e); } }
+.themed-figure figcaption { margin-top: 0.7rem; font-size: 0.9rem; line-height: 1.5; color: var(--ink-2, #50504b); overflow-wrap: anywhere; }
+.themed-figure figcaption b { font: 750 0.8rem/1 var(--fat, system-ui, sans-serif); font-variation-settings: "opsz" 14;
+  letter-spacing: 0.05em; text-transform: uppercase; color: var(--accent-ink, #285cc2); margin-right: 0.35em; }

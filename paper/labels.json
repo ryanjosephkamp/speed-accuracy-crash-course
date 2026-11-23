@@ -1,0 +1,454 @@
+{
+ "cites": {
+  "barendregt2022": {
+   "short": "Barendregt et al.",
+   "year": "2022"
+  },
+  "bogacz2006": {
+   "short": "Bogacz et al.",
+   "year": "2006"
+  },
+  "broadie1997": {
+   "short": "Broadie et al.",
+   "year": "1997"
+  },
+  "campbell2026": {
+   "short": "Campbell and Engelund",
+   "year": "2026"
+  },
+  "chernoff1965": {
+   "short": "Chernoff",
+   "year": "1965"
+  },
+  "churchland2008": {
+   "short": "Churchland et al.",
+   "year": "2008"
+  },
+  "cisek2009": {
+   "short": "Cisek et al.",
+   "year": "2009"
+  },
+  "deangelis2015": {
+   "short": "De Angelis",
+   "year": "2015"
+  },
+  "deangelis2020": {
+   "short": "De Angelis and Peskir",
+   "year": "2020"
+  },
+  "deangelis2024": {
+   "short": "De Angelis and Lamberton",
+   "year": "2026"
+  },
+  "drugowitsch2012": {
+   "short": "Drugowitsch et al.",
+   "year": "2012"
+  },
+  "drugowitsch2014": {
+   "short": "Drugowitsch et al.",
+   "year": "2014"
+  },
+  "durandard2024": {
+   "short": "Durandard and Camboni",
+   "year": "2024"
+  },
+  "ekstrom2015": {
+   "short": "Ekstr\u00f6m and Vaicenavicius",
+   "year": "2015"
+  },
+  "ekstrom2016": {
+   "short": "Ekstr\u00f6m and Janson",
+   "year": "2016"
+  },
+  "fouque2001": {
+   "short": "Fouque et al.",
+   "year": "2001"
+  },
+  "fouque2011": {
+   "short": "Fouque et al.",
+   "year": "2011"
+  },
+  "frazier2007": {
+   "short": "Frazier and Yu",
+   "year": "2008"
+  },
+  "fudenberg2018": {
+   "short": "Fudenberg et al.",
+   "year": "2018"
+  },
+  "gapeev2004": {
+   "short": "Gapeev and Peskir",
+   "year": "2004"
+  },
+  "gold2007": {
+   "short": "Gold and Shadlen",
+   "year": "2007"
+  },
+  "hanks2014": {
+   "short": "Hanks et al.",
+   "year": "2014"
+  },
+  "hawkins2015": {
+   "short": "Hawkins et al.",
+   "year": "2015"
+  },
+  "irle2001": {
+   "short": "Irle et al.",
+   "year": "2001"
+  },
+  "kalburge2026": {
+   "short": "Kalburge et al.",
+   "year": "2026"
+  },
+  "kira2025": {
+   "short": "Kira et al.",
+   "year": "2025"
+  },
+  "kruse2019": {
+   "short": "Kruse and Strack",
+   "year": "2019"
+  },
+  "malhotra2018": {
+   "short": "Malhotra et al.",
+   "year": "2018"
+  },
+  "muravlev2020": {
+   "short": "Muravlev",
+   "year": "2020"
+  },
+  "murphy2016": {
+   "short": "Murphy et al.",
+   "year": "2016"
+  },
+  "palmer2005": {
+   "short": "Palmer et al.",
+   "year": "2005"
+  },
+  "peskir2005b": {
+   "short": "Peskir",
+   "year": "2005"
+  },
+  "peskir2006": {
+   "short": "Peskir and Shiryaev",
+   "year": "2006"
+  },
+  "ratcliff2008": {
+   "short": "Ratcliff and McKoon",
+   "year": "2008"
+  },
+  "revuz1999": {
+   "short": "Revuz and Yor",
+   "year": "1999"
+  },
+  "sannikov2026": {
+   "short": "Sannikov and Zhong",
+   "year": "2026"
+  },
+  "serfaty2018": {
+   "short": "Serfaty and Serra",
+   "year": "2018"
+  },
+  "shiryaev1978": {
+   "short": "Shiryaev",
+   "year": "1978"
+  },
+  "siegmund1979": {
+   "short": "Siegmund",
+   "year": "1979"
+  },
+  "smith2022": {
+   "short": "Smith and Ratcliff",
+   "year": "2022"
+  },
+  "smith2025": {
+   "short": "Smith and Ratcliff",
+   "year": "2025"
+  },
+  "stojanovic1997": {
+   "short": "Stojanovic",
+   "year": "1997"
+  },
+  "tajima2016": {
+   "short": "Tajima et al.",
+   "year": "2016"
+  },
+  "tajima2019": {
+   "short": "Tajima et al.",
+   "year": "2019"
+  },
+  "thura2012": {
+   "short": "Thura et al.",
+   "year": "2012"
+  },
+  "voskuilen2016": {
+   "short": "Voskuilen et al.",
+   "year": "2016"
+  },
+  "wald1948": {
+   "short": "Wald and Wolfowitz",
+   "year": "1948"
+  }
+ },
+ "labels": {
+  "alg:weighted": {
+   "num": "1",
+   "page": "11"
+  },
+  "app:lopsided": {
+   "num": "B",
+   "page": "28"
+  },
+  "app:numerics": {
+   "num": "C",
+   "page": "29"
+  },
+  "app:proofs": {
+   "num": "A",
+   "page": "24"
+  },
+  "conj:loss": {
+   "num": "11",
+   "page": "9"
+  },
+  "cor:limits": {
+   "num": "9",
+   "page": "8"
+  },
+  "cor:transfer": {
+   "num": "8",
+   "page": "8"
+  },
+  "eq:Bprime": {
+   "num": "10",
+   "page": "4"
+  },
+  "eq:constant-bound": {
+   "num": "9",
+   "page": "4"
+  },
+  "eq:envelope": {
+   "num": "12",
+   "page": "6"
+  },
+  "eq:exact": {
+   "num": "13",
+   "page": "6"
+  },
+  "eq:exact-intro": {
+   "num": "4",
+   "page": "3"
+  },
+  "eq:filtered": {
+   "num": "6",
+   "page": "4"
+  },
+  "eq:kernel": {
+   "num": "14",
+   "page": "7"
+  },
+  "eq:loss": {
+   "num": "23",
+   "page": "9"
+  },
+  "eq:main": {
+   "num": "2",
+   "page": "2"
+  },
+  "eq:mean-look-ahead": {
+   "num": "22",
+   "page": "8"
+  },
+  "eq:mixture": {
+   "num": "17",
+   "page": "7"
+  },
+  "eq:per-moment": {
+   "num": "1",
+   "page": "2"
+  },
+  "eq:series": {
+   "num": "16",
+   "page": "7"
+  },
+  "eq:transfer-intro": {
+   "num": "3",
+   "page": "2"
+  },
+  "eq:value": {
+   "num": "8",
+   "page": "4"
+  },
+  "eq:weighted": {
+   "num": "25",
+   "page": "10"
+  },
+  "fig:heldout": {
+   "num": "5",
+   "page": "17"
+  },
+  "fig:kernels": {
+   "num": "2",
+   "page": "9"
+  },
+  "fig:random": {
+   "num": "4",
+   "page": "14"
+  },
+  "fig:showcase": {
+   "num": "1",
+   "page": "5"
+  },
+  "fig:transfer": {
+   "num": "3",
+   "page": "10"
+  },
+  "lem:envelope": {
+   "num": "2",
+   "page": "6"
+  },
+  "lem:kernel": {
+   "num": "6",
+   "page": "7"
+  },
+  "lem:structure": {
+   "num": "1",
+   "page": "4"
+  },
+  "prop:exact": {
+   "num": "4",
+   "page": "6"
+  },
+  "prop:loss": {
+   "num": "10",
+   "page": "9"
+  },
+  "prop:regularity": {
+   "num": "3",
+   "page": "6"
+  },
+  "prop:rule": {
+   "num": "13",
+   "page": "10"
+  },
+  "rem:speed": {
+   "num": "5",
+   "page": "7"
+  },
+  "sec:discussion": {
+   "num": "9",
+   "page": "20"
+  },
+  "sec:exact": {
+   "num": "3",
+   "page": "4"
+  },
+  "sec:experiments": {
+   "num": "6",
+   "page": "11"
+  },
+  "sec:extensions": {
+   "num": "7",
+   "page": "16"
+  },
+  "sec:first-order": {
+   "num": "4",
+   "page": "7"
+  },
+  "sec:heldout": {
+   "num": "6.4",
+   "page": "13"
+  },
+  "sec:intro": {
+   "num": "1",
+   "page": "1"
+  },
+  "sec:lopsided": {
+   "num": "7.2",
+   "page": "17"
+  },
+  "sec:loss": {
+   "num": "4.4",
+   "page": "9"
+  },
+  "sec:loss-check": {
+   "num": "6.5",
+   "page": "14"
+  },
+  "sec:methods": {
+   "num": "6.1",
+   "page": "11"
+  },
+  "sec:model": {
+   "num": "2",
+   "page": "3"
+  },
+  "sec:random": {
+   "num": "6.3",
+   "page": "12"
+  },
+  "sec:related": {
+   "num": "8",
+   "page": "18"
+  },
+  "sec:rule": {
+   "num": "5",
+   "page": "9"
+  },
+  "sec:sinusoid": {
+   "num": "6.2",
+   "page": "12"
+  },
+  "tab:baselines": {
+   "num": "6",
+   "page": "15"
+  },
+  "tab:behavior": {
+   "num": "7",
+   "page": "16"
+  },
+  "tab:grid": {
+   "num": "12",
+   "page": "29"
+  },
+  "tab:heldout": {
+   "num": "5",
+   "page": "15"
+  },
+  "tab:loss": {
+   "num": "8",
+   "page": "16"
+  },
+  "tab:params": {
+   "num": "11",
+   "page": "29"
+  },
+  "tab:random": {
+   "num": "3",
+   "page": "13"
+  },
+  "tab:scaling": {
+   "num": "9",
+   "page": "18"
+  },
+  "tab:showcase": {
+   "num": "4",
+   "page": "14"
+  },
+  "tab:sinusoid": {
+   "num": "1",
+   "page": "12"
+  },
+  "tab:sweep": {
+   "num": "2",
+   "page": "13"
+  },
+  "tab:unknown": {
+   "num": "10",
+   "page": "18"
+  },
+  "thm:main": {
+   "num": "7",
+   "page": "8"
+  }
+ }
+}

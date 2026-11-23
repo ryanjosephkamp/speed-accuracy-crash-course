@@ -1,0 +1,83 @@
+/* The chapter hero: the first screen of a chapter. Its numeral and title, its finding in one sentence set large, a
+   proof (the chapter's own outputs, or a quiet live miniature) that steps through on its own, two or three readings
+   from its data, and chips that jump to its live demos. On a desk it spans the wide track as two columns: words and
+   readings on the left, the proof on the right. chapter-hero.js runs the proof.
+
+   Reads the specimen tokens (--ink, --ink-2, --ink-3, --paper, --paper-2, --rule, --rule-2, --accent-ink, --fat,
+   --serif, --type, --wide), each with a fallback. */
+.hero { margin: 0 0 2.6rem; text-align: left; }
+.hero .kicker { display: flex; align-items: flex-end; gap: 14px; margin: 0 0 1rem; padding-bottom: 12px; border-bottom: 1px solid var(--ink, #121211); }
+.hero .kicker .of { font: 650 0.8rem/1.2 var(--fat, system-ui, sans-serif); font-variation-settings: "opsz" 14; color: var(--ink-2, #50504b); padding-bottom: 6px; }
+.hero h1 { margin: 0 0 0.85rem; }
+/* the finding: the chapter's own sentence, set as a specimen's sample line */
+.hero .finding { font: 400 clamp(1.18rem, 4.7vw, 1.42rem)/1.38 var(--serif, system-ui, sans-serif); letter-spacing: -0.004em; color: var(--ink, #121211); margin: 0 0 1.5rem; max-width: 36ch; text-wrap: pretty; }
+
+/* ---- the proof: a press proof of the chapter's outputs ------------------------------------------ */
+.proof { margin: 0 0 1.5rem; }
+/* the label sits clear of the bottom registration marks, even on two lines */
+.proof-stage { position: relative; background: var(--paper-2, #ececE7); border: 1px solid var(--rule-2, #96968f); padding: 24px clamp(14px, 3vw, 22px) 22px; }
+/* registration marks, 13 px crosshairs in a circle, 5 px in from each corner */
+.proof-stage::before { content: ""; position: absolute; inset: 5px; pointer-events: none; background: var(--ink-3, #66665f);
+  --reg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cg fill='none' stroke='black' stroke-width='1'%3E%3Ccircle cx='7' cy='7' r='3.6'/%3E%3Cpath d='M7 0v14M0 7h14'/%3E%3C/g%3E%3C/svg%3E");
+  -webkit-mask: var(--reg) 0 0 / 13px 13px no-repeat, var(--reg) 100% 0 / 13px 13px no-repeat, var(--reg) 0 100% / 13px 13px no-repeat, var(--reg) 100% 100% / 13px 13px no-repeat;
+          mask: var(--reg) 0 0 / 13px 13px no-repeat, var(--reg) 100% 0 / 13px 13px no-repeat, var(--reg) 0 100% / 13px 13px no-repeat, var(--reg) 100% 100% / 13px 13px no-repeat; }
+.proof-sheet { display: grid; place-items: center; }
+.proof-sheet > * { grid-area: 1 / 1; opacity: 0; visibility: hidden; transition: opacity 0.75s cubic-bezier(0.16, 0.84, 0.24, 1), visibility 0s linear 0.75s; }
+.proof-sheet > .is-shown { opacity: 1; visibility: visible; transition: opacity 0.75s cubic-bezier(0.16, 0.84, 0.24, 1), visibility 0s; }
+.proof-sheet img, .proof-sheet svg { display: block; width: 100%; height: auto; max-height: min(42vh, 360px); object-fit: contain; }
+/* a live miniature draws in place: one item, always shown */
+.proof[data-kind="live"] .proof-sheet > * { opacity: 1; visibility: visible; transition: none; }
+.proof-label { margin: 10px 0 0; min-height: 1.2em; font: 400 0.82rem/1.2 var(--type, ui-monospace, monospace); font-variant-numeric: tabular-nums; color: var(--ink-2, #50504b); }
+/* text outputs: transcripts, answers, log lines */
+.proof-lines { place-items: start stretch; }
+blockquote.proof-item { margin: 0; }
+.proof-who { display: flex; align-items: center; gap: 8px; margin: 0 0 0.55rem; font: 650 0.8rem/1.2 var(--fat, system-ui, sans-serif); font-variation-settings: "opsz" 14; color: var(--ink-2, #50504b); }
+.proof-who::before { content: ""; width: 9px; height: 9px; background: var(--accent-ink, #285cc2); flex: none; }
+.proof-text { margin: 0; font: 400 clamp(1.04rem, 3.9vw, 1.22rem)/1.45 var(--serif, system-ui, sans-serif); color: var(--ink, #121211); text-wrap: pretty; }
+.proof-lines + .proof-label { display: none; }
+/* the proof's tint bar: one step per item, the item on show in the spot ink; a 40 px play or pause button */
+.proof-controls { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+/* the controls keep their room before the script shows them, so nothing below the proof moves */
+.proof-controls[hidden] { display: flex; visibility: hidden; }
+.proof-play { all: unset; box-sizing: border-box; cursor: pointer; flex: none; width: 40px; height: 40px; display: grid; place-items: center; border: 1px solid var(--rule-2, #96968f); background: var(--paper, #f6f6f2); }
+.proof-play::before { content: ""; width: 12px; height: 12px; background: var(--ink, #121211);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2 1h3v10H2zM7 1h3v10H7z'/%3E%3C/svg%3E") center / contain no-repeat;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2 1h3v10H2zM7 1h3v10H7z'/%3E%3C/svg%3E") center / contain no-repeat; }
+.proof-play.is-paused::before { -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 1l8 5-8 5z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 1l8 5-8 5z'/%3E%3C/svg%3E"); }
+.proof-play:hover { border-color: var(--ink, #121211); }
+.proof-play:focus-visible, .proof-steps button:focus-visible { outline: 2px solid var(--accent-ink, #285cc2); outline-offset: 2px; }
+.proof-steps { flex: 1; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 3px; }
+.proof-steps button { all: unset; box-sizing: border-box; cursor: pointer; height: 40px; display: flex; align-items: center; }
+.proof-steps button::before { content: ""; flex: 1; height: 8px; box-sizing: border-box; border: 1.5px solid var(--accent-ink, #285cc2); background: transparent; transition: background-color 0.3s, height 0.2s; }
+.proof-steps button:hover::before { background: color-mix(in srgb, var(--accent-ink, #285cc2) 35%, transparent); }
+.proof-steps button[aria-pressed="true"]::before { height: 14px; background: var(--accent-ink, #285cc2); }
+.proof figcaption { margin: 0.55rem 0 0; font-size: 0.86rem; line-height: 1.45; color: var(--ink-2, #50504b); overflow-wrap: anywhere; }
+
+/* ---- the readings: each number on a rule with a short bar of the spot ink, as a specimen gives its sizes --- */
+.readings { display: grid; grid-template-columns: repeat(auto-fit, minmax(6.4rem, 1fr)); gap: 14px 18px; margin: 0 0 1.5rem; }
+.readings > div { position: relative; display: flex; flex-direction: column-reverse; justify-content: flex-end; gap: 6px; padding-top: 11px; border-top: 1px solid var(--rule-2, #96968f); }
+.readings > div::before { content: ""; position: absolute; left: 0; top: -2px; width: 2.6rem; height: 3px; background: var(--accent-ink, #285cc2); }
+.readings dd { margin: 0; font: 800 clamp(1.45rem, 6.2vw, 2rem)/1 var(--fat, system-ui, sans-serif); font-variation-settings: "opsz" 48; letter-spacing: -0.02em; font-variant-numeric: lining-nums tabular-nums; white-space: nowrap; }
+.readings dt { font-size: 0.84rem; line-height: 1.38; color: var(--ink-2, #50504b); }
+
+/* ---- chips: one per live demo, each with the demo's state mark ----------------------------------- */
+.chips { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 1.1rem; }
+.chips-h { flex-basis: 100%; font: 650 0.8rem/1.2 var(--fat, system-ui, sans-serif); font-variation-settings: "opsz" 14; color: var(--ink-2, #50504b); }
+.chips a { display: inline-flex; align-items: center; gap: 9px; min-height: 40px; padding: 4px 14px 4px 12px; border: 1px solid var(--rule-2, #96968f); background: var(--paper-2, #ececE7); color: inherit; font: 650 0.86rem/1.25 var(--fat, system-ui, sans-serif); font-variation-settings: "opsz" 14; text-decoration: none; transition: border-color 0.15s; }
+.chips a::before { content: ""; flex: none; width: 9px; height: 9px; box-sizing: border-box; border: 1.5px solid var(--ink, #121211); background: var(--ink, #121211); }
+.chips a[data-state="exploration"]::before { background: transparent; }
+.chips a[data-state="computed"]::before { background: linear-gradient(135deg, var(--ink, #121211) 0 50%, transparent 50%); }
+.chips a:hover { border-color: var(--ink, #121211); }
+.chips a:focus-visible { outline: 2px solid var(--accent-ink, #285cc2); outline-offset: 2px; }
+.hero-foot .front { margin: 0.4rem 0 0; font: italic 400 0.95rem/1.5 var(--serif, system-ui, sans-serif); color: var(--ink-2, #50504b); }
+
+/* ---- a desk: two columns on the wide track ------------------------------------------------------- */
+@media (min-width: 1024px) {
+  .hero { width: var(--wide, min(72rem, 92vw)); margin-left: calc((100% - var(--wide, min(72rem, 92vw))) / 2); margin-right: calc((100% - var(--wide, min(72rem, 92vw))) / 2);
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "head proof" "readings proof" "foot proof"; grid-template-rows: auto auto 1fr; column-gap: clamp(36px, 4.5vw, 72px); align-items: start; }
+  .hero-head { grid-area: head; } .proof { grid-area: proof; margin: 0; } .readings { grid-area: readings; } .hero-foot { grid-area: foot; }
+  .proof-sheet img, .proof-sheet svg { max-height: min(60vh, 560px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .proof-sheet > *, .proof-sheet > .is-shown, .proof-steps button::before, .chips a { transition: none; }
+}

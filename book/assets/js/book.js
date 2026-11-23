@@ -1,0 +1,159 @@
+// What every page of the book shares: the theme and depth switches, the contents menu, the reading line, the
+// reader's schedule (kept in this browser), the solver's worker, plates that wake when they reach the screen,
+// and lifting a live plate into the figure viewer.
+import { defaultChoice } from "./schedules-book.js";
+
+const root = document.documentElement;
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* private mode: the page still works */ } },
+};
+
+export const calm = window.matchMedia("(prefers-reduced-motion: reduce)");
+export const params = new URLSearchParams(location.search);
+export const seedParam = (fallback) => { const s = parseInt(params.get("seed"), 10); return Number.isFinite(s) ? s : fallback; };
+
+// ---- the schedule the reader chose -----------------------------------------------------------------------
+const KEY = "cc-schedule";
+export function getChoice() {
+  try { const c = JSON.parse(store.get(KEY)); if (c && typeof c.id === "string") return c; } catch (e) { /* fall through */ }
+  return defaultChoice();
+}
+export function setChoice(c) {
+  store.set(KEY, JSON.stringify(c));
+  window.dispatchEvent(new CustomEvent("cc-schedule", { detail: c }));
+}
+
+// ---- the solver ------------------------------------------------------------------------------------------
+let worker = null, nextId = 1;
+const pending = new Map();
+function getWorker() {
+  if (worker) return worker;
+  worker = new Worker(new URL("./dp-worker.js", import.meta.url), { type: "module" });
+  worker.onmessage = (e) => {
+    const m = e.data, p = pending.get(m.id);
+    if (!p) return;
+    if (m.progress !== undefined) { p.progress?.(m.progress); return; }
+    pending.delete(m.id);
+    if (m.ok) p.resolve(m); else p.reject(new Error(m.error));
+  };
+  return worker;
+}
+/** Run a job in the worker; a newer job with the same key makes the older one's answer be ignored. */
+const latest = new Map();
+export function solve(job, { key = null, progress = null } = {}) {
+  const id = nextId++;
+  if (key) latest.set(key, id);
+  return new Promise((resolve, reject) => {
+    pending.set(id, { resolve, reject, progress });
+    getWorker().postMessage({ ...job, id });
+  }).then((m) => { if (key && latest.get(key) !== id) throw new Error("superseded"); return m; });
+}
+
+// ---- plates wake on screen -----------------------------------------------------------------------------------
+export function onVisible(el, fn, margin = "300px") {
+  if (!("IntersectionObserver" in window)) { fn(); return; }
+  const io = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) { io.disconnect(); fn(); } }, { rootMargin: margin });
+  io.observe(el);
+}
+/** Track whether an element is on screen (for animations that pause off screen). */
+export function watchVisible(el, cb) {
+  if (!("IntersectionObserver" in window)) { cb(true); return; }
+  new IntersectionObserver((es) => cb(es[es.length - 1].isIntersecting), { threshold: 0.05 }).observe(el);
+}
+
+// ---- lifting a live plate --------------------------------------------------------------------------------
+const STYLE_PROPS = ["fill", "stroke", "stroke-width", "stroke-dasharray", "stroke-linecap", "stroke-linejoin", "opacity",
+  "fill-opacity", "stroke-opacity", "font-size", "font-weight", "font-family", "letter-spacing", "paint-order", "text-anchor"];
+function inlineStyles(src, dst) {
+  const a = [src, ...src.querySelectorAll("*")], b = [dst, ...dst.querySelectorAll("*")];
+  a.forEach((el, i) => {
+    const cs = getComputedStyle(el);
+    const style = STYLE_PROPS.map((p) => `${p}:${cs.getPropertyValue(p)}`).join(";");
+    b[i].setAttribute("style", style);
+    if (el.tagName.toLowerCase() === "text" && cs.textTransform === "uppercase") b[i].textContent = el.textContent.toUpperCase();
+    b[i].removeAttribute("class");
+  });
+}
+/** The plate's charts as one picture, in the colors on screen, for the figure viewer. */
+export function plateImage(stage) {
+  const charts = [...stage.querySelectorAll("svg.chart")].filter((s) => s.getClientRects().length);
+  if (!charts.length) return null;
+  const bg = getComputedStyle(stage).backgroundColor;
+  const W = Math.max(...charts.map((c) => c.viewBox.baseVal.width));
+  let y = 12, inner = "";
+  for (const c of charts) {
+    const clone = c.cloneNode(true);
+    inlineStyles(c, clone);
+    const w = c.viewBox.baseVal.width, h = c.viewBox.baseVal.height;
+    clone.setAttribute("x", String((W - w) / 2)); clone.setAttribute("y", String(y));
+    clone.setAttribute("width", String(w)); clone.setAttribute("height", String(h));
+    inner += new XMLSerializer().serializeToString(clone);
+    y += h + 14;
+  }
+  const H = y - 2;
+  const doc = `<svg xmlns="http://www.w3.org/2000/svg" width="${(W + 24) * 2}" height="${H * 2}" viewBox="-12 0 ${W + 24} ${H}"><rect x="-12" y="0" width="${W + 24}" height="${H}" fill="${bg}"/>${inner}</svg>`;
+  return URL.createObjectURL(new Blob([doc], { type: "image/svg+xml" }));
+}
+function wireLift(btn) {
+  const fig = btn.closest("figure");
+  const stage = btn.closest(".plate-live-stage");
+  btn.hidden = false;
+  btn.addEventListener("click", () => {
+    const url = plateImage(stage);
+    if (!url || !window.FigurePopOut) return;
+    const night = getComputedStyle(root).colorScheme === "dark";
+    const title = fig.querySelector("h3")?.textContent || "Plate";
+    window.FigurePopOut.open(fig, { src: url, alt: fig.getAttribute("aria-label") || title, opener: btn, night, title,
+      pageWidth: stage.getBoundingClientRect().width });
+  });
+}
+
+// ---- the bar ---------------------------------------------------------------------------------------------
+function menus() {
+  const pairs = [["toc-btn", "toc-menu"], ["theme-btn", "theme-menu"]].map(([b, m]) => [document.getElementById(b), document.getElementById(m)]).filter(([b, m]) => b && m);
+  const close = (except) => pairs.forEach(([b, m]) => { if (m !== except) { m.hidden = true; b.setAttribute("aria-expanded", "false"); } });
+  pairs.forEach(([b, m]) => {
+    b.addEventListener("click", (e) => { e.stopPropagation(); const open = m.hidden; close(m); m.hidden = !open; b.setAttribute("aria-expanded", String(open)); });
+    m.addEventListener("click", (e) => e.stopPropagation());
+  });
+  document.addEventListener("click", () => close(null));
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") close(null); });
+  document.querySelectorAll("#toc-menu a").forEach((a) => a.addEventListener("click", () => close(null)));
+}
+function theme() {
+  const saved = store.get("cc-theme");
+  const radios = document.querySelectorAll("#theme-menu input[name=theme]");
+  radios.forEach((r) => {
+    r.checked = r.value === (saved === "light" || saved === "dark" ? saved : "system");
+    r.addEventListener("change", () => {
+      if (r.value === "system") { root.removeAttribute("data-theme"); store.set("cc-theme", "system"); }
+      else { root.setAttribute("data-theme", r.value); store.set("cc-theme", r.value); }
+      window.dispatchEvent(new Event("cc-theme"));
+    });
+  });
+}
+function depth() {
+  const btns = document.querySelectorAll(".depth button");
+  const mark = () => btns.forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.depth === root.dataset.depth)));
+  btns.forEach((b) => b.addEventListener("click", () => {
+    // keep the reader's place: the first visible block stays where it is
+    const anchor = [...document.querySelectorAll("main p, main h2, main figure")].find((el) => el.getBoundingClientRect().top > 56);
+    const before = anchor?.getBoundingClientRect().top;
+    root.dataset.depth = b.dataset.depth; store.set("cc-depth", b.dataset.depth); mark();
+    if (anchor && anchor.getClientRects().length) window.scrollBy(0, anchor.getBoundingClientRect().top - before);
+  }));
+  mark();
+}
+function readingLine() {
+  const bar = document.querySelector(".bar-scale span");
+  if (!bar) return;
+  let raf = 0;
+  const set = () => { raf = 0; const h = document.documentElement.scrollHeight - innerHeight; bar.style.width = (h > 0 ? Math.min(1, scrollY / h) * 100 : 0) + "%"; };
+  addEventListener("scroll", () => { if (!raf) raf = requestAnimationFrame(set); }, { passive: true });
+  set();
+}
+
+menus(); theme(); depth(); readingLine();
+// live plates get a lift button once their charts are drawn
+export function liftReady(fig) { const b = fig.querySelector(".btn-lift"); if (b && b.hidden) wireLift(b); }

@@ -1,0 +1,236 @@
+
+<html lang="en" data-book="speed-accuracy-crash-course" data-leaf="0">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Waiting, weighted: A crash course in the paper</title>
+<meta name="description" content="How the best moment to decide moves when time gets more expensive, worked through one result at a time on a cost schedule of your own. The figures are computed in the page from the paper&#x27;s equations, and a check script holds the numbers to the paper&#x27;s.">
+<meta name="theme-color" content="#eef0f2" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0d0e0f" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<script>
+(function () {
+  var d = document.documentElement;
+  try { var t = localStorage.getItem("cc-theme"); if (t === "light" || t === "dark") d.setAttribute("data-theme", t); } catch (e) {}
+  try { var p = localStorage.getItem("cc-depth"); d.setAttribute("data-depth", p === "both" || p === "exact" ? p : "plain"); } catch (e) { d.setAttribute("data-depth", "plain"); }
+})();
+</script>
+<script src="assets/js/page-turn.js?v=f89c176a9c"></script>
+<link rel="preload" href="assets/fonts/source-serif-4-latin.woff2" as="font" type="font/woff2" crossorigin="">
+<link rel="preload" href="assets/fonts/archivo-latin.woff2" as="font" type="font/woff2" crossorigin="">
+<link rel="stylesheet" href="assets/css/page-turn.css?v=f89c176a9c">
+<link rel="stylesheet" href="assets/css/thumb-index.css?v=f89c176a9c">
+<link rel="stylesheet" href="assets/css/figure-pop-out.css?v=f89c176a9c">
+<link rel="stylesheet" href="assets/css/chapter-hero.css?v=f89c176a9c">
+<link rel="stylesheet" href="assets/css/plate.css?v=f89c176a9c">
+<link rel="stylesheet" href="assets/css/book.css?v=f89c176a9c">
+<style id="MJX-SVG-styles">
+mjx-container[jax="SVG"] {
+  direction: ltr;
+}
+
+mjx-container[jax="SVG"] > svg {
+  overflow: visible;
+  min-height: 1px;
+  min-width: 1px;
+}
+
+mjx-container[jax="SVG"] > svg a {
+  fill: blue;
+  stroke: blue;
+}
+
+mjx-assistive-mml {
+  position: absolute !important;
+  top: 0px;
+  left: 0px;
+  clip: rect(1px, 1px, 1px, 1px);
+  padding: 1px 0px 0px 0px !important;
+  border: 0px !important;
+  display: block !important;
+  width: auto !important;
+  overflow: hidden !important;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+mjx-assistive-mml[display="block"] {
+  width: 100% !important;
+}
+
+mjx-container[jax="SVG"][display="true"] {
+  display: block;
+  text-align: center;
+  margin: 1em 0;
+}
+
+mjx-container[jax="SVG"][display="true"][width="full"] {
+  display: flex;
+}
+
+mjx-container[jax="SVG"][justify="left"] {
+  text-align: left;
+}
+
+mjx-container[jax="SVG"][justify="right"] {
+  text-align: right;
+}
+
+g[data-mml-node="merror"] > g {
+  fill: red;
+  stroke: red;
+}
+
+g[data-mml-node="merror"] > rect[data-background] {
+  fill: yellow;
+  stroke: none;
+}
+
+g[data-mml-node="mtable"] > line[data-line], svg[data-table] > g > line[data-line] {
+  stroke-width: 70px;
+  fill: none;
+}
+
+g[data-mml-node="mtable"] > rect[data-frame], svg[data-table] > g > rect[data-frame] {
+  stroke-width: 70px;
+  fill: none;
+}
+
+g[data-mml-node="mtable"] > .mjx-dashed, svg[data-table] > g > .mjx-dashed {
+  stroke-dasharray: 140;
+}
+
+g[data-mml-node="mtable"] > .mjx-dotted, svg[data-table] > g > .mjx-dotted {
+  stroke-linecap: round;
+  stroke-dasharray: 0,140;
+}
+
+g[data-mml-node="mtable"] > g > svg {
+  overflow: visible;
+}
+
+[jax="SVG"] mjx-tool {
+  display: inline-block;
+  position: relative;
+  width: 0;
+  height: 0;
+}
+
+[jax="SVG"] mjx-tool > mjx-tip {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+mjx-tool > mjx-tip {
+  display: inline-block;
+  padding: .2em;
+  border: 1px solid #888;
+  font-size: 70%;
+  background-color: #F8F8F8;
+  color: black;
+  box-shadow: 2px 2px 5px #AAAAAA;
+}
+
+g[data-mml-node="maction"][data-toggle] {
+  cursor: pointer;
+}
+
+mjx-status {
+  display: block;
+  position: fixed;
+  left: 1em;
+  bottom: 1em;
+  min-width: 25%;
+  padding: .2em .4em;
+  border: 1px solid #888;
+  font-size: 90%;
+  background-color: #F8F8F8;
+  color: black;
+}
+
+foreignObject[data-mjx-xml] {
+  font-family: initial;
+  line-height: normal;
+  overflow: visible;
+}
+
+mjx-container[jax="SVG"] path[data-c], mjx-container[jax="SVG"] use[data-c] {
+  stroke-width: 3;
+}
+</style></head>
+<body>
+<a class="skip" href="#main">Skip to the text</a>
+<header class="bar page-turn-hold">
+  <a class="bar-title" href="index.html">Waiting, weighted · Crash Course</a>
+  <div class="depth" role="group" aria-label="How much of the paper's text to show">
+    <button type="button" data-depth="plain" aria-pressed="false">Plain</button><button type="button" data-depth="both" aria-pressed="false">Both</button><button type="button" data-depth="exact" aria-pressed="false">Exact</button>
+  </div>
+  <button class="bar-btn" type="button" id="toc-btn" aria-expanded="false" aria-controls="toc-menu" aria-label="Contents">
+    <svg viewBox="0 0 18 18" aria-hidden="true"><path d="M3 4.5h12M3 9h12M3 13.5h12"></path></svg></button>
+  <button class="bar-btn" type="button" id="theme-btn" aria-expanded="false" aria-controls="theme-menu" aria-label="Light or dark">
+    <svg viewBox="0 0 18 18" aria-hidden="true"><path class="drop" d="M9 2.2c2.6 3.2 4.6 5.6 4.6 8.2A4.6 4.6 0 0 1 4.4 10.4C4.4 7.8 6.4 5.4 9 2.2Z"></path></svg></button>
+  <div class="menu" id="toc-menu" hidden=""><h2>Contents</h2><ol><li><a class="soon" href="index.html#ch-0"><span>0</span>How to read this book</a></li><li><a class="soon" href="index.html#ch-1"><span>1</span>The question, from the 2025 capstone</a></li><li><a class="soon" href="index.html#ch-2"><span>2</span>The ideas you need</a></li><li><a class="soon" href="index.html#ch-3"><span>3</span>The model</a></li><li><a class="soon" href="index.html#ch-4"><span>4</span>The best bound and its shape</a></li><li><a class="soon" href="index.html#ch-5"><span>5</span>An exact equation for the bound</a></li><li><a href="kernel/index.html"><span>6</span>The kernel and the theorem</a></li><li><a class="soon" href="index.html#ch-7"><span>7</span>What the kernel says</a></li><li><a class="soon" href="index.html#ch-8"><span>8</span>The weighted look-ahead rule</a></li><li><a class="soon" href="index.html#ch-9"><span>9</span>How the paper measures</a></li><li><a class="soon" href="index.html#ch-10"><span>10</span>The rules on random schedules</a></li><li><a class="soon" href="index.html#ch-11"><span>11</span>Unknown reliability and unequal rewards</a></li><li><a class="soon" href="index.html#ch-12"><span>12</span>The prediction, the prior work, and what's open</a></li><li><a class="soon" href="index.html#ch-A"><span>A</span>The proofs</a></li><li><a class="soon" href="index.html#ch-B"><span>B</span>The numerics</a></li></ol></div>
+  <div class="menu" id="theme-menu" hidden=""><h2>Printing</h2>
+    <fieldset class="seg"><legend class="vh">Theme</legend><div class="seg-row">
+      <label><input type="radio" name="theme" value="system"><span>System</span></label>
+      <label><input type="radio" name="theme" value="light"><span>Day</span></label>
+      <label><input type="radio" name="theme" value="dark"><span>Night</span></label></div></fieldset>
+    <p>The figures and plates switch with the page.</p></div>
+  <div class="bar-scale" aria-hidden="true"><span></span></div>
+</header>
+<nav class="thumb-index" aria-label="Thumb index"><a href="index.html" aria-label="Contents" data-flag="Contents" aria-current="page"></a><a href="kernel/index.html" style="--c:#0a734f;--c-night:#2fd39a" aria-label="Chapter 6: The kernel and the theorem" data-flag="6 · The kernel and the theorem"></a></nav>
+<main id="main">
+<div class="col">
+<header class="title-page">
+<p class="kicker">Ryan Kamp</p>
+<h1>Waiting, weighted<span class="sub">A crash course in the paper</span></h1>
+<p class="lede">How the best moment to decide moves when time gets more expensive, worked through one result at a time on a cost schedule of your own. The figures are computed in the page from the paper's equations, and a check script holds the numbers to the paper's.</p>
+<p class="byline"><strong>Working draft.</strong> Chapter 6 is the first chapter built; the others follow.</p>
+</header>
+<section class="sec" id="schedule" aria-labelledby="h-schedule">
+<h2 id="h-schedule">Your schedule</h2>
+<p>Pick a schedule for the cost of time, or draw one. The book keeps it and uses it in every chapter. Under it is the best bound for your schedule, solved in this page by dynamic programming, beside the per-moment rule's bound.</p>
+<figure class="plate-live is-wide" id="plate-schedule" data-demo="schedule" aria-label="Live: your schedule and its best bound">
+<div class="plate-live-stage"><div class="grain" aria-hidden="true"></div>
+<button class="btn-lift" type="button" aria-label="Lift the schedule off the page to look closer" hidden=""><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 2h4v4M14 2l-5 5M6 14H2v-4M2 14l5-5"></path></svg></button>
+<h3>Your schedule</h3>
+<p class="plate-state" data-state="computed">Computed in the page: the best bound by dynamic programming on a grid</p>
+<div class="demo-root"></div><p class="plate-checked">Checked November 23, 2026: 7 of 7 checks of this plate's model against the paper's numbers and code pass, of 59 for the book.</p></div>
+<figcaption><b>Live.</b> <span class="cap">Top: the cost of time, on a log scale (orange). Bottom: the best bound for it (ink), from a dynamic program that checks the evidence every 0.01 time units on a grid of 0.02 and runs 6 time units past the window, and the per-moment rule's bound, <mjx-container class="MathJax" jax="SVG" style="position: relative;"><svg style="vertical-align: -0.566ex;" xmlns="http://www.w3.org/2000/svg" width="7.034ex" height="2.262ex" role="img" focusable="false" viewBox="0 -750 3109 1000" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true"><g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)"><g data-mml-node="math"><g data-mml-node="mi"><use data-c="1D435" xlink:href="#MJX-TEX-I-1D435"></use></g><g data-mml-node="mo" transform="translate(759,0)"><use data-c="28" xlink:href="#MJX-TEX-N-28"></use></g><g data-mml-node="mi" transform="translate(1148,0)"><use data-c="1D450" xlink:href="#MJX-TEX-I-1D450"></use></g><g data-mml-node="mo" transform="translate(1581,0)"><use data-c="28" xlink:href="#MJX-TEX-N-28"></use></g><g data-mml-node="mi" transform="translate(1970,0)"><use data-c="1D461" xlink:href="#MJX-TEX-I-1D461"></use></g><g data-mml-node="mo" transform="translate(2331,0)"><use data-c="29" xlink:href="#MJX-TEX-N-29"></use></g><g data-mml-node="mo" transform="translate(2720,0)"><use data-c="29" xlink:href="#MJX-TEX-N-29"></use></g></g></g></svg><mjx-assistive-mml unselectable="on" display="inline"><math xmlns="http://www.w3.org/1998/Math/MathML"><mi>B</mi><mo stretchy="false">(</mo><mi>c</mi><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo><mo stretchy="false">)</mo></math></mjx-assistive-mml></mjx-container> moved in by the same check's shift (dashed). Draw your own by dragging across the top chart.</span></figcaption>
+</figure>
+</section>
+<section class="sec" id="contents" aria-labelledby="h-contents">
+<h2 id="h-contents">Contents</h2>
+<ol class="contents"><li class="soon" id="ch-0"><div class="row"><span class="n">0</span><span class="t">How to read this book</span><span class="st">Coming</span><span class="d">Your schedule, the five ideas each in one screen, and which of the paper's sentences are theorems.</span></div></li><li class="soon" id="ch-1"><div class="row"><span class="n">1</span><span class="t">The question, from the 2025 capstone</span><span class="st">Coming</span><span class="d">The per-moment shortcut, Figure 1's four schedules, and where the bound sits before a rise.</span></div></li><li class="soon" id="ch-2"><div class="row"><span class="n">2</span><span class="t">The ideas you need</span><span class="st">Coming</span><span class="d">Noisy evidence, belief, folding the problem in half, and two starts on the same noise.</span></div></li><li class="soon" id="ch-3"><div class="row"><span class="n">3</span><span class="t">The model</span><span class="st">Coming</span><span class="d">What a decision earns, which costs the theory allows, the value of waiting, and the flat bound.</span></div></li><li class="soon" id="ch-4"><div class="row"><span class="n">4</span><span class="t">The best bound and its shape</span><span class="st">Coming</span><span class="d">One level at each moment, a band it can't leave, and what starting later costs.</span></div></li><li class="soon" id="ch-5"><div class="row"><span class="n">5</span><span class="t">An exact equation for the bound</span><span class="st">Coming</span><span class="d">The cost at the moment of decision, and why the equation has no derivative of the bound.</span></div></li><li class="live" id="ch-6"><a href="kernel/index.html"><span class="n">6</span><span class="t">The kernel and the theorem</span><span class="st">Read</span><span class="d">The weights on the future, two ways to see them, their transform, and the first-order theorem.</span></a></li><li class="soon" id="ch-7"><div class="row"><span class="n">7</span><span class="t">What the kernel says</span><span class="st">Coming</span><span class="d">The transfer function, how far ahead the bound looks, half-integration, and second-order loss.</span></div></li><li class="soon" id="ch-8"><div class="row"><span class="n">8</span><span class="t">The weighted look-ahead rule</span><span class="st">Coming</span><span class="d">Averaging bounds instead of costs, a bound defined by itself, and why it is first-order exact.</span></div></li><li class="soon" id="ch-9"><div class="row"><span class="n">9</span><span class="t">How the paper measures</span><span class="st">Coming</span><span class="d">The reference program, scoring without sampling, the monitoring shift, and the theory checked.</span></div></li><li class="soon" id="ch-10"><div class="row"><span class="n">10</span><span class="t">The rules on random schedules</span><span class="st">Coming</span><span class="d">Ninety design schedules, the held-out set run once, five more rules, and a conjecture tested.</span></div></li><li class="soon" id="ch-11"><div class="row"><span class="n">11</span><span class="t">Unknown reliability and unequal rewards</span><span class="st">Coming</span><span class="d">The rules in information time, and two bounds when the rewards differ.</span></div></li><li class="soon" id="ch-12"><div class="row"><span class="n">12</span><span class="t">The prediction, the prior work, and what's open</span><span class="st">Coming</span><span class="d">What an urgency signal should do, what is new and what isn't, and the open questions.</span></div></li><li class="soon" id="ch-A"><div class="row"><span class="n">A</span><span class="t">The proofs</span><span class="st">Coming</span><span class="d">Every proof in the paper, in full, as steps you scrub.</span></div></li><li class="soon" id="ch-B"><div class="row"><span class="n">B</span><span class="t">The numerics</span><span class="st">Coming</span><span class="d">The grids, the horizons, and how stable the numbers are.</span></div></li></ol>
+</section>
+<section class="map-slot" id="map" aria-labelledby="h-map"><h3 id="h-map">The claim map</h3><p>Every result in the paper and what it rests on, as one picture you can walk through, with the book's chapters along it. It arrives with the next chapters.</p></section>
+</div>
+</main>
+<nav class="turn" aria-label="Turn the page"><a class="next" rel="next" href="kernel/index.html" style="--accent:#0a734f;--accent-night:#2fd39a"><span class="dir">First chapter built</span><span class="no">6</span><span class="name">The kernel and the theorem</span></a></nav>
+<footer class="foot"><div class="foot-inner">
+<p class="src-line">Built from the paper's source at <a href="https://github.com/ryanjosephkamp/speed-accuracy-tradeoff/tree/paper-v1.2"><code>paper-v1.2</code></a> (7db71f1). <a href="https://github.com/ryanjosephkamp/speed-accuracy-tradeoff/blob/main/paper/main.pdf">Read the paper</a>.</p>
+<div class="site-credit">
+  <p class="site-credit-made">Made by <a href="https://ryanjosephkamp.github.io/">Ryan Kamp</a></p>
+  <ul class="site-credit-social" aria-label="Ryan Kamp online">
+    <li><a href="https://ryanjosephkamp.github.io/" aria-label="Ryan Kamp’s website" title="Website"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.2"></circle><path d="M2.8 12h18.4M12 2.8c2.6 2.6 3.9 5.7 3.9 9.2s-1.3 6.6-3.9 9.2c-2.6-2.6-3.9-5.7-3.9-9.2S9.4 5.4 12 2.8Z"></path></g></svg></a></li>
+    <li><a href="https://github.com/ryanjosephkamp/" aria-label="Ryan Kamp on GitHub" title="GitHub"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"></path></svg></a></li>
+    <li><a href="https://www.linkedin.com/in/ryanjosephkamp/" aria-label="Ryan Kamp on LinkedIn" title="LinkedIn"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"></path></svg></a></li>
+    <li><a href="https://x.com/ryanjosephkamp" aria-label="Ryan Kamp on X" title="X"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"></path></svg></a></li>
+    <li><a href="https://m.youtube.com/@RyanJosephKamp" aria-label="Ryan Kamp on YouTube" title="YouTube"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"></path></svg></a></li>
+  </ul>
+  <a class="site-credit-sponsor" href="https://github.com/sponsors/ryanjosephkamp"><svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M10 16.8S3 12.6 3 7.6A3.6 3.6 0 0 1 10 6a3.6 3.6 0 0 1 7 1.6c0 5-7 9.2-7 9.2Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"></path></svg>Sponsor on GitHub</a>
+</div>
+
+</div></footer>
+<script src="assets/js/thumb-index.js?v=f89c176a9c" defer=""></script>
+<script src="assets/js/figure-pop-out.js?v=f89c176a9c" defer=""></script>
+<script type="module" src="assets/js/book.js?v=f89c176a9c"></script>
+<script type="module" src="assets/js/contents.js?v=f89c176a9c"></script>
+<svg style="display: none;" id="MJX-SVG-global-cache"><defs><path id="MJX-TEX-I-1D435" d="M231 637Q204 637 199 638T194 649Q194 676 205 682Q206 683 335 683Q594 683 608 681Q671 671 713 636T756 544Q756 480 698 429T565 360L555 357Q619 348 660 311T702 219Q702 146 630 78T453 1Q446 0 242 0Q42 0 39 2Q35 5 35 10Q35 17 37 24Q42 43 47 45Q51 46 62 46H68Q95 46 128 49Q142 52 147 61Q150 65 219 339T288 628Q288 635 231 637ZM649 544Q649 574 634 600T585 634Q578 636 493 637Q473 637 451 637T416 636H403Q388 635 384 626Q382 622 352 506Q352 503 351 500L320 374H401Q482 374 494 376Q554 386 601 434T649 544ZM595 229Q595 273 572 302T512 336Q506 337 429 337Q311 337 310 336Q310 334 293 263T258 122L240 52Q240 48 252 48T333 46Q422 46 429 47Q491 54 543 105T595 229Z"></path><path id="MJX-TEX-N-28" d="M94 250Q94 319 104 381T127 488T164 576T202 643T244 695T277 729T302 750H315H319Q333 750 333 741Q333 738 316 720T275 667T226 581T184 443T167 250T184 58T225 -81T274 -167T316 -220T333 -241Q333 -250 318 -250H315H302L274 -226Q180 -141 137 -14T94 250Z"></path><path id="MJX-TEX-I-1D450" d="M34 159Q34 268 120 355T306 442Q362 442 394 418T427 355Q427 326 408 306T360 285Q341 285 330 295T319 325T330 359T352 380T366 386H367Q367 388 361 392T340 400T306 404Q276 404 249 390Q228 381 206 359Q162 315 142 235T121 119Q121 73 147 50Q169 26 205 26H209Q321 26 394 111Q403 121 406 121Q410 121 419 112T429 98T420 83T391 55T346 25T282 0T202 -11Q127 -11 81 37T34 159Z"></path><path id="MJX-TEX-I-1D461" d="M26 385Q19 392 19 395Q19 399 22 411T27 425Q29 430 36 430T87 431H140L159 511Q162 522 166 540T173 566T179 586T187 603T197 615T211 624T229 626Q247 625 254 615T261 596Q261 589 252 549T232 470L222 433Q222 431 272 431H323Q330 424 330 420Q330 398 317 385H210L174 240Q135 80 135 68Q135 26 162 26Q197 26 230 60T283 144Q285 150 288 151T303 153H307Q322 153 322 145Q322 142 319 133Q314 117 301 95T267 48T216 6T155 -11Q125 -11 98 4T59 56Q57 64 57 83V101L92 241Q127 382 128 383Q128 385 77 385H26Z"></path><path id="MJX-TEX-N-29" d="M60 749L64 750Q69 750 74 750H86L114 726Q208 641 251 514T294 250Q294 182 284 119T261 12T224 -76T186 -143T145 -194T113 -227T90 -246Q87 -249 86 -250H74Q66 -250 63 -250T58 -247T55 -238Q56 -237 66 -225Q221 -64 221 250T66 725Q56 737 55 738Q55 746 60 749Z"></path></defs></svg></body>
+</html>

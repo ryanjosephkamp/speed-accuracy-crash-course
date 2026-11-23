@@ -1,0 +1,9 @@
+{
+  "name": "crash-course-math",
+  "private": true,
+  "type": "module",
+  "description": "Renders the book's TeX to SVG at build time.",
+  "dependencies": {
+    "mathjax-full": "3.2.2"
+  }
+}

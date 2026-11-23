@@ -1,0 +1,87 @@
+/* The live plate: a press proof every demo is printed on. A gray stage with a 1 px rule, registration marks
+   (13 px crosshairs in a circle) 5 px in from each corner, and a 72 by 7 px tint bar of the spot ink at 100, 70,
+   40, and 15%. Under the title, a 10 px square says what the plate shows, and the words say it too: solid for
+   measured values, half for values computed in the page, open for an exploration of settings. Then the plate's
+   own instrument, its caption, and the line its check wrote.
+
+   It reads the specimen tokens (library/specimen-look) and falls back to their day values. The controls below
+   (.plate-btn, .plate-seg, .plate-range, .plate-readings, .plate-say, .plate-fine) are shared by every template
+   in the kit, so a new plate looks like the others without its own button styles. */
+
+.plate-live { margin: 2.4rem 0; }
+.plate-live-stage {
+  position: relative; color: var(--ink, #121211); background: var(--paper-2, #ececE7); border: 1px solid var(--rule-2, #96968f);
+  padding: clamp(22px, 3.4vw, 30px) clamp(16px, 3vw, 28px) clamp(22px, 3vw, 28px);
+}
+/* registration marks, one per corner */
+.plate-live-stage::before {
+  content: ""; position: absolute; inset: 5px; pointer-events: none; background: var(--ink-3, #66665f);
+  --reg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cg fill='none' stroke='black' stroke-width='1'%3E%3Ccircle cx='7' cy='7' r='3.6'/%3E%3Cpath d='M7 0v14M0 7h14'/%3E%3C/g%3E%3C/svg%3E");
+  -webkit-mask: var(--reg) 0 0 / 13px 13px no-repeat, var(--reg) 100% 0 / 13px 13px no-repeat, var(--reg) 0 100% / 13px 13px no-repeat, var(--reg) 100% 100% / 13px 13px no-repeat;
+          mask: var(--reg) 0 0 / 13px 13px no-repeat, var(--reg) 100% 0 / 13px 13px no-repeat, var(--reg) 0 100% / 13px 13px no-repeat, var(--reg) 100% 100% / 13px 13px no-repeat;
+}
+/* the tint bar of the spot ink */
+.plate-live-stage::after {
+  content: ""; position: absolute; top: 9px; right: 26px; width: 72px; height: 7px; pointer-events: none;
+  --t: var(--accent-ink, #285cc2); --s: var(--paper-2, #ececE7);
+  background: linear-gradient(90deg, var(--t) 0 25%, color-mix(in srgb, var(--t) 70%, var(--s)) 25% 50%, color-mix(in srgb, var(--t) 40%, var(--s)) 50% 75%, color-mix(in srgb, var(--t) 15%, var(--s)) 75% 100%);
+}
+.plate-live h3 { margin: 0 0 0.5rem; padding-right: 84px; font: 800 1.3rem/1.1 var(--fat, system-ui, sans-serif); font-variation-settings: "opsz" 28; letter-spacing: -0.016em; text-wrap: balance; }
+
+/* what the plate shows, as a mark and in words */
+.plate-state { display: inline-flex; align-items: flex-start; gap: 8px; margin: 0 0 1rem; font: 600 0.82rem/1.35 var(--fat, system-ui, sans-serif); font-variation-settings: "opsz" 14; letter-spacing: 0.005em; color: var(--ink-2, #50504b); }
+.plate-state::before { content: ""; flex: none; width: 10px; height: 10px; margin-top: 0.3em; box-sizing: border-box; border: 1.5px solid var(--ink, #121211); background: var(--ink, #121211); }
+.plate-state[data-state="exploration"]::before { background: transparent; }
+.plate-state[data-state="computed"]::before { background: linear-gradient(135deg, var(--ink, #121211) 0 50%, transparent 50%); }
+
+.plate-live figcaption { margin: 0.8rem 0 0; font: 400 0.9rem/1.5 var(--serif, system-ui, sans-serif); color: var(--ink-2, #50504b); overflow-wrap: anywhere; }
+.plate-live figcaption b { margin-right: 0.35em; font: 750 0.8rem/1 var(--fat, system-ui, sans-serif); font-variation-settings: "opsz" 14; letter-spacing: 0.05em; text-transform: uppercase; color: var(--accent-ink, #285cc2); }
+.plate-checked { margin: 14px 0 0; font: 400 0.76rem/1.4 var(--serif, system-ui, sans-serif); color: var(--ink-3, #66665f); }
+.plate-checked[hidden] { display: none; }
+.demo-root { min-height: 120px; }
+.demo-root:empty::before { content: "Loading the live plate…"; display: block; padding: 40px 0; text-align: center; font: 600 0.88rem/1 var(--fat, system-ui, sans-serif); font-variation-settings: "opsz" 14; color: var(--ink-2, #50504b); }
+.plate-fail { padding: 24px 0; font: 400 0.9rem/1.4 var(--serif, system-ui, sans-serif); color: var(--ink-2, #50504b); }
+
+/* ---- shared controls ------------------------------------------------------------------------ */
+.plate-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 0 14px;
+  border: 1px solid var(--ink, #121211); border-radius: 0; background: transparent; color: var(--ink, #121211);
+  font: 650 0.84rem/1.1 var(--fat, system-ui, sans-serif); font-variation-settings: "opsz" 14; cursor: pointer;
+  -webkit-tap-highlight-color: transparent; transition: background-color 0.15s, color 0.15s;
+}
+.plate-btn[hidden] { display: none; }
+.plate-btn:hover { background: color-mix(in srgb, var(--ink, #121211) 8%, transparent); }
+.plate-btn[aria-pressed="true"], .plate-btn.is-primary { background: var(--ink, #121211); color: var(--paper-2, #ececE7); }
+.plate-btn:disabled { opacity: 0.45; cursor: default; }
+.plate-btn:focus-visible, .plate-seg button:focus-visible, .plate-range:focus-visible { outline: 2px solid var(--accent-ink, #285cc2); outline-offset: 2px; }
+/* a radio group drawn as joined buttons; arrow keys move through it (plate-kit.js radios()) */
+.plate-seg { display: inline-flex; flex-wrap: wrap; }
+.plate-seg button {
+  min-height: 40px; padding: 0 14px; margin-left: -1px; border: 1px solid var(--ink, #121211); border-radius: 0; background: transparent;
+  color: var(--ink, #121211); font: 650 0.84rem/1.1 var(--fat, system-ui, sans-serif); font-variation-settings: "opsz" 14; cursor: pointer;
+}
+.plate-seg button:first-child { margin-left: 0; }
+.plate-seg button[aria-checked="true"] { background: var(--ink, #121211); color: var(--paper-2, #ececE7); }
+/* a slider with its name and value: 44 px tall so a thumb can hold it */
+.plate-slider { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; }
+.plate-slider > span { font: 650 0.84rem/1.2 var(--fat, system-ui, sans-serif); font-variation-settings: "opsz" 14; }
+.plate-slider output { min-width: 4.4ch; text-align: right; font: 500 0.9rem/1 var(--type, ui-monospace, monospace); font-variant-numeric: tabular-nums lining-nums; }
+.plate-range { width: 100%; min-height: 44px; margin: 0; accent-color: var(--accent-ink, #285cc2); touch-action: pan-y; cursor: pointer; }
+/* readings: each number on a rule with a short bar of the spot ink over it */
+.plate-readings { display: grid; grid-template-columns: repeat(auto-fit, minmax(7.2rem, 1fr)); gap: 12px 18px; margin: 0; }
+.plate-readings > div { position: relative; display: flex; flex-direction: column-reverse; justify-content: flex-end; gap: 5px; padding-top: 10px; border-top: 1px solid var(--rule-2, #96968f); }
+.plate-readings > div::before { content: ""; position: absolute; left: 0; top: -2px; width: 2.2rem; height: 3px; background: var(--accent-ink, #285cc2); }
+.plate-readings dd { margin: 0; font: 800 clamp(1.25rem, 5vw, 1.6rem)/1 var(--fat, system-ui, sans-serif); font-variation-settings: "opsz" 48; letter-spacing: -0.02em; font-variant-numeric: lining-nums tabular-nums; white-space: nowrap; }
+.plate-readings dt { font: 400 0.8rem/1.35 var(--serif, system-ui, sans-serif); color: var(--ink-2, #50504b); }
+.plate-say { margin: 12px 0 0; min-height: 3em; font: 400 0.95rem/1.5 var(--serif, system-ui, sans-serif); text-wrap: pretty; }
+.plate-fine { margin: 8px 0 0; font: 400 0.8rem/1.45 var(--serif, system-ui, sans-serif); color: var(--ink-2, #50504b); }
+.plate-key { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 8px 0 0; font: 400 0.8rem/1.4 var(--serif, system-ui, sans-serif); color: var(--ink-2, #50504b); }
+.plate-key span { display: inline-flex; align-items: center; gap: 6px; }
+.plate-key i { flex: none; display: inline-block; width: 18px; height: 0; border-top: 2px solid currentColor; }
+
+/* On a desk the plate takes a wider track than the text, centered on it; its caption stays at the measure. */
+@media (min-width: 1024px) {
+  .plate-live.is-wide { width: var(--wide, min(72rem, 92vw)); margin-left: calc((100% - var(--wide, min(72rem, 92vw))) / 2); margin-right: calc((100% - var(--wide, min(72rem, 92vw))) / 2); }
+  .plate-live.is-wide figcaption { max-width: var(--measure, 36rem); margin-left: auto; margin-right: auto; }
+}
+@media (prefers-reduced-motion: reduce) { .plate-btn { transition: none; } }

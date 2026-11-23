@@ -1,0 +1,52 @@
+/* The page turn. Moving between pages of one book turns the leaf about its spine, the page's left edge: forward,
+   the page you leave lifts and swings away over the next, darkening as it turns; back, the earlier page swings back
+   over this one. The running head and the thumb index stay put. Where a browser can't do a cross-document view
+   transition, it simply goes to the page; asked for less motion, it cuts. page-turn.js decides the direction (and
+   skips the turn for a page outside the book, a reload, or an unknown place).
+
+   Every page of the book links this file, so both sides of a navigation opt in. */
+@view-transition { navigation: auto; }
+
+/* held still: give the running head this class; the thumb index holds itself */
+.page-turn-hold { view-transition-name: page-head; }
+.thumb-index { view-transition-name: fore-edge; }
+
+:root { --turn-time: 0.56s; }
+::view-transition-group(root) { animation-duration: var(--turn-time); }
+::view-transition-old(root), ::view-transition-new(root) { mix-blend-mode: normal; animation-duration: var(--turn-time); animation-fill-mode: both; }
+/* forward: the old page is on top and turns away; the new page brightens beneath it */
+::view-transition-old(root) { z-index: 2; transform-origin: 0 50%; animation-name: leaf-away; animation-timing-function: cubic-bezier(0.5, 0.05, 0.3, 1); }
+::view-transition-new(root) { z-index: 1; animation-name: leaf-under; animation-timing-function: cubic-bezier(0.2, 0.6, 0.3, 1); }
+/* back: the new page is on top and turns back into place; the old page dims beneath it */
+html:active-view-transition-type(back)::view-transition-old(root) { z-index: 1; transform-origin: 50% 50%; animation-name: leaf-covered; animation-timing-function: cubic-bezier(0.5, 0.05, 0.3, 1); }
+html:active-view-transition-type(back)::view-transition-new(root) { z-index: 2; transform-origin: 0 50%; animation-name: leaf-back; animation-timing-function: cubic-bezier(0.25, 0.6, 0.3, 1); }
+@keyframes leaf-away {
+  from { transform: perspective(2200px) rotateY(0deg); filter: brightness(1); box-shadow: 0 0 0 rgba(0, 0, 0, 0); }
+  35% { box-shadow: 18px 0 40px rgba(0, 0, 0, 0.22); }
+  to { transform: perspective(2200px) rotateY(-92deg); filter: brightness(0.78); box-shadow: 40px 0 60px rgba(0, 0, 0, 0.3); }
+}
+@keyframes leaf-under { from { filter: brightness(0.86); } to { filter: brightness(1); } }
+@keyframes leaf-back {
+  from { transform: perspective(2200px) rotateY(-92deg); filter: brightness(0.78); box-shadow: 40px 0 60px rgba(0, 0, 0, 0.3); }
+  to { transform: perspective(2200px) rotateY(0deg); filter: brightness(1); box-shadow: 0 0 0 rgba(0, 0, 0, 0); }
+}
+@keyframes leaf-covered { from { filter: brightness(1); } to { filter: brightness(0.86); } }
+/* what stays put cross-fades quickly, in case it changed (the current tab, the folio) */
+::view-transition-old(page-head), ::view-transition-new(page-head), ::view-transition-old(fore-edge), ::view-transition-new(fore-edge) { animation-duration: 0.2s; }
+@media (prefers-reduced-motion: reduce) {
+  @view-transition { navigation: none; }
+}
+
+/* ---- the turn: the parts on either side, at the end of a page ---------------------------------- */
+/* <nav class="turn"> holds a.prev and a.next, each with .dir, an optional .no (the numeral, in that part's ink: set
+   --accent and --accent-night on the link), and .name. */
+.turn { max-width: var(--measure, 36rem); margin: 3.6rem auto 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: 0 20px; }
+.turn a { --accent-ink: var(--accent, var(--ink, #121211)); display: grid; grid-template-columns: auto 1fr; align-items: baseline; column-gap: 12px; padding: 12px 0 18px; border-top: 3px solid var(--accent-ink); color: inherit; text-decoration: none; }
+:root[data-theme="dark"] .turn a { --accent-ink: var(--accent-night, var(--accent, var(--ink, #f6f6f2))); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .turn a { --accent-ink: var(--accent-night, var(--accent, var(--ink, #f6f6f2))); } }
+.turn .dir { grid-column: 1 / -1; margin-bottom: 8px; font: 650 0.8rem/1.2 var(--fat, system-ui, sans-serif); font-variation-settings: "opsz" 14; color: var(--ink-2, #50504b); }
+.turn .no { font: 800 2.3rem/0.86 var(--fat, system-ui, sans-serif); font-variation-settings: "opsz" 72; letter-spacing: -0.03em; color: var(--accent-ink); }
+.turn .name { font: 750 1.1rem/1.2 var(--fat, system-ui, sans-serif); font-variation-settings: "opsz" 24; letter-spacing: -0.01em; text-wrap: balance; }
+.turn a:not(:has(.no)) .name { grid-column: 1 / -1; }
+.turn a:hover .name { text-decoration: underline; text-decoration-color: var(--accent-ink); text-decoration-thickness: 2px; text-underline-offset: 0.18em; }
+.turn a:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 3px; }
