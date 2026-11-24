@@ -1,12 +1,12 @@
 // Chapter 7's plates. Every number drawn comes from kernel.js (the series and the closed forms), ch07-model.js (the
 // series form of the transfer function, the scans, the closed forms behind the loss, and the forward computation),
 // the solver's workers, or the paper's Table 1; the words under each plate come from the functions in say-ch07.js.
-import * as K from "./kernel.js?v=89322951a3";
-import * as M from "./ch07-model.js?v=89322951a3";
-import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, VIEW, defaultDrawing } from "./schedules-book.js?v=89322951a3";
-import { getChoice, setChoice, solve, onVisible, watchVisible, liftReady, calm, seedParam } from "./book.js?v=89322951a3";
-import { frame, line, area, axes, svg, tags, fmt, keepDrawn } from "./chart.js?v=89322951a3";
-import * as S from "./say-ch07.js?v=89322951a3";
+import * as K from "./kernel.js?v=3012045bec";
+import * as M from "./ch07-model.js?v=3012045bec";
+import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, VIEW, defaultDrawing } from "./schedules-book.js?v=3012045bec";
+import { getChoice, setChoice, solve, onVisible, watchVisible, liftReady, calm, seedParam } from "./book.js?v=3012045bec";
+import { frame, line, area, axes, svg, tags, fmt, keepDrawn } from "./chart.js?v=3012045bec";
+import * as S from "./say-ch07.js?v=3012045bec";
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const plate = (id) => document.getElementById("plate-" + id);
@@ -752,7 +752,7 @@ let lossWorker = null, lossNext = 1;
 const lossPending = new Map(), lossCache = new Map();
 function getLossWorker() {
   if (lossWorker) return lossWorker;
-  lossWorker = new Worker(new URL("./ch07-worker.js?v=89322951a3", import.meta.url), { type: "module" });
+  lossWorker = new Worker(new URL("./ch07-worker.js?v=3012045bec", import.meta.url), { type: "module" });
   lossWorker.onmessage = (e) => {
     const m = e.data, p = lossPending.get(m.id);
     if (!p) return;

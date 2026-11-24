@@ -3,8 +3,8 @@
 // waiting value at a constant cost, the time spent past the bound), and the forward computation that scores a rule
 // and gives its decision times, for the losses on the reader's schedule. tools/checks/ch07.mjs holds these to the
 // paper's generated numbers and to model.js.
-import * as K from "./kernel.js?v=89322951a3";
-import { exactPolicy, score, boundForCost, toDiscrete, belief } from "./model.js?v=89322951a3";
+import * as K from "./kernel.js?v=3012045bec";
+import { exactPolicy, score, boundForCost, toDiscrete, belief } from "./model.js?v=3012045bec";
 
 /** The paper's Table 1 (tab_sinusoid at the tag), c0 = 0.1 and eps = 0.01: omega, then the swing and the lead in
  * degrees for the closed form, the dynamic program, and the weighted look-ahead. Checked cell by cell against

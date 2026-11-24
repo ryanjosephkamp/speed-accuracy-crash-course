@@ -2,13 +2,13 @@
 // fixed points the rule's equation asks for), model.js (the constant-cost bound, the binned kernels, the dynamic
 // program and its scorer), or kernel.js (the kernel's series and transform); the heavy work runs in ch08-worker.js.
 // The words under each plate come from say-ch08.js, which takes numbers and returns sentences.
-import * as K from "./kernel.js?v=89322951a3";
-import { boundForCost, kernelForBound, toDiscrete } from "./model.js?v=89322951a3";
-import { PRESETS, DRAW, paramsOf, labelOf, defaultDrawing, deadlineOf, VIEW } from "./schedules-book.js?v=89322951a3";
-import { getChoice, setChoice, onVisible, watchVisible, liftReady, calm } from "./book.js?v=89322951a3";
-import { frame, line, area, axes, svg, fmt, keepDrawn } from "./chart.js?v=89322951a3";
-import { weightedHistory, mapT, scheduleFor, spikeCost, shareBefore, P13, levelDerivative } from "./ch08-rule.js?v=89322951a3";
-import * as S from "./say-ch08.js?v=89322951a3";
+import * as K from "./kernel.js?v=3012045bec";
+import { boundForCost, kernelForBound, toDiscrete } from "./model.js?v=3012045bec";
+import { PRESETS, DRAW, paramsOf, labelOf, defaultDrawing, deadlineOf, VIEW } from "./schedules-book.js?v=3012045bec";
+import { getChoice, setChoice, onVisible, watchVisible, liftReady, calm } from "./book.js?v=3012045bec";
+import { frame, line, area, axes, svg, fmt, keepDrawn } from "./chart.js?v=3012045bec";
+import { weightedHistory, mapT, scheduleFor, spikeCost, shareBefore, P13, levelDerivative } from "./ch08-rule.js?v=3012045bec";
+import * as S from "./say-ch08.js?v=3012045bec";
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const plate = (id) => document.getElementById("plate-" + id);
@@ -43,7 +43,7 @@ let worker = null, nextId = 1;
 const pending = new Map(), latest = new Map();
 function work(job, { key = null, progress = null } = {}) {
   if (!worker) {
-    worker = new Worker(new URL("./ch08-worker.js?v=89322951a3", import.meta.url), { type: "module" });
+    worker = new Worker(new URL("./ch08-worker.js?v=3012045bec", import.meta.url), { type: "module" });
     worker.onmessage = (e) => {
       const m = e.data, p = pending.get(m.id);
       if (!p) return;

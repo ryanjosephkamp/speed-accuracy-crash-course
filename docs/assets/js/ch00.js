@@ -1,13 +1,13 @@
 // Chapter 0's plates: the reader's schedule (the contents page's plate, mounted here too), a first guess on it, and
 // the shortest proof in the paper as a strip. The bounds come from the dynamic program in the worker; the flat-bound
 // curves from closed forms in kernel.js. Sentences come from say-ch00.js.
-import "./contents.js?v=89322951a3";
-import { B } from "./kernel.js?v=89322951a3";
-import { boundForCost, toDiscrete, belief } from "./model.js?v=89322951a3";
-import { costOf, deadlineOf, labelOf, PRESETS, VIEW, SPARE } from "./schedules-book.js?v=89322951a3";
-import { getChoice, solve, onVisible, liftReady } from "./book.js?v=89322951a3";
-import { frame, line, axes, svg, fmt, keepDrawn } from "./chart.js?v=89322951a3";
-import * as S from "./say-ch00.js?v=89322951a3";
+import "./contents.js?v=3012045bec";
+import { B } from "./kernel.js?v=3012045bec";
+import { boundForCost, toDiscrete, belief } from "./model.js?v=3012045bec";
+import { costOf, deadlineOf, labelOf, PRESETS, VIEW, SPARE } from "./schedules-book.js?v=3012045bec";
+import { getChoice, solve, onVisible, liftReady, wireStrips } from "./book.js?v=3012045bec";
+import { frame, line, axes, svg, fmt, keepDrawn } from "./chart.js?v=3012045bec";
+import * as S from "./say-ch00.js?v=3012045bec";
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const plate = (id) => document.getElementById("plate-" + id);
@@ -199,32 +199,9 @@ function flatPlate() {
   keepDrawn(chart, draw);
 }
 
-// ---------------------------------------------------------------- strips
-function strips() {
-  document.querySelectorAll(".strip").forEach((st) => {
-    const n = +st.dataset.steps, inp = st.querySelector("input[type=range]");
-    const cards = [...st.querySelectorAll(".strip-step")], btns = [...st.querySelectorAll(".strip-steps button")];
-    const fig = plate(st.dataset.plate);
-    let at = 0;
-    const show = (k) => {
-      at = Math.max(0, Math.min(n - 1, k));
-      cards.forEach((c, i) => { c.hidden = i !== at; });
-      btns.forEach((b, i) => { if (i === at) { b.setAttribute("aria-current", "step"); b.classList.add("seen"); } else b.removeAttribute("aria-current"); });
-      inp.value = at;
-      st.querySelector('[data-go="-1"]').disabled = at === 0;
-      const nx = st.querySelector('[data-go="1"]'); nx.disabled = at === n - 1; nx.textContent = at === n - 1 ? "Last step" : "Next step";
-      if (fig) { fig.dataset.step = at; fig.dispatchEvent(new CustomEvent("strip-step", { detail: at })); }
-    };
-    inp.addEventListener("input", () => show(+inp.value));
-    btns.forEach((b, i) => b.addEventListener("click", () => show(i)));
-    st.querySelectorAll("[data-go]").forEach((b) => b.addEventListener("click", () => show(at + +b.dataset.go)));
-    show(0);
-  });
-}
-
 // ---------------------------------------------------------------- start
 hero();
-strips();
+wireStrips();
 for (const [id, fn] of [["guess", guessPlate], ["flat", flatPlate]]) {
   const f = plate(id);
   if (f) onVisible(f, () => { try { fn(); } catch (e) { const r = rootOf(id); if (r) r.innerHTML = `<p class="plate-fail">The live plate could not start: ${String(e.message).replace(/[<>&]/g, "")}</p>`; console.error(e); } });

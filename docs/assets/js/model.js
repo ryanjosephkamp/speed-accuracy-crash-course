@@ -148,7 +148,9 @@ export const toDiscrete = (x, dt) => Math.max(x - OVERSHOOT * Math.sqrt(dt), 0);
 // evaluate.known_reward), with direct convolution instead of FFTs.
 // ---------------------------------------------------------------------------------------------
 
-function grid(dt, h, cap) {
+/** The evidence grid and the one-step kernels the program and the scorer share (exported for chapters that sweep
+ * other quantities on the same grid). */
+export function grid(dt, h, cap) {
   const half = cap + 8 * Math.sqrt(dt) + 1;
   const m = Math.ceil(half / h);
   const n = 2 * m + 1;

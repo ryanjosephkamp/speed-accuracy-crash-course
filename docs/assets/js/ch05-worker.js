@@ -4,8 +4,8 @@
 //                     left side every step to time 3, and V(t, .) and u(t, .) every 0.05 from 0 to 3
 //   { job: "schedule", choice, dt, h, horizon }  the reader's schedule: the bound, the left side and its per-moment
 //                     version every 0.01 time units to the horizon, and u(t, .) every 0.05 over the window 0 to 2.5
-import { solveSchedule, costRange, testStep, FIXED } from "./ch05-model.js?v=89322951a3";
-import { costOf, VIEW } from "./schedules-book.js?v=89322951a3";
+import { solveSchedule, costRange, testStep, FIXED } from "./ch05-model.js?v=3012045bec";
+import { costOf, VIEW } from "./schedules-book.js?v=3012045bec";
 
 self.onmessage = (e) => {
   const m = e.data;

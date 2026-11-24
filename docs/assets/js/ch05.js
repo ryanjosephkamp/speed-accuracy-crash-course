@@ -2,12 +2,12 @@
 // ch05-model.js, run in this chapter's worker (ch05-worker.js), or from closed forms; the frozen rule of the envelope
 // identity is worked out here, on the worker's bound, in about 10 ms. The words under each plate come from the
 // functions in say-ch05.js, which take numbers and return sentences.
-import { frozenRule, belief, gPrime, B, testStep } from "./ch05-model.js?v=89322951a3";
-import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, VIEW, defaultDrawing } from "./schedules-book.js?v=89322951a3";
-import { getChoice, setChoice, onVisible, watchVisible, liftReady, calm, seedParam } from "./book.js?v=89322951a3";
-import { rng, meanLookAhead, meanDecisionTime } from "./kernel.js?v=89322951a3";
-import { frame, line, area, axes, svg, fmt, keepDrawn } from "./chart.js?v=89322951a3";
-import * as S from "./say-ch05.js?v=89322951a3";
+import { frozenRule, belief, gPrime, B, testStep } from "./ch05-model.js?v=3012045bec";
+import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, VIEW, defaultDrawing } from "./schedules-book.js?v=3012045bec";
+import { getChoice, setChoice, onVisible, watchVisible, liftReady, calm, seedParam } from "./book.js?v=3012045bec";
+import { rng, meanLookAhead, meanDecisionTime } from "./kernel.js?v=3012045bec";
+import { frame, line, area, axes, svg, fmt, keepDrawn } from "./chart.js?v=3012045bec";
+import * as S from "./say-ch05.js?v=3012045bec";
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const plate = (id) => document.getElementById("plate-" + id);
@@ -27,7 +27,7 @@ let worker = null, nextId = 1;
 const pending = new Map();
 function work(job, progress = null) {
   if (!worker) {
-    worker = new Worker(new URL("./ch05-worker.js?v=89322951a3", import.meta.url), { type: "module" });
+    worker = new Worker(new URL("./ch05-worker.js?v=3012045bec", import.meta.url), { type: "module" });
     worker.onmessage = (e) => {
       const m = e.data, p = pending.get(m.id);
       if (!p) return;

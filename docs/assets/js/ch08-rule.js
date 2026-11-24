@@ -3,9 +3,9 @@
 // constant-cost bound B, and the caching of kernels by level come from model.js, which follows the paper's code
 // (shortcuts.weighted_bound, weighted_ahead, and boundary_kernel at the tag); tools/checks/ch08.mjs holds these to
 // that code's outputs.
-import { boundForCost, boundaryKernel, kernelForBound, exactPolicy, score, toDiscrete } from "./model.js?v=89322951a3";
-import { costOf, deadlineOf, VIEW, SPARE } from "./schedules-book.js?v=89322951a3";
-import { flux, fluxTotal } from "./kernel.js?v=89322951a3";
+import { boundForCost, boundaryKernel, kernelForBound, exactPolicy, score, toDiscrete } from "./model.js?v=3012045bec";
+import { costOf, deadlineOf, VIEW, SPARE } from "./schedules-book.js?v=3012045bec";
+import { flux, fluxTotal } from "./kernel.js?v=3012045bec";
 
 export const UPDATES = 30;
 
