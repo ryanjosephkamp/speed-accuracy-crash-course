@@ -25,29 +25,60 @@ export function setChoice(c) {
 }
 
 // ---- the solver ------------------------------------------------------------------------------------------
-let worker = null, nextId = 1;
+// One worker per script: dp-worker.js by default, or a chapter's own (pass its URL, made with
+// new URL("./chNN-worker.js", import.meta.url)). A worker answers { id, ok, ... } or { id, progress }.
+let nextId = 1;
+const workers = new Map();
 const pending = new Map();
-function getWorker() {
-  if (worker) return worker;
-  worker = new Worker(new URL("./dp-worker.js", import.meta.url), { type: "module" });
-  worker.onmessage = (e) => {
+function getWorker(url) {
+  const k = String(url);
+  if (workers.has(k)) return workers.get(k);
+  const w = new Worker(url, { type: "module" });
+  w.onmessage = (e) => {
     const m = e.data, p = pending.get(m.id);
     if (!p) return;
     if (m.progress !== undefined) { p.progress?.(m.progress); return; }
     pending.delete(m.id);
     if (m.ok) p.resolve(m); else p.reject(new Error(m.error));
   };
-  return worker;
+  workers.set(k, w);
+  return w;
 }
-/** Run a job in the worker; a newer job with the same key makes the older one's answer be ignored. */
+const DP_WORKER = new URL("./dp-worker.js", import.meta.url);
+/** Run a job in a worker; a newer job with the same key makes the older one's answer be ignored. */
 const latest = new Map();
-export function solve(job, { key = null, progress = null } = {}) {
+export function solve(job, { key = null, progress = null, worker = DP_WORKER } = {}) {
   const id = nextId++;
   if (key) latest.set(key, id);
   return new Promise((resolve, reject) => {
     pending.set(id, { resolve, reject, progress });
-    getWorker().postMessage({ ...job, id });
+    getWorker(worker).postMessage({ ...job, id });
   }).then((m) => { if (key && latest.get(key) !== id) throw new Error("superseded"); return m; });
+}
+
+// ---- proof strips: each .strip drives its plate, which hears "strip-step" with the step number --------------
+export function wireStrips() {
+  document.querySelectorAll(".strip").forEach((st) => {
+    if (st.dataset.wired) return;
+    st.dataset.wired = "1";
+    const n = +st.dataset.steps, inp = st.querySelector("input[type=range]");
+    const cards = [...st.querySelectorAll(".strip-step")], btns = [...st.querySelectorAll(".strip-steps button")];
+    const fig = document.getElementById("plate-" + st.dataset.plate);
+    let at = 0;
+    const show = (k) => {
+      at = Math.max(0, Math.min(n - 1, k));
+      cards.forEach((c, i) => { c.hidden = i !== at; });
+      btns.forEach((b, i) => { if (i === at) { b.setAttribute("aria-current", "step"); b.classList.add("seen"); } else b.removeAttribute("aria-current"); });
+      inp.value = at;
+      st.querySelector('[data-go="-1"]').disabled = at === 0;
+      const nx = st.querySelector('[data-go="1"]'); nx.disabled = at === n - 1; nx.textContent = at === n - 1 ? "Last step" : "Next step";
+      if (fig) { fig.dataset.step = at; fig.dispatchEvent(new CustomEvent("strip-step", { detail: at })); }
+    };
+    inp.addEventListener("input", () => show(+inp.value));
+    btns.forEach((b, i) => b.addEventListener("click", () => show(i)));
+    st.querySelectorAll("[data-go]").forEach((b) => b.addEventListener("click", () => show(at + +b.dataset.go)));
+    show(0);
+  });
 }
 
 // ---- plates wake on screen -----------------------------------------------------------------------------------
