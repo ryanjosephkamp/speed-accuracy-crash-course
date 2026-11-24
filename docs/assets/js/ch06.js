@@ -1,11 +1,11 @@
 // Chapter 6's plates. Every number drawn comes from kernel.js (the series, the closed forms, the sampler) or from
 // the dynamic program in the worker; the words under each plate come from the functions in say-ch06.js, which take
 // numbers and return sentences.
-import * as K from "./kernel.js?v=0dec014d97";
-import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, VIEW, defaultDrawing } from "./schedules-book.js?v=0dec014d97";
-import { getChoice, setChoice, solve, onVisible, watchVisible, liftReady, calm, seedParam } from "./book.js?v=0dec014d97";
-import { frame, line, area, axes, svg, tags, fmt, keepDrawn } from "./chart.js?v=0dec014d97";
-import * as S from "./say-ch06.js?v=0dec014d97";
+import * as K from "./kernel.js?v=89322951a3";
+import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, VIEW, defaultDrawing } from "./schedules-book.js?v=89322951a3";
+import { getChoice, setChoice, solve, onVisible, watchVisible, liftReady, calm, seedParam } from "./book.js?v=89322951a3";
+import { frame, line, area, axes, svg, tags, fmt, keepDrawn } from "./chart.js?v=89322951a3";
+import * as S from "./say-ch06.js?v=89322951a3";
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const plate = (id) => document.getElementById("plate-" + id);
@@ -527,8 +527,8 @@ function yoursPlate() {
     let g = axes(f, { yl: "largest error in the bound", xl: "ε", grid: true });
     // guide lines of slope 1 and 2 through the per-moment error at the largest epsilon
     const e0 = EPS[0], y0 = ePm[0] || yHi / 3;
-    g += line(f, [e0, EPS[EPS.length - 1]], [y0, y0 * EPS[EPS.length - 1] / e0], "grid", 'stroke-dasharray="4 4"');
-    g += line(f, [e0, EPS[EPS.length - 1]], [y0 / 3, (y0 / 3) * (EPS[EPS.length - 1] / e0) ** 2], "grid", 'stroke-dasharray="4 4"');
+    g += line(f, [e0, EPS[EPS.length - 1]], [y0, y0 * EPS[EPS.length - 1] / e0], "guide");
+    g += line(f, [e0, EPS[EPS.length - 1]], [y0 / 3, (y0 / 3) * (EPS[EPS.length - 1] / e0) ** 2], "guide");
     const xl = EPS[EPS.length - 1] * 1.6, lx = f.sx(xl);
     g += `<text class="tk" x="${lx.toFixed(1)}" y="${(f.sy(y0 * xl / e0) - 6).toFixed(1)}">slope 1</text>`;
     g += `<text class="tk" x="${lx.toFixed(1)}" y="${Math.min(f.H - f.b - 4, f.sy((y0 / 3) * (xl / e0) ** 2) + 14).toFixed(1)}">slope 2</text>`;
