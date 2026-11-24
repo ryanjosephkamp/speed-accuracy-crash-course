@@ -437,6 +437,8 @@ details.answer > div { padding: 2px 14px 4px; }
 @media (min-width: 1024px) { .col .cmap.is-wide { margin-inline: calc((var(--measure) - min(var(--wide), 100vw - 6rem)) / 2); } }
 .cm-top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 10px 18px; margin-bottom: 10px; }
 .cm-switch .seg-row { border-color: var(--rule); }
+.cm-rows { display: flex; flex-wrap: wrap; gap: 6px 8px; }
+.cm-3d-tag { display: grid; place-items: center; padding: 0 8px; border-right: 1px solid var(--rule); color: var(--ink-2); background: var(--paper-2); font: 750 0.72rem/1 var(--sans); font-stretch: 80%; letter-spacing: 0.06em; }
 .cm-switch span { color: var(--ink-2); border-right-color: var(--rule); }
 .cm-switch input:checked + span { background: var(--ink); color: var(--paper); }
 .cm-switch input:hover:not(:checked) + span { color: var(--ink); }
