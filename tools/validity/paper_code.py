@@ -8,7 +8,8 @@ in-browser solver can be held to it (tools/checks/paper-code.mjs).
 
 It extracts the tag's src/ into a temporary folder and imports speed_accuracy from there (it needs numpy and
 scipy), runs, for each schedule, on the page's grid:
-- known.backward_induction_x: the exact evidence bound over [0, view + spare];
+- known.backward_induction_x: the exact evidence bound over [0, view + spare], or up to a deadline, where the
+  choice is forced;
 - shortcuts.bound_for_cost: the per-moment evidence bound over the window;
 - shortcuts.weighted_bound: the weighted look-ahead (belief bounds, turned back into evidence);
 - evaluate.known_reward: what the exact policy, moved in by the discrete-monitoring shift where the page does,
@@ -61,8 +62,11 @@ def main():
             def cost(t, L=L, grid=grid):
                 t = np.clip(np.asarray(t, float), 0.0, grid[-1])
                 return np.exp(np.interp(t, grid, L))
-        ts, xb, _ = known.backward_induction_x(cost, horizon, dt=dt, h=h, cap=cap)
-        k_view = int(round(view / dt))
+        # a deadline is solved as the page's worker and the paper's experiments solve it: the program's horizon is
+        # the deadline, where the choice is forced
+        hz = s["at"] if s["kind"] == "deadline" else horizon
+        ts, xb, _ = known.backward_induction_x(cost, hz, dt=dt, h=h, cap=cap)
+        k_view = min(int(round(view / dt)), len(ts) - 1)
         tv = ts[: k_view + 1]
         pm = shortcuts.bound_for_cost(cost(tv))
         g = shortcuts.weighted_bound(cost, tv)
