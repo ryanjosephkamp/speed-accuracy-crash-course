@@ -224,7 +224,7 @@ def excerpt(spec, head):
         parts.append(body)
         lines_shown.append(f"{a}–{b}")
     src = (f"<p class='src'>main.tex at <code>{SOURCE['tag']}</code>, lines {', '.join(lines_shown)}</p>")
-    return (f"<div class='x-exact'><span class='x-head'>{html.escape(head)}</span>"
+    return (f"<div class='x-exact'><span class='x-head'>{inline(head)}</span>"
             + "\n".join(parts) + src + "</div>")
 
 
