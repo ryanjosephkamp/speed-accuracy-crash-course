@@ -1,7 +1,7 @@
 {
  "date": "2026-11-24",
- "total": 59,
- "passed": 59,
+ "total": 339,
+ "passed": 339,
  "results": [
   {
    "file": "book",
@@ -51,6 +51,580 @@
    "name": "Figure 1 preset \"deadline\" equals the paper's schedule",
    "ok": true,
    "detail": "largest difference 0.0e+0"
+  },
+  {
+   "file": "ch00",
+   "plate": "flat",
+   "name": "c = 0.03: B(c) solves sinh 2b + 2b = 1/c",
+   "ok": true,
+   "detail": "b = 2.034891"
+  },
+  {
+   "file": "ch00",
+   "plate": "flat",
+   "name": "c = 0.03: smooth fit, V'(b) = g'(b) = 1/(2 cosh^2 b), within 1e-5",
+   "ok": true,
+   "detail": "0.0330244 vs 0.0330244"
+  },
+  {
+   "file": "ch00",
+   "plate": "flat",
+   "name": "c = 0.03: cosh^2 y V'(y) = c (y + sinh(2y)/2) below the bound, within 1e-6 relative",
+   "ok": true,
+   "detail": "largest relative difference 1.1e-9"
+  },
+  {
+   "file": "ch00",
+   "plate": "flat",
+   "name": "c = 0.03: V(0) is the flat bound's reward g(b) - c b tanh b (model.js reward)",
+   "ok": true,
+   "detail": "0.924209490"
+  },
+  {
+   "file": "ch00",
+   "plate": "flat",
+   "name": "c = 0.03: below the bound, waiting is worth at least deciding (V - g >= 0)",
+   "ok": true,
+   "detail": "smallest V - g 3.13e-6"
+  },
+  {
+   "file": "ch00",
+   "plate": "flat",
+   "name": "c = 0.1: B(c) solves sinh 2b + 2b = 1/c",
+   "ok": true,
+   "detail": "b = 1.343695"
+  },
+  {
+   "file": "ch00",
+   "plate": "flat",
+   "name": "c = 0.1: smooth fit, V'(b) = g'(b) = 1/(2 cosh^2 b), within 1e-5",
+   "ok": true,
+   "detail": "0.1193222 vs 0.1193222"
+  },
+  {
+   "file": "ch00",
+   "plate": "flat",
+   "name": "c = 0.1: cosh^2 y V'(y) = c (y + sinh(2y)/2) below the bound, within 1e-6 relative",
+   "ok": true,
+   "detail": "largest relative difference 1.1e-9"
+  },
+  {
+   "file": "ch00",
+   "plate": "flat",
+   "name": "c = 0.1: V(0) is the flat bound's reward g(b) - c b tanh b (model.js reward)",
+   "ok": true,
+   "detail": "0.819033411"
+  },
+  {
+   "file": "ch00",
+   "plate": "flat",
+   "name": "c = 0.1: below the bound, waiting is worth at least deciding (V - g >= 0)",
+   "ok": true,
+   "detail": "smallest V - g 4.53e-6"
+  },
+  {
+   "file": "ch00",
+   "plate": "flat",
+   "name": "c = 0.3: B(c) solves sinh 2b + 2b = 1/c",
+   "ok": true,
+   "detail": "b = 0.704594"
+  },
+  {
+   "file": "ch00",
+   "plate": "flat",
+   "name": "c = 0.3: smooth fit, V'(b) = g'(b) = 1/(2 cosh^2 b), within 1e-5",
+   "ok": true,
+   "detail": "0.3156080 vs 0.3156081"
+  },
+  {
+   "file": "ch00",
+   "plate": "flat",
+   "name": "c = 0.3: cosh^2 y V'(y) = c (y + sinh(2y)/2) below the bound, within 1e-6 relative",
+   "ok": true,
+   "detail": "largest relative difference 1.1e-9"
+  },
+  {
+   "file": "ch00",
+   "plate": "flat",
+   "name": "c = 0.3: V(0) is the flat bound's reward g(b) - c b tanh b (model.js reward)",
+   "ok": true,
+   "detail": "0.675272999"
+  },
+  {
+   "file": "ch00",
+   "plate": "flat",
+   "name": "c = 0.3: below the bound, waiting is worth at least deciding (V - g >= 0)",
+   "ok": true,
+   "detail": "smallest V - g 3.73e-6"
+  },
+  {
+   "file": "ch00",
+   "plate": "flat",
+   "name": "c = 1: B(c) solves sinh 2b + 2b = 1/c",
+   "ok": true,
+   "detail": "b = 0.245037"
+  },
+  {
+   "file": "ch00",
+   "plate": "flat",
+   "name": "c = 1: smooth fit, V'(b) = g'(b) = 1/(2 cosh^2 b), within 1e-5",
+   "ok": true,
+   "detail": "0.4711397 vs 0.4711406"
+  },
+  {
+   "file": "ch00",
+   "plate": "flat",
+   "name": "c = 1: cosh^2 y V'(y) = c (y + sinh(2y)/2) below the bound, within 1e-6 relative",
+   "ok": true,
+   "detail": "largest relative difference 7.5e-10"
+  },
+  {
+   "file": "ch00",
+   "plate": "flat",
+   "name": "c = 1: V(0) is the flat bound's reward g(b) - c b tanh b (model.js reward)",
+   "ok": true,
+   "detail": "0.561254282"
+  },
+  {
+   "file": "ch00",
+   "plate": "flat",
+   "name": "c = 1: below the bound, waiting is worth at least deciding (V - g >= 0)",
+   "ok": true,
+   "detail": "smallest V - g 1.50e-6"
+  },
+  {
+   "file": "ch00",
+   "plate": "guess",
+   "name": "jump: the marked moment is inside the window and at least 0.1 before its end or the deadline",
+   "ok": true,
+   "detail": "time 0.25"
+  },
+  {
+   "file": "ch00",
+   "plate": "guess",
+   "name": "fall: the marked moment is inside the window and at least 0.1 before its end or the deadline",
+   "ok": true,
+   "detail": "time 0.2"
+  },
+  {
+   "file": "ch00",
+   "plate": "guess",
+   "name": "rising: the marked moment is inside the window and at least 0.1 before its end or the deadline",
+   "ok": true,
+   "detail": "time 0.5"
+  },
+  {
+   "file": "ch00",
+   "plate": "guess",
+   "name": "deadline: the marked moment is inside the window and at least 0.1 before its end or the deadline",
+   "ok": true,
+   "detail": "time 0.7, deadline 1"
+  },
+  {
+   "file": "ch00",
+   "plate": "guess",
+   "name": "pulse: the marked moment is inside the window and at least 0.1 before its end or the deadline",
+   "ok": true,
+   "detail": "time 0.6"
+  },
+  {
+   "file": "ch00",
+   "plate": "guess",
+   "name": "wave: the marked moment is inside the window and at least 0.1 before its end or the deadline",
+   "ok": true,
+   "detail": "time 1.55"
+  },
+  {
+   "file": "ch00",
+   "plate": "guess",
+   "name": "constant: the marked moment is inside the window and at least 0.1 before its end or the deadline",
+   "ok": true,
+   "detail": "time 1"
+  },
+  {
+   "file": "ch00",
+   "plate": "guess",
+   "name": "smooth: the marked moment is inside the window and at least 0.1 before its end or the deadline",
+   "ok": true,
+   "detail": "time 0.35"
+  },
+  {
+   "file": "ch00",
+   "plate": "guess",
+   "name": "multistep: the marked moment is inside the window and at least 0.1 before its end or the deadline",
+   "ok": true,
+   "detail": "time 1.65"
+  },
+  {
+   "file": "ch00",
+   "plate": "guess",
+   "name": "piecewise: the marked moment is inside the window and at least 0.1 before its end or the deadline",
+   "ok": true,
+   "detail": "time 1.2"
+  },
+  {
+   "file": "ch00",
+   "plate": "guess",
+   "name": "on Figure 1's jump, the marked moment comes before the jump at 0.5",
+   "ok": true,
+   "detail": "time 0.25"
+  },
+  {
+   "file": "ch00",
+   "plate": "guess",
+   "name": "a schedule whose per-moment bound never changes is asked about at time 1",
+   "ok": true,
+   "detail": "time 1"
+  },
+  {
+   "file": "ch00",
+   "plate": "words",
+   "name": "the plates' sentences never print NaN, undefined, Infinity, or null",
+   "ok": true,
+   "detail": "9000 sentences, 0 bad"
+  },
+  {
+   "file": "ch00",
+   "plate": "words",
+   "name": "a guess above the best bound is called too high, below it too low, with the right gap to the per-moment rule",
+   "ok": true,
+   "detail": "You put the bound at 0.90 at time 1; the best bound there is 0.70, so you were 0.20 too high. It is 0.10 below the per-moment rule's 0.80."
+  },
+  {
+   "file": "ch00",
+   "plate": "words",
+   "name": "the flat-bound sentence states both sides of the equation",
+   "ok": true,
+   "detail": "At a cost of 0.1, the two curves meet at y = 1.344, and there sinh(2b) + 2b = 10.00, which is 1/c = 10.00."
+  },
+  {
+   "file": "ch05",
+   "plate": "speed",
+   "name": "BoundTenth: B(0.1), the root of sinh 2b + 2b = 10",
+   "ok": true,
+   "detail": "1.3437 vs 1.344"
+  },
+  {
+   "file": "ch05",
+   "plate": "speed",
+   "name": "LookAheadTenth: the mean decision time from the normalized speed measure at 0.1",
+   "ok": true,
+   "detail": "0.5463 vs 0.546"
+  },
+  {
+   "file": "ch05",
+   "plate": "speed",
+   "name": "DecisionTimeTenth: b tanh b at 0.1",
+   "ok": true,
+   "detail": "1.1725 vs 1.17"
+  },
+  {
+   "file": "ch05",
+   "plate": "exact",
+   "name": "for a constant cost 0.01, c (b/2 + sinh 2b / 4) = 1/4 at b = B(c)",
+   "ok": true,
+   "detail": "0.25000000000000"
+  },
+  {
+   "file": "ch05",
+   "plate": "exact",
+   "name": "for a constant cost 0.1, c (b/2 + sinh 2b / 4) = 1/4 at b = B(c)",
+   "ok": true,
+   "detail": "0.25000000000000"
+  },
+  {
+   "file": "ch05",
+   "plate": "exact",
+   "name": "for a constant cost 1, c (b/2 + sinh 2b / 4) = 1/4 at b = B(c)",
+   "ok": true,
+   "detail": "0.25000000000000"
+  },
+  {
+   "file": "ch05",
+   "plate": "grid",
+   "name": "the chapter's program gives model.js's bounds for Figure 1(a)'s jump (Δt 0.01, h 0.02, to 1e-9)",
+   "ok": true,
+   "detail": "largest difference 1.1e-15"
+  },
+  {
+   "file": "ch05",
+   "plate": "grid",
+   "name": "the chapter's program gives model.js's bounds for the paper's test step (Δt 0.01, h 0.02, to 1e-9)",
+   "ok": true,
+   "detail": "largest difference 1.5e-14"
+  },
+  {
+   "file": "ch05",
+   "plate": "exact",
+   "name": "the paper's test, constant: the left side is within 1.5e-3 of 1/4 at its six times (Δt 0.002, h 0.005)",
+   "ok": true,
+   "detail": "worst 4.17e-5"
+  },
+  {
+   "file": "ch05",
+   "plate": "exact",
+   "name": "the paper's test, sinusoid: the left side is within 1.5e-3 of 1/4 at its six times (Δt 0.002, h 0.005)",
+   "ok": true,
+   "detail": "worst 9.26e-5"
+  },
+  {
+   "file": "ch05",
+   "plate": "exact",
+   "name": "the paper's test, sinusoid: the cost now in place of the cost at decision misses 1/4 by more than 0.03",
+   "ok": true,
+   "detail": "worst 0.0672"
+  },
+  {
+   "file": "ch05",
+   "plate": "exact",
+   "name": "the paper's test, smooth step: the left side is within 1.5e-3 of 1/4 at its six times (Δt 0.002, h 0.005)",
+   "ok": true,
+   "detail": "worst 5.56e-4"
+  },
+  {
+   "file": "ch05",
+   "plate": "exact",
+   "name": "the paper's test, smooth step: the cost now in place of the cost at decision misses 1/4 by more than 0.03",
+   "ok": true,
+   "detail": "worst 0.1204"
+  },
+  {
+   "file": "ch05",
+   "plate": "grid",
+   "name": "sinusoid: the residual over 0 to 3 is smaller on the paper's grid than on Δt 0.01, h 0.02",
+   "ok": true,
+   "detail": "1.34e-4 vs 8.60e-4"
+  },
+  {
+   "file": "ch05",
+   "plate": "grid",
+   "name": "smooth step: the residual over 0 to 3 is smaller on the paper's grid than on Δt 0.01, h 0.02",
+   "ok": true,
+   "detail": "5.77e-4 vs 3.17e-3"
+  },
+  {
+   "file": "ch05",
+   "plate": "area",
+   "name": "the plates' grid (Δt 0.005, h 0.01, forced choice at 8): the left side is within 2e-3 of 1/4 on the test step, 0 to 3 (measured 1.6e-3)",
+   "ok": true,
+   "detail": "worst 1.61e-3 at 1.405"
+  },
+  {
+   "file": "ch05",
+   "plate": "exact",
+   "name": "the finite horizon: a constant cost's left side falls well below 1/4 half a time unit before the forced choice",
+   "ok": true,
+   "detail": "left side 0.1491 at t = 9.5"
+  },
+  {
+   "file": "ch05",
+   "plate": "grid",
+   "name": "every book schedule that meets the assumption: left side within 1.2e-2 of 1/4 over 0 to 2.5 on Δt 0.01, h 0.02",
+   "ok": true,
+   "detail": "worst 1.00e-2 (jump)"
+  },
+  {
+   "file": "ch05",
+   "plate": "holder",
+   "name": "every book schedule that meets the assumption: the computed bound's largest |Δb|/√|Δt| over 0 to 2.5 is within C (Δt 0.01)",
+   "ok": true,
+   "detail": "jump 1.10/3.87, fall 1.14/2.64, pulse 1.24/2.60, wave 0.19/0.93, constant 0.00/0.00, smooth 0.48/2.48, multistep 0.67/1.95, piecewise 0.98/4.19, draw 0.68/2.24"
+  },
+  {
+   "file": "ch05",
+   "plate": "grid",
+   "name": "jump: on the paper's grid the left side is within 3e-3 of 1/4 over 0 to 2.5, and closer than on Δt 0.01",
+   "ok": true,
+   "detail": "2.55e-3 at 0.37, against 1.00e-2"
+  },
+  {
+   "file": "ch05",
+   "plate": "holder",
+   "name": "Figure 1(a): C is √15 within 0.01 (the logistic step is 0.1 + 1.5 × 4.5e-5 at time 0, so c_min is a hair above 0.1)",
+   "ok": true,
+   "detail": "3.8716 vs 3.8730, c_min 0.10007"
+  },
+  {
+   "file": "ch05",
+   "plate": "grid",
+   "name": "draw: on the paper's grid the left side is within 3e-3 of 1/4 over 0 to 2.5, and closer than on Δt 0.01",
+   "ok": true,
+   "detail": "2.42e-4 at 1.51, against 1.11e-3"
+  },
+  {
+   "file": "ch05",
+   "plate": "envelope",
+   "name": "the frozen rule's reward never exceeds the value by more than 1e-9 over ±1 time unit (18 starts; rounding, and the forced choice at 8, which a rule started later can run past)",
+   "ok": true,
+   "detail": "largest J − V 1.0e-10"
+  },
+  {
+   "file": "ch05",
+   "plate": "envelope",
+   "name": "the frozen rule's reward equals the value where it was frozen",
+   "ok": true,
+   "detail": "largest |J − V| at t: 1.6e-13"
+  },
+  {
+   "file": "ch05",
+   "plate": "envelope",
+   "name": "the frozen rule's law of decision times sums to 1",
+   "ok": true,
+   "detail": "largest miss 1.2e-13"
+  },
+  {
+   "file": "ch05",
+   "plate": "envelope",
+   "name": "V_t from the grid matches c(t) − E[c(t + τ*)] within 5e-3 per time unit (Δt 0.005; measured 3.2e-3)",
+   "ok": true,
+   "detail": "largest gap 3.15e-3"
+  },
+  {
+   "file": "ch05",
+   "plate": "envelope",
+   "name": "the slope gap at t = 1.3, y = 0.25 shrinks when the time step and evidence step are halved",
+   "ok": true,
+   "detail": "7.11e-4 vs 1.52e-3"
+  },
+  {
+   "file": "ch05",
+   "plate": "regularity",
+   "name": "W ≥ c_min (b − y)² below the grid's bound at six times (Δt 0.005, h 0.01)",
+   "ok": true,
+   "detail": "smallest margin 2.95e-5"
+  },
+  {
+   "file": "ch05",
+   "plate": "regularity",
+   "name": "E_y[c(t + τ*)] ≥ c_min below the bound",
+   "ok": true,
+   "detail": "smallest 0.10197"
+  },
+  {
+   "file": "ch05",
+   "plate": "regularity",
+   "name": "the chords' slopes W(t, b − ε)/ε fall as ε goes 0.4, 0.2, 0.1, 0.05, at all six times",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "file": "ch05",
+   "plate": "regularity",
+   "name": "times 1.2 and 1.5: W at the lower bound's level lies between c_min Δb² and (c_max − c_min)|Δt|",
+   "ok": true,
+   "detail": "0.0121 ≤ 0.0217 ≤ 0.0900"
+  },
+  {
+   "file": "ch05",
+   "plate": "regularity",
+   "name": "smooth fit on the grid: the gap between V's last-cell slope and g′(b) at t = 1.2 shrinks on the finer grid",
+   "ok": true,
+   "detail": "0.0031 (h 0.005) vs 0.0046 (h 0.01)"
+  },
+  {
+   "file": "ch05",
+   "plate": "area",
+   "name": "the plate's trapezoid sum to the bound equals the left side the live plate uses",
+   "ok": true,
+   "detail": "largest difference 0.0e+0"
+  },
+  {
+   "file": "ch05",
+   "plate": "area",
+   "name": "cosh² z V_y(t, z) from the value's differences matches twice the area to z within 1e-2 (h 0.01)",
+   "ok": true,
+   "detail": "largest gap 5.96e-3"
+  },
+  {
+   "file": "ch05",
+   "plate": "speed",
+   "name": "Y: (f′/s′)′ = m 𝓛f against differences, and s′ = exp(−∫2μ)",
+   "ok": true,
+   "detail": "largest relative gap 3.2e-8"
+  },
+  {
+   "file": "ch05",
+   "plate": "speed",
+   "name": "Y: the reward's slope over s′ is the constant 0.5000",
+   "ok": true,
+   "detail": "largest gap 2.8e-17"
+  },
+  {
+   "file": "ch05",
+   "plate": "speed",
+   "name": "u: (f′/s′)′ = m 𝓛f against differences, and s′ = exp(−∫2μ)",
+   "ok": true,
+   "detail": "largest relative gap 2.0e-8"
+  },
+  {
+   "file": "ch05",
+   "plate": "speed",
+   "name": "u: the reward's slope over s′ is the constant 0.3989",
+   "ok": true,
+   "detail": "largest gap 5.6e-17"
+  },
+  {
+   "file": "ch05",
+   "plate": "speed",
+   "name": "the plate's trapezoid rule for ∫e^{v²/2} on 400 intervals agrees with its series within 1e-4",
+   "ok": true,
+   "detail": "largest relative gap 6.5e-6"
+  },
+  {
+   "file": "ch05",
+   "plate": "speed",
+   "name": "Y at c = 0.01: the shaded area c ∫ m to B(c) is g′/s′ = 1/2 within 1e-4",
+   "ok": true,
+   "detail": "0.500007"
+  },
+  {
+   "file": "ch05",
+   "plate": "speed",
+   "name": "Y at c = 0.1: the shaded area c ∫ m to B(c) is g′/s′ = 1/2 within 1e-4",
+   "ok": true,
+   "detail": "0.500001"
+  },
+  {
+   "file": "ch05",
+   "plate": "speed",
+   "name": "Y at c = 1: the shaded area c ∫ m to B(c) is g′/s′ = 1/2 within 1e-4",
+   "ok": true,
+   "detail": "0.500000"
+  },
+  {
+   "file": "ch05",
+   "plate": "words",
+   "name": "the plates' sentences never print NaN, undefined, Infinity, or null",
+   "ok": true,
+   "detail": "36000 sentences, 0 bad"
+  },
+  {
+   "file": "ch05",
+   "plate": "words",
+   "name": "a small residual prints as 5.6 × 10⁻⁴, and 0.0123 as a decimal",
+   "ok": true,
+   "detail": "5.6 × 10⁻⁴, 0.012, −1.0 × 10⁻⁴"
+  },
+  {
+   "file": "ch05",
+   "plate": "words",
+   "name": "the slope verdict calls a falling value worse and a flat one no different",
+   "ok": true,
+   "detail": "Right. At time 1.00 from evidence 0.25, the value changes by −0.1000 per time unit of delay: starting a little later is worse, because more of the decision would fall under the higher cost."
+  },
+  {
+   "file": "ch05",
+   "plate": "words",
+   "name": "the live sentence credits the grid only when the finer grid's residual is smaller",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "file": "ch05",
+   "plate": "words",
+   "name": "the band sentence says when the computed bound exceeds C",
+   "ok": true,
+   "detail": ""
   },
   {
    "file": "ch06",
@@ -415,6 +989,1392 @@
    "name": "the gap sentence says a 3-standard-error miss is rare, and a 1.5 isn't flagged",
    "ok": true,
    "detail": "3.0 standard errors from the runs' mean; a sample lands more than 2 away about one time in twenty"
+  },
+  {
+   "file": "ch07",
+   "plate": "table",
+   "name": "the plate's Table 1 equals paper/generated/tab_sinusoid.tex, cell by cell",
+   "ok": true,
+   "detail": "5 rows, 7 columns"
+  },
+  {
+   "file": "ch07",
+   "plate": "table",
+   "name": "PerMomentTooLargeAtEight is 1 / the program's swing at omega = 8",
+   "ok": true,
+   "detail": "2.79 vs 2.8"
+  },
+  {
+   "file": "ch07",
+   "plate": "table",
+   "name": "PerMomentLateAtEight is the program's lead at omega = 8",
+   "ok": true,
+   "detail": "36.4 vs 36.4"
+  },
+  {
+   "file": "ch07",
+   "plate": "transfer",
+   "name": "closed form at omega = 0.5 prints as Table 1 (swing 0.936, lead 14.5)",
+   "ok": true,
+   "detail": "0.936, 14.5"
+  },
+  {
+   "file": "ch07",
+   "plate": "transfer",
+   "name": "closed form at omega = 1 prints as Table 1 (swing 0.813, lead 24.1)",
+   "ok": true,
+   "detail": "0.813, 24.1"
+  },
+  {
+   "file": "ch07",
+   "plate": "transfer",
+   "name": "closed form at omega = 2 prints as Table 1 (swing 0.625, lead 31.4)",
+   "ok": true,
+   "detail": "0.625, 31.4"
+  },
+  {
+   "file": "ch07",
+   "plate": "transfer",
+   "name": "closed form at omega = 4 prints as Table 1 (swing 0.471, lead 34.2)",
+   "ok": true,
+   "detail": "0.471, 34.2"
+  },
+  {
+   "file": "ch07",
+   "plate": "transfer",
+   "name": "closed form at omega = 8 prints as Table 1 (swing 0.358, lead 36.7)",
+   "ok": true,
+   "detail": "0.358, 36.7"
+  },
+  {
+   "file": "ch07",
+   "plate": "transfer",
+   "name": "the series sum of a_j/(alpha_j - i omega) equals the closed form, c0 = 0.02, omega = 0.5",
+   "ok": true,
+   "detail": "0.87762+0.22659i vs 0.87761+0.22659i"
+  },
+  {
+   "file": "ch07",
+   "plate": "transfer",
+   "name": "the series sum of a_j/(alpha_j - i omega) equals the closed form, c0 = 0.02, omega = 4",
+   "ok": true,
+   "detail": "0.43699+0.26746i vs 0.43698+0.26746i"
+  },
+  {
+   "file": "ch07",
+   "plate": "transfer",
+   "name": "the series sum of a_j/(alpha_j - i omega) equals the closed form, c0 = 0.02, omega = 30",
+   "ok": true,
+   "detail": "0.16839+0.14089i vs 0.16838+0.14089i"
+  },
+  {
+   "file": "ch07",
+   "plate": "transfer",
+   "name": "the series sum of a_j/(alpha_j - i omega) equals the closed form, c0 = 0.1, omega = 0.5",
+   "ok": true,
+   "detail": "0.90674+0.23413i vs 0.90673+0.23413i"
+  },
+  {
+   "file": "ch07",
+   "plate": "transfer",
+   "name": "the series sum of a_j/(alpha_j - i omega) equals the closed form, c0 = 0.1, omega = 4",
+   "ok": true,
+   "detail": "0.39009+0.26463i vs 0.39009+0.26463i"
+  },
+  {
+   "file": "ch07",
+   "plate": "transfer",
+   "name": "the series sum of a_j/(alpha_j - i omega) equals the closed form, c0 = 0.1, omega = 30",
+   "ok": true,
+   "detail": "0.15174+0.12991i vs 0.15174+0.12991i"
+  },
+  {
+   "file": "ch07",
+   "plate": "transfer",
+   "name": "the series sum of a_j/(alpha_j - i omega) equals the closed form, c0 = 0.3, omega = 0.5",
+   "ok": true,
+   "detail": "0.97941+0.12563i vs 0.97940+0.12563i"
+  },
+  {
+   "file": "ch07",
+   "plate": "transfer",
+   "name": "the series sum of a_j/(alpha_j - i omega) equals the closed form, c0 = 0.3, omega = 4",
+   "ok": true,
+   "detail": "0.51304+0.38426i vs 0.51304+0.38426i"
+  },
+  {
+   "file": "ch07",
+   "plate": "transfer",
+   "name": "the series sum of a_j/(alpha_j - i omega) equals the closed form, c0 = 0.3, omega = 30",
+   "ok": true,
+   "detail": "0.17222+0.15559i vs 0.17222+0.15559i"
+  },
+  {
+   "file": "ch07",
+   "plate": "transfer",
+   "name": "the series sum of a_j/(alpha_j - i omega) equals the closed form, c0 = 1, omega = 0.5",
+   "ok": true,
+   "detail": "0.99955+0.01938i vs 0.99954+0.01938i"
+  },
+  {
+   "file": "ch07",
+   "plate": "transfer",
+   "name": "the series sum of a_j/(alpha_j - i omega) equals the closed form, c0 = 1, omega = 4",
+   "ok": true,
+   "detail": "0.97194+0.14978i vs 0.97194+0.14978i"
+  },
+  {
+   "file": "ch07",
+   "plate": "transfer",
+   "name": "the series sum of a_j/(alpha_j - i omega) equals the closed form, c0 = 1, omega = 30",
+   "ok": true,
+   "detail": "0.45898+0.39535i vs 0.45898+0.39535i"
+  },
+  {
+   "file": "ch07",
+   "plate": "transfer",
+   "name": "gain below 1 and lead in (0, 90) degrees at 846 pairs of cost and frequency",
+   "ok": true,
+   "detail": "846 pairs, 0 outside; largest gain 1.000000"
+  },
+  {
+   "file": "ch07",
+   "plate": "transfer",
+   "name": "every drawn term lies in the first quadrant, and at omega = 0 the terms plus the rest sum to 1",
+   "ok": true,
+   "detail": "first term at omega = 0: 0.6087"
+  },
+  {
+   "file": "ch07",
+   "plate": "transfer",
+   "name": "the running integral of w(s) e^{i omega s} over the bins ends at the closed form (omega = 2)",
+   "ok": true,
+   "detail": "0.5336+0.3261i vs 0.5337+0.3261i"
+  },
+  {
+   "file": "ch07",
+   "plate": "transfer",
+   "name": "the lead in time falls with frequency from omega = 0.05 to 1e4, stays below m(c0), and tends to m(c0) as omega -> 0 (c0 = 0.02)",
+   "ok": true,
+   "detail": "at omega = 1e-4: 0.60883 vs m = 0.60883"
+  },
+  {
+   "file": "ch07",
+   "plate": "transfer",
+   "name": "the lead in time falls with frequency from omega = 0.05 to 1e4, stays below m(c0), and tends to m(c0) as omega -> 0 (c0 = 0.1)",
+   "ok": true,
+   "detail": "at omega = 1e-4: 0.54634 vs m = 0.54634"
+  },
+  {
+   "file": "ch07",
+   "plate": "transfer",
+   "name": "the lead in time falls with frequency from omega = 0.05 to 1e4, stays below m(c0), and tends to m(c0) as omega -> 0 (c0 = 0.3)",
+   "ok": true,
+   "detail": "at omega = 1e-4: 0.25813 vs m = 0.25813"
+  },
+  {
+   "file": "ch07",
+   "plate": "transfer",
+   "name": "the lead in time falls with frequency from omega = 0.05 to 1e4, stays below m(c0), and tends to m(c0) as omega -> 0 (c0 = 1)",
+   "ok": true,
+   "detail": "at omega = 1e-4: 0.03878 vs m = 0.03878"
+  },
+  {
+   "file": "ch07",
+   "plate": "lead",
+   "name": "at c0 = 1 the lead passes 45 degrees (about 46, near omega = 66)",
+   "ok": true,
+   "detail": "45.951 at 66.1"
+  },
+  {
+   "file": "ch07",
+   "plate": "lead",
+   "name": "at c0 = 0.1 the lead stays below 45 degrees over omega from 0.01 to 1e6",
+   "ok": true,
+   "detail": "largest 44.975 at 1.0e+6"
+  },
+  {
+   "file": "ch07",
+   "plate": "lead",
+   "name": "the lead tends to 45 degrees: within 0.05 at omega = 1e6 for c0 = 0.02, 0.1, 1",
+   "ok": true,
+   "detail": "44.972, 44.975, 44.993"
+  },
+  {
+   "file": "ch07",
+   "plate": "lookahead",
+   "name": "MaxLookAhead and MaxLookAheadCost, by the page's scan of 4,000 costs",
+   "ok": true,
+   "detail": "0.6190 at 0.0353 vs 0.619 at 0.035"
+  },
+  {
+   "file": "ch07",
+   "plate": "lookahead",
+   "name": "LookAheadTenth from the closed form (22)",
+   "ok": true,
+   "detail": "0.5463 vs 0.546"
+  },
+  {
+   "file": "ch07",
+   "plate": "lookahead",
+   "name": "DecisionTimeTenth: b0 tanh b0 at 0.1",
+   "ok": true,
+   "detail": "1.1725 vs 1.17"
+  },
+  {
+   "file": "ch07",
+   "plate": "lookahead",
+   "name": "both forms of (22), the series mean, and the integral over starts agree at c0 = 0.001",
+   "ok": true,
+   "detail": "0.5212066, 0.5212066, 0.5212066, 0.5212066"
+  },
+  {
+   "file": "ch07",
+   "plate": "lookahead",
+   "name": "both forms of (22), the series mean, and the integral over starts agree at c0 = 0.02",
+   "ok": true,
+   "detail": "0.6088295, 0.6088295, 0.6088295, 0.6088295"
+  },
+  {
+   "file": "ch07",
+   "plate": "lookahead",
+   "name": "both forms of (22), the series mean, and the integral over starts agree at c0 = 0.1",
+   "ok": true,
+   "detail": "0.5463441, 0.5463441, 0.5463441, 0.5463441"
+  },
+  {
+   "file": "ch07",
+   "plate": "lookahead",
+   "name": "both forms of (22), the series mean, and the integral over starts agree at c0 = 0.5",
+   "ok": true,
+   "detail": "0.1288723, 0.1288723, 0.1288723, 0.1288723"
+  },
+  {
+   "file": "ch07",
+   "plate": "lookahead",
+   "name": "both forms of (22), the series mean, and the integral over starts agree at c0 = 3",
+   "ok": true,
+   "detail": "0.0045914, 0.0045914, 0.0045914, 0.0045914"
+  },
+  {
+   "file": "ch07",
+   "plate": "lookahead",
+   "name": "minus the transform's slope at 0 (difference quotient) is the mean",
+   "ok": true,
+   "detail": "0.54630 vs 0.54634"
+  },
+  {
+   "file": "ch07",
+   "plate": "lookahead",
+   "name": "the limits: m(1e-4) within 0.005 of 1/2, and m / (2/3 b0^2) within 1e-3 of 1 at c0 = 100",
+   "ok": true,
+   "detail": "m(1e-4) = 0.50391; ratio at 100 = 0.999997"
+  },
+  {
+   "file": "ch07",
+   "plate": "starts",
+   "name": "the plate's sampled mean times from six starts lie within 3 standard errors of b0 tanh b0 - y tanh y",
+   "ok": true,
+   "detail": "0.3, -0.4, 0.6, 0.1, -0.2, 0.9"
+  },
+  {
+   "file": "ch07",
+   "plate": "shift",
+   "name": "the shifted rule is the per-moment rule at a constant cost, and drops m(0.1) earlier before a jump",
+   "ok": true,
+   "detail": "drops at 0.3530 and 0.8995; m = 0.5463"
+  },
+  {
+   "file": "ch07",
+   "plate": "half",
+   "name": "near s = 0, n(s) sqrt(pi s / 2) -> 1, and the kernel's and the gain's log slopes are -1/2 (c0 = 0.02)",
+   "ok": true,
+   "detail": "n sqrt(pi s/2) at 1e-6: 0.99877; slopes -0.5062 at s = 1e-4, -0.4976 at omega = 1e4; gain / asymptote at 1e6: 0.99951"
+  },
+  {
+   "file": "ch07",
+   "plate": "half",
+   "name": "near s = 0, n(s) sqrt(pi s / 2) -> 1, and the kernel's and the gain's log slopes are -1/2 (c0 = 0.1)",
+   "ok": true,
+   "detail": "n sqrt(pi s/2) at 1e-6: 0.99891; slopes -0.5055 at s = 1e-4, -0.4978 at omega = 1e4; gain / asymptote at 1e6: 0.99956"
+  },
+  {
+   "file": "ch07",
+   "plate": "half",
+   "name": "near s = 0, n(s) sqrt(pi s / 2) -> 1, and the kernel's and the gain's log slopes are -1/2 (c0 = 1)",
+   "ok": true,
+   "detail": "n sqrt(pi s/2) at 1e-6: 0.99970; slopes -0.5015 at s = 1e-4, -0.4994 at omega = 1e4; gain / asymptote at 1e6: 0.99988"
+  },
+  {
+   "file": "ch07",
+   "plate": "half",
+   "name": "r^2 = 1 - 2 i omega, r / sqrt(omega) -> 1 - i, and tanh(r b0) -> 1",
+   "ok": true,
+   "detail": "r(1e4) / 100 = 1.0000 -1.0000i"
+  },
+  {
+   "file": "ch07",
+   "plate": "reward",
+   "name": "R'(B) = 0 and R''(B) = -2c, and doubling a miss about quadruples the loss (c = 0.02)",
+   "ok": true,
+   "detail": "R' = 1.3e-10, R''/(-2c) = 1.00000, ratios 3.76 above, 4.28 below"
+  },
+  {
+   "file": "ch07",
+   "plate": "reward",
+   "name": "R'(B) = 0 and R''(B) = -2c, and doubling a miss about quadruples the loss (c = 0.1)",
+   "ok": true,
+   "detail": "R' = 5.8e-10, R''/(-2c) = 1.00000, ratios 3.78 above, 4.24 below"
+  },
+  {
+   "file": "ch07",
+   "plate": "reward",
+   "name": "R'(B) = 0 and R''(B) = -2c, and doubling a miss about quadruples the loss (c = 0.5)",
+   "ok": true,
+   "detail": "R' = 1.4e-9, R''/(-2c) = 1.00000, ratios 3.86 above, 4.08 below"
+  },
+  {
+   "file": "ch07",
+   "plate": "band",
+   "name": "the waiting value is 0 with slope 0 at the bound and (V - g)_yy = 2c there (c = 0.02)",
+   "ok": true,
+   "detail": "slope -2.0e-6; second difference / 2c = 1.0002 (h = 1e-4), 1.0020 (h = 1e-3, as the plate)"
+  },
+  {
+   "file": "ch07",
+   "plate": "band",
+   "name": "the waiting value is 0 with slope 0 at the bound and (V - g)_yy = 2c there (c = 0.1)",
+   "ok": true,
+   "detail": "slope -1.0e-5; second difference / 2c = 1.0002 (h = 1e-4), 1.0017 (h = 1e-3, as the plate)"
+  },
+  {
+   "file": "ch07",
+   "plate": "band",
+   "name": "the waiting value is 0 with slope 0 at the bound and (V - g)_yy = 2c there (c = 0.5)",
+   "ok": true,
+   "detail": "slope -5.0e-5; second difference / 2c = 1.0001 (h = 1e-4), 1.0009 (h = 1e-3, as the plate)"
+  },
+  {
+   "file": "ch07",
+   "plate": "band",
+   "name": "time above b0 over D^2 tends to 1; the Green's function gives E_0 tau = L tanh L; (E tau+ - E tau-) / D tends to 2 (tanh b0 + b0 sech^2 b0)",
+   "ok": true,
+   "detail": "ratios 0.9994, 0.9942; 1.59019542 vs 1.59019542; 2.386445 vs 2.386445"
+  },
+  {
+   "file": "ch07",
+   "plate": "scorer",
+   "name": "the forward computation equals model.js's score on three policies, and its decision-time chances sum to 1",
+   "ok": true,
+   "detail": "largest difference 0.0e+0; mass off by 2.8e-14"
+  },
+  {
+   "file": "ch07",
+   "plate": "scorer",
+   "name": "the page's program and scorer against Table 9's per-moment losses at a = 0.2, 0.4, 0.8 (within 6%, on the page's coarser grid)",
+   "ok": true,
+   "detail": "a = 0.2: 7.15e-3 vs 7.0e-3; a = 0.4: 2.41e-2 vs 2.5e-2; a = 0.8: 6.64e-2 vs 6.7e-2"
+  },
+  {
+   "file": "ch07",
+   "plate": "loss",
+   "name": "on the smooth preset, the per-moment loss falls with a slope near 2 over its three smallest resolved sizes",
+   "ok": true,
+   "detail": "slope 1.89; 5 of 7 sizes resolved; resolution 8.2e-7; c(0) = 0.0689"
+  },
+  {
+   "file": "ch07",
+   "plate": "conjecture",
+   "name": "on the smooth preset, the conjecture's prediction for the per-moment rule is within 0.8 to 1.3 of the scored loss wherever that loss is resolved and mostly early (eps <= 1/4)",
+   "ok": true,
+   "detail": "0.992, 0.996, 1.002"
+  },
+  {
+   "file": "ch07",
+   "plate": "conjecture",
+   "name": "the late share is a share: between 0 and 1, and the running share ends at 1",
+   "ok": true,
+   "detail": "late shares 0%, 0%, 0%, 0%, 0%, 1%, 2%"
+  },
+  {
+   "file": "ch07",
+   "plate": "words",
+   "name": "the plates' sentences never print NaN, undefined, Infinity, or null",
+   "ok": true,
+   "detail": "42000 sentences, 0 bad"
+  },
+  {
+   "file": "ch07",
+   "plate": "words",
+   "name": "the lead sentence says the lead passes 45 degrees at c0 = 1 and not at 0.1, and never says it is capped",
+   "ok": true,
+   "detail": "At c₀ = 1, the lead passes 45°: it reaches 45.95° near ω = 66 and then comes back toward 45°."
+  },
+  {
+   "file": "ch07",
+   "plate": "words",
+   "name": "the wave sentence flags a lead above 45 degrees only when there is one",
+   "ok": true,
+   "detail": "At c₀ = 1 and ω = 66, the bound swings 0.300 of the per-moment swing and runs 45.9° ahead of it, 0.010 time units, against a mean look-ahead of 0.040. The lead is above 45° here: it tends to 45° at high frequency but isn't capped there."
+  },
+  {
+   "file": "ch07",
+   "plate": "words",
+   "name": "the loss sentence names a slope near 2 as second order, and the conjecture's sentence starts with the word Conjecture",
+   "ok": true,
+   "detail": "At ε = 1/4, the per-moment rule loses 1.0e-4 of reward, and the first-order bound 1.0e-6. Over its three smallest resolved sizes, the per-moment loss falls with a slope of 1.95 on these log axes, close to the 2 of a second-order loss. The first-order bound's falls with a slope of 3.80, faster than second order."
+  },
+  {
+   "file": "ch08",
+   "plate": "rule",
+   "name": "jump: the page's 30th update equals model.js's weightedBound exactly",
+   "ok": true,
+   "detail": "bit for bit"
+  },
+  {
+   "file": "ch08",
+   "plate": "rule",
+   "name": "jump: model.js's weighted rule against showcase.json at the tag (within 5.1e-5, its 4-decimal rounding)",
+   "ok": true,
+   "detail": "largest difference 5.0e-5 over 26 times"
+  },
+  {
+   "file": "ch08",
+   "plate": "rule",
+   "name": "fall: the page's 30th update equals model.js's weightedBound exactly",
+   "ok": true,
+   "detail": "bit for bit"
+  },
+  {
+   "file": "ch08",
+   "plate": "rule",
+   "name": "fall: model.js's weighted rule against showcase.json at the tag (within 5.1e-5, its 4-decimal rounding)",
+   "ok": true,
+   "detail": "largest difference 3.2e-5 over 26 times"
+  },
+  {
+   "file": "ch08",
+   "plate": "rule",
+   "name": "rising: the page's 30th update equals model.js's weightedBound exactly",
+   "ok": true,
+   "detail": "bit for bit"
+  },
+  {
+   "file": "ch08",
+   "plate": "rule",
+   "name": "rising: model.js's weighted rule against showcase.json at the tag (within 5.1e-5, its 4-decimal rounding)",
+   "ok": true,
+   "detail": "largest difference 4.9e-5 over 26 times"
+  },
+  {
+   "file": "ch08",
+   "plate": "rule",
+   "name": "deadline: the page's 30th update equals model.js's weightedBound exactly",
+   "ok": true,
+   "detail": "bit for bit"
+  },
+  {
+   "file": "ch08",
+   "plate": "rule",
+   "name": "deadline: model.js's weighted rule against showcase.json at the tag (within 5.1e-5, its 4-decimal rounding)",
+   "ok": true,
+   "detail": "largest difference 5.0e-5 over 11 times"
+  },
+  {
+   "file": "ch08",
+   "plate": "rule",
+   "name": "Table 1 at omega = 0.5: the weighted rule's swing 0.936 and lead 14.5 as printed",
+   "ok": true,
+   "detail": "0.936, 14.5"
+  },
+  {
+   "file": "ch08",
+   "plate": "rule",
+   "name": "omega = 0.5: the weighted rule's fit against showcase.json (amplitude within 1e-10, phase within 1e-6 degrees)",
+   "ok": true,
+   "detail": "0.0559795751803, -165.51401558"
+  },
+  {
+   "file": "ch08",
+   "plate": "avg",
+   "name": "omega = 0.5: the averaged-cost rule's fit against showcase.json (amplitude within 1e-10, phase within 1e-6 degrees)",
+   "ok": true,
+   "detail": "0.0559505980950, -165.50840829"
+  },
+  {
+   "file": "ch08",
+   "plate": "rule",
+   "name": "Table 1 at omega = 1: the weighted rule's swing 0.813 and lead 24.1 as printed",
+   "ok": true,
+   "detail": "0.813, 24.1"
+  },
+  {
+   "file": "ch08",
+   "plate": "rule",
+   "name": "omega = 1: the weighted rule's fit against showcase.json (amplitude within 1e-10, phase within 1e-6 degrees)",
+   "ok": true,
+   "detail": "0.0485960351136, -155.93709339"
+  },
+  {
+   "file": "ch08",
+   "plate": "avg",
+   "name": "omega = 1: the averaged-cost rule's fit against showcase.json (amplitude within 1e-10, phase within 1e-6 degrees)",
+   "ok": true,
+   "detail": "0.0485426644972, -155.93935250"
+  },
+  {
+   "file": "ch08",
+   "plate": "rule",
+   "name": "Table 1 at omega = 2: the weighted rule's swing 0.625 and lead 31.4 as printed",
+   "ok": true,
+   "detail": "0.625, 31.4"
+  },
+  {
+   "file": "ch08",
+   "plate": "rule",
+   "name": "omega = 2: the weighted rule's fit against showcase.json (amplitude within 1e-10, phase within 1e-6 degrees)",
+   "ok": true,
+   "detail": "0.0373956575327, -148.56815421"
+  },
+  {
+   "file": "ch08",
+   "plate": "avg",
+   "name": "omega = 2: the averaged-cost rule's fit against showcase.json (amplitude within 1e-10, phase within 1e-6 degrees)",
+   "ok": true,
+   "detail": "0.0373578681567, -148.58999875"
+  },
+  {
+   "file": "ch08",
+   "plate": "rule",
+   "name": "Table 1 at omega = 4: the weighted rule's swing 0.471 and lead 34.2 as printed",
+   "ok": true,
+   "detail": "0.471, 34.2"
+  },
+  {
+   "file": "ch08",
+   "plate": "rule",
+   "name": "omega = 4: the weighted rule's fit against showcase.json (amplitude within 1e-10, phase within 1e-6 degrees)",
+   "ok": true,
+   "detail": "0.0281825833936, -145.84043693"
+  },
+  {
+   "file": "ch08",
+   "plate": "avg",
+   "name": "omega = 4: the averaged-cost rule's fit against showcase.json (amplitude within 1e-10, phase within 1e-6 degrees)",
+   "ok": true,
+   "detail": "0.0281487537134, -145.84864159"
+  },
+  {
+   "file": "ch08",
+   "plate": "rule",
+   "name": "Table 1 at omega = 8: the weighted rule's swing 0.358 and lead 36.7 as printed",
+   "ok": true,
+   "detail": "0.358, 36.7"
+  },
+  {
+   "file": "ch08",
+   "plate": "rule",
+   "name": "omega = 8: the weighted rule's fit against showcase.json (amplitude within 1e-10, phase within 1e-6 degrees)",
+   "ok": true,
+   "detail": "0.0214122277897, -143.30242994"
+  },
+  {
+   "file": "ch08",
+   "plate": "avg",
+   "name": "omega = 8: the averaged-cost rule's fit against showcase.json (amplitude within 1e-10, phase within 1e-6 degrees)",
+   "ok": true,
+   "detail": "0.0213794709664, -143.31005737"
+  },
+  {
+   "file": "ch08",
+   "plate": "avg",
+   "name": "jump: the averaged-cost rule against the paper's weighted_ahead (within 1e-9)",
+   "ok": true,
+   "detail": "largest difference 4.7e-11"
+  },
+  {
+   "file": "ch08",
+   "plate": "avg",
+   "name": "fall: the averaged-cost rule against the paper's weighted_ahead (within 1e-9)",
+   "ok": true,
+   "detail": "largest difference 4.7e-11"
+  },
+  {
+   "file": "ch08",
+   "plate": "avg",
+   "name": "rising: the averaged-cost rule against the paper's weighted_ahead (within 1e-9)",
+   "ok": true,
+   "detail": "largest difference 4.8e-11"
+  },
+  {
+   "file": "ch08",
+   "plate": "avg",
+   "name": "deadline: the averaged-cost rule against the paper's weighted_ahead (within 1e-9)",
+   "ok": true,
+   "detail": "largest difference 0.0e+0"
+  },
+  {
+   "file": "ch08",
+   "plate": "avg",
+   "name": "the kernel is positive far out (s = 0.5 to 20), so any infinite cost ahead makes the average infinite",
+   "ok": true,
+   "detail": "5.3e-1, 8.1e-2, 2.3e-3, 6.2e-6, 4.5e-11"
+  },
+  {
+   "file": "ch08",
+   "plate": "avg",
+   "name": "with a deadline added, the averaged-cost rule is 0 at every time",
+   "ok": true,
+   "detail": "21 times"
+  },
+  {
+   "file": "ch08",
+   "plate": "avg",
+   "name": "on the 16-fold jump, the averaged-cost rule starts below half the best bound (as the text says)",
+   "ok": true,
+   "detail": "0.384 vs 0.940"
+  },
+  {
+   "file": "ch08",
+   "plate": "deadline",
+   "name": "Figure 1(d): at the hero's times, the rule's bound is within 0.002 of B(0.1) times its kernel's share before the deadline",
+   "ok": true,
+   "detail": "6e-11, 2e-10, 2e-10, 2e-11, 1e-4, 5e-12"
+  },
+  {
+   "file": "ch08",
+   "plate": "program",
+   "name": "jump: the page's losses against Table 4 (per-moment within 5%, weighted within 0.006; the page's grid is 5 times coarser in time and 4 in evidence)",
+   "ok": true,
+   "detail": "0.907 and 0.0139 vs 0.94 and 0.01"
+  },
+  {
+   "file": "ch08",
+   "plate": "program",
+   "name": "fall: the page's losses against Table 4 (per-moment within 5%, weighted within 0.006; the page's grid is 5 times coarser in time and 4 in evidence)",
+   "ok": true,
+   "detail": "4.261 and 0.0096 vs 4.29 and 0.008"
+  },
+  {
+   "file": "ch08",
+   "plate": "program",
+   "name": "rising: the page's losses against Table 4 (per-moment within 5%, weighted within 0.006; the page's grid is 5 times coarser in time and 4 in evidence)",
+   "ok": true,
+   "detail": "0.663 and 0.0135 vs 0.68 and 0.012"
+  },
+  {
+   "file": "ch08",
+   "plate": "program",
+   "name": "deadline: the page's losses against Table 4 (per-moment within 5%, weighted within 0.006; the page's grid is 5 times coarser in time and 4 in evidence)",
+   "ok": true,
+   "detail": "0.845 and 0.0373 vs 0.86 and 0.038"
+  },
+  {
+   "file": "ch08",
+   "plate": "iterate",
+   "name": "a small change (the wave): each update moves the bound about half as far as the one before (ratios within 0.4 to 0.6)",
+   "ok": true,
+   "detail": "0.503, 0.503, 0.503, 0.503"
+  },
+  {
+   "file": "ch08",
+   "plate": "iterate",
+   "name": "the wave settles to 0.001 within the 30 updates",
+   "ok": true,
+   "detail": "update 7"
+  },
+  {
+   "file": "ch08",
+   "plate": "iterate",
+   "name": "deadline: the 30 updates don't settle to 0.001 (as the text says)",
+   "ok": true,
+   "detail": "the 30th moves 8.2e-3"
+  },
+  {
+   "file": "ch08",
+   "plate": "iterate",
+   "name": "pulse: the 30 updates don't settle to 0.001 (as the text says)",
+   "ok": true,
+   "detail": "the 30th moves 2.6e-3"
+  },
+  {
+   "file": "ch08",
+   "plate": "iterate",
+   "name": "the pulse at t = 1: one crossing, where the map's slope is between 0.5 and 1, so each damped update closes only a small part of the distance (as the text says)",
+   "ok": true,
+   "detail": "slope 0.74"
+  },
+  {
+   "file": "ch08",
+   "plate": "iterate",
+   "name": "near the deadline (t = 0.7) the map crosses once, with a slope below -3, so the damped update can't settle there",
+   "ok": true,
+   "detail": "1 crossing, slope -9.54"
+  },
+  {
+   "file": "ch08",
+   "plate": "iterate",
+   "name": "on the jump at t = 0.28, updates 26 to 30 still move the level by more than 1e-5 with levels rounded to 0.001, and by less than 1e-10 with each level's own kernel",
+   "ok": true,
+   "detail": "rounded 1.6e-4 or more, exact 2.4e-15 or less"
+  },
+  {
+   "file": "ch08",
+   "plate": "iterate",
+   "name": "on a 10% wave, 300 updates move the bound from the 30th by less than 1e-6",
+   "ok": true,
+   "detail": "6.3e-11"
+  },
+  {
+   "file": "ch08",
+   "plate": "iterate",
+   "name": "on Figure 1(d), 300 updates move the bound from the 30th by more than 0.001 and less than 0.05",
+   "ok": true,
+   "detail": "0.0077 at time 0.68"
+  },
+  {
+   "file": "ch08",
+   "plate": "p13",
+   "name": "eps = 0.4: the map sends I into I and crosses the diagonal once",
+   "ok": true,
+   "detail": "I = [1.1422, 1.6441], values 1.2140 to 1.2253"
+  },
+  {
+   "file": "ch08",
+   "plate": "p13",
+   "name": "eps = 0.2: the map sends I into I and crosses the diagonal once",
+   "ok": true,
+   "detail": "I = [1.2346, 1.4761], values 1.2747 to 1.2776"
+  },
+  {
+   "file": "ch08",
+   "plate": "p13",
+   "name": "eps = 0.1: the map sends I into I and crosses the diagonal once",
+   "ok": true,
+   "detail": "I = [1.2867, 1.4064], values 1.3079 to 1.3087"
+  },
+  {
+   "file": "ch08",
+   "plate": "p13",
+   "name": "eps = 0.05: the map sends I into I and crosses the diagonal once",
+   "ok": true,
+   "detail": "I = [1.3146, 1.3743], values 1.3254 to 1.3256"
+  },
+  {
+   "file": "ch08",
+   "plate": "p13",
+   "name": "the map's steepest slope divided by eps stays bounded and falls as eps shrinks",
+   "ok": true,
+   "detail": "0.146, 0.104, 0.084, 0.074"
+  },
+  {
+   "file": "ch08",
+   "plate": "p13",
+   "name": "the rule's distance from b0 + eps beta divided by eps^2 settles (the last three within 15% of each other)",
+   "ok": true,
+   "detail": "0.2591, 0.2202, 0.2059, 0.1997"
+  },
+  {
+   "file": "ch08",
+   "plate": "p13",
+   "name": "the per-moment rule's error divided by eps tends to |B'(c0)| M |1 - w~(-2i)| (extrapolated from the two smallest sizes, within 2%)",
+   "ok": true,
+   "detail": "0.3387 vs 0.3395"
+  },
+  {
+   "file": "ch08",
+   "plate": "p13",
+   "name": "the kernel's derivative in the level has equal areas above and below zero (within 1e-4; the stretch [0, 1e-8] is left out)",
+   "ok": true,
+   "detail": "0.123746 above, 0.123755 below"
+  },
+  {
+   "file": "ch08",
+   "plate": "p13",
+   "name": "the kernel from the series has area 1 on the same grid, with the stretch below 1e-8 added (within 1e-5)",
+   "ok": true,
+   "detail": "0.999866 + 1.34e-4"
+  },
+  {
+   "file": "ch08",
+   "plate": "p13",
+   "name": "|1 - w~(-i omega)| is 0 at omega = 0 and stays above 0.1 for omega from 0.5 to 20",
+   "ok": true,
+   "detail": "smallest 0.252"
+  },
+  {
+   "file": "ch08",
+   "plate": "roots",
+   "name": "the brief spike: three crossings, the outer two where the damped update settles and the middle one where it doesn't",
+   "ok": true,
+   "detail": "0.0691 (slope 0.01), 0.4303 (slope 2.22), 1.1563 (slope 0.17)"
+  },
+  {
+   "file": "ch08",
+   "plate": "roots",
+   "name": "Algorithm 1's 30 updates from the per-moment bound end at the smallest crossing (within 0.001)",
+   "ok": true,
+   "detail": "0.0691 vs 0.0691"
+  },
+  {
+   "file": "ch08",
+   "plate": "roots",
+   "name": "each preset (and the default drawing) crosses the diagonal once at every time 0, 0.1, ... in its window",
+   "ok": true,
+   "detail": "one crossing everywhere"
+  },
+  {
+   "file": "ch08",
+   "plate": "bins",
+   "name": "level 0.01: 240 bins with edges 0, 1e-5, ..., 14/lambda_1, summing to 1",
+   "ok": true,
+   "detail": "last edge 0.0011, sum 1.00000000000000"
+  },
+  {
+   "file": "ch08",
+   "plate": "bins",
+   "name": "level 0.3: 240 bins with edges 0, 1e-5, ..., 14/lambda_1, summing to 1",
+   "ok": true,
+   "detail": "last edge 0.9854, sum 1.00000000000000"
+  },
+  {
+   "file": "ch08",
+   "plate": "bins",
+   "name": "level 1.344: 240 bins with edges 0, 1e-5, ..., 14/lambda_1, summing to 1",
+   "ok": true,
+   "detail": "last edge 11.8345, sum 1.00000000000000"
+  },
+  {
+   "file": "ch08",
+   "plate": "bins",
+   "name": "level 2.5: 240 bins with edges 0, 1e-5, ..., 14/lambda_1, summing to 1",
+   "ok": true,
+   "detail": "last edge 20.0748, sum 1.00000000000000"
+  },
+  {
+   "file": "ch08",
+   "plate": "bins",
+   "name": "the first bin [0, 1e-5] holds a quarter of the mass at the level 0.01 (the algorithm's note)",
+   "ok": true,
+   "detail": "0.2522"
+  },
+  {
+   "file": "ch08",
+   "plate": "bins",
+   "name": "levels below 0.01 use the kernel for 0.01",
+   "ok": true,
+   "detail": "the same cached kernel"
+  },
+  {
+   "file": "ch08",
+   "plate": "bins",
+   "name": "the binned kernel's mean at c0 = 0.1 against the series' mean look-ahead (LookAheadTenth) within 0.002",
+   "ok": true,
+   "detail": "0.5468 vs 0.5463 (printed 0.546)"
+  },
+  {
+   "file": "ch08",
+   "plate": "words",
+   "name": "the plates' sentences never print NaN, undefined, Infinity, or null",
+   "ok": true,
+   "detail": "22000 sentences, 0 bad"
+  },
+  {
+   "file": "ch08",
+   "plate": "words",
+   "name": "on the jump, the sentence prints the three losses and says averaging costs does worse than the per-moment rule",
+   "ok": true,
+   "detail": "On Cost jumps, the weighted rule loses 0.014 points per 100 trials, the per-moment rule 0.907, and the averaged-cost rule 5.81. Here averaging the costs does worse than not looking ahead at all."
+  },
+  {
+   "file": "ch08",
+   "plate": "words",
+   "name": "the iteration verdict: 'Right' when it never settles and the guess was 'not within 30'; the gap in updates otherwise",
+   "ok": true,
+   "detail": "It took 7 updates. You guessed about 20, 13 off."
+  },
+  {
+   "file": "ch08",
+   "plate": "words",
+   "name": "the spike's verdict says three levels fit and the updates can settle at two",
+   "ok": true,
+   "detail": "Right. Three levels fit here, and the damped updates can settle at two of them."
+  },
+  {
+   "file": "ch08",
+   "plate": "words",
+   "name": "losses below 0.0005 read 'less than 0.001'",
+   "ok": true,
+   "detail": "less than 0.001; 0.014"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "the reference was computed by the paper's code at the book's tag",
+   "ok": true,
+   "detail": "paper-code.json from paper-v1.2 (7db71f1), book from paper-v1.2 (7db71f1)"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "jump: the page's dynamic program matches the paper's backward_induction_x over the window (within 1e-6)",
+   "ok": true,
+   "detail": "largest difference 6.15e-9"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "jump: the per-moment bound matches the paper's bound_for_cost (within 1e-10)",
+   "ok": true,
+   "detail": "largest difference 1.83e-13"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "jump: the weighted look-ahead matches the paper's weighted_bound (within 1e-10)",
+   "ok": true,
+   "detail": "largest difference 3.48e-14"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "jump: what the exact policy earns matches the paper's known_reward (within 1e-7)",
+   "ok": true,
+   "detail": "reward 0.710306 vs 0.710306, largest difference 1.26e-9"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "jump: what the per-moment rule earns matches the paper's known_reward (within 1e-7)",
+   "ok": true,
+   "detail": "reward 0.701234 vs 0.701234, largest difference 1.38e-9"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "jump: what the weighted rule earns matches the paper's known_reward (within 1e-7)",
+   "ok": true,
+   "detail": "reward 0.710167 vs 0.710167, largest difference 1.14e-9"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "fall: the page's dynamic program matches the paper's backward_induction_x over the window (within 1e-6)",
+   "ok": true,
+   "detail": "largest difference 6.60e-9"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "fall: the per-moment bound matches the paper's bound_for_cost (within 1e-10)",
+   "ok": true,
+   "detail": "largest difference 2.67e-13"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "fall: the weighted look-ahead matches the paper's weighted_bound (within 1e-10)",
+   "ok": true,
+   "detail": "largest difference 1.47e-14"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "fall: what the exact policy earns matches the paper's known_reward (within 1e-7)",
+   "ok": true,
+   "detail": "reward 0.782504 vs 0.782504, largest difference 1.04e-9"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "fall: what the per-moment rule earns matches the paper's known_reward (within 1e-7)",
+   "ok": true,
+   "detail": "reward 0.739892 vs 0.739892, largest difference 1.01e-9"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "fall: what the weighted rule earns matches the paper's known_reward (within 1e-7)",
+   "ok": true,
+   "detail": "reward 0.782408 vs 0.782408, largest difference 1.09e-9"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "rising: the page's dynamic program matches the paper's backward_induction_x over the window (within 1e-6)",
+   "ok": true,
+   "detail": "largest difference 6.94e-9"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "rising: the per-moment bound matches the paper's bound_for_cost (within 1e-10)",
+   "ok": true,
+   "detail": "largest difference 2.64e-13"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "rising: the weighted look-ahead matches the paper's weighted_bound (within 1e-10)",
+   "ok": true,
+   "detail": "largest difference 5.71e-14"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "rising: what the exact policy earns matches the paper's known_reward (within 1e-7)",
+   "ok": true,
+   "detail": "reward 0.753409 vs 0.753409, largest difference 1.55e-9"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "rising: what the per-moment rule earns matches the paper's known_reward (within 1e-7)",
+   "ok": true,
+   "detail": "reward 0.746782 vs 0.746782, largest difference 1.71e-9"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "rising: what the weighted rule earns matches the paper's known_reward (within 1e-7)",
+   "ok": true,
+   "detail": "reward 0.753274 vs 0.753274, largest difference 1.39e-9"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "deadline: the page's dynamic program matches the paper's backward_induction_x over the window (within 1e-6)",
+   "ok": true,
+   "detail": "largest difference 6.62e-9"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "deadline: the per-moment bound matches the paper's bound_for_cost (within 1e-10)",
+   "ok": true,
+   "detail": "largest difference 6.88e-15"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "deadline: the weighted look-ahead matches the paper's weighted_bound (within 1e-10)",
+   "ok": true,
+   "detail": "largest difference 6.88e-15"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "deadline: what the exact policy earns matches the paper's known_reward (within 1e-7)",
+   "ok": true,
+   "detail": "reward 0.769873 vs 0.769873, largest difference 1.41e-9"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "deadline: what the per-moment rule earns matches the paper's known_reward (within 1e-7)",
+   "ok": true,
+   "detail": "reward 0.761453 vs 0.761453, largest difference 1.66e-9"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "deadline: what the weighted rule earns matches the paper's known_reward (within 1e-7)",
+   "ok": true,
+   "detail": "reward 0.769533 vs 0.769533, largest difference 1.36e-9"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "pulse: the page's dynamic program matches the paper's backward_induction_x over the window (within 1e-6)",
+   "ok": true,
+   "detail": "largest difference 7.07e-9"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "pulse: the per-moment bound matches the paper's bound_for_cost (within 1e-10)",
+   "ok": true,
+   "detail": "largest difference 2.01e-13"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "pulse: the weighted look-ahead matches the paper's weighted_bound (within 1e-10)",
+   "ok": true,
+   "detail": "largest difference 3.84e-14"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "pulse: what the exact policy earns matches the paper's known_reward (within 1e-7)",
+   "ok": true,
+   "detail": "reward 0.756590 vs 0.756590, largest difference 1.76e-9"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "pulse: what the per-moment rule earns matches the paper's known_reward (within 1e-7)",
+   "ok": true,
+   "detail": "reward 0.746298 vs 0.746298, largest difference 1.66e-9"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "pulse: what the weighted rule earns matches the paper's known_reward (within 1e-7)",
+   "ok": true,
+   "detail": "reward 0.755032 vs 0.755032, largest difference 1.50e-9"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "wave: the page's dynamic program matches the paper's backward_induction_x over the window (within 1e-6)",
+   "ok": true,
+   "detail": "largest difference 7.26e-9"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "wave: the per-moment bound matches the paper's bound_for_cost (within 1e-10)",
+   "ok": true,
+   "detail": "largest difference 2.97e-13"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "wave: the weighted look-ahead matches the paper's weighted_bound (within 1e-10)",
+   "ok": true,
+   "detail": "largest difference 8.50e-14"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "wave: what the exact policy earns matches the paper's known_reward (within 1e-7)",
+   "ok": true,
+   "detail": "reward 0.803738 vs 0.803738, largest difference 1.40e-9"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "wave: what the per-moment rule earns matches the paper's known_reward (within 1e-7)",
+   "ok": true,
+   "detail": "reward 0.803264 vs 0.803264, largest difference 1.35e-9"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "wave: what the weighted rule earns matches the paper's known_reward (within 1e-7)",
+   "ok": true,
+   "detail": "reward 0.803735 vs 0.803735, largest difference 1.40e-9"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "constant: the page's dynamic program matches the paper's backward_induction_x over the window (within 1e-6)",
+   "ok": true,
+   "detail": "largest difference 6.60e-9"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "constant: the per-moment bound matches the paper's bound_for_cost (within 1e-10)",
+   "ok": true,
+   "detail": "largest difference 6.88e-15"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "constant: the weighted look-ahead matches the paper's weighted_bound (within 1e-10)",
+   "ok": true,
+   "detail": "largest difference 7.55e-15"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "constant: what the exact policy earns matches the paper's known_reward (within 1e-7)",
+   "ok": true,
+   "detail": "reward 0.818768 vs 0.818768, largest difference 1.39e-9"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "constant: what the per-moment rule earns matches the paper's known_reward (within 1e-7)",
+   "ok": true,
+   "detail": "reward 0.818766 vs 0.818766, largest difference 1.38e-9"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "constant: what the weighted rule earns matches the paper's known_reward (within 1e-7)",
+   "ok": true,
+   "detail": "reward 0.818766 vs 0.818766, largest difference 1.38e-9"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "smooth: the page's dynamic program matches the paper's backward_induction_x over the window (within 1e-6)",
+   "ok": true,
+   "detail": "largest difference 7.57e-9"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "smooth: the per-moment bound matches the paper's bound_for_cost (within 1e-10)",
+   "ok": true,
+   "detail": "largest difference 2.86e-13"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "smooth: the weighted look-ahead matches the paper's weighted_bound (within 1e-10)",
+   "ok": true,
+   "detail": "largest difference 3.80e-14"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "smooth: what the exact policy earns matches the paper's known_reward (within 1e-7)",
+   "ok": true,
+   "detail": "reward 0.779361 vs 0.779361, largest difference 1.54e-9"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "smooth: what the per-moment rule earns matches the paper's known_reward (within 1e-7)",
+   "ok": true,
+   "detail": "reward 0.776744 vs 0.776744, largest difference 1.55e-9"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "smooth: what the weighted rule earns matches the paper's known_reward (within 1e-7)",
+   "ok": true,
+   "detail": "reward 0.779348 vs 0.779348, largest difference 1.54e-9"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "multistep: the page's dynamic program matches the paper's backward_induction_x over the window (within 1e-6)",
+   "ok": true,
+   "detail": "largest difference 7.49e-9"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "multistep: the per-moment bound matches the paper's bound_for_cost (within 1e-10)",
+   "ok": true,
+   "detail": "largest difference 2.31e-13"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "multistep: the weighted look-ahead matches the paper's weighted_bound (within 1e-10)",
+   "ok": true,
+   "detail": "largest difference 8.80e-14"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "multistep: what the exact policy earns matches the paper's known_reward (within 1e-7)",
+   "ok": true,
+   "detail": "reward 0.770313 vs 0.770313, largest difference 1.57e-9"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "multistep: what the per-moment rule earns matches the paper's known_reward (within 1e-7)",
+   "ok": true,
+   "detail": "reward 0.767445 vs 0.767445, largest difference 1.57e-9"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "multistep: what the weighted rule earns matches the paper's known_reward (within 1e-7)",
+   "ok": true,
+   "detail": "reward 0.770281 vs 0.770281, largest difference 1.57e-9"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "piecewise: the page's dynamic program matches the paper's backward_induction_x over the window (within 1e-6)",
+   "ok": true,
+   "detail": "largest difference 8.99e-9"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "piecewise: the per-moment bound matches the paper's bound_for_cost (within 1e-10)",
+   "ok": true,
+   "detail": "largest difference 2.95e-13"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "piecewise: the weighted look-ahead matches the paper's weighted_bound (within 1e-10)",
+   "ok": true,
+   "detail": "largest difference 3.93e-14"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "piecewise: what the exact policy earns matches the paper's known_reward (within 1e-7)",
+   "ok": true,
+   "detail": "reward 0.782124 vs 0.782124, largest difference 1.62e-9"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "piecewise: what the per-moment rule earns matches the paper's known_reward (within 1e-7)",
+   "ok": true,
+   "detail": "reward 0.776793 vs 0.776793, largest difference 1.54e-9"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "piecewise: what the weighted rule earns matches the paper's known_reward (within 1e-7)",
+   "ok": true,
+   "detail": "reward 0.781415 vs 0.781415, largest difference 1.65e-9"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "draw: the page's dynamic program matches the paper's backward_induction_x over the window (within 1e-6)",
+   "ok": true,
+   "detail": "largest difference 6.71e-9"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "draw: the per-moment bound matches the paper's bound_for_cost (within 1e-10)",
+   "ok": true,
+   "detail": "largest difference 3.53e-13"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "draw: the weighted look-ahead matches the paper's weighted_bound (within 1e-10)",
+   "ok": true,
+   "detail": "largest difference 7.37e-14"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "draw: what the exact policy earns matches the paper's known_reward (within 1e-7)",
+   "ok": true,
+   "detail": "reward 0.762625 vs 0.762625, largest difference 1.40e-9"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "draw: what the per-moment rule earns matches the paper's known_reward (within 1e-7)",
+   "ok": true,
+   "detail": "reward 0.756271 vs 0.756271, largest difference 1.25e-9"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "draw: what the weighted rule earns matches the paper's known_reward (within 1e-7)",
+   "ok": true,
+   "detail": "reward 0.762598 vs 0.762598, largest difference 1.56e-9"
   }
  ]
 }

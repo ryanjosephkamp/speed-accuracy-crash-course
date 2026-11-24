@@ -1,8 +1,0 @@
-/* Chapter 5: legend keys the shared sheet doesn't have (a dashed orange bound, a dashed green slope, the faint
-   curves, the thin ink, and dots), drawn like the shared .key-* swatches. */
-.key-acc::before { border-color: var(--accent-print); }
-.key-acc-dash::before { border-top: 2.5px dashed var(--accent-print); }
-.key-wb-dash::before { border-top: 2.5px dashed var(--wb); }
-.key-dim::before { border-top: 1.5px solid var(--print-dim); }
-.key-ex-thin::before { border-top: 1.5px solid var(--ex); opacity: 0.55; }
-.key-ink-dots::before { border-top: 3px dotted var(--print-ink); }

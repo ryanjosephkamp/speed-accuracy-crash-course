@@ -1,14 +1,8 @@
-/* Chapter 7: what the shared classes don't give. A conjecture's plate carries its own state mark (an open square in
-   the accent ink, dashed) and a flag line; the shifted rule is a green dotted line; resolved and unresolved losses
-   are filled and hollow dots. */
-.plate-state[data-state="conjecture"]::before { background: transparent; border-style: dashed; border-color: var(--accent-print); }
-.chips a[data-state="conjecture"]::before { background: transparent; border-style: dashed; }
-.conj-flag { margin: 0 0 12px; padding: 6px 10px; border: 1px dashed var(--accent-print); color: var(--accent-print); font: 650 0.8rem/1.35 var(--sans); font-stretch: 86%; }
+/* Chapter 7: what the shared classes don't give. The shifted rule is a green dotted line; resolved and unresolved
+   losses are filled and hollow dots. */
 .pick-dial { flex: 1 1 14rem; }
 .chart .wb-dots { stroke: var(--wb); stroke-width: 2.4; stroke-dasharray: 0.5 4.5; stroke-linecap: round; fill: none; }
 .chart .pm-dot { fill: var(--pm); }
 .chart .ring-pm { fill: var(--print); stroke: var(--pm); stroke-width: 1.6; }
 .chart .ring-wb { fill: var(--print); stroke: var(--wb); stroke-width: 1.6; }
-.key-wbdot::before { border-top: 3px dotted var(--wb); }
-.chart .guide { stroke: var(--print-dim); stroke-width: 1.1; stroke-dasharray: 6 4; fill: none; }
 .legend + .chart-wrap { margin-top: 14px; }

@@ -536,3 +536,19 @@ details.answer > div { padding: 2px 14px 4px; }
 .tbl tbody th { text-align: left; font-weight: 500; white-space: normal; min-width: 9rem; }
 .tbl tbody tr:last-child > * { border-bottom: 0; }
 .tbl figcaption { font: 400 0.86rem/1.5 var(--sans); color: var(--ink-2); margin-top: 0.55rem; }
+
+/* ---- marks several chapters share ------------------------------------------------------------------------------- */
+/* reference lines a chart draws for comparison (slope guides, diagonals): dashed gray, never the grid's dots */
+.chart .guide { stroke: var(--print-dim); stroke-width: 1.1; stroke-dasharray: 6 4; fill: none; }
+/* a conjecture's plate carries an open, dashed state mark in the accent ink, and a flag line */
+.plate-state[data-state="conjecture"]::before { background: transparent; border-style: dashed; border-color: var(--accent-print); }
+.chips a[data-state="conjecture"]::before { background: transparent; border-style: dashed; }
+.conj-flag { margin: 0 0 12px; padding: 6px 10px; border: 1px dashed var(--accent-print); color: var(--accent-print); font: 650 0.8rem/1.35 var(--sans); font-stretch: 86%; }
+/* more legend swatches, drawn like the .key-* ones above */
+.key-acc::before { border-color: var(--accent-print); }
+.key-acc-dash::before { border-top: 2.5px dashed var(--accent-print); }
+.key-wb-dash::before { border-top: 2.5px dashed var(--wb); }
+.key-wbdot::before { border-top: 3px dotted var(--wb); }
+.key-dim::before { border-top: 1.5px solid var(--print-dim); }
+.key-ex-thin::before { border-top: 1.5px solid var(--ex); opacity: 0.55; }
+.key-ink-dots::before { border-top: 3px dotted var(--print-ink); }

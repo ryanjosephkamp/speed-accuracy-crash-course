@@ -527,8 +527,8 @@ function yoursPlate() {
     let g = axes(f, { yl: "largest error in the bound", xl: "ε", grid: true });
     // guide lines of slope 1 and 2 through the per-moment error at the largest epsilon
     const e0 = EPS[0], y0 = ePm[0] || yHi / 3;
-    g += line(f, [e0, EPS[EPS.length - 1]], [y0, y0 * EPS[EPS.length - 1] / e0], "grid", 'stroke-dasharray="4 4"');
-    g += line(f, [e0, EPS[EPS.length - 1]], [y0 / 3, (y0 / 3) * (EPS[EPS.length - 1] / e0) ** 2], "grid", 'stroke-dasharray="4 4"');
+    g += line(f, [e0, EPS[EPS.length - 1]], [y0, y0 * EPS[EPS.length - 1] / e0], "guide");
+    g += line(f, [e0, EPS[EPS.length - 1]], [y0 / 3, (y0 / 3) * (EPS[EPS.length - 1] / e0) ** 2], "guide");
     const xl = EPS[EPS.length - 1] * 1.6, lx = f.sx(xl);
     g += `<text class="tk" x="${lx.toFixed(1)}" y="${(f.sy(y0 * xl / e0) - 6).toFixed(1)}">slope 1</text>`;
     g += `<text class="tk" x="${lx.toFixed(1)}" y="${Math.min(f.H - f.b - 4, f.sy((y0 / 3) * (xl / e0) ** 2) + 14).toFixed(1)}">slope 2</text>`;
