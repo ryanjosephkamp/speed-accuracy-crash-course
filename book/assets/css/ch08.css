@@ -1,0 +1,12 @@
+/* Chapter 8: what the shared classes can't give. The averaged-cost rule is weighted by the kernel too, so it keeps
+   the look-ahead green, dotted to tell it from the weighted rule; the kernel's weight past a deadline is gray. */
+.chart .avg { stroke: var(--wb); stroke-width: 2.2; stroke-dasharray: 0.5 4.5; stroke-linecap: round; fill: none; }
+.chart .diag { stroke: var(--print-dim); stroke-width: 1.2; stroke-dasharray: 4 4; fill: none; }
+.chart .past-fill { fill: var(--print-dim); opacity: 0.24; stroke: none; }
+.chart .box { fill: var(--wb-soft); stroke: var(--wb); stroke-width: 1; stroke-dasharray: 2 3; }
+.chart .root { fill: var(--print); stroke: var(--print-ink); stroke-width: 2; }
+.key-avg::before { border-top: 2.5px dotted var(--wb); }
+.key-diag::before { border-top: 1.5px dashed var(--print-dim); }
+.key-beta::before { border-top: 2.5px dotted var(--ex); }
+.key-faint::before { border-color: var(--wb); opacity: 0.4; }
+.reads .k-avg dd { color: var(--wb); }
