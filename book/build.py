@@ -310,6 +310,12 @@ def figure_caption(label, env="figure"):
 FIGURES = {
     "kernels": ("fig:kernels", "Two panels. Left: the kernel w(s) for four costs on log axes, falling like one over the square root of s near zero, with dots at each mean look-ahead. Right: the mean look-ahead against the cost, peaking near 0.62 and tending to one half as the cost falls, under a rising mean decision time."),
     "transfer": ("fig:transfer", "The transfer function's gain and phase lead against frequency."),
+    "showcase": ("fig:showcase", "Four panels, one per cost schedule, each with the cost in a strip above: the optimal bound in ink, the per-moment rule dashed, and the weighted look-ahead rule dotted. In the first three, the optimal bound starts moving before the cost changes and the per-moment bound only when it does; on the deadline, the per-moment bound stays flat while the optimal bound comes down to zero at the deadline. The weighted rule tracks the optimal bound in all four.",
+                 "In this print, the per-moment rule is slate rather than orange, and the weighted look-ahead green rather than blue."),
+    "random_losses": ("fig:random", "The loss of the per-moment rule and of the weighted look-ahead on each of the 90 development schedules, in three families (smooth, step, and deadline), on a log scale. In each family, most of the weighted rule's losses are one to two powers of ten below the per-moment rule's.",
+                      "In this print, the per-moment rule is slate and the weighted look-ahead green."),
+    "heldout_paired": ("fig:heldout", "A scatter of the held-out schedules: the per-moment rule's loss across, the weighted look-ahead's up, on log scales, with lines at equal loss and at 10% and 1% of the per-moment rule's loss; most points sit below the 10% line.",
+                       "In this print, the points are drawn in this page's inks."),
 }
 
 
@@ -335,18 +341,22 @@ def table_html(label):
 def figure_html(stem, depth, alt=None):
     if stem not in FIGURES:
         fail(f"no figure {stem} in FIGURES")
-    label, alt0 = FIGURES[stem]
+    label, alt0, *note = FIGURES[stem]
     alt = alt or alt0
+    note = (" " + note[0]) if note else ""
     num = LABELS[label]["num"]
     cap = figure_caption(label)
     a = "../" * depth
+    head = (HERE / "assets/figures" / f"{stem}.light.svg").read_text()[:3000]
+    wh = re.search(r'<svg[^>]*?width="([\d.]+)pt" height="([\d.]+)pt"', head)
+    W, H = (round(float(wh.group(1)) * 2), round(float(wh.group(2)) * 2)) if wh else (1200, 480)
     return (f"<figure class='plate duo' id='figure-{num}'>"
             f"<button class='lift' type='button'>"
-            f"<img class='fig-day' src='{a}assets/figures/{stem}.light.svg' alt='{html.escape(alt)}' loading='lazy' width='1200' height='480'>"
-            f"<img class='fig-night' src='{a}assets/figures/{stem}.dark.svg' alt='{html.escape(alt)}' loading='lazy' width='1200' height='480'>"
+            f"<img class='fig-day' src='{a}assets/figures/{stem}.light.svg' alt='{html.escape(alt)}' loading='lazy' width='{W}' height='{H}'>"
+            f"<img class='fig-night' src='{a}assets/figures/{stem}.dark.svg' alt='{html.escape(alt)}' loading='lazy' width='{W}' height='{H}'>"
             f"<span class='vh'> Lift figure {num} off the page to look closer.</span></button>"
             f"<p class='hint' aria-hidden='true'>tap to lift</p>"
-            f"<figcaption><b>Figure {num}.</b> <span class='cap'>{cap} From the paper, redrawn in this page's inks.</span></figcaption></figure>")
+            f"<figcaption><b>Figure {num}.</b> <span class='cap'>{cap} From the paper, redrawn in this page's inks.{note}</span></figcaption></figure>")
 
 
 MAP = json.loads((HERE / "content/map.json").read_text())

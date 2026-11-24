@@ -1,8 +1,40 @@
 {
-  "roles": {"#0b0b0b": "ink", "#898781": "ink3", "#e1e0d9": "grid", "#2a78d6": "accent", "#eb6834": "spot-slate",
-            "#0d366b": "s1", "#1c5cab": "s2", "#3987e5": "s3", "#86b6ef": "s4"},
-  "figures": {
-    "kernels.pdf": {"stem": "kernels", "roles": {}, "note": "Figure 2 of the paper. The four kernels take the slate ramp, darkest for the cheapest time, as the paper's blue ramp does; the mean look-ahead takes the look-ahead green, and the mean decision time stays ink."},
-    "transfer.pdf": {"stem": "transfer", "roles": {}, "note": "Figure 3 of the paper. The three costs take the slate ramp as in Figure 2; the dynamic program's dots stay ink."}
+ "roles": {
+  "#0b0b0b": "ink",
+  "#898781": "ink3",
+  "#e1e0d9": "grid",
+  "#2a78d6": "accent",
+  "#eb6834": "spot-slate",
+  "#0d366b": "s1",
+  "#1c5cab": "s2",
+  "#3987e5": "s3",
+  "#86b6ef": "s4"
+ },
+ "figures": {
+  "kernels.pdf": {
+   "stem": "kernels",
+   "roles": {},
+   "note": "Figure 2 of the paper. The four kernels take the slate ramp, darkest for the cheapest time, as the paper's blue ramp does; the mean look-ahead takes the look-ahead green, and the mean decision time stays ink."
+  },
+  "transfer.pdf": {
+   "stem": "transfer",
+   "roles": {},
+   "note": "Figure 3 of the paper. The three costs take the slate ramp as in Figure 2; the dynamic program's dots stay ink."
+  },
+  "showcase.pdf": {
+   "stem": "showcase",
+   "roles": {},
+   "note": "Figure 1 of the paper. The weighted look-ahead takes the look-ahead green, the per-moment rule the slate, and the dynamic program's bound stays ink."
+  },
+  "random_losses.pdf": {
+   "stem": "random_losses",
+   "roles": {},
+   "note": "Figure 4 of the paper. The weighted look-ahead green, the per-moment slate."
+  },
+  "heldout_paired.pdf": {
+   "stem": "heldout_paired",
+   "roles": {},
+   "note": "Figure 5 of the paper. The weighted look-ahead green, the per-moment slate."
   }
+ }
 }
