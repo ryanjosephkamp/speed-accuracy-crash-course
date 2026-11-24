@@ -137,6 +137,11 @@ def claim_ref(cid):
 
 
 def fill(s):
+    # a "\t" or "\b" in a non-raw string turns \tau or \beta into a control character: refuse it
+    bad = re.search(r"[\x00-\x09\x0b\x0c\x0e-\x1f]", s)
+    if bad:
+        fail(f"a control character ({bad.group(0)!r}) in text; write math in raw strings: {s[max(0, bad.start() - 40):bad.start() + 20]!r}")
+
     def mac(m):
         k = m.group(1)
         if k.startswith("ref:"):

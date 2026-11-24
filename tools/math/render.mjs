@@ -27,6 +27,9 @@ for (const file of process.argv.slice(2)) {
   const doc = mathjax.document(readFileSync(file, "utf8"), { InputJax: tex, OutputJax: svg, ignoreHtmlClass: "no-math" });
   doc.render();
   const n = Array.from(doc.math).length;
-  writeFileSync(file, adaptor.doctype(doc.document) + "\n" + adaptor.outerHTML(adaptor.root(doc.document)));
+  const out = adaptor.doctype(doc.document) + "\n" + adaptor.outerHTML(adaptor.root(doc.document));
+  const errs = (out.match(/<g data-mml-node="merror"/g) || []).length;
+  if (errs) throw new Error(`${file}: ${errs} formulas MathJax could not read`);
+  writeFileSync(file, out);
   console.log(`${file}: ${n} formulas`);
 }
