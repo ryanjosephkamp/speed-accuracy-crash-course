@@ -237,7 +237,7 @@ MONTHS = ["January", "February", "March", "April", "May", "June", "July", "Augus
 
 
 # which groups of checks stand behind each plate: a chapter module's CHECKS, {plate id: [tags]}, set per page, and
-# whose file of checks they are (tools/checks/<module>.mjs, with book.mjs for the shared pieces)
+# whose file of checks they are (tools/checks/<module>.mjs, with book.mjs and paper-code.mjs for the shared pieces)
 CHECK_TAGS = {"schedule": ["schedule"]}
 CHECK_FILE = ["book"]
 
@@ -251,7 +251,7 @@ def checks_line(tag):
     if c["passed"] != c["total"]:
         fail(f"{c['total'] - c['passed']} checks failed: run node tools/check_book.mjs")
     tags = CHECK_TAGS.get(tag, [tag])
-    mine = [r for r in c["results"] if r["plate"] in tags and r.get("file") in ("book", CHECK_FILE[0])]
+    mine = [r for r in c["results"] if r["plate"] in tags and r.get("file") in ("book", "paper-code", CHECK_FILE[0])]
     y, m, d = (int(x) for x in c["date"].split("-"))
     when = f"{MONTHS[m - 1]} {d}, {y}"
     if not mine:
