@@ -133,7 +133,7 @@ Each chapter asks for a guess before it shows an answer, because an answer means
 """),
             ("plate", "guess"),
             ("plain", r"""
-Whether you guessed above or below the dashed curve depends on what your cost does after the marked moment. A decision still open when the cost changes pays the new cost, so the best bound moves before the cost does. Chapter 4 proves one case of this: when the cost never falls, the best bound never sits above the per-moment one. Chapter 6 says how far ahead the bound looks.
+Whether you guessed above or below the dashed curve depends on what your cost does after the marked moment. A decision still open when the cost changes pays the new cost, so the best bound moves before the cost does. One case follows from the paper's results, as an exercise in chapter 5 (the paper doesn't state it): when the cost never falls after a moment, the best bound at that moment sits at or below the per-moment one. Chapter 6 says how far ahead the bound looks.
 """),
         ],
     },
