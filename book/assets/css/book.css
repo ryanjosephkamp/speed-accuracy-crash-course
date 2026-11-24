@@ -331,6 +331,8 @@ svg.chart { display: block; width: 100%; height: auto; overflow: visible; font-f
 .strip-card .step-say { margin: 0 0 8px; font: 600 1.02rem/1.35 var(--sans); font-stretch: 92%; color: var(--print-ink); }
 .strip-card .step-math { margin: 0; font: 400 0.98rem/1.55 var(--serif); color: var(--print-ink); overflow-x: auto; overflow-y: hidden; }
 .strip-card .step-math .lit { background: color-mix(in srgb, var(--accent-print) 18%, transparent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-print) 18%, transparent); }
+/* the terms a proof step changes, marked \class{lit}{...} in its TeX: the accent ink inside the set math */
+.strip-card .step-math svg .lit, .strip-card .step-say svg .lit { fill: var(--accent-print); stroke: var(--accent-print); }
 :root[data-depth="exact"] .strip-card .step-say { display: none; }
 .strip-nav { display: flex; gap: 8px; margin-top: 12px; }
 .strip-nav .btn:last-child { margin-left: auto; }
