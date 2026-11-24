@@ -367,8 +367,10 @@ class Converter:
             if cm:
                 com = cm.group(1)
                 st = st[:cm.start()].strip()
+            numbered = True
             if st.startswith("\\Require"):
                 txt = "<strong>Require:</strong> " + self.inline(st[len("\\Require"):].strip())
+                numbered = False  # algorithmicx numbers the steps, not the Require line
             elif st.startswith("\\State"):
                 body_ = st[len("\\State"):].strip()
                 body_ = body_.replace("\\Return", "\\textbf{return}")
@@ -376,23 +378,26 @@ class Converter:
             elif st.startswith("\\For"):
                 fm = re.match(r"\\For\{(.*)\}", st)
                 txt = "<strong>for</strong> " + self.inline(fm.group(1)) + " <strong>do</strong>"
-                rows.append((indent, txt, com))
+                rows.append((indent, txt, com, True))
                 indent += 1
                 continue
             elif st.startswith("\\EndFor"):
                 indent -= 1
-                rows.append((indent, "<strong>end for</strong>", ""))
+                rows.append((indent, "<strong>end for</strong>", "", True))
                 continue
             else:
                 # continuation of the previous line
                 prev = rows.pop()
-                rows.append((prev[0], prev[1] + " " + self.inline(st), prev[2] or com))
+                rows.append((prev[0], prev[1] + " " + self.inline(st), prev[2] or com, prev[3]))
                 continue
-            rows.append((indent, txt, com))
+            rows.append((indent, txt, com, numbered))
         lines = []
-        for k, (ind, txt, com) in enumerate(rows, 1):
+        k = 0
+        for ind, txt, com, numbered in rows:
+            k += numbered
             c = f"<span class='alg-com'>▹ {self.inline(com)}</span>" if com else ""
-            lines.append(f"<div class='alg-row' style='--ind:{ind}'><span class='alg-n'>{k}</span><span>{txt}{c}</span></div>")
+            n = k if numbered else ""
+            lines.append(f"<div class='alg-row' style='--ind:{ind}'><span class='alg-n'>{n}</span><span>{txt}{c}</span></div>")
         tail = re.sub(r"\\smallskip|\\footnotesize", "", tail).strip()
         tail_html = f"<p class='alg-note'>{self.inline(' '.join(tail.split()))}</p>" if tail else ""
         return "<div class='alg'>" + "\n".join(lines) + "</div>" + tail_html
