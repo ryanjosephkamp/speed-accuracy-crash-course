@@ -3,10 +3,14 @@
 
     python3 book/build.py          then  node tools/math/render.mjs   (build.py runs it unless --no-math)
 
-Sources: paper/ (main.tex, the generated numbers, and labels.json, copied from the paper's tag by
-tools/vendor_paper.py) and book/content/. Every number in the text is a {{Macro}} from
-paper/generated/numbers.tex and every cross-reference a {{ref:label}} from paper/labels.json; the build
-fails on an unknown one, and checks that the label numbers agree with a count of main.tex.
+Sources: paper/ (main.tex, the generated numbers and tables, and labels.json, copied from the paper's tag
+by tools/vendor_paper.py) and book/content/. Every number in the text is a {{Macro}} from
+paper/generated/numbers.tex or a {{T:tab_name:row:col}} cell of a generated table, every cross-reference a
+{{ref:label}} from paper/labels.json, and every mention of another claim a {{claim:id}} from the claim map;
+the build fails on an unknown one, and checks that the label numbers agree with a count of main.tex.
+
+A chapter is built when book/content/<module>.py exists (the module named in book.py's CHAPTERS); its plates
+live in book/assets/js/<module>.js, and an optional book/assets/css/<module>.css is loaded on its page only.
 """
 import hashlib
 import html
@@ -33,7 +37,6 @@ CONV = Converter(TEX_LINES, LABELS, CITES, NUMBERS)
 PAPER_PDF = "https://github.com/ryanjosephkamp/speed-accuracy-tradeoff/blob/main/paper/main.pdf"
 PAPER_REPO = SOURCE["repository"]
 CREDIT = (HERE / "credit.html").read_text()
-SPOT = ("#0a734f", "#2fd39a")  # chapter 6's ink: the look-ahead green
 
 
 def load(name):
@@ -73,15 +76,80 @@ def ref(label):
     return f"({num})" if kind == "eq" else f"{REF_NAMES[kind]} {num}"
 
 
+# the generated tables the text may quote cell by cell, with the column heads the book prints
+TABLES = {
+    "tab:sinusoid": ("tab_sinusoid", ["ω", "Closed form: swing", "Closed form: lead (°)", "Dynamic program: swing",
+                                       "Dynamic program: lead (°)", "Weighted: swing", "Weighted: lead (°)"]),
+    "tab:sweep": ("tab_sweep", ["ε/c₀", "c₀ = 0.03", "c₀ = 0.1", "c₀ = 0.3", "Phase error (°)"]),
+    "tab:random": ("tab_random", ["Family", "n", "Per-moment: median", "Per-moment: max", "Weighted: median",
+                                   "Weighted: max", "Recovered"]),
+    "tab:showcase": ("tab_showcase", ["Schedule", "Per-moment", "Weighted look-ahead"]),
+    "tab:heldout": ("tab_heldout", ["Family", "n", "Per-moment: median", "Per-moment: max", "Weighted: median",
+                                     "Weighted: max", "Recovered: median", "Recovered: 10th pct.", "Recovered: totals"]),
+    "tab:baselines": ("tab_baselines", ["Rule", "No deadline: median", "No deadline: 90th pct.", "No deadline: max",
+                                         "No deadline: wins / losses", "Deadline: median", "Deadline: max"]),
+    "tab:behavior": ("tab_behavior", ["Family", "Bound error: per-moment", "Bound error: weighted",
+                                       "Accuracy change: per-moment", "Accuracy change: weighted",
+                                       "Decision time change: per-moment", "Decision time change: weighted"]),
+    "tab:loss": ("tab_loss", ["Family", "Size", "Per-moment: loss", "Per-moment: predicted / actual",
+                               "Weighted: loss", "Weighted: predicted / actual"]),
+    "tab:scaling": ("tab_scaling", ["a", "Per-moment: loss", "Per-moment: growth", "Weighted: loss",
+                                     "Weighted: finer grid"]),
+    "tab:unknown": ("tab_unknown", ["Cost schedule", "Frozen-time", "Weighted", "Plug-in", "Tuned constant"]),
+    "tab:grid": ("tab_grid", ["Schedule", "Per-moment, grid 1", "Per-moment, grid 2", "Per-moment, grid 3",
+                               "Per-moment, grid 4", "Weighted, grid 1", "Weighted, grid 2", "Weighted, grid 3",
+                               "Weighted, grid 4", "Residual"]),
+}
+_TABLE_ROWS = {}
+
+
+def table_rows(name):
+    if name not in _TABLE_ROWS:
+        f = ROOT / "paper/generated" / f"{name}.tex"
+        if not f.exists():
+            fail(f"paper/generated/{name}.tex is missing: run tools/vendor_paper.py")
+        rows = []
+        for ln in f.read_text().strip().split("\n"):
+            ln = ln.strip()
+            if ln.endswith("\\\\"):
+                ln = ln[:-2].strip()
+            if ln and not ln.startswith("\\"):
+                rows.append([x.strip() for x in ln.split("&")])
+        _TABLE_ROWS[name] = rows
+    return _TABLE_ROWS[name]
+
+
+def table_cell(name, r, c):
+    rows = table_rows(name)
+    if not (1 <= r <= len(rows) and 1 <= c <= len(rows[r - 1])):
+        fail(f"no cell {r},{c} in {name}")
+    return rows[r - 1][c - 1].replace("\\%", "%").replace("---", "—")
+
+
+def claim_ref(cid):
+    """A claim's name from the claim map, linked to the section that teaches it once its chapter is built."""
+    node = MAP["nodes"].get(cid)
+    if node is None:
+        fail(f"unknown claim {cid}")
+    href = LINKS_NOW.get(cid)
+    name = node["name"]
+    return f"[{name}]({href})" if href else name
+
+
 def fill(s):
     def mac(m):
         k = m.group(1)
         if k.startswith("ref:"):
             return ref(k[4:])
+        if k.startswith("claim:"):
+            return claim_ref(k[6:])
+        if k.startswith("T:"):
+            _, name, r, c = k.split(":")
+            return table_cell(name, int(r), int(c))
         if k not in NUMBERS:
             fail(f"unknown number {k}")
         return NUMBERS[k]
-    return re.sub(r"\{\{([\w:-]+)\}\}", mac, s)
+    return re.sub(r"\{\{([\w:.-]+)\}\}", mac, s)
 
 
 def inline(s):
@@ -99,7 +167,7 @@ def inline(s):
         return f"\x01{len(codes) - 1}\x01"
     s = re.sub(r"`([^`]+)`", keepc, s)
     s = html.escape(s, quote=False)
-    s = re.sub(r"\[([^\]]+)\]\((https://[^)]+|#[\w-]+|[\w./-]+)\)", r"<a href='\2'>\1</a>", s)
+    s = re.sub(r"\[([^\]]+)\]\((https://[^)]+|#[\w-]+|[\w./#-]+)\)", r"<a href='\2'>\1</a>", s)
     s = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", s)
     s = re.sub(r"(?<![\w*])\*(?!\s)(.+?)(?<!\s)\*(?![\w*])", r"<em>\1</em>", s)
     s = re.sub(r"\x01(\d+)\x01", lambda m: f"<code>{html.escape(codes[int(m.group(1))])}</code>", s)
@@ -168,12 +236,10 @@ STATE_WORD = {"computed": "computed", "measured": "measured", "exploration": "ex
 MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
 
 
-# which groups of checks stand behind each plate
-CHECK_TAGS = {
-    "scale": ["kernel", "scale"], "sketch": ["kernel", "sketch"], "survival": ["survival"],
-    "starts": ["starts", "words"], "transform": ["transform"], "bracket": ["bracket", "words"],
-    "yours": ["kernel", "scale", "schedule", "words"], "schedule": ["schedule"],
-}
+# which groups of checks stand behind each plate: a chapter module's CHECKS, {plate id: [tags]}, set per page, and
+# whose file of checks they are (tools/checks/<module>.mjs, with book.mjs for the shared pieces)
+CHECK_TAGS = {"schedule": ["schedule"]}
+CHECK_FILE = ["book"]
 
 
 def checks_line(tag):
@@ -185,7 +251,7 @@ def checks_line(tag):
     if c["passed"] != c["total"]:
         fail(f"{c['total'] - c['passed']} checks failed: run node tools/check_book.mjs")
     tags = CHECK_TAGS.get(tag, [tag])
-    mine = [r for r in c["results"] if r["plate"] in tags]
+    mine = [r for r in c["results"] if r["plate"] in tags and r.get("file") in ("book", CHECK_FILE[0])]
     y, m, d = (int(x) for x in c["date"].split("-"))
     when = f"{MONTHS[m - 1]} {d}, {y}"
     if not mine:
@@ -228,10 +294,10 @@ def strip_html(sid, strips, plates, n):
             f"{plate}")
 
 
-def figure_caption(label):
+def figure_caption(label, env="figure"):
     text = "\n".join(TEX_LINES)
     end = text.index(f"\\label{{{label}}}")
-    start = text.rindex("\\begin{figure}", 0, end)
+    start = text.rindex(f"\\begin{{{env}}}", 0, end)
     k = text.index("\\caption{", start) + len("\\caption{")
     depth, i = 1, k
     while depth:
@@ -240,13 +306,40 @@ def figure_caption(label):
     return CONV.inline(" ".join(text[k:i - 1].split()))
 
 
-def figure_html(stem, depth):
-    label = {"kernels": "fig:kernels", "transfer": "fig:transfer"}[stem]
+# the paper's figures, redrawn as day and night prints in book/assets/figures/<stem>.light.svg and .dark.svg
+FIGURES = {
+    "kernels": ("fig:kernels", "Two panels. Left: the kernel w(s) for four costs on log axes, falling like one over the square root of s near zero, with dots at each mean look-ahead. Right: the mean look-ahead against the cost, peaking near 0.62 and tending to one half as the cost falls, under a rising mean decision time."),
+    "transfer": ("fig:transfer", "The transfer function's gain and phase lead against frequency."),
+}
+
+
+def table_html(label):
+    if label not in TABLES:
+        fail(f"no table {label} in TABLES")
+    name, heads = TABLES[label]
+    rows = table_rows(name)
+    num = LABELS[label]["num"]
+    cap = figure_caption(label, "table")
+    head = "".join(f"<th scope='col'>{html.escape(h)}</th>" for h in heads)
+    body = "".join("<tr>" + "".join((f"<th scope='row'>{inline(c.replace(chr(92) + '%', '%'))}</th>" if j == 0 else
+                                     f"<td>{inline(c.replace(chr(92) + '%', '%').replace('---', '—'))}</td>")
+                                    for j, c in enumerate(r)) + "</tr>" for r in rows)
+    for r in rows:
+        if len(r) != len(heads):
+            fail(f"{label}: a row has {len(r)} cells for {len(heads)} heads")
+    return (f"<figure class='tbl' id='table-{num}'><div class='tbl-scroll' tabindex='0' role='region' aria-label='Table {num}'>"
+            f"<table><thead><tr>{head}</tr></thead><tbody>{body}</tbody></table></div>"
+            f"<figcaption><b>Table {num}.</b> <span class='cap'>{cap} From the paper's generated table.</span></figcaption></figure>")
+
+
+def figure_html(stem, depth, alt=None):
+    if stem not in FIGURES:
+        fail(f"no figure {stem} in FIGURES")
+    label, alt0 = FIGURES[stem]
+    alt = alt or alt0
     num = LABELS[label]["num"]
     cap = figure_caption(label)
     a = "../" * depth
-    alt = {"kernels": "Two panels. Left: the kernel w(s) for four costs on log axes, falling like one over the square root of s near zero, with dots at each mean look-ahead. Right: the mean look-ahead against the cost, peaking near 0.62 and tending to one half as the cost falls, under a rising mean decision time.",
-           "transfer": "The transfer function's gain and phase lead against frequency."}[stem]
     return (f"<figure class='plate duo' id='figure-{num}'>"
             f"<button class='lift' type='button'>"
             f"<img class='fig-day' src='{a}assets/figures/{stem}.light.svg' alt='{html.escape(alt)}' loading='lazy' width='1200' height='480'>"
@@ -257,17 +350,38 @@ def figure_html(stem, depth):
 
 
 MAP = json.loads((HERE / "content/map.json").read_text())
+BOOK = load("book")
+
+
+def built():
+    """The built chapters in book order: [(num, title, line, module, mod)], a chapter being built when its content
+    module exists. Each module's CHAPTER must agree with book.py on the number."""
+    out = []
+    for num, title, line, module in BOOK.CHAPTERS:
+        if module and (HERE / "content" / f"{module}.py").exists():
+            mod = load(module)
+            if str(mod.CHAPTER["num"]) != str(num):
+                fail(f"{module}.py says chapter {mod.CHAPTER['num']}, book.py says {num}")
+            out.append((num, title, line, module, mod))
+    slugs = [m.CHAPTER["slug"] for *_, m in out]
+    if len(set(slugs)) != len(slugs):
+        fail(f"two chapters share a slug: {slugs}")
+    return out
+
+
+BUILT = built()
+
+
+def ink(num):
+    return BOOK.INKS[str(num)]
 
 
 def map_links(depth):
     """Links from the map to the built chapters: { claim id: href } relative to a page at this depth."""
     out = {}
-    for num, _, _, module in load("book").CHAPTERS:
-        if not module:
-            continue
-        mod = load(module)
+    for num, _, _, module, mod in BUILT:
         slug = mod.CHAPTER["slug"]
-        mine = [k for k, n in MAP["nodes"].items() if n["ch"] == mod.CHAPTER["num"]]
+        mine = [k for k, n in MAP["nodes"].items() if str(n["ch"]) == str(mod.CHAPTER["num"])]
         missing = [k for k in mine if k not in mod.MAP_LINKS]
         if missing:
             fail(f"chapter {num}'s claims without a section in MAP_LINKS: {missing}")
@@ -278,6 +392,7 @@ def map_links(depth):
 
 
 CURRENT_SLUG = [None]
+LINKS_NOW = {}   # the map's links for the page being built, for {{claim:id}}
 
 
 def map_html(depth, chapter=None, focus="thm:main"):
@@ -306,27 +421,40 @@ def miss_html(ms):
 
 
 # ---------------------------------------------------------------- the page shell
+def chapter_word(num):
+    return f"Appendix {num}" if str(num) in ("A", "B") else f"Chapter {num}"
+
+
 def thumbs(chapter_sections=None, current="contents", depth=0):
     a = "../" * depth
     here = ' aria-current="page"'
     tabs = [f"<a href='{a}index.html' aria-label='Contents' data-flag='Contents'"
             f"{here if current == 'contents' else ''}></a>"]
-    tabs.append(f"<a href='{a}kernel/index.html' style='--c:{SPOT[0]};--c-night:{SPOT[1]}' aria-label='Chapter 6: The kernel and the theorem' "
-                f"data-flag='6 · The kernel and the theorem'{here if current == 'kernel' else ''}></a>")
+    cur_ink = None
+    for num, title, _, module, mod in BUILT:
+        slug = mod.CHAPTER["slug"]
+        d, n = ink(num)
+        if slug == current:
+            cur_ink = (d, n)
+        tabs.append(f"<a href='{a}{slug}/index.html' style='--c:{d};--c-night:{n}' "
+                    f"aria-label='{chapter_word(num)}: {html.escape(title)}' "
+                    f"data-flag='{num} · {html.escape(title)}'{here if slug == current else ''}></a>")
+    d, n = cur_ink or ("var(--ink-3)", "var(--ink-3)")
     for sid, title in (chapter_sections or []):
-        tabs.append(f"<a class='sec' href='#{sid}' data-sec='{sid}' style='--c:{SPOT[0]};--c-night:{SPOT[1]}' "
+        tabs.append(f"<a class='sec' href='#{sid}' data-sec='{sid}' style='--c:{d};--c-night:{n}' "
                     f"aria-label='{html.escape(title)}' data-flag='§ · {html.escape(title)}'></a>")
     return "<nav class='thumb-index' aria-label='Thumb index'>" + "".join(tabs) + "</nav>"
 
 
 def contents_menu(depth, current):
-    book = load("book")
     a = "../" * depth
+    slugs = {str(num): mod.CHAPTER["slug"] for num, *_, mod in BUILT}
     items = []
-    for num, title, _, module in book.CHAPTERS:
-        if module:
-            cur = " aria-current='page'" if current == "kernel" else ""
-            items.append(f"<li><a href='{a}kernel/index.html'{cur}><span>{num}</span>{html.escape(title)}</a></li>")
+    for num, title, _, _ in BOOK.CHAPTERS:
+        slug = slugs.get(str(num))
+        if slug:
+            cur = " aria-current='page'" if current == slug else ""
+            items.append(f"<li><a href='{a}{slug}/index.html'{cur}><span>{num}</span>{html.escape(title)}</a></li>")
         else:
             items.append(f"<li><a class='soon' href='{a}index.html#ch-{num}'><span>{num}</span>{html.escape(title)}</a></li>")
     return "<ol>" + "".join(items) + "</ol>"
@@ -341,10 +469,11 @@ HEAD_SCRIPT = """<script>
 </script>"""
 
 
-def shell(*, title, desc, body, depth, leaf, current, bar_title, thumbs_html, scripts, turn=""):
+def shell(*, title, desc, body, depth, leaf, current, bar_title, thumbs_html, scripts, turn="", page_ink=None, css=""):
     a = "../" * depth
+    style = f' style="--spot-d:{page_ink[0]};--spot-n:{page_ink[1]}"' if page_ink else ""
     return f"""<!doctype html>
-<html lang="en" data-book="speed-accuracy-crash-course" data-leaf="{leaf}">
+<html lang="en" data-book="speed-accuracy-crash-course" data-leaf="{leaf}"{style}>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -363,7 +492,7 @@ def shell(*, title, desc, body, depth, leaf, current, bar_title, thumbs_html, sc
 <link rel="stylesheet" href="{a}assets/css/figure-pop-out.css">
 <link rel="stylesheet" href="{a}assets/css/chapter-hero.css">
 <link rel="stylesheet" href="{a}assets/css/plate.css">
-<link rel="stylesheet" href="{a}assets/css/book.css">
+<link rel="stylesheet" href="{a}assets/css/book.css">{css}
 </head>
 <body>
 <a class="skip" href="#main">Skip to the text</a>
@@ -404,9 +533,29 @@ def shell(*, title, desc, body, depth, leaf, current, bar_title, thumbs_html, sc
 
 
 # ---------------------------------------------------------------- pages
-def chapter_page(mod):
-    C, PL, ST = mod.CHAPTER, mod.PLATES, mod.STRIPS
+def turn_html(prev, nxt):
+    """prev and nxt: (href, number, name, ink) or None."""
+    out = ["<nav class='turn' aria-label='Turn the page'>"]
+    if prev:
+        href, no, name, _ = prev
+        out.append(f"<a class='prev' rel='prev' href='{href}'><span class='dir'>Back to</span><span class='no'>{no}</span>"
+                   f"<span class='name'>{html.escape(name)}</span></a>")
+    if nxt:
+        href, no, name, k = nxt
+        st = f" style='--accent:{k[0]};--accent-night:{k[1]}'" if k else ""
+        out.append(f"<a class='next' rel='next' href='{href}'{st}><span class='dir'>Next</span><span class='no'>{no}</span>"
+                   f"<span class='name'>{html.escape(name)}</span></a>")
+    out.append("</nav>")
+    return "".join(out)
+
+
+def chapter_page(i):
+    num, title, _, module, mod = BUILT[i]
+    C, PL, ST = mod.CHAPTER, mod.PLATES, getattr(mod, "STRIPS", {})
     CURRENT_SLUG[0] = C["slug"]
+    LINKS_NOW.clear(); LINKS_NOW.update(map_links(1))
+    CHECK_TAGS.clear(); CHECK_TAGS.update({"schedule": ["schedule"]}); CHECK_TAGS.update(getattr(mod, "CHECKS", {}))
+    CHECK_FILE[0] = module
     plate_no = 0
     chips = []
     body = []
@@ -429,7 +578,9 @@ def chapter_page(mod):
                 parts.append(strip_html(rest[0], ST, PL, plate_no))
                 chips.append((ST[rest[0]]["plate"], PL[ST[rest[0]]["plate"]]))
             elif kind == "figure":
-                parts.append(figure_html(rest[0], 1))
+                parts.append(figure_html(rest[0], 1, rest[1] if len(rest) > 1 else None))
+            elif kind == "table":
+                parts.append(table_html(rest[0]))
             elif kind == "qs":
                 parts.append(qs_html(rest[0]))
             elif kind == "miss":
@@ -443,45 +594,60 @@ def chapter_page(mod):
         parts.append("</section>")
         body.append("\n".join(parts))
     # the hero
-    readings = "".join(f"<div><dt>{html.escape(lbl)}</dt><dd>{NUMBERS[key]}</dd></div>" for key, lbl in C["readings"])
+    readings = "".join(f"<div><dt>{html.escape(lbl)}</dt><dd>{fill('{{' + key + '}}')}</dd></div>" for key, lbl in C["readings"])
     chip_html = "".join(f"<a href='#plate-{pid}' data-state='{p['state']}'>{html.escape(p['title'])}</a>" for pid, p in chips)
     if C["finding"] not in fill(C["intro"]):
-        fail("the hero's finding must appear word for word in the chapter's introduction")
+        fail(f"{module}: the hero's finding must appear word for word in the chapter's introduction")
     if len(C["finding"]) > 170:
-        fail("the hero's finding is longer than 170 characters")
+        fail(f"{module}: the hero's finding is longer than 170 characters")
+    H = C.get("hero") or fail(f"{module}: CHAPTER has no hero (aria and caption)")
+    of = "of the appendices" if str(num) in ("A", "B") else "of 12"
     hero = f"""<header class="hero">
-<div class="hero-head"><div class="kicker"><span class="sp-numeral">{C['num']}</span><span class="of">Chapter {C['num']} of 12</span></div>
+<div class="hero-head"><div class="kicker"><span class="sp-numeral">{C['num']}</span><span class="of">{chapter_word(num)} {of}</span></div>
 <h1 class="sp-headline">{html.escape(C['title'])}</h1>
 <p class="finding">{html.escape(C['finding'])}</p></div>
-<figure class="proof" data-kind="live" data-still="2" id="hero-proof">
-<div class="proof-stage"><div class="proof-sheet"><svg class="chart" id="hero-svg" viewBox="0 0 520 300" role="img" aria-label="A cost that rises and falls, and from one moment the kernel's weights on the moments after it, with the first-order bound below"></svg></div><p class="proof-label" aria-hidden="true"></p></div>
+<figure class="proof" data-kind="live" data-still="{H.get('still', 2)}" id="hero-proof">
+<div class="proof-stage"><div class="proof-sheet"><svg class="chart" id="hero-svg" viewBox="0 0 520 300" role="img" aria-label="{html.escape(H['aria'])}"></svg></div><p class="proof-label" aria-hidden="true"></p></div>
 <div class="proof-controls" hidden><button class="proof-play" type="button" aria-label="Pause the proof"></button><span class="proof-steps"></span></div>
-<figcaption>A cost of 0.1 that swings 30% (orange). From each moment, the kernel (green) weighs the moments after it; below, the bound those weights give (green) beside the per-moment rule's (dashed).</figcaption>
+<figcaption>{inline(H['caption'])}</figcaption>
 </figure>
 <dl class="readings">{readings}</dl>
 <div class="hero-foot"><nav class="chips" aria-label="The live plates in this chapter"><span class="chips-h" aria-hidden="true">Live plates</span>{chip_html}</nav></div>
 </header>"""
     intro = f"<div class='intro'>{md(C['intro'])}</div>"
     page_body = (f"<div class='col chapter-top'>{hero}{intro}\n" + "\n".join(body) + "</div>" + map_data())
-    turn = ("<nav class='turn' aria-label='Turn the page'>"
-            f"<a class='prev' rel='prev' href='../index.html'><span class='dir'>Back to</span><span class='no'>·</span><span class='name'>Contents</span></a>"
-            "</nav>")
+    if i == 0:
+        prev = ("../index.html", "·", "Contents", None)
+    else:
+        pn, pt, _, _, pm = BUILT[i - 1]
+        prev = (f"../{pm.CHAPTER['slug']}/index.html", pn, pt, None)
+    nxt = None
+    if i + 1 < len(BUILT):
+        nn, nt, _, _, nm = BUILT[i + 1]
+        nxt = (f"../{nm.CHAPTER['slug']}/index.html", nn, nt, ink(nn))
     secs = [(s["id"], plain_text(s["title"])) for s in mod.SECTIONS]
+    css = f"\n<link rel='stylesheet' href='../assets/css/{module}.css'>" if (HERE / "assets/css" / f"{module}.css").exists() else ""
     return shell(title=f"{C['num']} · {C['title']} · Waiting, weighted",
-                 desc=C["finding"], body=page_body, depth=1, leaf=C["leaf"], current="kernel",
+                 desc=C["finding"], body=page_body, depth=1, leaf=C["leaf"], current=C["slug"],
                  bar_title=f"<b>{C['num']}</b> · {html.escape(C['title'])}",
-                 thumbs_html=thumbs(secs, "kernel", 1),
-                 scripts="<script src='../assets/js/chapter-hero.js' defer></script>\n<script type='module' src='../assets/js/ch06.js'></script>",
-                 turn=turn)
+                 thumbs_html=thumbs(secs, C["slug"], 1),
+                 scripts=f"<script src='../assets/js/chapter-hero.js' defer></script>\n<script type='module' src='../assets/js/{module}.js'></script>",
+                 turn=turn_html(prev, nxt), page_ink=ink(num), css=css)
 
 
 def contents_page():
-    book = load("book")
+    book = BOOK
     CURRENT_SLUG[0] = None
+    LINKS_NOW.clear(); LINKS_NOW.update(map_links(0))
+    CHECK_TAGS.clear(); CHECK_TAGS.update({"schedule": ["schedule"]})
+    CHECK_FILE[0] = "book"
+    slugs = {str(num): mod.CHAPTER["slug"] for num, *_, mod in BUILT}
     rows = []
-    for num, title, line, module in book.CHAPTERS:
-        if module:
-            rows.append(f"<li class='live' id='ch-{num}'><a href='kernel/index.html'><span class='n'>{num}</span>"
+    for num, title, line, _ in book.CHAPTERS:
+        slug = slugs.get(str(num))
+        d, n = ink(num)
+        if slug:
+            rows.append(f"<li class='live' id='ch-{num}' style='--spot-d:{d};--spot-n:{n}'><a href='{slug}/index.html'><span class='n'>{num}</span>"
                         f"<span class='t'>{html.escape(title)}</span><span class='st'>Read</span>"
                         f"<span class='d'>{inline(line)}</span></a></li>")
         else:
@@ -517,12 +683,13 @@ def contents_page():
 {map_html(0)}
 </section>
 </div>{map_data()}"""
-    turn = ("<nav class='turn' aria-label='Turn the page'>"
-            f"<a class='next' rel='next' href='kernel/index.html' style='--accent:{SPOT[0]};--accent-night:{SPOT[1]}'>"
-            "<span class='dir'>First chapter built</span><span class='no'>6</span><span class='name'>The kernel and the theorem</span></a></nav>")
+    nxt = None
+    if BUILT:
+        nn, nt, _, _, nm = BUILT[0]
+        nxt = (f"{nm.CHAPTER['slug']}/index.html", nn, nt, ink(nn))
     return shell(title=f"{book.TITLE}: {book.SUBTITLE}", desc=plain_text(book.LEDE), body=body, depth=0, leaf=0,
                  current="contents", bar_title=html.escape(book.SHORT), thumbs_html=thumbs(None, "contents", 0),
-                 scripts="<script type='module' src='assets/js/contents.js'></script>", turn=turn)
+                 scripts="<script type='module' src='assets/js/contents.js'></script>", turn=turn_html(None, nxt))
 
 
 def asset_version():
@@ -542,19 +709,24 @@ def main():
     check_numbering()
     if OUT.exists():
         shutil.rmtree(OUT)
-    (OUT / "kernel").mkdir(parents=True)
+    OUT.mkdir(parents=True)
     shutil.copytree(HERE / "assets", OUT / "assets",
                     ignore=shutil.ignore_patterns("hero-check.mjs", "hero-html.mjs", "plate-kit.js", "format.js", "manifest.json"))
     version = asset_version()
-    (OUT / "index.html").write_text(versioned(contents_page(), version))
-    (OUT / "kernel" / "index.html").write_text(versioned(chapter_page(load("ch06")), version))
+    pages = [OUT / "index.html"]
+    pages[0].write_text(versioned(contents_page(), version))
+    for i, (num, *_, mod) in enumerate(BUILT):
+        d = OUT / mod.CHAPTER["slug"]
+        d.mkdir()
+        (d / "index.html").write_text(versioned(chapter_page(i), version))
+        pages.append(d / "index.html")
     for js in (OUT / "assets/js").glob("*.js"):
         js.write_text(re.sub(r"([\"'])\./([\w.-]+\.js)\1", lambda m: f"{m.group(1)}./{m.group(2)}?v={version}{m.group(1)}", js.read_text()))
     (OUT / "robots.txt").write_text("User-agent: *\nDisallow: /\n")
     (OUT / ".nojekyll").write_text("")
     if "--no-math" not in sys.argv:
-        subprocess.run(["node", str(ROOT / "tools/math/render.mjs"), str(OUT / "index.html"), str(OUT / "kernel/index.html")], check=True)
-    print("built docs/: index.html, kernel/index.html")
+        subprocess.run(["node", str(ROOT / "tools/math/render.mjs"), *map(str, pages)], check=True)
+    print("built docs/: " + ", ".join(str(p.relative_to(OUT)) for p in pages))
 
 
 if __name__ == "__main__":

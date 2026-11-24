@@ -1,158 +1,27 @@
-// Holds the book's live model to the paper: the kernel, its transform, the transfer function, the look-ahead, the
-// start law, the sampler, and the dynamic program, against paper/generated/ (numbers.tex and tab_sinusoid.tex at
-// the tag) and against each other; the schedules against the paper's experiments code; and the sentences under the
-// plates against the numbers they are given. Writes book/checks.json, which the build prints under each plate.
+// Holds the book's live model to the paper: every file in tools/checks/ (book.mjs for the shared pieces, then one
+// per chapter, chNN.mjs) checks a chapter's numbers, plates, and sentences against paper/generated/ (numbers.tex
+// and the tables at the tag) and against the paper's code. Writes book/checks.json, which the build prints under
+// each plate: a plate's line counts the checks of its chapter's file (and book.mjs) with the tags its CHECKS lists.
 //
 //   node tools/check_book.mjs          exits 1 if any check fails
-import { readFileSync, writeFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
-import * as K from "../book/assets/js/kernel.js";
-import { exactPolicy, boundForCost, OVERSHOOT } from "../book/assets/js/model.js";
-import { costOf, PRESETS } from "../book/assets/js/schedules-book.js";
-import * as S from "../book/assets/js/say-ch06.js";
+//   node tools/check_book.mjs ch07     runs book.mjs and ch07.mjs only (checks.json is not written)
+import { readdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { pathToFileURL } from "node:url";
+import { ROOT, results, setFile } from "./checks/lib.mjs";
 
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-const N = Object.fromEntries([...readFileSync(join(ROOT, "paper/generated/numbers.tex"), "utf8").matchAll(/\\newcommand\{\\(\w+)\}\{([^}]*)\}/g)].map((m) => [m[1], m[2]]));
-const SIN = readFileSync(join(ROOT, "paper/generated/tab_sinusoid.tex"), "utf8").trim().split("\n").map((r) => r.replace(/\\\\/, "").split("&").map((c) => +c.trim()));
-
-const results = [];
-function check(plate, name, ok, detail) {
-  results.push({ plate, name, ok: !!ok, detail });
-  console.log(`${ok ? "pass" : "FAIL"}  [${plate}] ${name}: ${detail}`);
-}
-// a number printed to d decimals matches the paper's printed value
-const asPrinted = (x, s) => { const d = (s.split(".")[1] || "").length; return x.toFixed(d) === s; };
-
-// ---- the constant-cost bound ------------------------------------------------------------------------------
-for (const c of [0.02, 0.1, 0.5, 2]) {
-  const b = K.B(c);
-  check("kernel", `B(${c}) solves sinh 2b + 2b = 1/c`, Math.abs(Math.sinh(2 * b) + 2 * b - 1 / c) / (1 / c) < 1e-5, `residual ${(Math.sinh(2 * b) + 2 * b - 1 / c).toExponential(1)}`);
-  const h = 1e-5 * c, fd = (K.B(c + h) - K.B(c - h)) / (2 * h);
-  check("kernel", `B'(${c}) = -1/(4c^2 cosh^2 B) against a difference quotient`, Math.abs(fd - K.Bprime(c)) / Math.abs(K.Bprime(c)) < 2e-3, `${K.Bprime(c).toFixed(5)} vs ${fd.toFixed(5)}`);
-}
-check("kernel", "BoundTenth", asPrinted(K.B(0.1), N.BoundTenth), `${K.B(0.1).toFixed(4)} vs ${N.BoundTenth}`);
-check("kernel", "DecisionTimeTenth: b tanh b at 0.1", asPrinted(K.meanDecisionTime(0.1), N.DecisionTimeTenth), `${K.meanDecisionTime(0.1).toFixed(4)} vs ${N.DecisionTimeTenth}`);
-
-// ---- the kernel: series, flux, normalization ----------------------------------------------------------------
-for (const c of [0.02, 0.1, 0.5]) {
-  const b = K.B(c);
-  check("kernel", `the flux integrates to 1/(2 c0 cosh^2 b0) at c0 = ${c}`, Math.abs(K.fluxTotal(b) - 1 / (2 * c * Math.cosh(b) ** 2)) < 1e-5, `${K.fluxTotal(b).toFixed(6)} vs ${(1 / (2 * c * Math.cosh(b) ** 2)).toFixed(6)}`);
-  const { w } = K.kernelBins(c);
-  const tot = w.reduce((a, v) => a + v, 0);
-  check("kernel", `the kernel's bins sum to 1 at c0 = ${c}`, Math.abs(tot - 1) < 1e-9, `sum ${tot.toFixed(12)}`);
-  check("starts", `pi_0 integrates to 1 at c0 = ${c}`, Math.abs(K.pi0Cdf(b, c) - 1) < 1e-6, `${K.pi0Cdf(b, c).toFixed(8)}`);
-}
-{
-  const b = K.B(0.1);
-  for (const s of [0.05, 0.2, 0.5, 1.5]) {
-    const h = 1e-5, d = -(K.survival(b, s, b) - K.survival(b - h, s, b)) / h;
-    check("survival", `n(${s}) from the series equals minus the slope of P_x(tau_0 > s) at the bound`, Math.abs(d - K.flux(s, b)) / K.flux(s, b) < 1e-3, `${K.flux(s, b).toFixed(5)} vs ${d.toFixed(5)}`);
-  }
-  check("survival", "P_x(tau_0 > s) is 1 inside the bound as s -> 0", Math.abs(K.survival(0, 0.002, b) - 1) < 1e-6, K.survival(0, 0.002, b).toFixed(8));
-}
-
-// ---- the transform, the transfer function, and the look-ahead ---------------------------------------------------
-for (const l of [0.5, 1, 2, 5, 10, 20]) {
-  const a = K.transform(l, 0.1), s = K.transformSeries(l, 0.1);
-  check("transform", `closed-form transform equals the series at lambda = ${l}`, Math.abs(a - s) < 1e-5, `${a.toFixed(6)} vs ${s.toFixed(6)}`);
-}
-check("transform", "the transform is 1 at lambda = 0", Math.abs(K.transform(1e-9, 0.1) - 1) < 1e-6, K.transform(1e-9, 0.1).toFixed(8));
-for (const row of SIN) {
-  const [om, gain, lead] = row;
-  const t = K.transfer(0.1, om);
-  check("transform", `Table (sinusoid), closed form at omega = ${om}: swing ${gain}, lead ${lead}`, t.gain.toFixed(3) === gain.toFixed(3) && t.lead.toFixed(1) === lead.toFixed(1), `${t.gain.toFixed(3)}, ${t.lead.toFixed(1)}`);
-}
-check("sketch", "LookAheadTenth: the mean look-ahead at c0 = 0.1", asPrinted(K.meanLookAhead(0.1), N.LookAheadTenth), `${K.meanLookAhead(0.1).toFixed(4)} vs ${N.LookAheadTenth}`);
-{
-  let best = [0, 0];
-  for (let lc = Math.log(0.005); lc < Math.log(0.5); lc += 0.0005) { const m = K.meanLookAhead(Math.exp(lc)); if (m > best[1]) best = [Math.exp(lc), m]; }
-  check("sketch", "MaxLookAhead and MaxLookAheadCost", asPrinted(best[1], N.MaxLookAhead) && asPrinted(best[0], N.MaxLookAheadCost), `${best[1].toFixed(4)} at ${best[0].toFixed(4)} vs ${N.MaxLookAhead} at ${N.MaxLookAheadCost}`);
-  const dm = -(K.transform(1e-4, 0.1) - 1) / 1e-4;
-  check("sketch", "the mean look-ahead equals minus the transform's slope at 0", Math.abs(dm - K.meanLookAhead(0.1)) < 1e-3, `${dm.toFixed(5)} vs ${K.meanLookAhead(0.1).toFixed(5)}`);
-}
-
-// ---- the sampler ------------------------------------------------------------------------------------------
-{
-  const all = [];
-  for (let s = 0; s < 10; s++) all.push(...K.sampleDecisionTimes(0.1, 4000, 1000 + s));
-  const m = all.reduce((a, x) => a + x) / all.length, sd = Math.sqrt(all.reduce((a, x) => a + (x - m) ** 2, 0) / all.length), se = sd / Math.sqrt(all.length);
-  check("starts", "decision times from pi_0 (40,000 runs) average the kernel's mean within 3 standard errors", Math.abs(m - K.meanLookAhead(0.1)) < 3 * se, `${m.toFixed(4)} ± ${se.toFixed(4)} vs ${K.meanLookAhead(0.1).toFixed(4)}`);
-  for (const l of [1, 4]) {
-    let a = 0, q = 0; for (const t of all) { const v = Math.exp(-l * t); a += v; q += v * v; }
-    a /= all.length; const e = Math.sqrt((q / all.length - a * a) / all.length);
-    check("transform", `sampled E exp(-${l} tau) matches the transform within 3 standard errors`, Math.abs(a - K.transform(l, 0.1)) < 3 * e, `${a.toFixed(4)} ± ${e.toFixed(4)} vs ${K.transform(l, 0.1).toFixed(4)}`);
-  }
-}
-{
-  const c0 = 0.1, b0 = K.B(c0);
-  for (const eps of [0.1, 0.01, 0.001]) {
-    const g = (b0 + eps) * Math.tanh(b0 + eps) - (b0 - eps) * Math.tanh(b0 - eps);
-    check("bracket", `expected gap / eps tends to 2 (tanh b0 + b0 sech^2 b0), eps = ${eps}`, Math.abs(g / eps - 2 * K.fluxTotal(b0)) < 2 * eps, `${(g / eps).toFixed(5)} vs ${(2 * K.fluxTotal(b0)).toFixed(5)}`);
-  }
-}
-
-// ---- the dynamic program ----------------------------------------------------------------------------------
-for (const c of [0.05, 0.1, 0.5]) {
-  const { ts, bounds, dt } = exactPolicy(() => c, 10);
-  const k = Math.round(2 / dt);
-  const want = boundForCost(c) - OVERSHOOT * Math.sqrt(dt);
-  check("schedule", `constant cost ${c}: the program's bound at t = 2 is B(c) - 0.5826 sqrt(dt)`, Math.abs(bounds[k] - want) < 0.01, `${bounds[k].toFixed(4)} vs ${want.toFixed(4)}`);
-}
-for (const row of SIN) {
-  const [om, , , gainDP, leadDP] = row;
-  const c0 = 0.1, eps = 0.01, period = (2 * Math.PI) / om, L = period * Math.max(2, Math.ceil(6 / period)), H = 2 + L + 6;
-  const base = exactPolicy(() => c0, H), pert = exactPolicy((t) => c0 + eps * Math.sin(om * t), H);
-  const A = [[0, 0, 0], [0, 0, 0], [0, 0, 0]], y = [0, 0, 0];
-  for (let k = 0; k < base.ts.length; k++) {
-    const t = base.ts[k]; if (t <= 2 || t >= 2 + L) continue;
-    const d = pert.bounds[k] - base.bounds[k], r = [Math.sin(om * t), Math.cos(om * t), 1];
-    for (let i = 0; i < 3; i++) { y[i] += r[i] * d; for (let j = 0; j < 3; j++) A[i][j] += r[i] * r[j]; }
-  }
-  const M = A.map((r, i) => [...r, y[i]]);
-  for (let i = 0; i < 3; i++) { let p = i; for (let r = i + 1; r < 3; r++) if (Math.abs(M[r][i]) > Math.abs(M[p][i])) p = r; [M[i], M[p]] = [M[p], M[i]]; for (let r = 0; r < 3; r++) { if (r === i) continue; const f = M[r][i] / M[i][i]; for (let c = i; c <= 3; c++) M[r][c] -= f * M[i][c]; } }
-  const [a, bb] = M.map((r, i) => r[3] / r[i]);
-  const pm = Math.abs(K.Bprime(c0)) * eps, gain = Math.hypot(a, bb) / pm, lead = (Math.atan2(-bb, -a) * 180) / Math.PI;
-  check("scale", `the page's program against the paper's at omega = ${om} (swing within 0.01, lead within 1 degree)`, Math.abs(gain - gainDP) < 0.01 && Math.abs(lead - leadDP) < 1, `${gain.toFixed(3)}, ${lead.toFixed(1)} vs ${gainDP}, ${leadDP}`);
-}
-
-// ---- the schedules: Figure 1's four, as the paper's experiments code writes them -----------------------------
-{
-  const logistic = (x) => 1 / (1 + Math.exp(-x));
-  const paper = {
-    jump: (t) => 0.1 + (1.6 - 0.1) * logistic((t - 0.5) / 0.05),
-    fall: (t) => 0.4 + (0.05 - 0.4) * logistic((t - 0.3) / 0.05),
-    rising: (t) => 0.1 + 0.8 * Math.max(t - 0.5, 0),
-    deadline: (t) => (t <= 1 ? 0.1 : Infinity),
-  };
-  for (const [id, fn] of Object.entries(paper)) {
-    const mine = costOf({ id, params: Object.fromEntries(PRESETS.find((p) => p.id === id).params.map((q) => [q.id, q.value])) });
-    const worst = Math.max(...Array.from({ length: 51 }, (_, i) => { const t = i * 0.05; const a = mine(t), b = fn(t); return a === b ? 0 : Math.abs(a - b); }));
-    check("schedule", `Figure 1 preset "${id}" equals the paper's schedule`, worst < 1e-12, `largest difference ${worst.toExponential(1)}`);
-  }
-}
-
-// ---- the sentences ----------------------------------------------------------------------------------------
-{
-  const R = K.rng(5);
-  let bad = 0, n = 0;
-  for (let i = 0; i < 2000; i++) {
-    const say = [
-      S.scaleSay(0.1 * (1 + R.next()), R.next() * 0.1, R.next(), [R.next(), R.next() * 0.5, R.next() * 0.2, R.next() * 0.1], [0.8, 0.4, 0.2, 0.1]),
-      S.sketchSay(R.next(), i % 3 ? R.next() * 2 : NaN, R.next(), R.next(), 1 + R.next()),
-      S.startsVerdict(["zero", "spread", "bound"][i % 3], R.next(), 0.1, 1.17, 0.546),
-      S.bracketSay(R.next() * 0.3, R.next(), R.next()),
-      S.ordersVerdict({ pm: i % 4 === 0 ? null : i % 3, fo: i % 4 === 0 ? null : (i + 1) % 3 }, R.next() * 3, R.next() * 3),
-      S.zText((R.next() - 0.5) * 8),
-    ];
-    for (const s of say) { n++; if (/NaN|undefined|Infinity|null/.test(s)) bad++; }
-  }
-  check("words", "the plates' sentences never print NaN, undefined, Infinity, or null", bad === 0, `${n} sentences, ${bad} bad`);
-  check("words", "the gap sentence says a 3-standard-error miss is rare, and a 1.5 isn't flagged", /one time in twenty/.test(S.zText(3)) && !/twenty/.test(S.zText(1.5)), S.zText(3));
+const only = process.argv.slice(2);
+const files = readdirSync(join(ROOT, "tools/checks")).filter((f) => f.endsWith(".mjs") && f !== "lib.mjs")
+  .sort((a, b) => (a === "book.mjs" ? -1 : b === "book.mjs" ? 1 : a.localeCompare(b)))
+  .filter((f) => !only.length || f === "book.mjs" || only.includes(f.replace(/\.mjs$/, "")));
+for (const f of files) {
+  setFile(f.replace(/\.mjs$/, ""));
+  console.log(`\n== ${f}`);
+  await import(pathToFileURL(join(ROOT, "tools/checks", f)).href);
 }
 
 const failed = results.filter((r) => !r.ok);
 const out = { date: new Date().toISOString().slice(0, 10), total: results.length, passed: results.length - failed.length, results };
-writeFileSync(join(ROOT, "book/checks.json"), JSON.stringify(out, null, 1) + "\n");
-console.log(`\n${out.passed} of ${out.total} checks passed`);
+if (!only.length) writeFileSync(join(ROOT, "book/checks.json"), JSON.stringify(out, null, 1) + "\n");
+console.log(`\n${out.passed} of ${out.total} checks passed${failed.length ? "; failed: " + failed.map((r) => `[${r.file}:${r.plate}] ${r.name}`).join("; ") : ""}`);
 process.exit(failed.length ? 1 : 0);

@@ -1,7 +1,7 @@
 // What every page of the book shares: the theme and depth switches, the contents menu, the reading line, the
 // reader's schedule (kept in this browser), the solver's worker, plates that wake when they reach the screen,
 // and lifting a live plate into the figure viewer.
-import { defaultChoice } from "./schedules-book.js?v=f6d032483b";
+import { defaultChoice } from "./schedules-book.js?v=0dec014d97";
 
 const root = document.documentElement;
 const store = {
@@ -29,7 +29,7 @@ let worker = null, nextId = 1;
 const pending = new Map();
 function getWorker() {
   if (worker) return worker;
-  worker = new Worker(new URL("./dp-worker.js?v=f6d032483b", import.meta.url), { type: "module" });
+  worker = new Worker(new URL("./dp-worker.js?v=0dec014d97", import.meta.url), { type: "module" });
   worker.onmessage = (e) => {
     const m = e.data, p = pending.get(m.id);
     if (!p) return;
@@ -162,7 +162,7 @@ export function liftReady(fig) { const b = fig.querySelector(".btn-lift"); if (b
 document.querySelectorAll("[data-claim-map]").forEach((el) => onVisible(el, async () => {
   try {
     const data = JSON.parse(document.getElementById("map-data").textContent);
-    const { mountMap } = await import("./claim-map.js?v=f6d032483b");
+    const { mountMap } = await import("./claim-map.js?v=0dec014d97");
     mountMap(el, { data, chapter: el.dataset.chapter ? +el.dataset.chapter : null, focus: el.dataset.focus || "thm:main", links: JSON.parse(el.dataset.links || "{}") });
   } catch (e) {
     el.innerHTML = '<p class="plate-fail">The claim map could not load.</p>';

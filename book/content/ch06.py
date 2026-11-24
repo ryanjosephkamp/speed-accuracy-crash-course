@@ -19,6 +19,10 @@ CHAPTER = {
         ("DecisionTimeTenth", "the mean decision time at the same cost, for comparison"),
         ("MaxLookAhead", "the most the average look-ahead reaches, at any cost"),
     ],
+    "hero": {
+        "aria": "A cost that rises and falls, and from one moment the kernel's weights on the moments after it, with the first-order bound below",
+        "caption": "A cost of 0.1 that swings 30% (orange). From each moment, the kernel (green) weighs the moments after it; below, the bound those weights give (green) beside the per-moment rule's (dashed).",
+    },
     "intro": r"""
 For a small change in the cost of time, the best bound moves in proportion to a weighted average of the changes still to come. This chapter finds the weights, describes them two ways, derives their Laplace transform, and proves the theorem that puts them to work. It is the center of the paper: every later chapter uses it.
 
@@ -28,6 +32,13 @@ One caution runs through every page. That a small change moves the bound by a we
 
 # where each of this chapter's claims is taught, for the claim map's links
 MAP_LINKS = {"def:kernel": "weights", "lem:kernel": "second-way", "thm:main": "theorem", "claim:pm-order-eps": "yours"}
+
+# which groups of checks in tools/checks/ stand behind each plate
+CHECKS = {
+    "scale": ["kernel", "scale"], "sketch": ["kernel", "sketch"], "survival": ["survival"],
+    "starts": ["starts", "words"], "transform": ["transform"], "bracket": ["bracket", "words"],
+    "yours": ["kernel", "scale", "schedule", "words"],
+}
 
 PLATES = {
     "scale": {

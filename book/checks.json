@@ -1,357 +1,416 @@
 {
- "date": "2026-11-23",
+ "date": "2026-11-24",
  "total": 59,
  "passed": 59,
  "results": [
   {
-   "plate": "kernel",
-   "name": "B(0.02) solves sinh 2b + 2b = 1/c",
-   "ok": true,
-   "detail": "residual 0.0e+0"
-  },
-  {
-   "plate": "kernel",
-   "name": "B'(0.02) = -1/(4c^2 cosh^2 B) against a difference quotient",
-   "ok": true,
-   "detail": "-26.88158 vs -26.88158"
-  },
-  {
-   "plate": "kernel",
-   "name": "B(0.1) solves sinh 2b + 2b = 1/c",
-   "ok": true,
-   "detail": "residual 0.0e+0"
-  },
-  {
-   "plate": "kernel",
-   "name": "B'(0.1) = -1/(4c^2 cosh^2 B) against a difference quotient",
-   "ok": true,
-   "detail": "-5.96611 vs -5.96611"
-  },
-  {
-   "plate": "kernel",
-   "name": "B(0.5) solves sinh 2b + 2b = 1/c",
-   "ok": true,
-   "detail": "residual 0.0e+0"
-  },
-  {
-   "plate": "kernel",
-   "name": "B'(0.5) = -1/(4c^2 cosh^2 B) against a difference quotient",
-   "ok": true,
-   "detail": "-0.81151 vs -0.81151"
-  },
-  {
-   "plate": "kernel",
-   "name": "B(2) solves sinh 2b + 2b = 1/c",
-   "ok": true,
-   "detail": "residual 0.0e+0"
-  },
-  {
-   "plate": "kernel",
-   "name": "B'(2) = -1/(4c^2 cosh^2 B) against a difference quotient",
-   "ok": true,
-   "detail": "-0.06154 vs -0.06154"
-  },
-  {
-   "plate": "kernel",
-   "name": "BoundTenth",
-   "ok": true,
-   "detail": "1.3437 vs 1.344"
-  },
-  {
-   "plate": "kernel",
-   "name": "DecisionTimeTenth: b tanh b at 0.1",
-   "ok": true,
-   "detail": "1.1725 vs 1.17"
-  },
-  {
-   "plate": "kernel",
-   "name": "the flux integrates to 1/(2 c0 cosh^2 b0) at c0 = 0.02",
-   "ok": true,
-   "detail": "1.075263 vs 1.075263"
-  },
-  {
-   "plate": "kernel",
-   "name": "the kernel's bins sum to 1 at c0 = 0.02",
-   "ok": true,
-   "detail": "sum 1.000000000000"
-  },
-  {
-   "plate": "starts",
-   "name": "pi_0 integrates to 1 at c0 = 0.02",
-   "ok": true,
-   "detail": "1.00000000"
-  },
-  {
-   "plate": "kernel",
-   "name": "the flux integrates to 1/(2 c0 cosh^2 b0) at c0 = 0.1",
-   "ok": true,
-   "detail": "1.193222 vs 1.193222"
-  },
-  {
-   "plate": "kernel",
-   "name": "the kernel's bins sum to 1 at c0 = 0.1",
-   "ok": true,
-   "detail": "sum 1.000000000000"
-  },
-  {
-   "plate": "starts",
-   "name": "pi_0 integrates to 1 at c0 = 0.1",
-   "ok": true,
-   "detail": "1.00000000"
-  },
-  {
-   "plate": "kernel",
-   "name": "the flux integrates to 1/(2 c0 cosh^2 b0) at c0 = 0.5",
-   "ok": true,
-   "detail": "0.811510 vs 0.811510"
-  },
-  {
-   "plate": "kernel",
-   "name": "the kernel's bins sum to 1 at c0 = 0.5",
-   "ok": true,
-   "detail": "sum 0.999999999999"
-  },
-  {
-   "plate": "starts",
-   "name": "pi_0 integrates to 1 at c0 = 0.5",
-   "ok": true,
-   "detail": "1.00000000"
-  },
-  {
-   "plate": "survival",
-   "name": "n(0.05) from the series equals minus the slope of P_x(tau_0 > s) at the bound",
-   "ok": true,
-   "detail": "2.78453 vs 2.78455"
-  },
-  {
-   "plate": "survival",
-   "name": "n(0.2) from the series equals minus the slope of P_x(tau_0 > s) at the bound",
-   "ok": true,
-   "detail": "1.08706 vs 1.08707"
-  },
-  {
-   "plate": "survival",
-   "name": "n(0.5) from the series equals minus the slope of P_x(tau_0 > s) at the bound",
-   "ok": true,
-   "detail": "0.52540 vs 0.52541"
-  },
-  {
-   "plate": "survival",
-   "name": "n(1.5) from the series equals minus the slope of P_x(tau_0 > s) at the bound",
-   "ok": true,
-   "detail": "0.14574 vs 0.14574"
-  },
-  {
-   "plate": "survival",
-   "name": "P_x(tau_0 > s) is 1 inside the bound as s -> 0",
-   "ok": true,
-   "detail": "1.00000000"
-  },
-  {
-   "plate": "transform",
-   "name": "closed-form transform equals the series at lambda = 0.5",
-   "ok": true,
-   "detail": "0.804209 vs 0.804207"
-  },
-  {
-   "plate": "transform",
-   "name": "closed-form transform equals the series at lambda = 1",
-   "ok": true,
-   "detail": "0.692945 vs 0.692943"
-  },
-  {
-   "plate": "transform",
-   "name": "closed-form transform equals the series at lambda = 2",
-   "ok": true,
-   "detail": "0.566765 vs 0.566763"
-  },
-  {
-   "plate": "transform",
-   "name": "closed-form transform equals the series at lambda = 5",
-   "ok": true,
-   "detail": "0.409509 vs 0.409507"
-  },
-  {
-   "plate": "transform",
-   "name": "closed-form transform equals the series at lambda = 10",
-   "ok": true,
-   "detail": "0.310921 vs 0.310919"
-  },
-  {
-   "plate": "transform",
-   "name": "closed-form transform equals the series at lambda = 20",
-   "ok": true,
-   "detail": "0.231749 vs 0.231747"
-  },
-  {
-   "plate": "transform",
-   "name": "the transform is 1 at lambda = 0",
-   "ok": true,
-   "detail": "0.99999993"
-  },
-  {
-   "plate": "transform",
-   "name": "Table (sinusoid), closed form at omega = 0.5: swing 0.936, lead 14.5",
-   "ok": true,
-   "detail": "0.936, 14.5"
-  },
-  {
-   "plate": "transform",
-   "name": "Table (sinusoid), closed form at omega = 1: swing 0.813, lead 24.1",
-   "ok": true,
-   "detail": "0.813, 24.1"
-  },
-  {
-   "plate": "transform",
-   "name": "Table (sinusoid), closed form at omega = 2: swing 0.625, lead 31.4",
-   "ok": true,
-   "detail": "0.625, 31.4"
-  },
-  {
-   "plate": "transform",
-   "name": "Table (sinusoid), closed form at omega = 4: swing 0.471, lead 34.2",
-   "ok": true,
-   "detail": "0.471, 34.2"
-  },
-  {
-   "plate": "transform",
-   "name": "Table (sinusoid), closed form at omega = 8: swing 0.358, lead 36.7",
-   "ok": true,
-   "detail": "0.358, 36.7"
-  },
-  {
-   "plate": "sketch",
-   "name": "LookAheadTenth: the mean look-ahead at c0 = 0.1",
-   "ok": true,
-   "detail": "0.5463 vs 0.546"
-  },
-  {
-   "plate": "sketch",
-   "name": "MaxLookAhead and MaxLookAheadCost",
-   "ok": true,
-   "detail": "0.6190 at 0.0353 vs 0.619 at 0.035"
-  },
-  {
-   "plate": "sketch",
-   "name": "the mean look-ahead equals minus the transform's slope at 0",
-   "ok": true,
-   "detail": "0.54630 vs 0.54634"
-  },
-  {
-   "plate": "starts",
-   "name": "decision times from pi_0 (40,000 runs) average the kernel's mean within 3 standard errors",
-   "ok": true,
-   "detail": "0.5502 ± 0.0038 vs 0.5463"
-  },
-  {
-   "plate": "transform",
-   "name": "sampled E exp(-1 tau) matches the transform within 3 standard errors",
-   "ok": true,
-   "detail": "0.6918 ± 0.0015 vs 0.6929"
-  },
-  {
-   "plate": "transform",
-   "name": "sampled E exp(-4 tau) matches the transform within 3 standard errors",
-   "ok": true,
-   "detail": "0.4442 ± 0.0019 vs 0.4453"
-  },
-  {
-   "plate": "bracket",
-   "name": "expected gap / eps tends to 2 (tanh b0 + b0 sech^2 b0), eps = 0.1",
-   "ok": true,
-   "detail": "2.38502 vs 2.38644"
-  },
-  {
-   "plate": "bracket",
-   "name": "expected gap / eps tends to 2 (tanh b0 + b0 sech^2 b0), eps = 0.01",
-   "ok": true,
-   "detail": "2.38643 vs 2.38644"
-  },
-  {
-   "plate": "bracket",
-   "name": "expected gap / eps tends to 2 (tanh b0 + b0 sech^2 b0), eps = 0.001",
-   "ok": true,
-   "detail": "2.38644 vs 2.38644"
-  },
-  {
+   "file": "book",
    "plate": "schedule",
    "name": "constant cost 0.05: the program's bound at t = 2 is B(c) - 0.5826 sqrt(dt)",
    "ok": true,
    "detail": "1.6909 vs 1.6905"
   },
   {
+   "file": "book",
    "plate": "schedule",
    "name": "constant cost 0.1: the program's bound at t = 2 is B(c) - 0.5826 sqrt(dt)",
    "ok": true,
    "detail": "1.2859 vs 1.2854"
   },
   {
+   "file": "book",
    "plate": "schedule",
    "name": "constant cost 0.5: the program's bound at t = 2 is B(c) - 0.5826 sqrt(dt)",
    "ok": true,
    "detail": "0.4073 vs 0.4067"
   },
   {
-   "plate": "scale",
-   "name": "the page's program against the paper's at omega = 0.5 (swing within 0.01, lead within 1 degree)",
-   "ok": true,
-   "detail": "0.937, 14.4 vs 0.937, 14.5"
-  },
-  {
-   "plate": "scale",
-   "name": "the page's program against the paper's at omega = 1 (swing within 0.01, lead within 1 degree)",
-   "ok": true,
-   "detail": "0.817, 23.9 vs 0.814, 24"
-  },
-  {
-   "plate": "scale",
-   "name": "the page's program against the paper's at omega = 2 (swing within 0.01, lead within 1 degree)",
-   "ok": true,
-   "detail": "0.624, 31.1 vs 0.626, 31.3"
-  },
-  {
-   "plate": "scale",
-   "name": "the page's program against the paper's at omega = 4 (swing within 0.01, lead within 1 degree)",
-   "ok": true,
-   "detail": "0.476, 33.6 vs 0.472, 34"
-  },
-  {
-   "plate": "scale",
-   "name": "the page's program against the paper's at omega = 8 (swing within 0.01, lead within 1 degree)",
-   "ok": true,
-   "detail": "0.358, 35.5 vs 0.358, 36.4"
-  },
-  {
+   "file": "book",
    "plate": "schedule",
    "name": "Figure 1 preset \"jump\" equals the paper's schedule",
    "ok": true,
    "detail": "largest difference 0.0e+0"
   },
   {
+   "file": "book",
    "plate": "schedule",
    "name": "Figure 1 preset \"fall\" equals the paper's schedule",
    "ok": true,
    "detail": "largest difference 0.0e+0"
   },
   {
+   "file": "book",
    "plate": "schedule",
    "name": "Figure 1 preset \"rising\" equals the paper's schedule",
    "ok": true,
    "detail": "largest difference 0.0e+0"
   },
   {
+   "file": "book",
    "plate": "schedule",
    "name": "Figure 1 preset \"deadline\" equals the paper's schedule",
    "ok": true,
    "detail": "largest difference 0.0e+0"
   },
   {
+   "file": "ch06",
+   "plate": "kernel",
+   "name": "B(0.02) solves sinh 2b + 2b = 1/c",
+   "ok": true,
+   "detail": "residual 0.0e+0"
+  },
+  {
+   "file": "ch06",
+   "plate": "kernel",
+   "name": "B'(0.02) = -1/(4c^2 cosh^2 B) against a difference quotient",
+   "ok": true,
+   "detail": "-26.88158 vs -26.88158"
+  },
+  {
+   "file": "ch06",
+   "plate": "kernel",
+   "name": "B(0.1) solves sinh 2b + 2b = 1/c",
+   "ok": true,
+   "detail": "residual 0.0e+0"
+  },
+  {
+   "file": "ch06",
+   "plate": "kernel",
+   "name": "B'(0.1) = -1/(4c^2 cosh^2 B) against a difference quotient",
+   "ok": true,
+   "detail": "-5.96611 vs -5.96611"
+  },
+  {
+   "file": "ch06",
+   "plate": "kernel",
+   "name": "B(0.5) solves sinh 2b + 2b = 1/c",
+   "ok": true,
+   "detail": "residual 0.0e+0"
+  },
+  {
+   "file": "ch06",
+   "plate": "kernel",
+   "name": "B'(0.5) = -1/(4c^2 cosh^2 B) against a difference quotient",
+   "ok": true,
+   "detail": "-0.81151 vs -0.81151"
+  },
+  {
+   "file": "ch06",
+   "plate": "kernel",
+   "name": "B(2) solves sinh 2b + 2b = 1/c",
+   "ok": true,
+   "detail": "residual 0.0e+0"
+  },
+  {
+   "file": "ch06",
+   "plate": "kernel",
+   "name": "B'(2) = -1/(4c^2 cosh^2 B) against a difference quotient",
+   "ok": true,
+   "detail": "-0.06154 vs -0.06154"
+  },
+  {
+   "file": "ch06",
+   "plate": "kernel",
+   "name": "BoundTenth",
+   "ok": true,
+   "detail": "1.3437 vs 1.344"
+  },
+  {
+   "file": "ch06",
+   "plate": "kernel",
+   "name": "DecisionTimeTenth: b tanh b at 0.1",
+   "ok": true,
+   "detail": "1.1725 vs 1.17"
+  },
+  {
+   "file": "ch06",
+   "plate": "kernel",
+   "name": "the flux integrates to 1/(2 c0 cosh^2 b0) at c0 = 0.02",
+   "ok": true,
+   "detail": "1.075263 vs 1.075263"
+  },
+  {
+   "file": "ch06",
+   "plate": "kernel",
+   "name": "the kernel's bins sum to 1 at c0 = 0.02",
+   "ok": true,
+   "detail": "sum 1.000000000000"
+  },
+  {
+   "file": "ch06",
+   "plate": "starts",
+   "name": "pi_0 integrates to 1 at c0 = 0.02",
+   "ok": true,
+   "detail": "1.00000000"
+  },
+  {
+   "file": "ch06",
+   "plate": "kernel",
+   "name": "the flux integrates to 1/(2 c0 cosh^2 b0) at c0 = 0.1",
+   "ok": true,
+   "detail": "1.193222 vs 1.193222"
+  },
+  {
+   "file": "ch06",
+   "plate": "kernel",
+   "name": "the kernel's bins sum to 1 at c0 = 0.1",
+   "ok": true,
+   "detail": "sum 1.000000000000"
+  },
+  {
+   "file": "ch06",
+   "plate": "starts",
+   "name": "pi_0 integrates to 1 at c0 = 0.1",
+   "ok": true,
+   "detail": "1.00000000"
+  },
+  {
+   "file": "ch06",
+   "plate": "kernel",
+   "name": "the flux integrates to 1/(2 c0 cosh^2 b0) at c0 = 0.5",
+   "ok": true,
+   "detail": "0.811510 vs 0.811510"
+  },
+  {
+   "file": "ch06",
+   "plate": "kernel",
+   "name": "the kernel's bins sum to 1 at c0 = 0.5",
+   "ok": true,
+   "detail": "sum 0.999999999999"
+  },
+  {
+   "file": "ch06",
+   "plate": "starts",
+   "name": "pi_0 integrates to 1 at c0 = 0.5",
+   "ok": true,
+   "detail": "1.00000000"
+  },
+  {
+   "file": "ch06",
+   "plate": "survival",
+   "name": "n(0.05) from the series equals minus the slope of P_x(tau_0 > s) at the bound",
+   "ok": true,
+   "detail": "2.78453 vs 2.78455"
+  },
+  {
+   "file": "ch06",
+   "plate": "survival",
+   "name": "n(0.2) from the series equals minus the slope of P_x(tau_0 > s) at the bound",
+   "ok": true,
+   "detail": "1.08706 vs 1.08707"
+  },
+  {
+   "file": "ch06",
+   "plate": "survival",
+   "name": "n(0.5) from the series equals minus the slope of P_x(tau_0 > s) at the bound",
+   "ok": true,
+   "detail": "0.52540 vs 0.52541"
+  },
+  {
+   "file": "ch06",
+   "plate": "survival",
+   "name": "n(1.5) from the series equals minus the slope of P_x(tau_0 > s) at the bound",
+   "ok": true,
+   "detail": "0.14574 vs 0.14574"
+  },
+  {
+   "file": "ch06",
+   "plate": "survival",
+   "name": "P_x(tau_0 > s) is 1 inside the bound as s -> 0",
+   "ok": true,
+   "detail": "1.00000000"
+  },
+  {
+   "file": "ch06",
+   "plate": "transform",
+   "name": "closed-form transform equals the series at lambda = 0.5",
+   "ok": true,
+   "detail": "0.804209 vs 0.804207"
+  },
+  {
+   "file": "ch06",
+   "plate": "transform",
+   "name": "closed-form transform equals the series at lambda = 1",
+   "ok": true,
+   "detail": "0.692945 vs 0.692943"
+  },
+  {
+   "file": "ch06",
+   "plate": "transform",
+   "name": "closed-form transform equals the series at lambda = 2",
+   "ok": true,
+   "detail": "0.566765 vs 0.566763"
+  },
+  {
+   "file": "ch06",
+   "plate": "transform",
+   "name": "closed-form transform equals the series at lambda = 5",
+   "ok": true,
+   "detail": "0.409509 vs 0.409507"
+  },
+  {
+   "file": "ch06",
+   "plate": "transform",
+   "name": "closed-form transform equals the series at lambda = 10",
+   "ok": true,
+   "detail": "0.310921 vs 0.310919"
+  },
+  {
+   "file": "ch06",
+   "plate": "transform",
+   "name": "closed-form transform equals the series at lambda = 20",
+   "ok": true,
+   "detail": "0.231749 vs 0.231747"
+  },
+  {
+   "file": "ch06",
+   "plate": "transform",
+   "name": "the transform is 1 at lambda = 0",
+   "ok": true,
+   "detail": "0.99999993"
+  },
+  {
+   "file": "ch06",
+   "plate": "transform",
+   "name": "Table (sinusoid), closed form at omega = 0.5: swing 0.936, lead 14.5",
+   "ok": true,
+   "detail": "0.936, 14.5"
+  },
+  {
+   "file": "ch06",
+   "plate": "transform",
+   "name": "Table (sinusoid), closed form at omega = 1: swing 0.813, lead 24.1",
+   "ok": true,
+   "detail": "0.813, 24.1"
+  },
+  {
+   "file": "ch06",
+   "plate": "transform",
+   "name": "Table (sinusoid), closed form at omega = 2: swing 0.625, lead 31.4",
+   "ok": true,
+   "detail": "0.625, 31.4"
+  },
+  {
+   "file": "ch06",
+   "plate": "transform",
+   "name": "Table (sinusoid), closed form at omega = 4: swing 0.471, lead 34.2",
+   "ok": true,
+   "detail": "0.471, 34.2"
+  },
+  {
+   "file": "ch06",
+   "plate": "transform",
+   "name": "Table (sinusoid), closed form at omega = 8: swing 0.358, lead 36.7",
+   "ok": true,
+   "detail": "0.358, 36.7"
+  },
+  {
+   "file": "ch06",
+   "plate": "sketch",
+   "name": "LookAheadTenth: the mean look-ahead at c0 = 0.1",
+   "ok": true,
+   "detail": "0.5463 vs 0.546"
+  },
+  {
+   "file": "ch06",
+   "plate": "sketch",
+   "name": "MaxLookAhead and MaxLookAheadCost",
+   "ok": true,
+   "detail": "0.6190 at 0.0353 vs 0.619 at 0.035"
+  },
+  {
+   "file": "ch06",
+   "plate": "sketch",
+   "name": "the mean look-ahead equals minus the transform's slope at 0",
+   "ok": true,
+   "detail": "0.54630 vs 0.54634"
+  },
+  {
+   "file": "ch06",
+   "plate": "starts",
+   "name": "decision times from pi_0 (40,000 runs) average the kernel's mean within 3 standard errors",
+   "ok": true,
+   "detail": "0.5502 ± 0.0038 vs 0.5463"
+  },
+  {
+   "file": "ch06",
+   "plate": "transform",
+   "name": "sampled E exp(-1 tau) matches the transform within 3 standard errors",
+   "ok": true,
+   "detail": "0.6918 ± 0.0015 vs 0.6929"
+  },
+  {
+   "file": "ch06",
+   "plate": "transform",
+   "name": "sampled E exp(-4 tau) matches the transform within 3 standard errors",
+   "ok": true,
+   "detail": "0.4442 ± 0.0019 vs 0.4453"
+  },
+  {
+   "file": "ch06",
+   "plate": "bracket",
+   "name": "expected gap / eps tends to 2 (tanh b0 + b0 sech^2 b0), eps = 0.1",
+   "ok": true,
+   "detail": "2.38502 vs 2.38644"
+  },
+  {
+   "file": "ch06",
+   "plate": "bracket",
+   "name": "expected gap / eps tends to 2 (tanh b0 + b0 sech^2 b0), eps = 0.01",
+   "ok": true,
+   "detail": "2.38643 vs 2.38644"
+  },
+  {
+   "file": "ch06",
+   "plate": "bracket",
+   "name": "expected gap / eps tends to 2 (tanh b0 + b0 sech^2 b0), eps = 0.001",
+   "ok": true,
+   "detail": "2.38644 vs 2.38644"
+  },
+  {
+   "file": "ch06",
+   "plate": "scale",
+   "name": "the page's program against the paper's at omega = 0.5 (swing within 0.01, lead within 1 degree)",
+   "ok": true,
+   "detail": "0.937, 14.4 vs 0.937, 14.5"
+  },
+  {
+   "file": "ch06",
+   "plate": "scale",
+   "name": "the page's program against the paper's at omega = 1 (swing within 0.01, lead within 1 degree)",
+   "ok": true,
+   "detail": "0.817, 23.9 vs 0.814, 24"
+  },
+  {
+   "file": "ch06",
+   "plate": "scale",
+   "name": "the page's program against the paper's at omega = 2 (swing within 0.01, lead within 1 degree)",
+   "ok": true,
+   "detail": "0.624, 31.1 vs 0.626, 31.3"
+  },
+  {
+   "file": "ch06",
+   "plate": "scale",
+   "name": "the page's program against the paper's at omega = 4 (swing within 0.01, lead within 1 degree)",
+   "ok": true,
+   "detail": "0.476, 33.6 vs 0.472, 34"
+  },
+  {
+   "file": "ch06",
+   "plate": "scale",
+   "name": "the page's program against the paper's at omega = 8 (swing within 0.01, lead within 1 degree)",
+   "ok": true,
+   "detail": "0.358, 35.5 vs 0.358, 36.4"
+  },
+  {
+   "file": "ch06",
    "plate": "words",
    "name": "the plates' sentences never print NaN, undefined, Infinity, or null",
    "ok": true,
    "detail": "12000 sentences, 0 bad"
   },
   {
+   "file": "ch06",
    "plate": "words",
    "name": "the gap sentence says a 3-standard-error miss is rare, and a 1.5 isn't flagged",
    "ok": true,

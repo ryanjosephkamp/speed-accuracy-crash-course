@@ -1,11 +1,11 @@
 // Chapter 6's plates. Every number drawn comes from kernel.js (the series, the closed forms, the sampler) or from
 // the dynamic program in the worker; the words under each plate come from the functions in say-ch06.js, which take
 // numbers and return sentences.
-import * as K from "./kernel.js?v=f6d032483b";
-import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, VIEW, defaultDrawing } from "./schedules-book.js?v=f6d032483b";
-import { getChoice, setChoice, solve, onVisible, watchVisible, liftReady, calm, seedParam } from "./book.js?v=f6d032483b";
-import { frame, line, area, axes, svg, tags, fmt, keepDrawn } from "./chart.js?v=f6d032483b";
-import * as S from "./say-ch06.js?v=f6d032483b";
+import * as K from "./kernel.js?v=0dec014d97";
+import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, VIEW, defaultDrawing } from "./schedules-book.js?v=0dec014d97";
+import { getChoice, setChoice, solve, onVisible, watchVisible, liftReady, calm, seedParam } from "./book.js?v=0dec014d97";
+import { frame, line, area, axes, svg, tags, fmt, keepDrawn } from "./chart.js?v=0dec014d97";
+import * as S from "./say-ch06.js?v=0dec014d97";
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const plate = (id) => document.getElementById("plate-" + id);

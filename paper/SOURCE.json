@@ -6,7 +6,18 @@
   "paper/main.tex",
   "paper/references.bib",
   "paper/generated/numbers.tex",
+  "paper/generated/tab_baselines.tex",
+  "paper/generated/tab_behavior.tex",
+  "paper/generated/tab_grid.tex",
+  "paper/generated/tab_heldout.tex",
+  "paper/generated/tab_lopsided.tex",
+  "paper/generated/tab_loss.tex",
+  "paper/generated/tab_random.tex",
+  "paper/generated/tab_scaling.tex",
+  "paper/generated/tab_showcase.tex",
   "paper/generated/tab_sinusoid.tex",
+  "paper/generated/tab_sweep.tex",
+  "paper/generated/tab_unknown.tex",
   "paper/labels.json"
  ]
 }
