@@ -1,12 +1,14 @@
-// The claim map: the paper's 50 claims and the 118 places one uses another, drawn four ways, with a switcher
+// The claim map: the paper's 50 claims and the 118 places one uses another, drawn seven ways, with a switcher
 // whose choice the reader's browser keeps. Focus (the default) shows one claim with what it uses above it and
 // what uses it below; Layers puts each claim below everything it uses; Outline lists the chapters with each
-// claim's links written out; Book path lists the claims in the book's order with each use drawn as an arc. On a
-// chapter's page, that chapter's claims are lit in every view and Focus opens on its main result.
+// claim's links written out; Book path lists the claims in the book's order with each use drawn as an arc. Cloud,
+// Tower, and Pages draw the map in 3D (claim-map-3d.js, loaded only when a reader picks one). On a chapter's page,
+// that chapter's claims are lit in every view and Focus opens on its main result.
 //
 //   mountMap(el, { data, chapter, focus, links })   data: book/content/map.json; links: { id: href } for built pages
 
-const VIEWS = [["focus", "Focus"], ["layers", "Layers"], ["outline", "Outline"], ["path", "Book path"]];
+const VIEWS = [["focus", "Focus"], ["layers", "Layers"], ["outline", "Outline"], ["path", "Book path"], ["cloud", "Cloud"], ["tower", "Tower"], ["pages", "Pages"]];
+const VIEWS_3D = ["cloud", "tower", "pages"];
 const KEY = "cc-map-view";
 const store = {
   get() { try { const v = localStorage.getItem(KEY); return VIEWS.some(([k]) => k === v) ? v : "focus"; } catch (e) { return "focus"; } },
@@ -36,8 +38,9 @@ export function mountMap(root, { data, chapter = null, focus = "thm:main", links
   root.classList.add("cmap");
   root.innerHTML = `
 <div class="cm-top">
-  <fieldset class="seg cm-switch"><legend>Map</legend><div class="seg-row">${VIEWS.map(([k, l]) =>
-    `<label><input type="radio" name="${uid}-view" value="${k}"><span>${l}</span></label>`).join("")}</div></fieldset>
+  <fieldset class="seg cm-switch"><legend>Map</legend><div class="cm-rows">${[VIEWS.filter(([k]) => !VIEWS_3D.includes(k)), VIEWS.filter(([k]) => VIEWS_3D.includes(k))].map((set, i) =>
+    `<div class="seg-row"${i ? ' aria-label="In 3D"' : ""}>${i ? '<span class="cm-3d-tag" aria-hidden="true">3D</span>' : ""}${set.map(([k, l]) =>
+    `<label><input type="radio" name="${uid}-view" value="${k}"><span>${l}</span></label>`).join("")}</div>`).join("")}</div></fieldset>
   <ul class="cm-key" aria-label="Key">
     <li><span class="dot s-definition"></span>definition</li><li><span class="dot s-proved"></span>proved</li>
     <li><span class="dot s-formal"></span>formal or conjectured</li><li><span class="dot s-numerical"></span>measured</li>
@@ -60,6 +63,18 @@ export function mountMap(root, { data, chapter = null, focus = "thm:main", links
 <div class="cm-view" data-view="path">
   <p class="cm-how">The claims in the order the book teaches them, with each use drawn as an arc on the left. A dashed rust arc points forward: a claim that uses something taught later. Tap a claim to light its arcs.</p>
   <div class="cm-arcs"></div><p class="cm-info" aria-live="polite"></p>
+</div>
+<div class="cm-view" data-view="cloud">
+  <p class="cm-how">The claims in 3D, pulled together by their uses, so claims that share many uses gather; where a claim sits means nothing else. Drag sideways to turn it, pinch to zoom, and tap a claim to read it below.</p>
+  <div class="cm3"><p class="cm-info">Loading the 3D map…</p></div>
+</div>
+<div class="cm-view" data-view="tower">
+  <p class="cm-how">Each claim sits below everything it uses, as in Layers, with the chapters standing around a ring. Drag sideways to turn it, or tap a chapter's number at the foot to bring that chapter to the front.</p>
+  <div class="cm3"><p class="cm-info">Loading the 3D map…</p></div>
+</div>
+<div class="cm-view" data-view="pages">
+  <p class="cm-how">One page per chapter, chapter 1 at the back, with each page's claims set by layer. On the page in hand, the pages it uses are outlined in slate and the pages that use it in green; tap a page's number to take it in hand.</p>
+  <div class="cm3"><p class="cm-info">Loading the 3D map…</p></div>
 </div>`;
   const $ = (s) => root.querySelector(s);
   const views = root.querySelectorAll(".cm-view");
@@ -204,8 +219,18 @@ export function mountMap(root, { data, chapter = null, focus = "thm:main", links
     svg.innerHTML = faint + hot + dots;
   }
 
+  // ---- Cloud, Tower, and Pages: the 3D module loads the first time a reader picks one of them
+  const d3 = {};
+  function init3d(name) {
+    const box = root.querySelector(`[data-view="${name}"] .cm3`);
+    import("./claim-map-3d.js").then(({ mount3d }) => {
+      d3[name] = mount3d(box, { view: name, data: D, chapter, focus, where });
+      if (current === name) d3[name]?.resize();
+    }).catch((e) => { box.innerHTML = '<p class="plate-fail">The 3D map could not load. Focus, Layers, Outline, and Book path still work.</p>'; console.error(e); });
+  }
   const INIT = { focus: initFocus, layers: initLayers, outline: initOutline, path: initPath };
   const REDRAW = { focus: drawFocus, layers: drawLayers, path: drawPath };
+  VIEWS_3D.forEach((k) => { INIT[k] = () => init3d(k); REDRAW[k] = () => d3[k]?.resize(); });
   function show(name, remember) {
     current = name;
     radios.forEach((r) => { r.checked = r.value === name; });
