@@ -218,7 +218,9 @@ export function bandReveal({ kind, sketch, view, data, flats, cost, dl, ext }) {
     if (up && (v > up[k] + 0.002 || v < dn[k] - 0.002)) out++;
   });
   const band = hasBand(kind) && up !== null;
-  return { kind, band, cnt, miss: cnt ? miss / cnt : NaN, outside: cnt ? out / cnt : 0, lo: Math.min(...bs), hi: Math.max(...bs),
+  // the bound's lowest value while a decision is still open: before a deadline's forced choice, where it is 0
+  const open = dl !== null && bs.length > 1 ? bs.slice(0, -1) : bs;
+  return { kind, band, dl: dl ?? null, cnt, miss: cnt ? miss / cnt : NaN, outside: cnt ? out / cnt : 0, lo: Math.min(...bs), hi: Math.max(...bs), loOpen: Math.min(...open),
     st: band ? bandStats(ts, bs, up, dn, flatOnGrid(ext.lo), flatOnGrid(ext.hi), pm) : null };
 }
 

@@ -303,7 +303,7 @@ function bandPlate() {
         <div><dt>Closest to the upper edge</dt><dd>${fmt(st.gapUp, 3)}<small>at time ${fmt(st.atUp, 2)}</small></dd></div>
         <div><dt>Continuous edges, moved in</dt><dd>${fmt(st.shiftGap, 3)}<small>largest distance from the band's edges</small></dd></div>
         <div class="k-pm"><dt>Below the per-moment bound</dt><dd>${Math.round(st.below * 100)}%<small>of the checks, by more than 0.002; above it at ${Math.round(st.above * 100)}%</small></dd></div>`;
-    } else reads.innerHTML = `<div><dt>Best bound over the window</dt><dd>${fmt(r.lo, 2)} to ${fmt(r.hi, 2)}</dd></div>`;
+    } else reads.innerHTML = `<div><dt>Best bound over the window</dt><dd>${S.rangeTile(r)}</dd></div>`;
     say.textContent = S.revealSay(r, drew);
     liftReady(fig);
   };
