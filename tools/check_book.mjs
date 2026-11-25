@@ -21,7 +21,8 @@ for (const f of files) {
 }
 
 const failed = results.filter((r) => !r.ok);
-const out = { date: new Date().toISOString().slice(0, 10), total: results.length, passed: results.length - failed.length, results };
+const now = new Date(), local = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;   // the local date, not UTC
+const out = { date: local, total: results.length, passed: results.length - failed.length, results };
 if (!only.length) writeFileSync(join(ROOT, "book/checks.json"), JSON.stringify(out, null, 1) + "\n");
 console.log(`\n${out.passed} of ${out.total} checks passed${failed.length ? "; failed: " + failed.map((r) => `[${r.file}:${r.plate}] ${r.name}`).join("; ") : ""}`);
 process.exit(failed.length ? 1 : 0);
