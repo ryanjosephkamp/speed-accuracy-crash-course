@@ -54,8 +54,8 @@ for (const [mu, sigma] of [[0.6, 1.5], [1.8, 0.7]]) {
   const ts = Array.from({ length: 401 }, (_, i) => (4 * i) / 400);
   const settings = [[0.5, 0.5], [0.5, 2], [2, 0.5], [2, 2], [1, 1], [21 * 0.064, 1]];
   let back = 0, clipped = 0, mid = 0, widened = 0, charts = 0;
-  // every value a chart draws, inside the range the plate passes to that chart's frame (unitsCharts, which the plate
-  // draws from as it comes)
+  // every series unitsCharts returns for a chart, inside the range it returns for that chart (the plate draws both
+  // as they come; this doesn't see the plate's frames)
   const holds = ([lo, hi], ...series) => series.every((a) => a.length === 401 && a.every((v) => Number.isFinite(v) && v >= lo && v <= hi));
   for (const [mu, sigma] of settings) {
     const k = (mu * mu) / (sigma * sigma), C = M.unitsCharts(xp, DT, mu, sigma, 4), zs = C.raw.zs;
@@ -70,8 +70,8 @@ for (const [mu, sigma] of [[0.6, 1.5], [1.8, 0.7]]) {
   // between two steps the path is read linearly: halfway, it is the mean of the two steps
   for (const k of [10, 3613, 70000]) mid = Math.max(mid, Math.abs(M.pathAt(xp, DT, (k + 0.5) * DT) - 0.5 * (xp[k] + xp[k + 1])));
   check("units", "the units plate's raw samples, read back through x = mu Z / sigma^2, are the paper path at t' = mu^2 t / sigma^2, read the same way (six settings, within 1e-12)", back < 1e-12 && mid < 1e-12, `largest difference ${back.toExponential(1)}`);
-  check("units", "both of the units plate's charts, as unitsCharts builds them for the plate, pass their frames a range that holds every value drawn (the path, the drift line, and the noise curve; the path, t, and sqrt t), at the slider's corners and Palmer's setting",
-    clipped === 0 && widened > 0, `${charts} charts, ${clipped} with a value outside the range passed; ${widened} raw charts widened past -2 to 6`);
+  check("units", "the helper unitsCharts returns, for each of the units plate's two charts, a range that holds every series it returns for that chart (the path, the drift line, and the noise curve; the path, t, and sqrt t), at the slider's corners and Palmer's setting",
+    clipped === 0 && widened > 0, `${charts} charts, ${clipped} with a returned value outside the returned range; ${widened} raw charts widened past -2 to 6`);
 }
 {
   const ms = 1000 * M.unitSeconds(0.064);

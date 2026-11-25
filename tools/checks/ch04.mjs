@@ -305,9 +305,32 @@ const flatProg = (c) => { const k = c.toPrecision(15); if (!flatMemo.has(k)) fla
     const n = 51, on = Array.from({ length: n }, (_, i) => data.bounds[Math.round(((i / (n - 1)) * VIEW) / data.dt)]), off = on.map((v) => v + 0.05);
     const rOn = M.bandReveal({ kind, sketch: on, view: VIEW, data, flats, cost, dl: null, ext }), rOff = M.bandReveal({ kind, sketch: off, view: VIEW, data, flats, cost, dl: null, ext });
     const sOn = S.revealSay(rOn, true), sOff = S.revealSay(rOff, true);
-    check("words", "Constant 0.1 through the band plate's Show me (the worker's bounds, then bandKind, bandReveal, and revealSay, which the plate prints as they come): it gets the band, collapsed to one curve, and the constant-cost note; a drawing on the program's bound lies inside it to within 0.002, and one 0.05 above lies outside",
-      kind === "constant" && rOn.band && rOn.cnt === n && Math.abs(rOn.st.up - rOn.st.dn) < 1e-12 && sOn.startsWith(S.outsideNote("constant")) && /all of it lies inside the band, to within 0\.002\.$/.test(sOn) && /100% of it lies more than 0\.002 outside the band\.$/.test(sOff),
-      `${sOn.slice(-90)} | ${sOff.slice(-70)}`);
+    // the band's two edges, as bandSeries gives them to the reveal, are one curve at every plotted check
+    const sr = M.bandSeries(data, flats, VIEW, cost, null);
+    let split = 0; for (let k = 0; k < sr.ts.length; k++) split = Math.max(split, Math.abs(sr.up[k] - sr.dn[k]));
+    check("words", "Constant 0.1 through the band plate's Show me (the worker's bounds, then bandKind, bandSeries, bandReveal, and revealSay, which the plate prints as they come): it gets the band, its two edges equal at all 251 checks in the window, and the constant-cost note; a drawing on the program's bound lies inside it to within 0.002, and one 0.05 above lies outside",
+      kind === "constant" && rOn.band && rOn.cnt === n && sr.ts.length === KV + 1 && sr.up.length === KV + 1 && sr.dn.length === KV + 1 && split < 1e-12
+      && sOn.startsWith(S.outsideNote("constant")) && /all of it lies inside the band, to within 0\.002\.$/.test(sOn) && /100% of it lies more than 0\.002 outside the band\.$/.test(sOff),
+      `edges differ by at most ${split.toExponential(1)} over ${sr.ts.length} checks; ${sOn.slice(-90)} | ${sOff.slice(-70)}`);
+  }
+  {
+    // a schedule without a band (Rising, Deadline): the range tile and the sentence print the bound's lowest value with
+    // one formatter (boundText), so a positive minimum below the grid's first step isn't printed as 0, and they say what
+    // a 0 or such a minimum means; through the worker, bandReveal, rangeTile, and revealSay, as the plate prints them
+    const W = (spec) => runWorker("../../book/assets/js/ch04-worker.js", { job: "values", spec, keep: "none" });
+    const rows = [];
+    for (const [name, ch] of [["Rising from 0.6 at rate 2", { id: "rising", params: { at: 0.6, rate: 2 } }], ["Rising from 0.55 at rate 2", { id: "rising", params: { at: 0.55, rate: 2 } }], ["a deadline at 1", { id: "deadline", params: { at: 1, c: 0.1 } }]]) {
+      const cost = costOf(ch), dl = ch.id === "deadline" ? ch.params.at : null, view = dl ?? VIEW, data = await W({ kind: "choice", choice: ch });
+      const r = M.bandReveal({ kind: M.bandKind(ch), sketch: new Array(51).fill(NaN), view, data, flats: null, cost, dl, ext: M.extremes(cost) });
+      rows.push({ name, r, tile: S.rangeTile(r), say: S.revealSay(r, false), last: data.bounds[Math.round(view / data.dt)] });
+    }
+    const [r6, r55, rd] = rows;
+    check("words", "the band plate without a band: on Rising from 0.6 at rate 2 the program's lowest bound is positive and below the first step, and the tile and sentence print it as 0.002 and say the program still waits at y = 0; from 0.55 the lowest is 0 and the sentence says the program stops at once; at a deadline at 1 the bound is 0 only at the forced choice, and the sentence says so",
+      !r6.r.band && r6.r.lo > 0 && r6.r.lo < 0.02 && r6.tile === `${r6.r.lo.toFixed(3)} to ${r6.r.hi.toFixed(2)}` && r6.tile.startsWith("0.002 to") && r6.say.startsWith(`Over the window, the best bound runs from 0.002 to`) && /Its lowest value, 0\.002, is below the grid's first evidence step, 0\.02: there the program still waits at y = 0/.test(r6.say)
+      && r55.r.lo === 0 && r55.tile.startsWith("0.00 to") && /Where it is 0, the program stops at once at every evidence level, y = 0 included\./.test(r55.say) && !/waits/.test(r55.say)
+      && rd.r.lo === 0 && rd.last === 0 && rd.r.loOpen > 0.02 && /It is 0 only at the deadline, where the choice is forced\./.test(rd.say) && !/stops at once|waits/.test(rd.say)
+      && S.boundText(0.0004) === "< 0.001" && S.boundText(0.0123) === "0.012" && S.boundText(0.5) === "0.50" && S.boundText(0) === "0.00",
+      rows.map((x) => `${x.name}: lowest ${x.r.lo.toExponential(3)}, tile ${x.tile}`).join("; "));
   }
   check("words", "a guess after the median reads late, and one before it early", /late/.test(S.decideVerdict(1.2, 0.8)) && /early/.test(S.decideVerdict(0.5, 0.8)) && /within 0.05/.test(S.decideVerdict(0.82, 0.8)), "checked");
   check("words", "the hero names the flat bounds for the highest and the lowest cost", S.heroLabel("Cost jumps", costOf(M.FIG1A)(0), 1.6) === "Cost jumps: the bound stays between B(1.6) and B(0.1)", S.heroLabel("Cost jumps", costOf(M.FIG1A)(0), 1.6));
@@ -325,7 +348,11 @@ const flatProg = (c) => { const k = c.toPrecision(15); if (!flatMemo.has(k)) fla
   check("program", "a drawing that changes until 2.5 and stays at 0.2 after: at each check from 2.5 to 3, the program's bound is the constant-0.2 program's with the same time left (within 1e-9), though it moved before 2.5; the bound depends only on the cost from that time on",
     d < 1e-9 && moved, `largest difference ${d.toExponential(1)}; bound ${P.bounds[0].toFixed(3)} at 0, ${P.bounds[k0].toFixed(3)} at 2.5`);
   const text = readFileSync(join(ROOT, "book/content/ch04.py"), "utf8");
-  check("words", "the decision-time text says the threshold can change during a decision and is B(c) throughout once the remaining cost is a constant c on the infinite horizon; the exercise gives the proof's bracketing only for starts below b0 - a|eps|; and the strip names the Snell envelope as what is a martingale",
-    /The bound can change while the decision is open/.test(text) && /when the remaining cost \$s \\mapsto c\(t \+ s\)\$ is a constant \$c\$/.test(text) && /for starts below the lower level, \$y < b_0 - a\|\\varepsilon\|\$/.test(text)
-    && /the Snell envelope, stopped there, is a martingale/.test(text) && !/The bound moves while the decision is open/.test(text) && !/the value process stopped there/.test(text), "book/content/ch04.py");
+  // the whole constant-tail claim, in the text and in the exercise: the infinite horizon, a constant remaining cost, the
+  // threshold B(c) for the whole decision, and the first entry into [B(c), infinity), not the hitting time of B(c)
+  const TEXT = String.raw`On the infinite horizon, the bound at a time depends only on the cost from that time on, so when the remaining cost $s \mapsto c(t + s)$ is a constant $c$ (a constant schedule, or a start after a drawing's last change), the threshold is the flat bound $B(c)$ for the whole decision, and $\tau^*$ is the first entry into $[B(c), \infty)$ (0 for a start at or above $B(c)$).`;
+  const EXER = String.raw`When the remaining cost $s \mapsto c(t + s)$ is a constant $c$, on the infinite horizon, the bound is $B(c)$ for the whole decision and $\tau^*$ is the first entry into $[B(c), \infty)$: that covers a constant schedule, and a start after a schedule's last change.`;
+  check("words", "the decision-time text and its exercise each say the threshold can change during a decision, and that when the remaining cost is a constant c, on the infinite horizon, it is B(c) for the whole decision and the decision is the first entry into [B(c), infinity); the exercise gives the proof's bracketing only for starts below b0 - a|eps|; and the strip names the Snell envelope as what is a martingale",
+    /The bound can change while the decision is open/.test(text) && text.includes(TEXT) && text.includes(EXER) && /can change during the decision/.test(text) && /for starts below the lower level, \$y < b_0 - a\|\\varepsilon\|\$/.test(text)
+    && /the Snell envelope, stopped there, is a martingale/.test(text) && !/hitting time of \$B\(c\)\$/.test(text) && !/The bound moves while the decision is open/.test(text) && !/the value process stopped there/.test(text), `text: ${text.includes(TEXT)}, exercise: ${text.includes(EXER)}`);
 }

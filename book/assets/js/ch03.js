@@ -101,7 +101,7 @@ function earnPlate() {
       <div class="actions"><button class="btn btn-go" type="button" id="ea-show">Show me</button></div>
       <p class="verdict" id="ea-verdict" aria-live="polite"></p></div>
     <div class="chart-wrap" id="ea-curve" hidden></div>
-    <ul class="legend" id="ea-key" hidden><li><span class="key key-dim">Chance right</span></li><li><span class="key key-cost">Bill</span></li><li><span class="key key-ex">Net, flat bound</span></li><li><span class="key key-ex-thin">Best bound that moves, on the program's grid</span></li></ul>`;
+    <ul class="legend" id="ea-key" hidden><li><span class="key key-dim">Chance right</span></li><li><span class="key key-cost">Bill</span></li><li><span class="key key-ex">Net, flat bound</span></li><li><span class="key key-ex-thin">Best time-dependent policy, on the program's grid</span></li></ul>`;
   const xEl = $("#ea-x", el), cEl = $("#ea-c", el), reads = $("#ea-reads", el), say = $("#ea-say", el), out = $("#ea-out", el), inp = $("#ea-b", el);
   const note = $("#ea-note", el), verdict = $("#ea-verdict", el), curveEl = $("#ea-curve", el), key = $("#ea-key", el);
   const newPath = () => {
@@ -341,18 +341,17 @@ function valuePlate() {
     for (let k = ys.length - 1; k >= 0; k--) d += "L" + f.sx(ys[k]).toFixed(1) + " " + f.sy(gy[k]).toFixed(1);
     s += `<path class="w-fill" d="${d}Z"/>`;
     s += line(f, ys, gy, "dim") + line(f, ys, V, "ex");
-    const bt = data.rowB[i];
-    if (bt !== null && bt > 0) s += `<path class="dim" stroke-dasharray="3 3" d="M${f.sx(bt).toFixed(1)} ${f.t}V${f.H - f.b}"/><text class="tag-ex" x="${(f.sx(bt) + 5).toFixed(1)}" y="${f.t + 12}">threshold ${S.boundShown(bt)}</text>`;
+    const bt = data.rowB[i], bw = bestW(), R = S.sliceReads(data, i, bw);
+    if (R.marker) s += `<path class="dim" stroke-dasharray="3 3" d="M${f.sx(bt).toFixed(1)} ${f.t}V${f.H - f.b}"/><text class="tag-ex" x="${(f.sx(bt) + 5).toFixed(1)}" y="${f.t + 12}">${R.marker}</text>`;
     if (V[0] - gy[0] > 0.03) s += `<text class="tag-ex" x="${(f.sx(0) + 6).toFixed(1)}" y="${(f.sy(V[0]) - 7).toFixed(1)}">V(t, y)</text>`;
     const gx = Math.max(0.12 * yTop, 0.15 * (bt || yTop));
     s += `<text class="tk" x="${f.sx(gx).toFixed(1)}" y="${(f.sy(M.g(gx)) + 18).toFixed(1)}">g(y), deciding now</text>`;
     sliceEl.innerHTML = svg(f, s, `The value V(t, y) at time ${t.toFixed(2)} beside the reward for deciding now, with the gap between them shaded`);
-    const W0 = data.V[i][0] - data.gy[0], bw = bestW();
-    reads.innerHTML = `<div><dt>V(t, 0)</dt><dd>${fmt(data.V[i][0], 3)}<small>the best a decision from y = 0 earns</small></dd></div>
-      <div><dt>W(t, 0)</dt><dd>${S.wShown(W0)}<small>V − g at y = 0</small></dd></div>
-      <div><dt>Bound at t</dt><dd>${bt === null ? "–" : S.boundShown(bt)}<small>deciding starts to beat waiting, between grid points</small></dd></div>
-      <div><dt>Largest W</dt><dd>${S.wShown(bw.W)}<small>of the map's samples: time ${bw.t.toFixed(2)}, y = 0</small></dd></div>`;
-    say.textContent = S.sliceSay(t, bt ?? 0, data.V[i][0], W0, Math.abs(t - data.horizon) < 1e-9, data.h);
+    reads.innerHTML = `<div><dt>V(t, 0)</dt><dd>${R.tiles.V}<small>the best a decision from y = 0 earns</small></dd></div>
+      <div><dt>W(t, 0)</dt><dd>${R.tiles.W}<small>V − g at y = 0</small></dd></div>
+      <div><dt>Bound at t</dt><dd>${R.tiles.bound}<small>deciding starts to beat waiting, between grid points</small></dd></div>
+      <div><dt>Largest W</dt><dd>${R.tiles.most}<small>of the map's samples: time ${bw.t.toFixed(2)}, y = 0</small></dd></div>`;
+    say.textContent = R.say;
   };
   const drawAll = () => { drawCost(); drawMap(); drawSlice(); if (data) liftReady(fig); };
   const reveal = () => {
