@@ -3,9 +3,10 @@
 // look-ahead (model.js weightedBound, the paper's Algorithm 1). tools/checks/ch01.mjs holds these to the paper's code
 // (tools/validity/paper-code.json) and to the paper's own Figure 1 (tools/validity/ch01.json).
 import { exactPolicy, boundForCost, weightedBound, toDiscrete, OVERSHOOT } from "./model.js";
-import { paramsOf, VIEW, SPARE } from "./schedules-book.js";
+import { paramsOf, costOf, defaultDrawing, VIEW, SPARE, DRAW_TIMES, DRAW_MIN, DRAW_MAX } from "./schedules-book.js";
 
 export const DT = 0.01, H = 0.02;   // the page's grid: check the evidence every 0.01 time units, evidence step 0.02
+export const CAP = 5;               // the program's evidence cap: a bound above it is reported as missing
 export const EVERY = 1;             // keep every time the program checks, so a read-out at t = 0.99 is the grid's own value
 export const SHIFT = OVERSHOOT * Math.sqrt(DT);   // how far the rules move in for checking every DT
 
@@ -40,7 +41,7 @@ export function fig1Of(choice) {
  * `horizon` overrides the program's horizon. */
 export function threeRules(cost, deadline, { dt = DT, h = H, every = EVERY, horizon = null, progress = null } = {}) {
   const view = deadline ?? VIEW;
-  const ex = exactPolicy((t) => Math.min(cost(t), 1e9), horizon ?? deadline ?? VIEW + SPARE, dt, h);
+  const ex = exactPolicy((t) => Math.min(cost(t), 1e9), horizon ?? deadline ?? VIEW + SPARE, dt, h, CAP);
   progress?.(0.3);
   const n = Math.min(Math.round(view / dt) + 1, ex.ts.length);
   const ts = Array.from(ex.ts.slice(0, n));
@@ -72,10 +73,22 @@ export function at(r, key, t) {
   return r[key][lo] * (1 - u) + r[key][lo + 1] * u;
 }
 
+/** The times a cost strip samples over [0, view]: 181 evenly spaced, plus a drawing's knots (its corners) inside the
+ * window, in order. Between a drawing's knots log c is linear in time, so a path through these times on a log scale is
+ * the drawing itself. */
+export function stripTimes(view, knots = null) {
+  const ts = Array.from({ length: 181 }, (_, i) => (view * i) / 180);
+  for (const k of knots ?? []) if (k > 0 && k < view && !ts.some((t) => Math.abs(t - k) < 1e-9)) ts.push(k);
+  return ts.sort((a, b) => a - b);
+}
+/** A drawing's knot times (where its cost can turn a corner), or null for a preset. */
+export const knotsOf = (choice) => (choice?.id === "draw" ? DRAW_TIMES : null);
+
 /** Where a cost strip puts a cost: 0 at the bottom, 1 at the top, on a log scale padded 35% past the schedule's least
- * and most finite costs over [0, view]. Costs and bounds have separate scales; nothing here is clipped to a bound. */
-export function costStrip(cost, view) {
-  const cs = Array.from({ length: 181 }, (_, i) => cost((view * i) / 180)).filter(Number.isFinite);
+ * and most finite costs at stripTimes(view, knots). Costs and bounds have separate scales; nothing here is clipped to a
+ * bound. */
+export function costStrip(cost, view, knots = null) {
+  const cs = stripTimes(view, knots).map(cost).filter(Number.isFinite);
   const lo = Math.log(Math.min(...cs) / 1.35), hi = Math.log(Math.max(...cs) * 1.35);
   return { lo: Math.exp(lo), hi: Math.exp(hi), y: (c) => (Math.log(c) - lo) / (hi - lo) };
 }
@@ -99,10 +112,17 @@ export function ahead(cost, t, deadline, span = 0.5) {
   return { kind: "cost", now: cs[0], mean: sum / n, lo: Math.min(...cs), hi: Math.max(...cs), up, down };
 }
 
-/** Whether a schedule's cost doesn't change at all over [0, until] (a constant, a smooth schedule of size 0, a drawing
- * whose knots are equal), sampled every 0.01: the same number everywhere, not merely the same to the digits printed. */
-export function isFlat(cost, until) {
-  const n = Math.round(until / 0.01), c0 = cost(0);
+/** Whether a schedule's cost doesn't change at all over [0, until]. A drawing is flat when its knots, as the cost uses
+ * them (clamped to 0.01 to 2), are all the same number: the cost is then constant, though its interpolated values
+ * can differ from the knot in the last binary digit. A preset (a constant, a smooth schedule of size 0) is flat
+ * when its cost, sampled every 0.01, is the same number everywhere: no flat preset has that rounding. Not merely the
+ * same to the digits printed. */
+export function isFlat(choice, until) {
+  if (choice?.id === "draw") {
+    const k = (Array.isArray(choice.points) ? choice.points : defaultDrawing()).map((c) => Math.min(Math.max(c, DRAW_MIN), DRAW_MAX));
+    return k.every((v) => v === k[0]);
+  }
+  const cost = costOf(choice), n = Math.round(until / 0.01), c0 = cost(0);
   for (let i = 1; i <= n; i++) if (cost(i * 0.01) !== c0) return false;
   return true;
 }
