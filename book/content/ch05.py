@@ -237,7 +237,7 @@ Chapter 11 reuses the remark for unknown evidence reliability, where the belief 
         "title": "Where this chapter sits",
         "blocks": [
             ("plain", r"""
-The paper's claims and the places one uses another, with this chapter's four printed heavier. The chapter uses chapter 2's reflected process $Y$ and its strong solutions, chapter 3's standing assumption on the cost, and chapter 4's structure lemma ({{ref:lem:structure}}), optimal stopping facts, and optimal decision time $\tau^*$. In turn, {{ref:prop:exact}} is the equation {{ref:thm:main}} subtracts in chapter 6, and chapter 12's account of what is new says where it stands. {{ref:prop:regularity}} also feeds the second-order loss of chapter 7 ({{ref:prop:loss}}) and, with {{ref:lem:envelope}}, the unequal-rewards extension of chapter 11; {{ref:rem:speed}} feeds the unknown-reliability extension there.
+The paper's claims and the places one uses another, with this chapter's four highlighted. The chapter uses chapter 2's reflected process $Y$ and its strong solutions, chapter 3's standing assumption on the cost, and chapter 4's structure lemma ({{ref:lem:structure}}), optimal stopping facts, and optimal decision time $\tau^*$. In turn, {{ref:prop:exact}} is the equation {{ref:thm:main}} subtracts in chapter 6, and chapter 12's account of what is new says where it stands. {{ref:prop:regularity}} also feeds the second-order loss of chapter 7 ({{ref:prop:loss}}) and, with {{ref:lem:envelope}}, the unequal-rewards extension of chapter 11; {{ref:rem:speed}} feeds the unknown-reliability extension there.
 """),
             ("map", "prop:exact"),
         ],

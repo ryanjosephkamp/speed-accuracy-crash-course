@@ -129,7 +129,7 @@ Before the plate draws $U$: for a cost that ramps up slowly, over 8 time units, 
             ("plain", r"""
 On a slow ramp, $U$ crosses the halfway line very nearly $m(c_0)$ earlier than the per-moment urgency: the kernel's average of a straight line is the line a mean look-ahead later (step 4 below). On a short ramp, it crosses less far ahead, because the kernel puts much of its weight on the next instant. On the page's computation, as the ramp shortens, the lead at the halfway line falls toward the kernel's median, which is below its mean. That is why the lead of $m(c_0)$ is stated for slow changes only.
 
-On a sine wave, the lead is a phase. In degrees, it tends to $45^\circ$ as the frequency grows, but not always steadily: at the plate's costs of 0.3 and 1 it dips on the way, and at 1 it passes $45^\circ$ and comes back to it, as chapter 7 shows. In time, it is the phase divided by $\omega$: it starts at $m(c_0)$ for slow waves and tends to 0. On the page's computation, at the plates' costs and at frequencies sampled from 0.05 to 3,000, the lead in time falls from each sample to the next; the paper states only the limits.
+On a sine wave, the lead is a phase. In degrees, it tends to $45^\circ$ as the frequency grows, but not always steadily: at the plate's costs of 0.3 and 1 it dips on the way, and at 1 it rises above $45^\circ$ and falls back below it, as chapter 7 shows. In time, it is the phase divided by $\omega$: it starts at $m(c_0)$ for slow waves and tends to 0. On the page's computation, at the plates' costs and at frequencies sampled from 0.05 to 3,000, the lead in time falls from each sample to the next; the paper states only the limits.
 """),
             ("plain", r"""
 The argument behind the prediction is five steps: Smith and Ratcliff's (2022) equivalence, one line of algebra, and three results of chapters 6 and 7. It holds to first order in the size of the change, for a cost that changes in a known way.
@@ -280,7 +280,7 @@ No lead: it would track the cost through $a/B(c(t))$, changing at the moment the
 """),
                 (r"At high frequency, the phase lead tends to $45^\circ$. Does the lead in time grow too?",
                  r"""
-No. A phase of $\phi$ radians at angular frequency $\omega$ is a time lead of $\phi/\omega$. As $\omega$ grows, $\phi$ tends to $45^\circ$, but $\omega$ grows without bound, so the time lead tends to 0. On the book's computation, at the plates' costs and at frequencies sampled from 0.05 to 3,000, the time lead also falls from each sample to the next, from $m(c_0)$ for slow waves; the paper states only the limit. The Palmer numbers show the pattern: {{PalmerDegHalfHz}}°, {{PalmerDegOneHz}}°, and {{PalmerDegTwoHz}}°, but {{PalmerLeadMsHalfHz}}, {{PalmerLeadMsOneHz}}, and {{PalmerLeadMsTwoHz}} ms, at 0.5, 1, and 2 Hz. And “tends to $45^\circ$” is not “at most $45^\circ$”: at large costs the phase passes $45^\circ$ at a finite frequency before it settles, as chapter 7 shows at $c_0 = 1$.
+No. A phase of $\phi$ radians at angular frequency $\omega$ is a time lead of $\phi/\omega$. As $\omega$ grows, $\phi$ tends to $45^\circ$, but $\omega$ grows without bound, so the time lead tends to 0. On the book's computation, at the plates' costs and at frequencies sampled from 0.05 to 3,000, the time lead also falls from each sample to the next, from $m(c_0)$ for slow waves; the paper states only the limit. The Palmer numbers show the pattern: {{PalmerDegHalfHz}}°, {{PalmerDegOneHz}}°, and {{PalmerDegTwoHz}}°, but {{PalmerLeadMsHalfHz}}, {{PalmerLeadMsOneHz}}, and {{PalmerLeadMsTwoHz}} ms, at 0.5, 1, and 2 Hz. And “tends to $45^\circ$” is not “at most $45^\circ$”: at $c_0 = 1$ the phase rises above $45^\circ$ at a finite frequency and falls back below it, as chapter 7 shows.
 """),
                 (r"Convert the printed {{PalmerDegOneHz}}° at 1 Hz to milliseconds. Then do the same for {{PalmerDegHalfHz}}° at 0.5 Hz, and explain the result.",
                  r"""
@@ -328,7 +328,7 @@ The timings in {{ref:sec:rule}}, which come from the paper's runs on one compute
                 (r"“The lead is always the mean look-ahead.”",
                  r"Only for slow, nearly linear changes. For a sinusoid, the lead is the transfer function's phase, which tends to $45^\circ$ at high frequency, and in time it is shorter than $m(c_0)$."),
                 (r"“The phase lead is at most $45^\circ$.”",
-                 r"It tends to $45^\circ$ at high frequency. At large costs it passes $45^\circ$ at a finite frequency and comes back (chapter 7)."),
+                 r"It tends to $45^\circ$ at high frequency. At $c_0 = 1$ it rises above $45^\circ$ at a finite frequency and falls back below it (chapter 7)."),
                 (r"“{{PalmerLead}} ms is a measured lead.”",
                  r"It is a predicted lead, from the paper's reading of the mean observer's fit, for the kind of test the paper proposes: a cost of time that changes within a trial on a known schedule. The paper reports no data on such a lead."),
                 (r"“Palmer's observers faced a changing cost of time.”",

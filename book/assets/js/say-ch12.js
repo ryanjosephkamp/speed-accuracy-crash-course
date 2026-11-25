@@ -60,7 +60,7 @@ export function linearSay(c0, m) {
 }
 export function phaseSay(c0, peak, m) {
   let s = `At c₀ = ${c0}, the lead in time starts at the mean look-ahead, ${f3(m)}, for slow waves and falls toward 0; the lead in degrees tends to 45°.`;
-  if (peak.lead > 45) s += ` Here it passes 45°, to about ${f2(peak.lead)}° near ω = ${Math.round(peak.omega)} (found numerically), and comes back.`;
+  if (peak.lead > 45) s += ` Here it passes 45°, to about ${f2(peak.lead)}° near ω = ${Math.round(peak.omega)} (found numerically), and then falls back below 45°.`;
   return s;
 }
 
