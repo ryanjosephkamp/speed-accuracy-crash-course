@@ -14,7 +14,8 @@ export const WINDOW = 2.5, SPARE = 6;        // the window the schedules are dra
 // ---- the paper's numbers and tables that the plates print or redraw, checked against paper/generated/ ----------------
 
 /** Numbers from paper/generated/numbers.tex that a plate's sentence prints, as the paper prints them. */
-export const PAPER = { HorizonFloor: "0.0018", ClosedFormWorstGain: "0.1", SweepSwingThird: 2.2, SweepSwingSixTenths: 9.8 };
+export const PAPER = { HorizonFloor: "0.0018", ClosedFormWorstGain: "0.1", SweepSwingThird: 2.2, SweepSwingSixTenths: 9.8,
+  GridPmMaxChange: "0.005", GridWbMaxChange: "0.0017" };
 
 /** Table 1 (tab_sinusoid): omega, the closed form's swing and lead, the dynamic program's, and the weighted rule's. */
 export const TABLE1 = [
@@ -49,6 +50,32 @@ export const TABLE12 = [
   ["Deadline 5", [0.358, 0.359, 0.360, 0.360], [0.0047, 0.0041, 0.0041, 0.0043], 0.027],
   ["Deadline 12", [0.253, 0.257, 0.258, 0.258], [0.0118, 0.0097, 0.0112, 0.0113], 0.022],
 ];
+/** The unrounded results behind Table 12 (experiments/results/grid_refinement.json at the tag, to nine significant
+ * digits): each schedule's per-moment and weighted losses on grids 1 to 4 and the residual. Checked against
+ * tools/validity/ch09.json and against Table 12's printed cells. */
+export const RESULTS12 = [
+  ["Smooth 1", [0.222563546, 0.226033157, 0.227740797, 0.228604589], [0.0607001155, 0.0627146374, 0.0636998835, 0.0641886791], 0.000232364555],
+  ["Smooth 4", [0.124590177, 0.124923745, 0.125106917, 0.125200609], [1.36695798e-05, 2.03885265e-05, 2.30963261e-05, 2.46252231e-05], 6.33802517e-05],
+  ["Smooth 9", [1.44545612, 1.45205171, 1.45529494, 1.45688396], [0.0111658168, 0.0106711348, 0.0104309677, 0.0103146335], 0.00189747033],
+  ["Step 1", [1.13773211, 1.13897842, 1.13996437, 1.14031022], [0.0087151551, 0.00860335221, 0.00854678117, 0.00852259018], 1.78486455e-05],
+  ["Step 10", [0.776320498, 0.780312109, 0.78238027, 0.783414346], [0.000735663626, 0.000719661213, 0.000714599265, 0.000712500282], 0.000216106657],
+  ["Step 17", [2.40867226, 2.4125956, 2.41443931, 2.41609403], [0.0831430526, 0.0825763801, 0.082311459, 0.0821651886], 0.000262681301],
+  ["Deadline 5", [0.357794732, 0.359413707, 0.359928687, 0.360026666], [0.00471693155, 0.00407398438, 0.00406902921, 0.00431258067], 0.0269828874],
+  ["Deadline 12", [0.253125232, 0.257279846, 0.257605743, 0.25820438], [0.0118011863, 0.00965563838, 0.0112309599, 0.0113088014], 0.0218025573],
+];
+/** A share of a loss is read only where that loss is at least this, on the paper's grid (points per 100 trials). */
+export const SHARE_FLOOR = 0.001;
+/** The largest move of each rule's loss from the paper's grid (2) to the finest (4) in RESULTS12: in points, over all
+ * eight schedules; and as a share of the loss on grid 2, over the losses of at least SHARE_FLOOR. */
+export function gridMoves(rows = RESULTS12) {
+  let pmAbs = 0, wbAbs = 0, pmRel = 0, wbRel = 0;
+  for (const [, pm, wb] of rows) {
+    pmAbs = Math.max(pmAbs, Math.abs(pm[3] - pm[1])); wbAbs = Math.max(wbAbs, Math.abs(wb[3] - wb[1]));
+    if (pm[1] >= SHARE_FLOOR) pmRel = Math.max(pmRel, Math.abs(pm[3] / pm[1] - 1));
+    if (wb[1] >= SHARE_FLOOR) wbRel = Math.max(wbRel, Math.abs(wb[3] / wb[1] - 1));
+  }
+  return { pmAbs, wbAbs, pmRel, wbRel };
+}
 /** Table 12's four grids, (dt, h), from its caption; the paper's is the second. */
 export const PAPER_GRIDS = [[0.004, 0.007], [0.002, 0.005], [0.001, 0.0035], [0.0005, 0.0025]];
 
@@ -112,7 +139,8 @@ export function backward(cost, horizon, { dt = DT, h = H, cap = CAP, every = 2, 
 
 /** model.js's score, step for step (the same sums in the same order), keeping the mass decided at the upper bound
  * (correct, under the drift +1) and at the lower bound at every step, the mass still undecided after each step, and
- * the density (per unit of evidence) on the nodes with |x| <= xmax at every `every`-th step up to step `upto`.
+ * the density (per unit of evidence) on the nodes with |x| <= xmax at every `every`-th step up to step `upto`, and
+ * at step `upto` itself (the last step kept, even when it isn't an every-th one).
  * Trials still undecided at the last time choose by the sign of the evidence, as in the paper's scorer; that mass
  * is in endUp and endLo. */
 export function forward(xb, ts, cost, { h = H, cap = CAP, every = 2, xmax = 3, upto = Infinity } = {}) {
@@ -122,8 +150,11 @@ export function forward(xb, ts, cost, { h = H, cap = CAP, every = 2, xmax = 3, u
   const upAt = new Float64Array(N), loAt = new Float64Array(N), aliveAt = new Float64Array(N);
   const snapK = [];
   for (let k = 0; k < N && k <= upto; k += every) snapK.push(k);
+  const lastK = Math.min(N - 1, upto);   // a deadline on an odd step is still the last step kept
+  if (Number.isFinite(lastK) && snapK[snapK.length - 1] !== lastK) snapK.push(lastK);
+  const at = new Map(snapK.map((k, j) => [k, j]));
   const snaps = new Float32Array(snapK.length * (2 * M + 1));
-  const keep = (k, p) => { if (k % every || k > upto) return; const j = k / every; for (let i = -M; i <= M; i++) snaps[j * (2 * M + 1) + i + M] = p[m + i] / h; };
+  const keep = (k, p) => { const j = at.get(k); if (j === undefined) return; for (let i = -M; i <= M; i++) snaps[j * (2 * M + 1) + i + M] = p[m + i] / h; };
   if (!(Math.min(xb[0], cap) > 0)) return { p: 0.5, rt: 0, paid: 0, reward: 0.5, upAt, loAt, aliveAt, endUp: 0.5, endLo: 0.5, snapK, snaps, M, h, atOnce: true };
   let p = new Float64Array(n), q = new Float64Array(n);
   p[m] = 1;
@@ -171,11 +202,29 @@ export function forward(xb, ts, cost, { h = H, cap = CAP, every = 2, xmax = 3, u
   return { p: correct, rt, paid, reward: correct - paid, upAt, loAt, aliveAt, endUp, endLo, snapK, snaps, M, h, atOnce: false };
 }
 
-// ---- trials of the same gridded problem, simulated ------------------------------------------------------------------
+/** The share of trials decided by step k of a forward pass F, correctly (up) and wrongly (lo). With a deadline at
+ * step forcedK, every trial still deciding at that step decides there, at the bound or by the sign of the evidence
+ * (endUp, endLo): those decisions are counted together as the forced choice, from step forcedK on. */
+export function decidedBy(F, k, forcedK = null) {
+  const last = forcedK === null ? k : Math.min(k, forcedK - 1);
+  let up = 0, lo = 0;
+  for (let q = 1; q <= last; q++) { up += F.upAt[q]; lo += F.loAt[q]; }
+  let forced = 0;
+  if (forcedK !== null && k >= forcedK) { const fu = F.upAt[forcedK] + F.endUp, fl = F.loAt[forcedK] + F.endLo; up += fu; lo += fl; forced = fu + fl; }
+  return { up, lo, forced };
+}
+
+// ---- trials with the same checks and bound, simulated ----------------------------------------------------------------
+
+/** A finer evidence step, a quarter of the page's, at which the page also scores a policy, to show how far the
+ * scorer's value moves toward the continuous evidence the trials use. */
+export const FINE_H = 0.005;
 
 /** n trials with the drift +1, the evidence continuous and the bound min(xb[k], cap) checked at each time ts[k], the
- * cost paid for each step taken, and a choice by the sign of the evidence for a trial still undecided at the end:
- * the problem the scorer computes, sampled. Adds to the running sums in acc ({ n, sum, sq }). */
+ * cost paid for each step taken, and a choice by the sign of the evidence for a trial still undecided at the end.
+ * They share the scorer's times, bound, and payoffs, but not its evidence grid: the scorer moves the density by a
+ * Gaussian step sampled on the grid and splits cells at the bound, so the trials' average tends to the scorer's value
+ * as its evidence step shrinks, not exactly to its value on the page's grid. Adds to the running sums in acc. */
 export function trials(xb, ts, cost, n, R, acc = { n: 0, sum: 0, sq: 0 }, cap = CAP) {
   const dt = ts[1] - ts[0], sd = Math.sqrt(dt), N = ts.length;
   const cs = acc.cs || (acc.cs = Float64Array.from(ts, (t) => Math.min(cost(t), 1e9) * dt));
@@ -323,12 +372,16 @@ export function sweepTest(c0, om, rels, { dt = DT, h = H, progress = null } = {}
 /** How far in the program's bound moves when the evidence is checked more often: the program on a grid checked every
  * dtC and on one checked every dtF (same evidence step h), and at each of the coarse grid's times before the horizon
  * k(t) = (b_F(t) - b_C(t)) / (sqrt(dtC) - sqrt(dtF)). If each bound sat 0.5826 sqrt(dt) inside one continuous bound,
- * k would be 0.5826. Times where either bound is 0 or past the cap are left out (NaN). */
+ * k would be 0.5826. Every `every`-th check is compared, and the last check before the horizon too. Times where
+ * either bound is 0 or past the cap are left out (NaN). */
 export function shiftCoef(cost, horizon, { dtC = 0.01, dtF = 0.0025, h = 0.01, cap = 4, every = 2 } = {}) {
   const C = exactPolicy(cost, horizon, dtC, h, cap), F = exactPolicy(cost, horizon, dtF, h, cap);
   const ratio = Math.round(dtC / dtF), den = Math.sqrt(dtC) - Math.sqrt(dtF);
   const t = [], k = [], bC = [], bF = [];
-  for (let i = 0; i < C.ts.length - 1; i += every) {
+  const idx = [];
+  for (let i = 0; i < C.ts.length - 1; i += every) idx.push(i);
+  if (C.ts.length > 1 && idx[idx.length - 1] !== C.ts.length - 2) idx.push(C.ts.length - 2);   // the last check before the horizon
+  for (const i of idx) {
     const a = C.bounds[i], b = F.bounds[i * ratio];
     t.push(C.ts[i]); bC.push(Number.isFinite(a) ? a : NaN); bF.push(Number.isFinite(b) ? b : NaN);
     k.push(Number.isFinite(a) && Number.isFinite(b) && a > 0 && b > 0 ? (b - a) / den : NaN);

@@ -6,6 +6,13 @@ const pct = (x) => `${Math.round(x * 100)}%`;
 const pc1 = (x) => (Math.abs(x) < 0.1 ? (x * 100).toFixed(1) : String(Math.round(x * 100))) + "%";
 /** A loss in points per 100 trials, to the decimals that show it. */
 export const pts = (x) => (Math.abs(x) >= 0.1 ? x.toFixed(3) : Math.abs(x) >= 0.001 ? x.toFixed(4) : x.toFixed(5));
+const SUP = { "-": "⁻", 0: "⁰", 1: "¹", 2: "²", 3: "³", 4: "⁴", 5: "⁵", 6: "⁶", 7: "⁷", 8: "⁸", 9: "⁹" };
+/** A small number as a reader writes it: 5 × 10⁻⁶ (one significant figure), or "under 10⁻⁹". */
+export function sci(x) {
+  if (!(x >= 1e-9)) return "under 10⁻⁹";
+  const [m, e] = x.toExponential(0).split("e");
+  return `${m} × 10${String(+e).split("").map((c) => SUP[c]).join("")}`;
+}
 /** A count in words a reader can say: 1,000, 2.3 million, 470 million, 4.1 billion. */
 export function count(n) {
   if (!Number.isFinite(n)) return "–";
@@ -19,18 +26,20 @@ export function count(n) {
 // ---- the hero ----------------------------------------------------------------------------------------------------
 export function heroLabel(t, up, lo) {
   const left = Math.max(0, 1 - up - lo);
-  return `By time ${t.toFixed(1)}: ${pct(up)} decided correctly, ${pct(lo)} wrongly, ${left < 0.005 ? "under 1%" : pct(left)} still deciding`;
+  return `By time ${t.toFixed(1)}: ${pct(up)} decided correctly, ${pct(lo)} wrongly, and ${left < 0.005 ? "under 1%" : pct(left)} still deciding`;
 }
 
 // ---- backward induction -------------------------------------------------------------------------------------------
 /** The sentence under the backward plate, for the slice at time t: b its bound (0, a number, or Infinity past the
- * cap), a0 what waiting adds at x = 0, end the forced choice's time, deadline whether that is a deadline. */
-export function backwardSay(t, b, a0, end, deadline, cap = 5) {
+ * cap), a0 what waiting adds at x = 0, end the forced choice's time, deadline whether that is a deadline, h the
+ * evidence step (a bound between 0 and h is placed between the center and the first step). */
+export function backwardSay(t, b, a0, end, deadline, cap = 5, h = 0.02) {
   const at = `time ${t.toFixed(2)}`;
   const forced = deadline ? `the deadline at ${f2(end)}` : `the forced choice at ${f2(end)}`;
   if (Math.abs(t - end) < 1e-9) return `At ${forced}, nobody waits: the value is the chance of being right, max(g, 1 − g), and the bound is 0. Every earlier slice is computed from the one after it.`;
   if (!Number.isFinite(b)) return `At ${at}, waiting beats deciding at every evidence level up to the grid's cap of ${cap}, so the bound reads as above the cap. It was computed from the slice after it, back from ${forced}.`;
-  if (b === 0) return `At ${at}, deciding beats waiting already at the grid's first step past 0, so the bound reads as 0, as in the paper's code. It was computed from the slice after it, back from ${forced}.`;
+  if (b === 0) return `At ${at}, deciding beats waiting even at x = 0, so the bound is 0. It was computed from the slice after it, back from ${forced}.`;
+  if (b < h) return `At ${at}, the program still waits at x = 0 but decides at the grid's first step, ${h}, so the bound is placed between them, at ${b.toFixed(4)}, where its own step changes from waiting to deciding; the paper's code reports 0 there. It was computed from the slice after it, back from ${forced}.`;
   return `At ${at}, waiting adds ${f3(a0)} to the value at x = 0 and nothing from the bound, ${f3(b)}, outward. That slice was computed from the one after it, back from ${forced}.`;
 }
 
@@ -48,11 +57,15 @@ export function floorSay(loss, undecided, paperValue) {
 
 // ---- scoring ----------------------------------------------------------------------------------------------------
 const POLICY = { best: "the best bound", pm: "the per-moment rule", wb: "the weighted rule" };
-/** The sentence under the density plate: by time t, the mass decided at the upper and lower bound; then the whole
- * trial's accuracy, mean decision time, cost, and reward. */
-export function densitySay(policy, t, up, lo, total) {
+/** The sentence under the density plate: by time t, the mass decided correctly and wrongly (forced: the part of it
+ * forced to choose at a deadline, once t reaches it); then the whole trial's accuracy, mean decision time, cost, and
+ * reward. */
+export function densitySay(policy, t, up, lo, total, forced = 0) {
   const left = Math.max(0, 1 - up - lo);
-  return `Under ${POLICY[policy]}, by time ${t.toFixed(2)}, ${pc1(up)} of trials have decided correctly, ${pc1(lo)} wrongly, and ${left < 0.0005 ? "under 0.1%" : pc1(left)} are still deciding. Over the whole trial: ${pc1(total.p)} correct, a mean decision time of ${f3(total.rt)}, a mean cost of ${f4(total.paid)}, so a reward of ${f4(total.reward)}, with no sampling error.`;
+  const by = forced > 0
+    ? `Under ${POLICY[policy]}, by the deadline at ${t.toFixed(2)}, every trial has decided, ${pc1(up)} correctly and ${pc1(lo)} wrongly; ${pc1(forced)} of all trials were forced to choose at the deadline itself`
+    : `Under ${POLICY[policy]}, by time ${t.toFixed(2)}, ${pc1(up)} of trials have decided correctly, ${pc1(lo)} wrongly, and ${left < 0.0005 ? "under 0.1%" : pc1(left)} are still deciding`;
+  return `${by}. Over the whole trial: ${pc1(total.p)} correct, a mean decision time of ${f3(total.rt)}, a mean cost of ${f4(total.paid)}, so a reward of ${f4(total.reward)}, with no sampling error.`;
 }
 
 /** The verdict after the reader's guess of how many trials it takes (both as counts). */
@@ -64,10 +77,12 @@ export function trialsVerdict(guess, needed) {
   return `It takes about ${count(needed)} trials, from the spread of the runs below: ${by} ${d > 0 ? "more" : "fewer"} than your ${count(guess)}.`;
 }
 
-/** The sentence under the trials plate; needed is null until the reader has guessed or pressed Show me. */
-export function trialsSay(n, mean, se, exact, sd, target, needed) {
-  const z = (mean - exact) / se;
-  let s = `After ${count(n)} simulated trials, the average reward is ${f4(mean)} ± ${f4(2 * se)} (two standard errors); the density gives ${f4(exact)}, ${Math.abs(z).toFixed(1)} standard errors away. `;
+/** The sentence under the trials plate: exact is the density's score on the page's grid and fine on a grid four
+ * times finer, which the trials' continuous evidence is closer to; needed is null until the reader has guessed or
+ * pressed Show me. */
+export function trialsSay(n, mean, se, exact, fine, sd, target, needed) {
+  const z = (mean - fine) / se;
+  let s = `After ${count(n)} simulated trials, the average reward is ${f4(mean)} ± ${f4(2 * se)} (two standard errors, sampling only). The density gives ${f4(exact)} on this page's grid and ${f4(fine)} on one four times finer, ${Math.abs(z).toFixed(1)} standard errors from the trials' average: the trials' evidence isn't on a grid, so they differ from the scorer by its grid's error too, here ${sci(Math.abs(fine - exact))} between the two grids. `;
   s += `One trial's reward has a spread of ${f3(sd)}`;
   s += needed === null ? ", and the standard error shrinks like one over the square root of the number of trials." : `, so a standard error of 2 × 10⁻⁵ would take about ${count(needed)} trials.`;
   return s;
@@ -86,7 +101,7 @@ export function overshootVerdict(guess) {
 /** The sentence under the overshoot plate: dt, the runs' mean overshoot and its standard error, the number of runs. */
 export function overshootSay(dt, mean, se, n) {
   const r = mean / Math.sqrt(dt), e = (2 * se) / Math.sqrt(dt);
-  return `Checked every ${dt}, the ${count(n)} runs stop on average ${f4(mean)} past the bound, which is ${f3(r)} ± ${f3(e)} times √Δt (two standard errors). The leading-order constant is 0.5826; the runs come closer to it as Δt shrinks.`;
+  return `Checked every ${dt}, the ${count(n)} runs stop on average ${f4(mean)} past the bound, which is ${f3(r)} ± ${f3(e)} times √Δt (two standard errors, sampling only). The leading-order constant, the limit as Δt shrinks, is 0.5826.`;
 }
 
 const between = (a, b) => (f2(a) === f2(b) ? `at ${f2(a)}` : `between ${f2(a)} and ${f2(b)}`);
@@ -110,7 +125,8 @@ export function coefSay(steady, all, lastK, constant) {
 
 /** The sentence under the shift plate: the two rules' losses with and without the shift (points per 100 trials). */
 export function shiftSay(L, same) {
-  const both = (x) => `${pts(x.on)} with the shift and ${pts(x.off)} without it${x.on < x.off ? "" : ", so here the shift makes it worse"}`;
+  const both = (x) => (pts(x.on) === pts(x.off) ? `${pts(x.on)} with the shift and the same without it`
+    : `${pts(x.on)} with the shift and ${pts(x.off)} without it${x.on < x.off ? "" : ", so here the shift makes it worse"}`);
   if (same) return `On this schedule both rules give the constant-cost bound, which loses ${both(L.pm)} (points per 100 trials, against the program on the same grid).${L.pm.on < L.pm.off ? " What is left with the shift is the grid's own resolution." : ""}`;
   return `The per-moment rule loses ${both(L.pm)}; the weighted rule loses ${both(L.wb)} (points per 100 trials, against the program on the same grid).`;
 }
@@ -135,7 +151,7 @@ export function fitSay(om, page, paper, closed) {
 /** The verdict after the reader's guess of the error at 0.6 (in percent), from 0.3's (in percent, a macro). */
 export function sweepVerdict(guess, at03, at06) {
   const r = at06 / at03;
-  const fact = `It is ${at06}%: ${r.toFixed(1)} times the error at 0.3, near the 4 of a square (doubling the size multiplies a second-order error by 4).`;
+  const fact = `It is at most ${at06}%: ${r.toFixed(1)} times the most at 0.3, near the 4 of a square (doubling the size multiplies a second-order error by 4). These are rounded, printed values.`;
   if (guess === null || guess === undefined) return fact;
   const g = +guess;
   const kind = Math.abs(g - 4 * at03) < 1e-9 ? "second order" : Math.abs(g - 2 * at03) < 1e-9 ? "first order" : "third order";
@@ -162,11 +178,12 @@ export function sweepSay(rows, c0, om, paperSmall) {
 }
 
 // ---- refining the grid ---------------------------------------------------------------------------------------------
-/** The verdict after the reader's guess of which losses move more under refinement, from Table 12's cells:
- * pmAbs, wbAbs (largest moves in points), pmRel, wbRel (largest moves as shares of the loss). */
-export function gridVerdict(guess, pmAbs, wbAbs, pmRel, wbRel) {
-  const pts_ = `in points per 100 trials, the per-moment losses move more, by at most ${pmAbs.toFixed(3)} against ${wbAbs.toFixed(4)}`;
-  const share = `as a share of the loss, the weighted ones move more, by up to ${pct(wbRel)} against ${pc1(pmRel)}, because they are so small`;
+/** The verdict after the reader's guess of which losses move more under refinement: pmAbs, wbAbs the paper's largest
+ * moves in points (macros, as printed); pmRel, wbRel the largest moves as shares of the loss on the paper's grid,
+ * from the unrounded results, over the losses of at least floor points. */
+export function gridVerdict(guess, pmAbs, wbAbs, pmRel, wbRel, floor = 0.001) {
+  const pts_ = `in points per 100 trials, the per-moment losses move more, by at most ${pmAbs} against ${wbAbs}`;
+  const share = `as a share of the loss, the weighted ones move more, by up to ${pct(wbRel)} against ${pc1(pmRel)} (over losses of at least ${floor} points), because they are so small`;
   if (guess === "pm") return `Yes, ${pts_}. But ${share}.`;
   if (guess === "wb") return `Yes, ${share}. But ${pts_}.`;
   const both = `It depends how you measure: ${pts_}; ${share}.`;
