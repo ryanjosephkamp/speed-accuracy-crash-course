@@ -4,7 +4,7 @@
 import * as K from "../../book/assets/js/kernel.js";
 import * as M from "../../book/assets/js/ch07-model.js";
 import { exactPolicy, score, boundForCost, toDiscrete } from "../../book/assets/js/model.js";
-import { costOf, defaultDrawing } from "../../book/assets/js/schedules-book.js";
+import { costOf, defaultDrawing, VIEW, SPARE } from "../../book/assets/js/schedules-book.js";
 import * as S from "../../book/assets/js/say-ch07.js";
 import { check, N, table, tableNumbers, asPrinted } from "./lib.mjs";
 
@@ -43,10 +43,28 @@ for (const c of [0.02, 0.1, 0.3, 1]) {
   for (const c of [0.02, 0.1, 0.3]) for (const om of [0.1, 2, 50]) for (const t of M.seriesTerms(c, om, 5).terms) quad = quad && t.re > 0 && t.im > 0;
   const z = M.seriesTerms(0.1, 0, 5);
   check("transfer", "every drawn term lies in the first quadrant, and at omega = 0 the terms plus the rest sum to 1", quad && Math.abs(z.terms.reduce((a, t) => a + t.re, 0) + z.rest.re - 1) < 1e-12, `first term at omega = 0: ${z.terms[0].re.toFixed(4)}`);
-  const pts = M.runningTransform(0.1, 2), end = pts[pts.length - 1], W = K.transfer(0.1, 2);
-  check("transfer", "the running integral of w(s) e^{i omega s} over the bins ends at the closed form (omega = 2)", Math.hypot(end.re - W.re, end.im - W.im) < 2e-3, `${end.re.toFixed(4)}+${end.im.toFixed(4)}i vs ${W.re.toFixed(4)}+${W.im.toFixed(4)}i`);
+  // the arrows plate's running integral, at the slider's ends and the costs it offers: its last point is the
+  // closed form, and a stretch of it matches a fine quadrature of w(s) e^{i omega s}
+  const ends = [];
+  let endOk = true;
+  for (const c of [0.02, 0.1, 0.3]) for (const om of [0.1, 2, 100]) {
+    const pts = M.runningTransform(c, om), end = pts[pts.length - 1], W = K.transfer(c, om);
+    const d = Math.hypot(end.re - W.re, end.im - W.im);
+    endOk = endOk && d < 1e-9; ends.push(d);
+  }
+  check("transfer", "the running integral ends at the closed form at omega = 0.1, 2, and 100 for c0 = 0.02, 0.1, 0.3 (the plate's ends)", endOk, `largest distance ${Math.max(...ends).toExponential(1)}`);
+  {
+    const c = 0.02, om = 100, pts = M.runningTransform(c, om);
+    const i1 = pts.findIndex((p) => p.s >= 0.1), i2 = pts.findIndex((p) => p.s >= 0.5);
+    const a = pts[i1].s, bb = pts[i2].s, n = 40000, hh = (bb - a) / n;
+    let re = 0, im = 0;
+    for (let i = 0; i <= n; i++) { const sv = a + i * hh, wv = K.kernelAt(sv, c), f = i === 0 || i === n ? 1 : i % 2 ? 4 : 2; re += f * wv * Math.cos(om * sv); im += f * wv * Math.sin(om * sv); }
+    re *= hh / 3; im *= hh / 3;
+    const d = Math.hypot(pts[i2].re - pts[i1].re - re, pts[i2].im - pts[i1].im - im);
+    check("transfer", "between s = 0.1 and 0.5, the running integral at c0 = 0.02, omega = 100 matches Simpson's rule on 40,000 steps", d < 1e-7, `difference ${d.toExponential(1)}`);
+  }
 }
-for (const c of [0.02, 0.1, 0.3, 1]) {
+for (const c of [1e-4, 3e-4, 1e-3, 3e-3, 0.01, 0.02, 0.035, 0.05, 0.1, 0.2, 0.3, 0.5, 1, 2, 3, 5, 10]) {
   const m = K.meanLookAhead(c);
   let prev = Infinity, mono = true;
   for (let lo = -1.3; lo <= 4; lo += 0.02) { const om = 10 ** lo, tl = (K.transfer(c, om).lead * Math.PI) / 180 / om; if (!(tl < prev + 1e-9) || !(tl < m + 1e-9)) mono = false; prev = tl; }
@@ -61,6 +79,9 @@ for (const c of [0.02, 0.1, 0.3, 1]) {
   check("lead", "at c0 = 0.1 the lead stays below 45 degrees over omega from 0.01 to 1e6", p01.lead < 45, `largest ${p01.lead.toFixed(3)} at ${p01.omega.toExponential(1)}`);
   const far = [0.02, 0.1, 1].map((c) => K.transfer(c, 1e6).lead);
   check("lead", "the lead tends to 45 degrees: within 0.05 at omega = 1e6 for c0 = 0.02, 0.1, 1", far.every((l) => Math.abs(l - 45) < 0.05), far.map((l) => l.toFixed(3)).join(", "));
+  // the lead in degrees isn't monotone at c0 = 1, which is why the text no longer says it grows while the time lead falls
+  const l66 = K.transfer(1, 66).lead, l100 = K.transfer(1, 100).lead;
+  check("lead", "at c0 = 1 the lead in degrees falls from omega = 66 to 100, while the lead in time falls too", l100 < l66 && (l100 * Math.PI) / 180 / 100 < (l66 * Math.PI) / 180 / 66, `${l66.toFixed(3)} at 66, ${l100.toFixed(3)} at 100`);
 }
 
 // ---- the look-ahead ----------------------------------------------------------------------------------------
@@ -78,16 +99,16 @@ for (const c of [0.02, 0.1, 0.3, 1]) {
   const m4 = M.lookAheadClosed(1e-4), big = M.lookAheadClosed(100) / ((2 / 3) * K.B(100) ** 2);
   check("lookahead", "the limits: m(1e-4) within 0.005 of 1/2, and m / (2/3 b0^2) within 1e-3 of 1 at c0 = 100", Math.abs(m4 - 0.5) < 0.005 && Math.abs(big - 1) < 1e-3, `m(1e-4) = ${m4.toFixed(5)}; ratio at 100 = ${big.toFixed(6)}`);
 }
+for (const c of [0.02, 0.1, 0.5]) {
+  // the plate's own sampler, at each cost it offers, with its default seed
+  const smp = M.sampleStarts(c, 2026), b = K.B(c), shift = K.OVERSHOOT * Math.sqrt(smp.dt);
+  const edgeOk = smp.starts.every((p) => b - shift - p.y >= 0.75 * (b - 0.9 * b) - 1e-12 && p.se > 0);
+  const g = M.worstGap(smp, b);
+  check("starts", `the plate's sampled mean times from six starts lie within 3 standard errors of b0 tanh b0 - y tanh y, every start below the moved-in bound (c0 = ${c})`, edgeOk && g < 3, `dt ${smp.dt.toExponential(2)}, shift ${shift.toFixed(4)}; largest gap ${g.toFixed(2)} standard errors`);
+}
 {
-  // the plate's six starts, 400 decisions each, with its seed
-  const c = 0.1, b = K.B(c), R = K.rng(2026 + 31 + Math.round(c * 1000));
-  const zs = [0, 0.2, 0.4, 0.6, 0.8, 0.95].map((u) => {
-    const y = u * b; let a = 0, q = 0; const n = 400;
-    for (let i = 0; i < n; i++) { const t = K.decide(y, b, R).t; a += t; q += t * t; }
-    a /= n; const se = Math.sqrt((q / n - a * a) / n);
-    return (a - M.meanTimeFrom(y, b)) / se;
-  });
-  check("starts", "the plate's sampled mean times from six starts lie within 3 standard errors of b0 tanh b0 - y tanh y", zs.every((z) => Math.abs(z) < 3), zs.map((z) => z.toFixed(1)).join(", "));
+  const w4 = K.transform(1e-4, 0.02), m = K.meanLookAhead(0.02);
+  check("lookahead", "the mean plate's reading at lambda = 1e-4 agrees with 1 - 1e-4 m(c0) to 1e-8 (c0 = 0.02)", Math.abs(w4 - (1 - 1e-4 * m)) < 1e-8, `${w4.toFixed(10)} vs ${(1 - 1e-4 * m).toFixed(10)}`);
 }
 
 // ---- the shift -------------------------------------------------------------------------------------------
@@ -101,6 +122,17 @@ for (const c of [0.02, 0.1, 0.3, 1]) {
   const tPm = cross((t) => toDiscrete(boundForCost(jump(t)), 0.01)), tSh = cross((t) => M.shiftedBound(jump, t));
   const m = K.meanLookAhead(0.1, 400);
   check("shift", "the shifted rule is the per-moment rule at a constant cost, and drops m(0.1) earlier before a jump", d < 1e-12 && Math.abs(tPm - tSh - m) < 0.002, `drops at ${tSh.toFixed(4)} and ${tPm.toFixed(4)}; m = ${m.toFixed(4)}`);
+}
+{
+  // a flat schedule, as a drawing at 0.01 (the plate's grid, the shared worker's program): the two rules coincide,
+  // the program's bound doesn't, and the sentence says which curves coincide
+  const choice = { id: "draw", points: Array(26).fill(0.01) }, cost = costOf(choice);
+  const P = exactPolicy(cost, VIEW + SPARE), ts = [], ex = [], pm = [], sh = [];
+  for (let k = 0; k < P.ts.length && P.ts[k] <= VIEW + 1e-9; k += 2) { ts.push(P.ts[k]); ex.push(P.bounds[k]); pm.push(toDiscrete(boundForCost(cost(P.ts[k])), 0.01)); sh.push(M.shiftedBound(cost, P.ts[k])); }
+  const G = M.shiftGaps(ex, pm, sh), say = S.shiftSay("Draw your own", G, M.isFlat(cost));
+  check("shift", "a flat drawing counts as flat; its two rules coincide while the program's bound sits apart, and the sentence names only the two rules", M.isFlat(cost) && G.apart < 1e-12 && G.maxPm > 1e-3 && /per-moment and shifted bounds coincide/.test(say) && !/three/.test(say), `${say}`);
+  const smooth0 = costOf({ id: "smooth", params: { c0: 0.1, size: 0 } }), flat98 = costOf({ id: "draw", points: Array(26).fill(0.98) });
+  check("shift", "a Smooth of size 0 and a flat drawing at 0.98 count as flat; the default jump and Smooth don't", M.isFlat(smooth0) && M.isFlat(flat98) && !M.isFlat(costOf({ id: "jump" })) && !M.isFlat(costOf({ id: "smooth" })), "by the schedule's values every 0.01 to time 14");
 }
 
 // ---- half-integration ---------------------------------------------------------------------------------------
@@ -190,6 +222,39 @@ for (const c of [0.02, 0.1, 0.5]) {
   check("conjecture", "on the smooth preset, the conjecture's prediction for the per-moment rule is within 0.8 to 1.3 of the scored loss wherever that loss is resolved and mostly early (eps <= 1/4)", ratios.length >= 2 && ratios.every((x) => x > 0.8 && x < 1.3), ratios.map((x) => x.toFixed(3)).join(", "));
   const draw = M.lossRun(costOf({ id: "draw", points: defaultDrawing() }), [1 / 4]);
   check("conjecture", "the late share is a share: between 0 and 1, and the running share ends at 1", res.runs.every((r) => r.late.pm >= 0 && r.late.pm <= 1 && Math.abs(r.cum.pm[r.cum.pm.length - 1] - 1) < 1e-12) && draw.runs[0].late.pm >= 0, `late shares ${res.runs.map((r) => (100 * r.late.pm).toFixed(0) + "%").join(", ")}`);
+  // the display rule for "resolved", against a grid twice as fine in time and space: every loss it marks resolved
+  // on the page's grid moves by under 10%
+  const fine = M.lossRun(costOf({ id: "smooth" }), EPS, { dt: 0.005, h: 0.01 });
+  const moves = [];
+  res.runs.forEach((r, i) => { for (const w of ["pm", "fo"]) if (M.resolved(r.loss[w], res.floor)) moves.push(Math.abs(fine.runs[i].loss[w] / r.loss[w] - 1)); });
+  check("loss", "on the smooth preset, every loss the plate marks resolved changes by under 10% on a grid twice as fine", moves.length >= 6 && Math.max(...moves) < 0.1, `${moves.length} losses, largest change ${(100 * Math.max(...moves)).toFixed(1)}%; resolution ${res.floor.toExponential(1)} here, ${fine.floor.toExponential(1)} on the finer grid`);
+}
+{
+  // the program scored from its own stop set: its score is its value, it matches exactPolicy's bounds, and no rule
+  // scores above it, including where a high cost puts its bound below the grid's first step (a 32-fold jump at 0.2,
+  // and a flat cost of 3.2) and on a flat cost of 0.98
+  const cases = [["Smooth", costOf({ id: "smooth" })], ["32-fold jump at 0.2", costOf({ id: "jump", params: { at: 0.2, factor: 32 } })], ["flat 0.98", () => 0.98], ["flat 3.2", () => 3.2]];
+  const out = [];
+  let ok = true;
+  for (const [name, cost] of cases) {
+    const P = M.gridProgram(cost, 8.5), E = exactPolicy(cost, 8.5);
+    let same = 0; for (let k = 0; k < P.ts.length; k++) if (!(P.bounds[k] === E.bounds[k])) same++;
+    const Rm = M.forwardPolicy({ stop: P.stop, m: P.m }, P.ts, cost).reward;
+    const pm = Float64Array.from(P.ts, (t) => toDiscrete(boundForCost(cost(t)), 0.01));
+    const lossPm = P.value - M.forward(pm, P.ts, cost).reward, lossB = P.value - score(E.bounds, E.ts, cost).reward;
+    ok = ok && same === 0 && Math.abs(Rm - P.value) < 1e-12 && lossPm > -1e-12 && lossB > -1e-12;
+    out.push(`${name}: value ${P.value.toFixed(6)}, per-moment loss ${lossPm.toExponential(1)}, exported bound's loss ${lossB.toExponential(1)}`);
+  }
+  check("scorer", "the program scored from its own stop set earns its value, equals exactPolicy's bounds, and no policy scores above it", ok, out.join("; "));
+  const P = M.gridProgram(() => 3.2, 8.5);
+  const zeroLoss = P.value - score(exactPolicy(() => 3.2, 8.5).bounds, P.ts, () => 3.2).reward;
+  check("scorer", "at a cost of 3.2 the exported bound reads 0 (as in the paper's code) though the center waits: scored as a bound it loses, scored from the stop set it doesn't", P.bounds[0] === 0 && P.best[0] > 0 && zeroLoss > 1e-3, `bound ${P.bounds[0]}, interpolated ${P.best[0].toFixed(4)}; the exported bound loses ${zeroLoss.toExponential(2)}`);
+}
+{
+  // a drawing at 2 for its first point and 0.01 after, at eps = 1 (from the audit): its ratios fit the axis the plate builds
+  const res = M.lossRun(costOf({ id: "draw", points: [2, ...Array(25).fill(0.01)] }), [1]);
+  const r = res.runs[0], ratios = [r.pred.pm / r.loss.pm, r.pred.fo / r.loss.fo], top = M.ratioAxisTop(ratios);
+  check("conjecture", "a ratio above 2 widens the plate's axis to hold it (up to 8), and every loss is nonnegative", ratios.every((x) => x <= top) && top > 2 && r.loss.pm > 0 && r.loss.fo > 0, `ratios ${ratios.map((x) => x.toFixed(2)).join(", ")}; axis top ${top}`);
 }
 
 // ---- the sentences ----------------------------------------------------------------------------------------
@@ -204,7 +269,7 @@ for (const c of [0.02, 0.1, 0.5]) {
       S.waveSay([0.02, 0.1, 0.3, 1][i % 4], 0.1 + 100 * u(), u(), 50 * u(), u(), u()),
       S.lookaheadVerdict(["zero", "half", "long", "shown"][i % 4], 0.5 + 0.01 * u(), 1e-4, 4 + u()),
       S.lookaheadSay(10 ** (-4 + 5 * u()), u(), 5 * u(), 0.619, 0.035),
-      S.shiftSay("Cost jumps", u(), u(), u(), u()),
+      S.shiftSay("Cost jumps", { maxPm: u(), maxSh: u(), avgPm: u(), avgSh: u(), apart: u() * 1e-3 }, i % 2 === 0),
       S.shiftNote(["deadline", "constant", ""][i % 3], "Wave"),
       S.leadPeakSay([0.02, 0.1, 1][i % 3], { lead: 40 + 7 * u(), omega: 10 ** (6 * u()) }),
       S.rewardVerdict(["same", "two", "four"][i % 3], 3 + u(), 3 + u(), 0.1),
@@ -212,7 +277,9 @@ for (const c of [0.02, 0.1, 0.5]) {
       S.bandSay(0.3 * u() + 1e-3, u() * 1e-3, u() * 1e-3, u() * 1e-3),
       S.lossNote(["deadline", "constant", "rising", ""][i % 4], "Smooth", 0.05 + u()),
       S.lossSay(1 / 2 ** (i % 7), u() * 1e-3, (u() - 0.2) * 1e-5, i % 3 ? 3 * u() : NaN, i % 4 ? 5 * u() : NaN, i % 2 === 0, i % 3 === 0),
-      S.conjSay(1 / 2 ** (i % 7), i % 5 ? 2 * u() : NaN, i % 2 === 0, i % 6 ? u() : NaN, 2 * u(), i % 3 === 0, u()),
+      S.conjSay(1 / 2 ** (i % 7), i % 5 ? 2 * u() : NaN, i % 2 === 0, i % 6 ? u() : NaN, 2 * u(), i % 3 === 0, u(), i % 7 ? u() * 1e-3 : 0, i % 4 ? u() * 1e-4 : -1e-9),
+      S.lossState(14, i % 2 === 0, i % 3 ? "loss" : "conj"),
+      S.noLossNote(),
     ];
     for (const s of say) { n++; if (/NaN|undefined|Infinity|null/.test(s)) bad++; }
   }
@@ -220,5 +287,8 @@ for (const c of [0.02, 0.1, 0.5]) {
   const p1 = S.leadPeakSay(1, M.leadPeak(1)), p01 = S.leadPeakSay(0.1, M.leadPeak(0.1));
   check("words", "the lead sentence says the lead passes 45 degrees at c0 = 1 and not at 0.1, and never says it is capped", /passes 45°/.test(p1) && !/passes/.test(p01) && !/at most 45|up to an eighth/.test(p1 + p01 + S.waveSay(1, 66, 0.3, 45.9, 0.01, 0.04)), p1);
   check("words", "the wave sentence flags a lead above 45 degrees only when there is one", /above 45°/.test(S.waveSay(1, 66, 0.3, 45.9, 0.01, 0.04)) && !/above 45°/.test(S.waveSay(0.1, 8, 0.358, 36.7, 0.08, 0.546)), S.waveSay(1, 66, 0.3, 45.9, 0.01, 0.04));
+  const neg = S.lossSay(0.25, -9.5e-6, 1e-6, NaN, NaN, false, false), cj = S.conjSay(0.25, 1.02, true, 0.02, 1.4, true, 0.9, 1e-4, 1e-6);
+  const la = S.lookaheadSay(1e-4, 0.504, 4.95, 0.619, 0.035) + S.lookaheadVerdict("half", 0.504, 1e-4, 4.95);
+  check("words", "a nonpositive loss is a difference the grid can't measure, the first-order ratio is not credited to the conjecture, and powers of ten read as 10⁻⁴", /no reward measurable on this grid/.test(neg) && !/loses −/.test(neg) && /doesn't cover the first-order bound/.test(cj) && /10⁻⁴ to 10/.test(la) && /c₀ = 10⁻⁴/.test(la) && !/e-\d/.test(la + neg), `${neg} | ${la}`);
   check("words", "the loss sentence names a slope near 2 as second order, and the conjecture's sentence starts with the word Conjecture", /close to the 2/.test(S.lossSay(0.25, 1e-4, 1e-6, 1.95, 3.8, true, true)) && !/close to the 2/.test(S.lossSay(0.25, 1e-4, 1e-6, 1.2, 3.8, true, true)) && /^Conjecture/.test(S.conjSay(0.25, 1.02, true, 0.02, 1.4, false, 0.9)), S.lossSay(0.25, 1e-4, 1e-6, 1.95, 3.8, true, true));
 }
