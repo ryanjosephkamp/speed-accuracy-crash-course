@@ -287,13 +287,15 @@ function scaleJob(cost, c0) {
     const sup = { "⁻": "-", "⁰": "0", "¹": "1", "²": "2", "³": "3", "⁴": "4", "⁵": "5", "⁶": "6", "⁷": "7", "⁸": "8", "⁹": "9" };
     const mv = mt ? (mt.includes("×") ? +mt.split(" × ")[0] * 10 ** +mt.split("10")[1].split("").map((c) => sup[c]).join("") : +mt) : NaN;
     const diff = 100 * Math.abs(gFo[L] - gPm[L]);
+    // half a unit of the margin's last printed digit: 0.05 x 10^e for a mantissa with one decimal, else 0.5 x 10^-decimals
+    const half = !mt ? NaN : mt.includes("×") ? 0.05 * 10 ** +mt.split("10")[1].split("").map((c) => sup[c]).join("") : 0.5 * 10 ** -((mt.split(".")[1] || "").length);
     const pairOk = TL.fo !== TL.pm && TL.fo === S.gapPair(gFo[L], gPm[L]).a && TL.pm === S.gapPair(gFo[L], gPm[L]).b
       && TL.say.includes(`by up to ${TL.fo} of the constant cost's urgency, and the per-moment urgency by up to ${TL.pm}`) && T0.say.includes(`the gaps are ${TL.fo} and ${TL.pm}`);
     const ok = alike
-      ? S.gapShown(gFo[L]) === S.gapShown(gPm[L]) && pairOk && Math.abs(mv - diff) <= 0.05 * diff && /the two agree to two decimals of a percent, so the ranking rests on a difference measured on this grid/.test(TL.say)
+      ? S.gapShown(gFo[L]) === S.gapShown(gPm[L]) && pairOk && Math.abs(mv - diff) <= half && /the two agree to two decimals of a percent, so the ranking rests on a difference measured on this grid/.test(TL.say)
       : S.gapShown(gFo[L]) !== S.gapShown(gPm[L]) && pairOk && TL.fo === S.gapShown(gFo[L]) && TL.pm === S.gapShown(gPm[L]) && mt === undefined && !/agree to two decimals|measured on this grid/.test(TL.say);
     check("yours", alike
-      ? "a drawing ending at 0.244631958 (the worker's run): at the smallest size the two gaps agree to the readings' two decimals, so the readings and both sentences give one pair with the digits that tell them apart, and the ranking's printed margin is the two worker gaps' difference (within its rounding) and is called a result on this grid"
+      ? "a drawing ending at 0.244631958 (the worker's run): at the smallest size the two gaps agree to the readings' two decimals, so the readings and both sentences give one pair with the digits that tell them apart, and the ranking's printed margin is the two worker gaps' difference to within half a unit of its last printed digit, and is called a result on this grid"
       : "a drawing ending at 0.24 (the worker's run): at the smallest size the two gaps differ at the readings' two decimals (12.60% and 12.85%), so the readings and both sentences print that pair and the ranking carries no margin or precision qualifier",
       ok, `${gFo[L].toFixed(9)} and ${gPm[L].toFixed(9)}: readings ${TL.fo} and ${TL.pm}; margin ${mt ?? "none"} against ${diff.toExponential(2)}; ${TL.say}`);
   }
