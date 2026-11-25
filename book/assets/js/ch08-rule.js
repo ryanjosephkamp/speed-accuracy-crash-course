@@ -6,9 +6,10 @@
 //
 // Two maps. Algorithm 1's map (mapAlg) rounds the level to 0.001 and reads the per-moment bounds at its 240 bin
 // midpoints; before a deadline a whole bin's weight drops out when its midpoint crosses the deadline, so this map
-// jumps. The equation's map (mapExact) uses the level's own kernel and integrates it exactly up to a deadline, so it
-// changes continuously with the level; its crossings are the equation's solutions.
-import { boundForCost, boundaryKernel, kernelForBound, exactPolicy, score, toDiscrete, belief } from "./model.js";
+// jumps. The equation's map (mapExact) uses the level's own kernel, integrated with its exact cumulative weights and
+// up to a deadline, so it changes continuously with the level; its crossings approximate the equation's solutions
+// (tools/checks/ch08.mjs holds them to a separate evaluation on a finer grid).
+import { boundForCost, boundaryKernel, kernelForBound, score, toDiscrete, belief, grid } from "./model.js";
 import { costOf, deadlineOf, VIEW, SPARE } from "./schedules-book.js";
 import { flux, fluxTotal, kappa } from "./kernel.js";
 
@@ -94,46 +95,47 @@ export function mapAlg(b, t, cost) {
   return acc;
 }
 
-/** The unnormalized mass of the paper's 4000-term kernel series for the level b on [a, x]: the same sum
- * model.js's boundaryKernel integrates over each bin. */
-function seriesMass(b, a, x, terms = 4000) {
-  const g = belief(b);
-  let acc = 0;
-  for (const [mu, pw] of [[1, g], [-1, 1 - g]]) {
-    const e2ab = Math.exp(-2 * mu * b);
-    for (let n = 1; n <= terms; n++) {
-      const k = (n * Math.PI) / (2 * b), rate = 0.5 * (k * k + 1);
-      const amp = ((k * k) / (b * (1 + k * k))) * (1 - (n % 2 ? -1 : 1) * e2ab);
-      const ea = rate * a > 745 ? 0 : Math.exp(-rate * a), ex = rate * x > 745 ? 0 : Math.exp(-rate * x);
-      if (ea === 0) break;
-      acc += ((pw * amp) / rate) * (ea - ex);
-    }
+// The equation's map is integrated on a fixed grid of delays: [0, 1e-4], then 2400 geometric steps to 60 (past
+// which every level's kernel holds less than 1e-16 of its weight). Each step's weight comes from the exact kernel's
+// cumulative distribution, one less its series tail (tailExact below), so a flat stretch of cost is integrated
+// exactly; elsewhere the per-moment bound is read at each step's middle (the first step, where the kernel grows like
+// s^(-1/2), at a third of its width). A deadline splits the step it falls in.
+const S_LO = 1e-4, S_HI = 60, S_N = 2400;
+export const MAP_GRID = { lo: S_LO, hi: S_HI, steps: S_N };
+const EDGES = Float64Array.from({ length: S_N + 2 }, (_, i) => (i === 0 ? 0 : S_LO * Math.pow(S_HI / S_LO, (i - 1) / S_N)));
+const MIDS = Float64Array.from({ length: S_N + 1 }, (_, j) => (j === 0 ? S_LO / 3 : 0.5 * (EDGES[j] + EDGES[j + 1])));
+const CDFS = new Map();
+function cdfAt(b) {
+  let W = CDFS.get(b);
+  if (!W) {
+    if (CDFS.size > 3000) CDFS.clear();
+    W = new Float64Array(S_N + 2);
+    for (let i = 1; i < S_N + 2; i++) W[i] = 1 - tailExact(b, EDGES[i]);
+    CDFS.set(b, W);
   }
-  return acc;
+  return W;
+}
+let AHEAD = null;
+function aheadOf(t, cost, deadline) {
+  if (AHEAD && AHEAD.t === t && AHEAD.cost === cost && AHEAD.deadline === deadline) return AHEAD;
+  const cut = deadline === null ? Infinity : deadline - t;
+  let jc = S_N + 1;
+  if (cut <= 0) jc = 0; else if (cut < S_HI) { jc = 0; while (EDGES[jc + 1] < cut) jc++; }
+  const f = new Float64Array(S_N + 1);
+  for (let j = 0; j < Math.min(jc, S_N + 1); j++) f[j] = boundForCost(cost(t + MIDS[j]));
+  const fc = jc <= S_N && cut > 0 ? boundForCost(cost(t + (jc === 0 ? cut / 3 : 0.5 * (EDGES[jc] + cut)))) : 0;
+  AHEAD = { t, cost, deadline, cut, jc, f, fc };
+  return AHEAD;
 }
 
-/** The equation's map T(b; t) = int w_b(s) B(c(t + s)) ds with the kernel for the level b itself (240 bins of its
- * series, as the paper builds it, read at the midpoints), integrated exactly up to a deadline: the bin the deadline
- * falls in keeps only its mass before the deadline, read at that part's midpoint, and the later bins hold B = 0. */
-const LEVEL_KERNELS = new Map();
-function kernelAtLevel(lv) {
-  let k = LEVEL_KERNELS.get(lv);
-  if (!k) { if (LEVEL_KERNELS.size > 4000) LEVEL_KERNELS.clear(); k = boundaryKernel(lv); LEVEL_KERNELS.set(lv, k); }
-  return k;
-}
+/** The equation's map T(b; t) = int w_b(s) B(c(t + s)) ds, with the kernel for the level b itself (at least 0.001)
+ * integrated on the grid above, and exactly up to a deadline: past it every bound ahead is B(infinity) = 0. */
 export function mapExact(b, t, cost, deadline = null) {
-  const lv = Math.max(b, 0.01), { s, w, edges } = kernelAtLevel(lv);
-  const cut = deadline === null ? Infinity : deadline - t;
-  if (cut <= 0) return 0;
+  const lv = Math.max(b, 1e-3), A = aheadOf(t, cost, deadline), W = cdfAt(lv);
   let acc = 0;
-  for (let j = 0; j < s.length; j++) {
-    if (edges[j + 1] <= cut) { acc += w[j] * boundForCost(cost(t + s[j])); continue; }
-    if (edges[j] < cut) {
-      const part = seriesMass(lv, edges[j], cut) / seriesMass(lv, 0, edges[edges.length - 1]);
-      acc += part * boundForCost(cost(t + 0.5 * (edges[j] + cut)));
-    }
-    break;
-  }
+  const n = Math.min(A.jc, S_N + 1);
+  for (let j = 0; j < n; j++) acc += (W[j + 1] - W[j]) * A.f[j];
+  if (A.jc <= S_N && A.cut > 0) acc += (1 - tailExact(lv, A.cut) - W[A.jc]) * A.fc;
   return acc;
 }
 
@@ -178,6 +180,49 @@ export function tailExact(b, x) {
 
 // ---- the rules side by side on a schedule ---------------------------------------------------------------------
 
+/** model.js's exactPolicy, step for step (so its bounds are the same numbers, which the checks confirm), that also
+ * records, at each time, whether the program waits at the center (no evidence, x = 0). Where deciding beats waiting
+ * already at the grid's first step above 0, the exported bound reads 0, as in the paper's code, even at times when
+ * the program still waits at the center. */
+export function exactPolicyCenter(cost, horizon, dt = 0.01, h = 0.02, cap = 5) {
+  const steps = Math.round(horizon / dt);
+  const ts = Float64Array.from({ length: steps + 1 }, (_, k) => k * dt);
+  const { x, m, n, r, kUp, kDown } = grid(dt, h, cap);
+  const g = Float64Array.from(x, (xi) => belief(xi));
+  const decide = Float64Array.from(g, (gi) => Math.max(gi, 1 - gi));
+  let v = Float64Array.from(decide);
+  const wait = new Float64Array(n);
+  const bounds = new Float64Array(steps + 1), centerWaits = new Uint8Array(steps + 1);
+  bounds[steps] = 0;
+  for (let k = steps - 1; k >= 0; k--) {
+    const ck = Math.min(cost(ts[k]), 1e9) * dt;
+    for (let i = 0; i < n; i++) {
+      let up = 0, down = 0;
+      for (let j = -r; j <= r; j++) {
+        const idx = i + j;
+        const vj = idx < 0 || idx >= n ? decide[idx < 0 ? 0 : n - 1] : v[idx];
+        up += kUp[j + r] * vj;
+        down += kDown[j + r] * vj;
+      }
+      wait[i] = g[i] * up + (1 - g[i]) * down - ck;
+    }
+    let b = Infinity;
+    for (let i = m + 1; i < n; i++) {
+      const d = decide[i] - wait[i];
+      if (d > 0) {
+        if (i === m + 1) { b = 0; break; }
+        const dp = decide[i - 1] - wait[i - 1];
+        b = x[i - 1] - (dp * (x[i] - x[i - 1])) / (d - dp);
+        break;
+      }
+    }
+    bounds[k] = b > cap ? Infinity : b;
+    centerWaits[k] = wait[m] > decide[m] ? 1 : 0;
+    for (let i = 0; i < n; i++) v[i] = Math.max(decide[i], wait[i]);
+  }
+  return { ts, bounds, centerWaits, dt };
+}
+
 /** The reader's schedule, with a deadline added at `addDeadline` if it has none of its own: past the deadline the
  * cost is infinite, as the paper's experiments code writes a deadline. */
 export function scheduleFor(choice, addDeadline = null) {
@@ -194,7 +239,7 @@ export function scheduleFor(choice, addDeadline = null) {
  * weighted rule's every update. On a deadline, avgCode is the averaged-cost rule as the paper's code computes it. */
 export function compareRules(cost, deadline, { dt = 0.01, h = 0.02, every = 2, progress = null } = {}) {
   const view = deadline ?? VIEW, horizon = deadline ?? VIEW + SPARE;
-  const ex = exactPolicy((t) => Math.min(cost(t), 1e9), horizon, dt, h);
+  const ex = exactPolicyCenter((t) => Math.min(cost(t), 1e9), horizon, dt, h);
   progress?.(0.25);
   const ts = ex.ts;
   const pm = Float64Array.from(ts, (t) => (deadline !== null && t >= deadline - 1e-9 ? 0 : boundForCost(cost(t))));
@@ -213,19 +258,29 @@ export function compareRules(cost, deadline, { dt = 0.01, h = 0.02, every = 2, p
   for (let k = 0; k <= last; k += every) keep.push(k);
   if (keep[keep.length - 1] !== last) keep.push(last);
   const pick = (a) => keep.map((k) => a[k]);
+  // times before the forced choice where the exported bound reads 0 while the program waits at the center
+  let gridZero = 0;
+  for (let k = 0; k <= last; k++) if (ex.bounds[k] === 0 && ex.centerWaits[k] && (deadline === null || ts[k] < deadline - 1e-9)) gridZero++;
   return {
     t: pick(ts), cost: pick(Float64Array.from(ts, cost)), exact: pick(ex.bounds), pm: pick(pm), avg: pick(avg), avgCode: pick(avgCode),
-    wb: pick(hist.final), updates: hist.updates.map(pick), loss, dt, h, deadline, view, horizon, thinned: every > 1,
+    wb: pick(hist.final), updates: hist.updates.map(pick), loss, dt, h, deadline, view, horizon, thinned: every > 1, gridZero,
   };
 }
 
-/** The last time at which the averaged-cost bound as the paper's code computes it (avgCode) is above 0 on a deadline
- * schedule, or null if it never is (then the code and the definition agree: 0 throughout). */
-export function codeUntil(r) {
-  if (r.deadline === null) return null;
-  let k = -1;
-  r.avgCode.forEach((v, i) => { if (v > 0) k = i; });
-  return k < 0 ? null : r.t[k];
+/** On a deadline schedule, the stretches of plotted times where the averaged-cost bound as the paper's code computes
+ * it (avgCode) is above 0, as [first, last] plotted times; empty if it is 0 at every plotted time (then the code
+ * agrees with the definition there). Each time's kernel is built for its current cost, so where it reaches the
+ * deadline depends on that cost. */
+export function codeStretches(r) {
+  const out = [];
+  if (r.deadline === null) return out;
+  let start = null;
+  r.avgCode.forEach((v, i) => {
+    if (v > 0 && start === null) start = i;
+    if (!(v > 0) && start !== null) { out.push([r.t[start], r.t[i - 1]]); start = null; }
+  });
+  if (start !== null) out.push([r.t[start], r.t[r.t.length - 1]]);
+  return out;
 }
 
 /** How far `iterations` damped updates move the bound from where 30 left it, at the times 0, step, ... before

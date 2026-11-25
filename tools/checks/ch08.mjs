@@ -7,7 +7,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import * as K from "../../book/assets/js/kernel.js";
-import { weightedBound, boundForCost, kernelForBound, boundaryKernel, toDiscrete } from "../../book/assets/js/model.js";
+import { weightedBound, boundForCost, kernelForBound, boundaryKernel, toDiscrete, exactPolicy } from "../../book/assets/js/model.js";
 import { costOf, deadlineOf, PRESETS, DRAW_TIMES } from "../../book/assets/js/schedules-book.js";
 import * as R from "../../book/assets/js/ch08-rule.js";
 import * as S from "../../book/assets/js/say-ch08.js";
@@ -80,8 +80,14 @@ for (const [id, { cost }] of Object.entries(CODE_CASES)) {
   let worst = 0, met = 0;
   ref.t.forEach((t, i) => { const k = r.t.findIndex((x) => Math.abs(x - t) < 1e-9); if (k >= 0) { met++; worst = Math.max(worst, Math.abs(r.avgCode[k] - ref.bound[i])); } });
   check("avg", "the plate's run at a cost of 0.5 with a forced choice at 3: its code-version curve matches weighted_ahead (within 1e-9)", met > 20 && worst < 1e-9, `${met} times, largest difference ${worst.toExponential(1)}`);
-  const until = R.codeUntil(r), until1 = R.codeUntil(R.compareRules(...Object.values(R.scheduleFor({ id: "deadline" })).slice(0, 2)));
-  check("avg", "the code's version stays finite until a time before the deadline at (0.5, 3), and agrees with the definition's 0 on Figure 1(d)", until !== null && until > 0.5 && until < 3 && until1 === null, `finite until ${until}; on Figure 1(d): ${until1}`);
+  const st = R.codeStretches(r), st1 = R.codeStretches(R.compareRules(...Object.values(R.scheduleFor({ id: "deadline" })).slice(0, 2)));
+  check("avg", "the code's version is above 0 on one plotted stretch from time 0 at (0.5, 3), and nowhere on Figure 1(d)", st.length === 1 && st[0][0] === 0 && st[0][1] > 0.5 && st[0][1] < 3 && st1.length === 0, `${JSON.stringify(st)}; on Figure 1(d): ${JSON.stringify(st1)}`);
+  // the jump with a deadline added at 2: the code's bound is 0 at first, then finite, then 0; the plate's stretches agree
+  // with weighted_ahead at every time the two share
+  const j = CODE_CASES["jump-deadline-2"], rj = R.compareRules(j.cost, j.deadline), sj = R.codeStretches(rj), refj = REF.averagedCost["jump-deadline-2"];
+  const inside = (t) => sj.some(([a, b]) => t >= a - 1e-9 && t <= b + 1e-9);
+  const disagree = refj.t.filter((t, i) => rj.t.some((x) => Math.abs(x - t) < 1e-9) && (refj.bound[i] > 0) !== inside(t));
+  check("avg", "the jump with a deadline added at 2: the code's bound is 0 at time 0, above 0 on one later stretch, and 0 again before the deadline, as weighted_ahead gives at the shared times", sj.length === 1 && sj[0][0] > 0 && sj[0][1] < 2 && rj.avgCode[0] === 0 && disagree.length === 0, `${JSON.stringify(sj)}; disagreements ${disagree.length}`);
 }
 {
   // the definition: before a deadline, the exact kernel for the current cost puts positive weight past the deadline at
@@ -89,12 +95,16 @@ for (const [id, { cost }] of Object.entries(CODE_CASES)) {
   const cases = [["Figure 1(d)", fig1("deadline")], ["(0.5, 3)", CODE_CASES["deadline-0.5-3"]], ["jump, deadline added at 2", CODE_CASES["jump-deadline-2"]],
     ["constant, deadline added at 1", R.scheduleFor({ id: "constant" }, 1)]];
   for (const [name, { cost, deadline }] of cases) {
+    const r = R.compareRules(cost, deadline);
     let least = Infinity;
-    for (let t = 0; t < deadline - 1e-9; t += 0.02) least = Math.min(least, R.tailExact(Math.max(boundForCost(cost(t)), 1e-3), deadline - t));
-    check("avg", `${name}: at every plotted time before the deadline the exact kernel puts weight past it, so the definition's bound is 0`, least > 0, `smallest weight past the deadline ${least.toExponential(1)}`);
+    r.t.forEach((t) => { if (t < deadline - 1e-9) least = Math.min(least, R.tailExact(Math.max(boundForCost(cost(t)), 1e-3), deadline - t)); });
+    check("avg", `${name}: the plate's averaged-cost curve by the definition is 0 at all ${r.t.length} plotted times, and at each one before the deadline the exact kernel puts weight ${least.toExponential(0)} or more past it`, r.avg.every((v) => v === 0) && least > 0, `smallest weight past the deadline ${least.toExponential(1)}`);
   }
-  const tails = [0.01, 0.1, 0.5, 1.6, 20].map((c) => { const b = Math.max(boundForCost(c), 1e-3); return R.tailExact(b, R.kernelForCost(c).edges[240]); });
-  check("avg", "the code's kernels, which end at 14/lambda_1, leave out less than one part in a million of the weight (costs 0.01 to 20)", tails.every((v) => v > 0 && v < 1e-6), tails.map((v) => v.toExponential(1)).join(", "));
+  // the tail each code kernel leaves out, at the level that kernel was built for (B at the rounded log cost)
+  const tails = [0.01, 0.1, 0.5, 1.6, 20].map((c) => { const key = Math.round(Math.log(c) * 100) / 100, b = Math.max(boundForCost(Math.exp(key)), 1e-3); return R.tailExact(b, R.kernelForCost(c).edges[240]); });
+  check("avg", "the code's kernels, which end at 14/lambda_1, leave out less than one part in a million of the weight of the level each was built for (costs 0.01 to 20)", tails.every((v) => v > 0 && v < 1e-6), tails.map((v) => v.toExponential(1)).join(", "));
+  // a finite cost always has a positive bound: only an infinite one gives 0 (the text says so)
+  check("avg", "the constant-cost bound stays above 0 for finite costs (1e4 and 1e8) and is 0 only for an infinite cost", boundForCost(1e4) > 0 && K.B(1e8) > 0 && boundForCost(Infinity) === 0, `B(1e4) = ${boundForCost(1e4).toExponential(2)}, B(1e8) = ${K.B(1e8).toExponential(2)}`);
   const r = R.compareRules(costOf({ id: "jump" }), null);
   check("avg", "on the 16-fold jump, the averaged-cost rule starts below half the best bound (as the text says)", r.avg[0] < 0.5 * r.exact[0], `${r.avg[0].toFixed(3)} vs ${r.exact[0].toFixed(3)}`);
 }
@@ -110,6 +120,9 @@ for (const [id, { cost }] of Object.entries(CODE_CASES)) {
   const off = Math.max(...ts.map((t, i) => (roots[i].length === 1 ? Math.abs(w[i] - roots[i][0].b) : Infinity)));
   check("deadline", "at the hero's times, Algorithm 1's bound is within 0.01 of the equation's solution B(0.1) times its own kernel's share before the deadline", off < 0.01, `largest difference ${off.toFixed(4)}`);
   const c95 = R.scheduleFor({ id: "deadline", params: { at: 0.95, c: 0.1 } }), r = R.compareRules(c95.cost, c95.deadline);
+  const fall2 = R.scheduleFor({ id: "fall", params: { at: 1.5, factor: 16 } }, 2), rf = R.compareRules(fall2.cost, fall2.deadline), rd = R.compareRules(cost, deadline);
+  const above = [rf, rd].every((x) => x.wb.every((v, i) => x.t[i] >= x.deadline - 1e-9 || v > 0));
+  check("deadline", "the weighted rule's bound stays above 0 at every plotted time before the deadline (Figure 1(d), and a 16-fold fall at 1.5 with a deadline added at 2)", above, "both");
   check("endpoint", "a deadline at 0.95, off the 0.02 grid: the plates' last point is the deadline, where the program's bound is 0 (the forced choice)", Math.abs(r.t[r.t.length - 1] - 0.95) < 1e-9 && r.exact[r.exact.length - 1] === 0 && r.updates[30].length === r.t.length, `last time ${r.t[r.t.length - 1].toFixed(2)}, bound ${r.exact[r.exact.length - 1]}`);
 }
 
@@ -157,6 +170,8 @@ const movesOf = (r) => { const ch = []; for (let k = 1; k < r.updates.length; k+
     const r7 = R.selfConsistent(0.7, dl.cost, 0.01, 2, 120, dl.deadline)[0].b;
     const g = (x) => R.mapAlg(x, 0.7, dl.cost) - x, steps = Array.from({ length: 120 }, (_, i) => r7 - 0.006 + i * 0.0001).map((x) => [x, Math.abs(g(x + 0.0001) - g(x) + 0.0001)]);
     const [at, jump] = steps.reduce((m, v) => (v[1] > m[1] ? v : m), [0, 0]);
+    const rr = R.compareRules(dl.cost, dl.deadline), mv = (t) => { const i = rr.t.findIndex((x) => Math.abs(x - t) < 1e-9); return Math.abs(rr.updates[30][i] - rr.updates[29][i]); };
+    check("iterate", "Figure 1(d): the 30th update still moves the bound by more than 0.001 at 0.70 and by less than 1e-6 at 0.94 (the text names both)", mv(0.7) > 1e-3 && mv(0.94) < 1e-6, `${mv(0.7).toExponential(1)} at 0.70, ${mv(0.94).toExponential(1)} at 0.94`);
     check("iterate", "at t = 0.7, Algorithm 1's map (rounded levels, bin midpoints) jumps by more than 0.005 within 0.006 of the equation's crossing", jump > 0.005, `a jump of ${jump.toFixed(4)} at level ${at.toFixed(4)}; the crossing is at ${r7.toFixed(4)}`);
   }
   {
@@ -179,46 +194,108 @@ const movesOf = (r) => { const ch = []; for (let k = 1; k < r.updates.length; k+
   const runs = R.P13.EPS.map((e) => R.prop13(e));
   for (const r of runs) {
     const inside = r.map.every((v) => v >= r.lo - 1e-12 && v <= r.hi + 1e-12);
-    check("p13", `eps = ${r.eps}: the map sends I into I and crosses the diagonal once`, inside && r.crossings === 1, `I = [${r.lo.toFixed(4)}, ${r.hi.toFixed(4)}], values ${Math.min(...r.map).toFixed(4)} to ${Math.max(...r.map).toFixed(4)}`);
+    check("p13", `eps = ${r.eps}: at the 41 computed levels the map's values lie in I, and a scan of the same 41 levels finds one crossing`, inside && r.crossings === 1, `I = [${r.lo.toFixed(4)}, ${r.hi.toFixed(4)}], values ${Math.min(...r.map).toFixed(4)} to ${Math.max(...r.map).toFixed(4)}`);
   }
   const sl = runs.map((r) => r.slope / r.eps);
-  check("p13", "over the four sizes, the map's steepest secant slope divided by eps falls as eps shrinks and stays below 0.2", sl.every((v, i) => i === 0 || v <= sl[i - 1]) && sl[sl.length - 1] < 0.2, sl.map((v) => v.toFixed(3)).join(", "));
+  check("p13", "over the four sizes, the steepest secant slope between neighboring levels, divided by eps, falls as eps shrinks, and its largest value is below 0.2", sl.every((v, i) => i === 0 || v <= sl[i - 1]) && Math.max(...sl) < 0.2, sl.map((v) => v.toFixed(3)).join(", "));
   const e2 = runs.map((r) => r.errW / (r.eps * r.eps));
   check("p13", "over the four sizes, Algorithm 1's distance from b0 + eps beta divided by eps^2 varies little (the last three within 15% of each other)", Math.max(...e2.slice(1)) / Math.min(...e2.slice(1)) < 1.15, e2.map((v) => v.toFixed(4)).join(", "));
   const W2 = K.transfer(0.1, 2), want = Math.abs(K.Bprime(0.1)) * R.P13.M * Math.hypot(1 - W2.re, W2.im);
   const [a, b] = runs.slice(-2).map((r) => r.errPm / r.eps), lim = 2 * b - a;
-  check("p13", "the per-moment rule's error divided by eps tends to |B'(c0)| M |1 - w~(-2i)| (extrapolated from the two smallest sizes, within 2%)", Math.abs(lim / want - 1) < 0.02, `${lim.toFixed(4)} vs ${want.toFixed(4)}`);
+  check("p13", "a straight-line extrapolation to eps = 0 of the per-moment gap divided by eps, from the two smallest sizes, is within 2% of |B'(c0)| M |1 - w~(-2i)|", Math.abs(lim / want - 1) < 0.02, `${lim.toFixed(4)} vs ${want.toFixed(4)}`);
   const d = R.levelDerivative(boundForCost(0.1));
   check("p13", "the kernel's derivative in the level has equal areas above and below zero (within 1e-4; the stretch [0, 1e-8] is left out)", Math.abs(d.above - d.below) < 1e-4 && d.above > 0.05, `${d.above.toFixed(6)} above, ${d.below.toFixed(6)} below`);
   let area = 0; for (let i = 1; i < d.ss.length; i++) area += 0.5 * (d.sw[i] + d.sw[i - 1]) * Math.log(d.ss[i] / d.ss[i - 1]);
   // near 0 the kernel is sqrt(2 / (pi s)) / (tanh b + b sech^2 b), so [0, 1e-8] holds about twice that times 1e-4
   const left = (2 * Math.sqrt(1e-8) * Math.sqrt(2 / Math.PI)) / K.fluxTotal(boundForCost(0.1));
   check("p13", "the kernel from the series has area 1 on the same grid, with the stretch below 1e-8 added (within 1e-5)", Math.abs(area + left - 1) < 1e-5, `${area.toFixed(6)} + ${left.toExponential(2)}`);
+  check("p13", "at each of the four sizes, Algorithm 1's gap to beta (divided by eps) is smaller than the per-moment rule's (the step 5 heading)", runs.every((r) => r.errW < r.errPm), runs.map((r) => `${(r.errW / r.eps).toFixed(4)} < ${(r.errPm / r.eps).toFixed(3)}`).join(", "));
   const om = Array.from({ length: 196 }, (_, i) => 0.5 + i * 0.1), gap = Math.min(...om.map((w) => { const T = K.transfer(0.1, w); return Math.hypot(1 - T.re, T.im); }));
   check("p13", "|1 - w~(-i omega)| is 0 at omega = 0 and stays above 0.1 for omega from 0.5 to 20", K.transfer(0.1, 0).re === 1 && gap > 0.1, `smallest ${gap.toFixed(3)}`);
 }
 
 // ---- two levels that both fit ---------------------------------------------------------------------------------------
+// A separate evaluation of the equation's map, to hold the page's to: delays from 1e-5 in 4800 geometric steps to 60
+// (twice as fine, and ten times closer to 0, as the page's grid), split at the deadline and at the given breaks (a
+// drawing's knots), with each step weighted by the exact kernel's cumulative weight and read at its middle.
+const REF_W = new Map();
+function refMap(b, t, cost, deadline = null, breaks = []) {
+  const lo = 1e-5, hi = 60, n = 4800, cut = deadline === null ? Infinity : deadline - t;
+  if (!REF_W.has(b)) { if (REF_W.size > 200) REF_W.clear(); REF_W.set(b, new Map()); }
+  const memo = REF_W.get(b), W = (x) => { if (x <= 0) return 0; let v = memo.get(x); if (v === undefined) { v = 1 - R.tailExact(b, x); memo.set(x, v); } return v; };
+  const pts = [0];
+  for (let i = 0; i <= n; i++) pts.push(lo * Math.pow(hi / lo, i / n));
+  for (const x of [...breaks.map((k) => k - t), cut]) if (x > 0 && x < hi) pts.push(x);
+  pts.sort((a, c) => a - c);
+  let acc = 0, wa = 0;
+  for (let i = 1; i < pts.length; i++) {
+    const a = pts[i - 1], c = pts[i];
+    if (c - a < 1e-15) continue;
+    if (a >= cut) break;
+    const wc = W(c);
+    acc += (wc - wa) * boundForCost(cost(t + (i === 1 ? c / 3 : 0.5 * (a + c))));
+    wa = wc;
+  }
+  return acc;
+}
+/** Each reported root against the separate evaluation: its residual there, and a sign change within 1e-3 around it. */
+function verified(roots, t, cost, deadline, breaks) {
+  return roots.map((q) => {
+    const g = (x) => refMap(x, t, cost, deadline, breaks) - x;
+    return { b: q.b, residual: g(q.b), signChange: Math.sign(g(q.b - 1e-3)) !== Math.sign(g(q.b + 1e-3)) };
+  });
+}
 {
+  const draw = (pts) => ({ id: "draw", points: DRAW_TIMES.map((t) => (t <= 0.2 + 1e-9 ? 1 : pts)) });
+  const CASES = [
+    ["the brief spike at 0", R.spikeCost, null, [], 0],
+    ["a drawing from 1 to 0.0766 at 0", costOf(draw(0.0766)), null, DRAW_TIMES, 0],
+    ["a cost of 0.02 to a deadline at 1, at 0.98", (x) => (x <= 1 + 1e-12 ? 0.02 : Infinity), 1, [], 0.98],
+    ["Figure 1(d) at 0.7", fig1("deadline").cost, 1, [], 0.7],
+    ["the jump at 0.3", costOf({ id: "jump" }), null, [], 0.3],
+    ["the pulse at 0.8", costOf({ id: "pulse" }), null, [], 0.8],
+  ];
+  let worst = 0;
+  for (const [, cost, dl, br, t] of CASES) for (let b = 0.05; b <= 2.4; b += 0.25) worst = Math.max(worst, Math.abs(R.mapExact(b, t, cost, dl) - refMap(b, t, cost, dl, br)));
+  check("roots", "the page's map agrees with the separate evaluation within 5e-6 (the caption's figure) on six cases, at levels 0.05 to 2.3", worst < 5e-6, `largest difference ${worst.toExponential(2)}`);
   const r = R.rootsAt(R.spikeCost, 0);
-  const s = r.roots.map((q) => q.slope);
-  check("roots", "the brief spike: three crossings (each with residual below 1e-6), the local test toward the outer two and away from the middle one", r.roots.length === 3 && r.roots.every((q) => Math.abs(q.residual) < 1e-6) && s[0] < 1 && s[0] > -3 && s[2] < 1 && s[2] > -3 && s[1] > 1, r.roots.map((q) => `${q.b.toFixed(4)} (slope ${q.slope.toFixed(2)})`).join(", "));
+  const s = r.roots.map((q) => q.slope), vs = verified(r.roots, 0, R.spikeCost, null, []);
+  check("roots", "the brief spike: three crossings found, each confirmed by the separate evaluation (residual below 1e-5 and a sign change within 1e-3), the local test toward the outer two and away from the middle one", r.roots.length === 3 && vs.every((v) => Math.abs(v.residual) < 1e-5 && v.signChange) && s[0] < 1 && s[0] > -3 && s[2] < 1 && s[2] > -3 && s[1] > 1, r.roots.map((q, i) => `${q.b.toFixed(4)} (slope ${q.slope.toFixed(2)}, separate residual ${vs[i].residual.toExponential(0)})`).join(", "));
   check("roots", "Algorithm 1's 30 updates from the per-moment bound end at the smallest crossing (within 0.001)", Math.abs(r.end - r.roots[0].b) < 1e-3, `${r.end.toFixed(4)} vs ${r.roots[0].b.toFixed(4)}`);
-  // a drawing that falls 25-fold between 0.2 and 0.3 also gives three crossings (the text says the spike isn't the only kind)
-  const d = R.rootsAt(costOf({ id: "draw", points: DRAW_TIMES.map((t) => (t <= 0.2 + 1e-9 ? 1 : 0.04)) }), 0);
-  check("roots", "a drawing at cost 1 to time 0.2 and 0.04 from 0.3: three crossings at time 0 (each with residual below 1e-6)", d.roots.length === 3 && d.roots.every((q) => Math.abs(q.residual) < 1e-6), d.roots.map((q) => q.b.toFixed(4)).join(", "));
-  // each preset at its usual settings, at the times 0, 0.1, ... up to 0.1 before the window's end, counted on the
-  // equation's map (integrated to a deadline) at the levels 0.01, 0.02, ..., 3
+  const d = R.rootsAt(costOf(draw(0.04)), 0), vd = verified(d.roots, 0, costOf(draw(0.04)), null, DRAW_TIMES);
+  check("roots", "a drawing at cost 1 to time 0.2 and 0.04 from 0.3: three crossings at time 0, each confirmed by the separate evaluation", d.roots.length === 3 && vd.every((v) => Math.abs(v.residual) < 1e-5 && v.signChange), d.roots.map((q) => q.b.toFixed(4)).join(", "));
+  // a near-tangent drawing: one crossing; the separate evaluation stays below the diagonal around the near touch
+  const c766 = costOf(draw(0.0766)), d2 = R.rootsAt(c766, 0), v2 = verified(d2.roots, 0, c766, null, DRAW_TIMES);
+  const near = Math.max(...[0.58, 0.583, 0.586, 0.589, 0.592].map((x) => refMap(x, 0, c766, null, DRAW_TIMES) - x));
+  check("roots", "a drawing from 1 to 0.0766: one crossing, confirmed, and no crossing near the close approach at 0.586 (the separate evaluation stays below the diagonal there)", d2.roots.length === 1 && v2.every((v) => Math.abs(v.residual) < 1e-5 && v.signChange) && near < 0, `${d2.roots.map((q) => q.b.toFixed(4)).join(", ")}; largest T - b near 0.586: ${near.toExponential(2)}`);
+  const say586 = S.rootsSay(0.586, R.mapExact(0.586, 0, c766), d2.start, d2.end);
+  check("words", "on the near-tangent drawing at the level 0.586, the sentence gives the signed gap and says the level doesn't fit (it says 'about fits' nowhere)", /below the level, so it doesn't fit/.test(say586) && !/about fits/.test(say586), say586);
+  // the deadline case the audit found: the root matches B(c0) times the exact share before the deadline
+  const c02 = R.scheduleFor({ id: "deadline", params: { at: 1, c: 0.02 } }), r02 = R.rootsAt(c02.cost, 0.98, 160, c02.deadline);
+  const exact = (() => { let lo = 0.3, hi = 0.8; for (let i = 0; i < 60; i++) { const m = (lo + hi) / 2; if (boundForCost(0.02) * R.shareExact(m, 0.02) - m > 0) lo = m; else hi = m; } return (lo + hi) / 2; })();
+  check("roots", "a cost of 0.02 to a deadline at 1, seen from 0.98: one crossing, within 1e-8 of the solution of B(c0) times the exact share before the deadline", r02.roots.length === 1 && Math.abs(r02.roots[0].b - exact) < 1e-8, `${r02.roots[0]?.b.toFixed(6)} vs ${exact.toFixed(6)}`);
+  // each preset at its usual settings, at the times 0, 0.1, ... up to 0.1 before the window's end: sign changes of the
+  // page's map at the levels 0.02, 0.04, ..., 3 (what the text reports, a detection on that grid)
   const extra = [];
   for (const p of [...PRESETS.map((q) => ({ id: q.id })), { id: "draw" }]) {
     const { cost, deadline } = R.scheduleFor(p);
     for (const t of times((deadline ?? 2.5) - 0.1)) {
       let n = 0, prev = null;
-      for (let k = 1; k <= 300; k++) { const b = k / 100, g = R.mapExact(b, t, cost, deadline) - b; if (prev !== null && Math.sign(g) !== Math.sign(prev)) n++; prev = g; }
+      for (let k = 1; k <= 150; k++) { const b = k / 50, g = R.mapExact(b, t, cost, deadline) - b; if (prev !== null && Math.sign(g) !== Math.sign(prev)) n++; prev = g; }
       if (n !== 1) extra.push(`${p.id} at ${t}: ${n}`);
     }
   }
-  check("roots", "each preset (and the default drawing) crosses the diagonal once at each of the times 0, 0.1, ... up to 0.1 before its window's end", extra.length === 0, extra.join("; ") || "one crossing at every sampled time");
+  check("roots", "a search for sign changes at levels 0.02 apart finds one crossing for each preset (and the default drawing) at each of the times 0, 0.1, ... up to 0.1 before its window's end", extra.length === 0, extra.join("; ") || "one crossing found at every sampled time");
+  check("words", "the local test's boundary slopes, -3 and 1, decide nothing", /decides nothing/.test(S.rootRole(-3)) && /decides nothing/.test(S.rootRole(1)) && /toward/.test(S.rootRole(0.5)) && /away/.test(S.rootRole(2)), `${S.rootRole(1)}; ${S.rootRole(-3)}`);
+}
+
+// ---- the program's exported bound -----------------------------------------------------------------------------
+{
+  const same = ["jump", "deadline", "pulse"].every((id) => { const { cost, deadline } = fig1(id), H = deadline ?? 8.5, a = exactPolicy((t) => Math.min(cost(t), 1e9), H), b = R.exactPolicyCenter((t) => Math.min(cost(t), 1e9), H); return a.bounds.every((v, i) => v === b.bounds[i]); });
+  check("program", "the page's program with the center recorded gives model.js's exactPolicy bounds exactly (jump, deadline, pulse)", same, same ? "bit for bit" : "differs");
+  const j32 = R.compareRules(costOf({ id: "jump", params: { at: 0.2, factor: 32 } }), null), note = S.gridZeroNote(j32.gridZero);
+  const fig = FIG1.map((id) => { const { cost, deadline } = fig1(id); return R.compareRules(cost, deadline).gridZero; });
+  check("program", "on the 32-fold jump at 0.2, the exported bound reads 0 at times when the program waits at 0 evidence, and the state line says so; on Figure 1's four schedules it never does", j32.gridZero > 0 && note.includes(String(j32.gridZero)) && /still waits at 0 evidence/.test(note) && fig.every((n) => n === 0), `${j32.gridZero} times; Figure 1: ${fig.join(", ")}`);
 }
 
 // ---- Algorithm 1's kernel bins ------------------------------------------------------------------------------------
@@ -245,13 +322,14 @@ check("bins", "levels below 0.01 use the kernel for 0.01", kernelForBound(0.004)
     const roots = Array.from({ length: 1 + (i % 3) }, () => ({ b: Rg.next() * 2, slope: (Rg.next() - 0.5) * 8 }));
     const say = [
       S.heroLabel(Rg.next(), Rg.next(), Rg.next() * 1.4),
-      S.twoSay("Cost jumps", loss(), i % 3 ? null : 0.5 + Rg.next() * 2, i % 2 === 0, i % 4 ? null : Rg.next() * 2),
-      S.twoVerdict(["zero", "smooth", "hold", null][i % 4], i % 5 !== 0, i % 3 ? null : Rg.next() * 2),
+      S.twoSay("Cost jumps", loss(), i % 3 ? null : 0.5 + Rg.next() * 2, i % 2 === 0, i % 4 ? [] : [[Rg.next(), 1 + Rg.next()], ...(i % 8 ? [] : [[2, 2]])]),
+      S.twoVerdict(["zero", "smooth", "hold", null][i % 4], i % 5 !== 0, i % 3 ? [] : [[Rg.next(), 1 + Rg.next()]]),
+      S.gridZeroNote(i % 7),
       S.twoNote(i % 3 ? null : 1, i % 2 === 0, i % 5 ? null : 1.5),
       S.iterateSay(i % 31, Rg.next() * 0.3, Rg.next() * 2.5, st, ch[29]),
       S.iterateVerdict(["3", "10", "20", "never", null][i % 5], st, ch[29]),
       S.moreSay(Rg.next() * 10 ** (-6 * Rg.next()), Rg.next() * 6, 1 + Rg.next() * 5),
-      S.p13Say(i % 6, { eps: 0.05, lo: 1.2, hi: 1.4, min: 1.25, max: 1.3, crossings: 1, above: Rg.next(), below: Rg.next(), slope: Rg.next(), ratios: [Rg.next(), Rg.next()], err: Rg.next() * 0.01, wb: Rg.next() * 0.01, pm: Rg.next(), pms: [Rg.next(), Rg.next()] }),
+      S.p13Say(i % 6, { eps: 0.05, lo: 1.2, hi: 1.4, min: 1.25, max: 1.3, crossings: 1, above: Rg.next(), below: Rg.next(), slope: Rg.next(), ratios: [Rg.next(), Rg.next()], err: Rg.next() * 0.01, wb: Rg.next() * 0.01, pm: Rg.next(), pms: [Rg.next(), Rg.next()], wbs: [Rg.next(), Rg.next()] }),
       S.rootsVerdict(["one", "two", "more"][i % 3], roots), S.rootsSay(Rg.next() * 2, Rg.next() * 2, Rg.next(), Rg.next()),
       S.algoSay(i % 5, { t: Rg.next() * 2.5, c: Rg.next(), b: Rg.next() * 2, l: Rg.next() * 2, top: Rg.next() * 12, first: Rg.next() * 0.3, a: Rg.next() * 2, b0: Rg.next(), b30: Rg.next(), kernels: 1 + (i % 20), last: Rg.next() * 0.01, shift: 0.058, x: Rg.next(), ex: Rg.next() }),
       S.lossText(Rg.next() * 30 - 0.01),
@@ -260,17 +338,25 @@ check("bins", "levels below 0.01 use the kernel for 0.01", kernelForBound(0.004)
   }
   check("words", "the plates' sentences never print NaN, undefined, Infinity, or null", bad === 0, `${n} sentences, ${bad} bad`);
   const r = R.compareRules(costOf({ id: "jump" }), null), say = S.twoSay("Cost jumps", r.loss, null, false);
-  check("words", "on the jump, the sentence prints the three losses and says averaging costs does worse than the per-moment rule", [r.loss.pm, r.loss.avg, r.loss.wb].every((x) => say.includes(S.lossText(x))) && r.loss.avg > r.loss.pm && /worse than not looking ahead/.test(say), say);
+  const parts = (txt) => txt.match(/weighted rule loses (\S+) points per 100 trials, the per-moment rule (\S+), and the averaged-cost rule (\S+?)\. /);
+  const pj = parts(say);
+  check("words", "on the jump, the sentence names each rule's own loss and says averaging costs does worse than the per-moment rule", pj && pj[1] === S.lossText(r.loss.wb) && pj[2] === S.lossText(r.loss.pm) && pj[3] === S.lossText(r.loss.avg) && r.loss.avg > r.loss.pm && /worse than not looking ahead/.test(say), say);
   check("words", "the iteration verdict: 'Right' when it never settles and the guess was 'not within 30'; the gap in updates otherwise", /^Right/.test(S.iterateVerdict("never", null, 0.008)) && /13 off/.test(S.iterateVerdict("20", 7, 1e-5)), S.iterateVerdict("20", 7, 1e-5));
   const spike = R.rootsAt(R.spikeCost, 0);
   check("words", "the spike's verdict says three levels fit and the local test lets the updates settle at two", /^Right\. Three levels fit here, and by the local test the damped updates can settle at two of them\.$/.test(S.rootsVerdict("more", spike.roots)), S.rootsVerdict("more", spike.roots));
   // the selectable edge cases the plate's sentences now cover: a constant cost where a rule scores above the program
   const k98 = R.compareRules(costOf({ id: "constant", params: { c: 0.98 } }), null), s98 = S.twoSay("Constant", k98.loss, null, false);
-  check("words", "a constant cost of 0.98: the losses print with their signs, and the sentence says what a negative loss means", ["pm", "avg", "wb"].every((x) => k98.loss[x] < 0 && s98.includes(S.lossText(k98.loss[x]))) && /−/.test(s98) && /scored a little above the dynamic program/.test(s98), s98);
+  const p98 = parts(s98);
+  check("words", "a constant cost of 0.98: each rule's own loss prints with its sign, and the sentence says what a negative loss means", p98 && p98[1] === S.lossText(k98.loss.wb) && p98[2] === S.lossText(k98.loss.pm) && p98[3] === S.lossText(k98.loss.avg) && ["pm", "avg", "wb"].every((x) => k98.loss[x] < 0) && p98.slice(1).every((v) => v.startsWith("−")) && /scored a little above the dynamic program/.test(s98), s98);
   check("words", "signed losses: −0.000951 reads −0.00095, 0.0137 reads 0.014, and 21.03 reads 21.0", S.lossText(-0.000951) === "−0.00095" && S.lossText(0.0137) === "0.014" && S.lossText(21.03) === "21.0", `${S.lossText(-0.000951)}; ${S.lossText(0.0137)}`);
-  const late = R.scheduleFor({ id: "deadline", params: { at: 3, c: 0.5 } }), rl = R.compareRules(late.cost, late.deadline), u = R.codeUntil(rl);
+  const late = R.scheduleFor({ id: "deadline", params: { at: 3, c: 0.5 } }), rl = R.compareRules(late.cost, late.deadline), u = R.codeStretches(rl);
   const sv = S.twoVerdict("hold", true, u), ss = S.twoSay("Deadline", rl.loss, rl.deadline, false, u);
-  check("words", "at (0.5, 3), the verdict and the sentence say the definition gives 0 and the paper's code holds a finite bound until a named time, with its loss", /By the paper's definition/.test(sv) && sv.includes(`until time ${u.toFixed(2)}`) && ss.includes(S.lossText(rl.loss.avgCode)), ss);
+  const zero = ss.match(/the averaged-cost rule's bound, by its definition, is 0 throughout: it decides at once and loses (\S+) points/), code = ss.match(/above 0 at the plotted times (from \S+ to \S+), and it loses (\S+?)\.(?= |$)/);
+  check("words", "at (0.5, 3), the sentence says the definition's bound is 0 with its loss, and names the code's stretch and its own loss; the verdict names the same stretch", zero && zero[1] === S.lossText(rl.loss.avg) && code && code[1] === `from ${u[0][0].toFixed(2)} to ${u[0][1].toFixed(2)}` && code[2] === S.lossText(rl.loss.avgCode) && /By the paper's definition/.test(sv) && sv.includes(code[1]), ss);
+  const jd = R.scheduleFor({ id: "jump" }, 2), rjd = R.compareRules(jd.cost, jd.deadline), sjd = R.codeStretches(rjd), vjd = S.twoVerdict("hold", true, sjd);
+  check("words", "the jump with a deadline added at 2: the verdict names the code's stretch, from 0.48 to 1.72 on the plotted times, and doesn't say it holds from the start", vjd.includes(`from ${sjd[0][0].toFixed(2)} to ${sjd[0][1].toFixed(2)}`) && !/until|from the start: that is/.test(vjd.split("The paper's code")[1] ?? ""), vjd);
+  const sdl = S.twoSay("Deadline", rl.loss, rl.deadline, false, u);
+  check("words", "on a deadline, the sentence says the weighted rule's bound stays above 0 until the deadline (no claim that it comes down smoothly)", /stays above 0 until the deadline/.test(sdl) && !/comes down/.test(sdl), sdl.slice(0, 120));
   check("words", "the first plate's note: the constant-cost note only for an unchanged constant schedule, not with a deadline added", S.twoNote(null, true, null) === S.constantNote() && !S.twoNote(null, true, 1).includes("every rule gives") && /own deadline/.test(S.twoNote(1, false, null)), S.twoNote(null, true, 1));
   check("words", "the 300-update sentence reports the difference only, not that the 30th had settled", !/settled/.test(S.moreSay(3e-11, 0.5, 6)) && !/settled/.test(S.moreSay(0, 0, 6)), S.moreSay(3e-11, 0.5, 6));
 }
