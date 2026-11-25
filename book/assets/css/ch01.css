@@ -1,0 +1,12 @@
+/* Chapter 1: what the shared classes can't give. The per-moment rule's value at a moment is an open slate dot, so
+   it reads apart from the best bound's ink dot where the two sit close; the costs a schedule reaches are a soft
+   orange band on the constant-cost bound; Figure 1's panels can be picked, and the picked one is shaded. */
+.chart .pm-dot { fill: var(--print); stroke: var(--pm); stroke-width: 2; }
+.chart .pm-guide { stroke: var(--pm); stroke-width: 1.2; stroke-dasharray: 3 3; fill: none; }
+.chart .acc-guide { stroke: var(--accent-print); stroke-width: 1.2; stroke-dasharray: 3 3; fill: none; }
+.chart .reach { stroke: var(--accent-print); stroke-width: 8; stroke-linecap: round; opacity: 0.22; fill: none; }
+.chart .reach-dot { fill: var(--accent-print); opacity: 0.22; }
+.chart .miss { stroke: var(--accent-print); stroke-width: 2.6; fill: none; }
+.chart .panel-sel { fill: var(--print-2); }
+.chart .panel-hit { fill: transparent; cursor: pointer; }
+.chart .lab.sel { fill: var(--print-ink); }
