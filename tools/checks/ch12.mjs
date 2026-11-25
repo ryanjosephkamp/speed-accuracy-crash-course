@@ -263,25 +263,39 @@ function scaleJob(cost, c0) {
     const choice = { id: "draw", points: DRAW_TIMES.map((t, i) => (i === 0 ? 0.02 : i === 1 ? 0.05 : i === 25 ? 2 : 0.01)) }, cost = costOf(choice), c0 = avg(cost);
     const m = await runWorker("../../book/assets/js/dp-worker.js", { job: "scale", choice, c0, eps: EPS, view: VIEW });
     const { u, gFo, gPm } = M.urgencies(m.t, m.b0, m.runs, cost, c0, EPS), d = { kind: "scale", t: m.t, c0, outside: false, u, gFo, gPm };
-    const T0 = S.yoursText(d, EPS, 0), T2 = S.yoursText(d, EPS, 2);
+    const T0 = S.yoursText(d, EPS, 0), T1 = S.yoursText(d, EPS, 1), T2 = S.yoursText(d, EPS, 2);
+    const shown = (T) => [T.fo, T.pm].every((x) => /^\d+(\.\d+)?%$/.test(x));
     const none = S.yoursSay(EPS, 0, [NaN, 0.2, NaN], [NaN, 0.1, NaN], [126, 40, 126], false, 126);
-    check("yours", "a drawing with no time at full size where all three curves are defined (the worker's run): the full-size gaps are unavailable, not 0, in both readings and the sentence, with no count of 0 times; the smaller sizes keep their gaps and the ranking; and with the smallest size unavailable too, neither urgency is ranked",
+    check("yours", "a drawing with no time at full size where all three curves are defined (the worker's run): the full-size gaps are unavailable, not 0, in both readings and the sentence, with no count of 0 times; at both smaller sizes both readings are finite percents over their 80 and 124 common times, and the ranking stands; and with the smallest size unavailable too, neither urgency is ranked",
       u.map((x) => x.used).join() === "0,80,124" && Number.isNaN(gFo[0]) && Number.isNaN(gPm[0]) && T0.fo === "unavailable" && T0.pm === "unavailable" && T0.note === "no time drawn has all three curves defined"
-      && /so the gaps can't be computed at that size/.test(T0.say) && !/by 0|0%|over the 0 of/.test(T0.say) && /not the closer of the two/.test(T0.say) && Number.isFinite(gFo[2]) && /× the constant|of the constant cost's urgency/.test(T2.note)
+      && /so the gaps can't be computed at that size/.test(T0.say) && !/by 0|0%|over the 0 of/.test(T0.say) && /not the closer of the two/.test(T0.say) && [1, 2].every((j) => Number.isFinite(gFo[j]) && Number.isFinite(gPm[j])) && shown(T1) && shown(T2)
+      && T1.fo === S.gapShown(gFo[1]) && T2.pm === S.gapShown(gPm[2]) && /^of the constant cost's urgency, over the 80 of 126/.test(T1.note) && /^of the constant cost's urgency, over the 124 of 126/.test(T2.note)
       && /ranks neither urgency/.test(none) && !/closer/.test(none),
-      `${u.map((x) => x.used).join(", ")} of 126 times; ${T0.fo}; ${T0.say} | ${none}`);
+      `${u.map((x) => x.used).join(", ")} of 126 times; full ${T0.fo}, 25% ${T1.fo} and ${T1.pm}, 6.25% ${T2.fo} and ${T2.pm}; ${T0.say} | ${none}`);
   }
-  // a drawing at 0.01 to 2.4 with its last point at 0.244631958: at the smallest size the two gaps print alike at the
-  // usual digits (13.03%), so the plate gives them the digits that tell them apart and says by how much one is closer
-  {
-    const choice = { id: "draw", points: DRAW_TIMES.map((t, i) => (i === 25 ? 0.244631958 : 0.01)) }, cost = costOf(choice), c0 = avg(cost);
+  // two drawings at 0.01 to 2.4, ending at 0.244631958 and at 0.24, run through the worker. At the smallest size, the
+  // first pair agrees to the readings' two decimals (13.03%), so the readings and the sentence carry the digits that
+  // tell them apart, and the ranking gives the measured margin as a result on this grid; the second pair (12.60% and
+  // 12.85%) differs at two decimals, so it gets no extra digits and no such qualifier
+  for (const [lastKnot, alike] of [[0.244631958, true], [0.24, false]]) {
+    const choice = { id: "draw", points: DRAW_TIMES.map((t, i) => (i === 25 ? lastKnot : 0.01)) }, cost = costOf(choice), c0 = avg(cost);
     const m = await runWorker("../../book/assets/js/dp-worker.js", { job: "scale", choice, c0, eps: EPS, view: VIEW });
     const { u, gFo, gPm } = M.urgencies(m.t, m.b0, m.runs, cost, c0, EPS), L = EPS.length - 1, d = { kind: "scale", t: m.t, c0, outside: false, u, gFo, gPm };
     const TL = S.yoursText(d, EPS, L), T0 = S.yoursText(d, EPS, 0);
-    check("yours", "two gaps that print alike at the usual digits (13.03% at the smallest size, on a drawing ending at 0.244631958): the readings and both sentences give them to the digits that tell them apart, and the ranking says by how much and that it shows only at that precision",
-      S.gapShown(gFo[L]) === S.gapShown(gPm[L]) && TL.fo !== TL.pm && TL.say.includes(`by up to ${TL.fo} of the constant cost's urgency, and the per-moment urgency by up to ${TL.pm}`) && T0.say.includes(`${TL.fo} and ${TL.pm}`)
-      && /not the closer of the two to the best bound's, by [^,]+ of the constant cost's urgency, a margin that shows only at this precision/.test(TL.say) && !/the gaps are 13% and 13%/.test(T0.say),
-      `${gFo[L].toFixed(9)} and ${gPm[L].toFixed(9)}: readings ${TL.fo} and ${TL.pm}; ${TL.say}`);
+    // the margin as the sentence prints it, read back as a number and held to the two worker gaps
+    const mt = (TL.say.match(/, by ([0-9.]+(?: × 10[⁻⁰¹²³⁴⁵⁶⁷⁸⁹]+)?)% of the constant cost's urgency/) || [])[1];
+    const sup = { "⁻": "-", "⁰": "0", "¹": "1", "²": "2", "³": "3", "⁴": "4", "⁵": "5", "⁶": "6", "⁷": "7", "⁸": "8", "⁹": "9" };
+    const mv = mt ? (mt.includes("×") ? +mt.split(" × ")[0] * 10 ** +mt.split("10")[1].split("").map((c) => sup[c]).join("") : +mt) : NaN;
+    const diff = 100 * Math.abs(gFo[L] - gPm[L]);
+    const pairOk = TL.fo !== TL.pm && TL.fo === S.gapPair(gFo[L], gPm[L]).a && TL.pm === S.gapPair(gFo[L], gPm[L]).b
+      && TL.say.includes(`by up to ${TL.fo} of the constant cost's urgency, and the per-moment urgency by up to ${TL.pm}`) && T0.say.includes(`the gaps are ${TL.fo} and ${TL.pm}`);
+    const ok = alike
+      ? S.gapShown(gFo[L]) === S.gapShown(gPm[L]) && pairOk && Math.abs(mv - diff) <= 0.05 * diff && /the two agree to two decimals of a percent, so the ranking rests on a difference measured on this grid/.test(TL.say)
+      : S.gapShown(gFo[L]) !== S.gapShown(gPm[L]) && pairOk && TL.fo === S.gapShown(gFo[L]) && TL.pm === S.gapShown(gPm[L]) && mt === undefined && !/agree to two decimals|measured on this grid/.test(TL.say);
+    check("yours", alike
+      ? "a drawing ending at 0.244631958 (the worker's run): at the smallest size the two gaps agree to the readings' two decimals, so the readings and both sentences give one pair with the digits that tell them apart, and the ranking's printed margin is the two worker gaps' difference (within its rounding) and is called a result on this grid"
+      : "a drawing ending at 0.24 (the worker's run): at the smallest size the two gaps differ at the readings' two decimals (12.60% and 12.85%), so the readings and both sentences print that pair and the ranking carries no margin or precision qualifier",
+      ok, `${gFo[L].toFixed(9)} and ${gPm[L].toFixed(9)}: readings ${TL.fo} and ${TL.pm}; margin ${mt ?? "none"} against ${diff.toExponential(2)}; ${TL.say}`);
   }
   {
     const tie = S.yoursSay(EPS, 2, [0.1, 0.01, 3e-9], [0.1, 0.01, 3e-9 + 1e-13]), apart = S.yoursSay(EPS, 2, [0.1, 0.01, 7.1e-9], [0.1, 0.01, 2.1e-7]);

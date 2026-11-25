@@ -754,11 +754,11 @@ function sweepPlate() {
     if (mine) for (const r of mine.rows) { const e = Math.max(0.03, Math.abs(r.ratio - 1) * 100); s += `<circle class="ring-acc" cx="${(f.sx(r.rel) + 12).toFixed(1)}" cy="${f.sy(e).toFixed(1)}" r="4.5"/>`; }
     chart.innerHTML = svg(f, s, "The fitted swing's error against the size of the change, on log axes, from Table 2 and this page's program, with a slope-2 guide");
     const fp = frame(phase, { x: [0.04, 0.8], y: [0.05, 3], xlog: true, ylog: true, aspect: 0.32, minH: 140, maxH: 190 });
-    let p = axes(fp, { yl: "phase residual, absolute (°)", xl: "ε/c₀", grid: true, xt: M.SWEEP.rels, fx: (v) => String(v) });
+    let p = axes(fp, { yl: "size of the phase residual (°)", xl: "ε/c₀", grid: true, xt: M.SWEEP.rels, fx: (v) => String(v) });
     p += line(fp, M.TABLE2.map((r) => r[0]), M.TABLE2.map((r) => r[4]), "ex-thin");
     for (const r of M.TABLE2) p += `<circle class="ink-dot" cx="${fp.sx(r[0]).toFixed(1)}" cy="${fp.sy(r[4]).toFixed(1)}" r="3.4"/>`;
-    if (mine) for (const r of mine.rows) p += `<circle class="ring-acc" cx="${(fp.sx(r.rel) + 8).toFixed(1)}" cy="${fp.sy(Math.max(0.05, Math.min(3, Math.abs(r.phase)))).toFixed(1)}" r="4.5"/>`;
-    phase.innerHTML = svg(fp, p, `The absolute phase residual, fitted phase minus predicted phase, against the size of the change: Table 2's largest at each size over its six costs and frequencies (dots)${mine ? `, and this page's program at c₀ = ${mine.c0} and ω = ${mine.om} (rings)` : ""}`);
+    if (mine) for (const r of mine.rows) p += `<circle class="ring-acc" cx="${(fp.sx(r.rel) + 8).toFixed(1)}" cy="${fp.sy(M.phasePlotted(r)).toFixed(1)}" r="4.5"/>`;
+    phase.innerHTML = svg(fp, p, `The size of the phase residual, the fitted phase's distance from the predicted phase, against the size of the change: Table 2's largest at each size over its six costs and frequencies (dots)${mine ? `, and this page's program at c₀ = ${mine.c0} and ω = ${mine.om} (rings)` : ""}`);
     liftReady(fig);
   };
   const reveal = () => { shown = true; verdict.textContent = S.sweepVerdict(guess, at03, at06); draw(); };
@@ -772,7 +772,7 @@ function sweepPlate() {
     run({ job: "sweep", c0, om }, { key: "ch09-sweep", progress: (q) => { if (my === gen) state.textContent = `Solving the program at four sizes… ${Math.round(q * 4)} of 4`; } }).then((m) => {
       if (my !== gen) return;
       mine = m;
-      reads.innerHTML = m.rows.map((r) => `<div><dt>ε/c₀ = ${r.rel}</dt><dd>${(Math.abs(r.ratio - 1) * 100).toFixed(2)}%<small>phase residual ${r.phase.toFixed(2).replace("-", "−")}°</small></dd></div>`).join("");
+      reads.innerHTML = m.rows.map((r) => `<div><dt>ε/c₀ = ${r.rel}</dt><dd>${S.sweepReading(r).swing}<small>${S.sweepReading(r).phase}</small></dd></div>`).join("");
       const ci = M.SWEEP.costs.indexOf(m.c0) + 1;
       const paperSmall = Math.max(...M.TABLE2.filter((r) => r[0] < 0.3).flatMap((r) => r[ci].map((v) => Math.abs(v - 1) * 100)));
       say.textContent = S.sweepSay(m.rows, m.c0, m.om, paperSmall);
