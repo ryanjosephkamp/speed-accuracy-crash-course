@@ -150,7 +150,7 @@ SECTIONS = [
         "title": "The reference, computed backward",
         "blocks": [
             ("plain", r"""
-Every loss in the paper is measured against one reference: the best policy for the gridded problem. The paper computes it by backward induction on an evidence grid. Start at the last grid time, where the choice is forced, so the value at evidence $x$ is the chance of being right, $\max(g(x), 1 - g(x))$, with $g(x) = 1/(1 + e^{-2x})$ the belief that the drift is $+1$. One step earlier, waiting is worth what the next step's value is worth on average, less the cost of the step:
+Outside the unknown-reliability test of chapter 11, every loss in the paper is measured against one reference: the best policy for the gridded problem. The paper computes it by backward induction on an evidence grid. Start at the last grid time, where the choice is forced, so the value at evidence $x$ is the chance of being right, $\max(g(x), 1 - g(x))$, with $g(x) = 1/(1 + e^{-2x})$ the belief that the drift is $+1$. One step earlier, waiting is worth what the next step's value is worth on average, less the cost of the step:
 
 $$V_{\mathrm{wait}}(t_k, x) = g(x)\,\mathbb{E}\,V(t_{k+1}, x + \Delta t + \sqrt{\Delta t}\,Z) + \bigl(1 - g(x)\bigr)\,\mathbb{E}\,V(t_{k+1}, x - \Delta t + \sqrt{\Delta t}\,Z) - c(t_k)\,\Delta t,$$
 
@@ -328,7 +328,7 @@ At $\omega = 0.5$, the closed form gives a swing of {{T:tab_sinusoid:1:2}} and a
 """),
                 (r"Why does the fit stop 6 time units before the horizon?",
                  r"""
-The paper gives the setup, not the reason; here is the natural reading. The dynamic program has a forced choice at its horizon, and near it the optimal bound collapses toward the forced choice ({{ref:sec:loss-check}} reports the same effect before $t = 10$). That collapse isn't part of the steady sinusoidal response. Ending the fit 6 time units earlier, and starting it at $t = 2$, keeps it in the stretch where the response is periodic.
+The paper gives the setup, not the reason. Near its horizon, the program's bound collapses toward the forced choice ({{ref:sec:loss-check}} reports the same effect before $t = 10$). The fit is of the bound's difference from a constant-cost solve with the same forced choice, and it ends 6 time units before the horizon; Appendix B measures how far back a forced choice moves the bound at a constant cost.
 """),
                 (r"Use the printed errors to check “about like $(\varepsilon/c_0)^2$.”",
                  r"""
