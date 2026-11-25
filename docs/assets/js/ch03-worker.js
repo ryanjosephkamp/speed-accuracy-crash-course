@@ -10,9 +10,9 @@
 //     beside the continuous best and the earn plate's curve of averages: a like-for-like comparison of a bound held flat
 //     with the best time-dependent policy, and the plate's heavier sums off the page's thread
 // Both answer through valueJob and flatJob, which tools/checks/ch03.mjs also runs.
-import { valueSurface, bestFlat, bestFlatOnGrid, flatOnSchedule } from "./ch03-model.js?v=50386feefc";
-import { boundForCost, toDiscrete } from "./model.js?v=50386feefc";
-import { costOf, deadlineOf, VIEW, SPARE } from "./schedules-book.js?v=50386feefc";
+import { valueSurface, bestFlat, bestFlatOnGrid, flatOnSchedule } from "./ch03-model.js?v=06afe54c9a";
+import { boundForCost, toDiscrete } from "./model.js?v=06afe54c9a";
+import { costOf, deadlineOf, VIEW, SPARE } from "./schedules-book.js?v=06afe54c9a";
 
 export function valueJob(m, progress = null) {
   const dt = m.dt ?? 0.01, h = m.h ?? 0.02;
@@ -45,7 +45,8 @@ export function flatJob(m) {
   // the earn plate's curve: the averages for 60 flat bounds from 0.05 to 3, checking the evidence continuously
   const bs = Array.from({ length: 60 }, (_, i) => 0.05 + (2.95 * i) / 59), os = bs.map((v) => flatOnSchedule(cost, v, dl));
   const curve = { b: bs, reward: os.map((o) => o.reward), bill: os.map((o) => o.bill), net: os.map((o) => o.net) };
-  return { horizon, b: cont.b, net: cont.net, reward: cont.reward, bill: cont.bill, gridX: grid.x, grid: grid.reward, shifted: grid.shifted, curve };
+  return { horizon, b: cont.b, net: cont.net, reward: cont.reward, bill: cont.bill, gridX: grid.x, grid: grid.reward, shifted: grid.shifted, curve,
+    search: { cap: grid.cap, scan: grid.scan, scores: grid.scores, refined: grid.refined } };
 }
 
 self.onmessage = (e) => {

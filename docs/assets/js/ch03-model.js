@@ -3,10 +3,10 @@
 // the constant-cost problem (the value of a flat bound, the reward g(b) - c b tanh b and its slope), the standing
 // assumption checked on a schedule, and the dynamic program with its value V(t, y) kept on a grid. The page, the
 // worker, and tools/checks/ch03.mjs all import it.
-import { B, Bprime, survival, kappa, rng, OVERSHOOT } from "./kernel.js?v=50386feefc";
-import { belief, grid, score } from "./model.js?v=50386feefc";
-import { costOf, deadlineOf, paramsOf, DRAW_MIN, DRAW_MAX, VIEW } from "./schedules-book.js?v=50386feefc";
-import { dropAt } from "./chart.js?v=50386feefc";
+import { B, Bprime, survival, kappa, rng, OVERSHOOT } from "./kernel.js?v=06afe54c9a";
+import { belief, grid, score } from "./model.js?v=06afe54c9a";
+import { costOf, deadlineOf, paramsOf, DRAW_MIN, DRAW_MAX, VIEW } from "./schedules-book.js?v=06afe54c9a";
+import { dropAt } from "./chart.js?v=06afe54c9a";
 
 export { B, Bprime };
 export const g = (y) => belief(y);
@@ -399,11 +399,15 @@ export function bestFlatOnGrid(cost, horizon, { dt = 0.01, h = 0.02, cap = 5, ne
   const peaks = xs.map((x, i) => i).filter((i) => (i === 0 || vs[i] >= vs[i - 1]) && (i === xs.length - 1 || vs[i] >= vs[i + 1]))
     .sort((i, j) => vs[j] - vs[i]).slice(0, 3);
   let best = { x: xs[peaks[0]], f: vs[peaks[0]] };
+  const refined = [];
   for (const i of peaks) {
-    const r = argmax(at, xs[Math.max(0, i - 1)], xs[Math.min(xs.length - 1, i + 1)], 5, 1e-5);
+    const lo = xs[Math.max(0, i - 1)], hi = xs[Math.min(xs.length - 1, i + 1)], r = argmax(at, lo, hi, 5, 1e-5);
+    refined.push({ peak: xs[i], lo, hi, x: r.x, f: r.f });
     if (r.f > best.f) best = r;
   }
-  return { x: best.x, reward: best.f, shifted: near === null ? NaN : at(near), x0: near, scanned: xs.length, peaks: peaks.length };
+  // scan and refined: what the search did, for the checks (the scanned levels and their scores, and each refined peak
+  // with its bracket and result)
+  return { x: best.x, reward: best.f, shifted: near === null ? NaN : at(near), x0: near, cap, scan: xs, scores: vs, refined };
 }
 
 /** The routes plate's step 2 axis: tall enough for the highest trial level's dot, c (b + sinh(2b)/2) at b = 1.3 B(c). */

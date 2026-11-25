@@ -107,19 +107,24 @@ export function overshootSay(dt, mean, se, n) {
 
 const between = (a, b) => (f2(a) === f2(b) ? `at ${f2(a)}` : `between ${f2(a)} and ${f2(b)}`);
 /** The sentence under the coefficient plate. steady: [lo, hi] of k over the times where the cost holds steady (or
- * null); all: { lo, hi, tLo, tHi } over the window (null where no time has a coefficient); lastK: k at the last check before a deadline (or null). A
- * departure is a value more than 0.03 from 0.5826. */
+ * null); all: { lo, hi, tLo, tHi, loSteady, hiSteady, loB, hiB } over the window, with whether each extreme falls where
+ * the cost holds steady and the two bounds there (null where no time has a coefficient); lastK: k at the last check
+ * before a deadline (or null). A departure is a value more than 0.03 from 0.5826. A departure near a change in the cost
+ * is put down to the bound moving a long way within a few checks; one where the cost holds steady is only reported. */
 export function coefSay(steady, all, lastK, constant) {
-  const K0 = 0.5826;
+  const K0 = 0.5826, near = (a, b) => a >= K0 - 0.03 && b <= K0 + 0.03;
   if (!all) return "At every time compared, one of the two bounds is 0 or past the cap, so there is no coefficient to draw.";
-  let s = steady ? `Where the cost holds steady, the measured coefficient stays ${between(steady[0], steady[1])}, near ${K0}. ` : "";
+  let s = steady ? `Where the cost holds steady, the measured coefficient stays ${between(steady[0], steady[1])}, ${near(steady[0], steady[1]) ? "near" : "more than 0.03 from"} ${K0}. ` : "";
   if (constant) return s + "The cost never changes here, so every time is steady.";
   const down = all.lo < K0 - 0.03, up = all.hi > K0 + 0.03;
+  const where = (st, b) => (st ? `, where the cost holds steady and the two bounds are ${f3(b[0])} and ${f3(b[1])}` : ", near a change in the cost");
   if (down || up) {
     const parts = [];
-    if (down) parts.push(`falls to ${f2(all.lo)} at time ${f2(all.tLo)}`);
-    if (up) parts.push(`rises to ${f2(all.hi)} at time ${f2(all.tHi)}`);
-    s += `It ${parts.join(" and ")}: where the bound moves a long way within a few checks, the leading-order shift no longer describes it. `;
+    if (down) parts.push(`falls to ${f2(all.lo)} at time ${f2(all.tLo)}${where(all.loSteady, all.loB)}`);
+    if (up) parts.push(`rises to ${f2(all.hi)} at time ${f2(all.tHi)}${where(all.hiSteady, all.hiB)}`);
+    s += `It ${parts.join(", and ")}. `;
+    if ((down && !all.loSteady) || (up && !all.hiSteady)) s += "Near a change, the bound moves a long way within a few checks, which the leading-order shift doesn't describe. ";
+    if ((down && all.loSteady) || (up && all.hiSteady)) s += "Where the cost holds steady, the bound isn't moving fast: that departure is a measurement on this grid, which the leading-order result doesn't account for. ";
   } else s += `Over the whole ${lastK !== null ? "trial" : "window"} it stays ${between(all.lo, all.hi)}, within 0.03 of ${K0}. `;
   if (lastK !== null && Number.isFinite(lastK)) s += `At the last check before the deadline it is ${f2(lastK)}.`;
   return s.trim();
@@ -163,6 +168,11 @@ export function sweepVerdict(guess, at03, at06) {
   const kind = Math.abs(g - 4 * at03) < 1e-9 ? "second order" : Math.abs(g - 2 * at03) < 1e-9 ? "first order" : "third order";
   if (kind === "second order") return `Right. ${fact}`;
   return `That is what a ${kind} error would give. ${fact}`;
+}
+
+/** The sweep's reading for one of this page's runs: the swing error, and the phase residual with its sign. */
+export function sweepReading(r) {
+  return { swing: `${(Math.abs(r.ratio - 1) * 100).toFixed(2)}%`, phase: `phase residual ${r.phase.toFixed(2).replace("-", "−")}°` };
 }
 
 /** The sentence under the sweep plate for this page's own runs: rows { rel, ratio, phase }, at the cost and frequency;

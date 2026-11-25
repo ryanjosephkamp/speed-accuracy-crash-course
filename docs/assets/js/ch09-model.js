@@ -4,8 +4,8 @@
 // checked every dt; the paper's two tests of the first-order theory (the sinusoid of Section 6.2 and the wider
 // sweep of Table 2), run on this page's grid; and the rules scored with and without the monitoring shift and on
 // finer grids. tools/checks/ch09.mjs holds these to model.js, to the paper's tables, and to each other.
-import { grid, belief, boundForCost, toDiscrete, OVERSHOOT, exactPolicy, score, perMoment, weightedBound } from "./model.js?v=50386feefc";
-import * as K from "./kernel.js?v=50386feefc";
+import { grid, belief, boundForCost, toDiscrete, OVERSHOOT, exactPolicy, score, perMoment, weightedBound } from "./model.js?v=06afe54c9a";
+import * as K from "./kernel.js?v=06afe54c9a";
 
 export { OVERSHOOT };
 export const DT = 0.01, H = 0.02, CAP = 5;   // this page's grid, as every chapter's program uses it
@@ -315,7 +315,8 @@ export function onePath(b, dt, R, sub = 24) {
   return { path, checks, stop: checks[checks.length - 1], first: first || path[path.length - 1], side: Math.sign(x) || 1 };
 }
 
-/** What the overshoot plate marks for a run P checked every dt, drawn over its last nine checks (from tBeg): "ring" when
+/** What the overshoot plate marks for a run P checked every dt, drawn over up to nine check intervals ending at the stop
+ * (from tBeg, or from 0 for a shorter run): "ring" when
  * the first fine step past the bound comes before the check that sees it and inside that window, "earlier" when it
  * comes before the window (the plate gives its time instead), and null when it is the stopping check's own step. */
 export function firstPastMark(P, dt) {
@@ -403,6 +404,10 @@ export function sweepTest(c0, om, rels, { dt = DT, h = H, progress = null } = {}
   return out;
 }
 
+/** Where the sweep's bottom panel puts this page's ring for a row: the size of its signed phase residual, held inside
+ * the panel's range of 0.05 to 3 degrees. */
+export const phasePlotted = (r) => Math.max(0.05, Math.min(3, Math.abs(r.phase)));
+
 // ---- the monitoring shift ---------------------------------------------------------------------------------------------
 
 /** How far in the program's bound moves when the evidence is checked more often: the program on a grid checked every
@@ -428,20 +433,23 @@ export function shiftCoef(cost, horizon, { dtC = 0.01, dtF = 0.0025, h = 0.01, c
 /** What the coefficient plate prints from a shiftCoef run m on the schedule cost (deadline dl or null): the times it
  * draws (up to 2.5 or the deadline) and how many have a finite coefficient, the time of the last of those, the range
  * where the cost holds steady (within 2% in log over 0.3 time units either side, and not in the last 0.1 before a
- * deadline; null with fewer than 5 such times), the range over all drawn times (null if none is finite), and the value
- * at the last check before a deadline. */
+ * deadline; null with fewer than 5 such times), the range over all drawn times (null if none is finite), with whether
+ * each extreme falls where the cost holds steady and the two bounds there, and the value at the last check before a
+ * deadline. */
 export function coefSummary(m, cost, dl) {
   const view = dl ?? WINDOW;
   const steadyAt = (x) => { const c = cost(x); for (let u = Math.max(0, x - 0.3); u <= x + 0.3 + 1e-9; u += 0.01) { if (dl !== null && u > dl - 0.1) return false; if (!(Math.abs(Math.log(cost(u) / c)) < 0.02)) return false; } return true; };
   const drawn = m.t.map((x, i) => i).filter((i) => m.t[i] <= view + 1e-9), inView = drawn.filter((i) => Number.isFinite(m.k[i]));
   const st = inView.filter((i) => steadyAt(m.t[i])).map((i) => m.k[i]);
   const steady = st.length >= 5 ? [Math.min(...st), Math.max(...st)] : null;
-  let all = null;
+  let all = null, iLo = -1, iHi = -1;
   for (const i of inView) {
     if (!all) all = { lo: Infinity, hi: -Infinity, tLo: 0, tHi: 0 };
-    if (m.k[i] < all.lo) { all.lo = m.k[i]; all.tLo = m.t[i]; }
-    if (m.k[i] > all.hi) { all.hi = m.k[i]; all.tHi = m.t[i]; }
+    if (m.k[i] < all.lo) { all.lo = m.k[i]; all.tLo = m.t[i]; iLo = i; }
+    if (m.k[i] > all.hi) { all.hi = m.k[i]; all.tHi = m.t[i]; iHi = i; }
   }
+  // whether each extreme falls where the cost holds steady, and the two bounds there (checking every dtC and every dtF)
+  if (all) Object.assign(all, { loSteady: steadyAt(all.tLo), hiSteady: steadyAt(all.tHi), loB: [m.bC[iLo], m.bF[iLo]], hiB: [m.bC[iHi], m.bF[iHi]] });
   const lastK = dl !== null && inView.length ? m.k[inView[inView.length - 1]] : null;
   return { view, drawn: drawn.length, finite: inView.length, lastT: inView.length ? m.t[inView[inView.length - 1]] : null, steady, all, lastK, flat: isFlat(cost) };
 }

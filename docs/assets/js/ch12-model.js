@@ -2,7 +2,7 @@
 // rounding traps, the first-order urgency signal for a ramp and a sine wave, the kernel's quantiles, the fixed
 // kernel's average of the constant-cost bounds ahead, and the urgency gate. tools/checks/ch12.mjs holds these to the
 // paper's generated numbers, to its code at the tag, and to the closed forms they rest on.
-import * as K from "./kernel.js?v=50386feefc";
+import * as K from "./kernel.js?v=06afe54c9a";
 
 // ---------------------------------------------------------------- the Palmer observer
 /** The mean observer of Palmer, Huk, and Shadlen (2005) as the paper's figure script (paper/make_figures.py at the

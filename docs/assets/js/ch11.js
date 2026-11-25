@@ -3,19 +3,19 @@
 // the program with two bounds), from kernel.js (chapter 6's kernel, for the symmetric case), or from the paper's
 // Table 10 (as printed, and checked against paper/generated/tab_unknown.tex). The dynamic programs run in
 // ch11-worker.js. The words under each plate come from say-ch11.js, which takes numbers and returns sentences.
-import * as K from "./kernel.js?v=50386feefc";
-import * as M from "./ch11-model.js?v=50386feefc";
-import { PRESETS, DRAW, paramsOf, labelOf, defaultDrawing, costOf, deadlineOf, VIEW } from "./schedules-book.js?v=50386feefc";
-import { getChoice, setChoice, solve, onVisible, liftReady, seedParam, wireStrips } from "./book.js?v=50386feefc";
-import { frame, line, area, axes, svg, fmt, tags, keepDrawn } from "./chart.js?v=50386feefc";
-import * as S from "./say-ch11.js?v=50386feefc";
+import * as K from "./kernel.js?v=06afe54c9a";
+import * as M from "./ch11-model.js?v=06afe54c9a";
+import { PRESETS, DRAW, paramsOf, labelOf, defaultDrawing, costOf, deadlineOf, VIEW } from "./schedules-book.js?v=06afe54c9a";
+import { getChoice, setChoice, solve, onVisible, liftReady, seedParam, wireStrips } from "./book.js?v=06afe54c9a";
+import { frame, line, area, axes, svg, fmt, tags, keepDrawn } from "./chart.js?v=06afe54c9a";
+import * as S from "./say-ch11.js?v=06afe54c9a";
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const plate = (id) => document.getElementById("plate-" + id);
 const rootOf = (id) => plate(id)?.querySelector(".demo-root");
 const range = (a, b, n) => Array.from({ length: n }, (_, i) => a + ((b - a) * i) / (n - 1));
 const logRange = (a, b, n) => range(Math.log(a), Math.log(b), n).map(Math.exp);
-const WORKER = new URL("./ch11-worker.js?v=50386feefc", import.meta.url);
+const WORKER = new URL("./ch11-worker.js?v=06afe54c9a", import.meta.url);
 const segHTML = (name, opts, cur, legend) => `<fieldset class="seg"><legend>${legend}</legend><div class="seg-row">${opts.map(([v, lbl]) =>
   `<label><input type="radio" name="${name}" value="${v}"${String(v) === String(cur) ? " checked" : ""}><span>${lbl}</span></label>`).join("")}</div></fieldset>`;
 const onSeg = (el, name, fn) => el.querySelectorAll(`input[name="${name}"]`).forEach((r) => r.addEventListener("change", () => fn(r.value)));
