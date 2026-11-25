@@ -74,30 +74,34 @@ export const overTimes = (used, total) => (used === 0 ? `no time drawn has all t
 const SUP = { "-": "⁻", 0: "⁰", 1: "¹", 2: "²", 3: "³", 4: "⁴", 5: "⁵", 6: "⁶", 7: "⁷", 8: "⁸", 9: "⁹" };
 /** A small positive number with 1 + p decimals in its mantissa: 7.1 × 10⁻⁷. */
 const sci2 = (x, p = 0) => { const [m, e] = x.toExponential(1 + p).split("e"); return `${m} × 10${String(+e).split("").map((c) => SUP[c]).join("")}`; };
-/** A gap as a share of the constant cost's urgency, readable at any size: whole or one-decimal percents, then two
- * significant digits, so a small gap that isn't 0 never prints as 0; p more digits where two gaps need them. */
-const share = (x, p = 0) => (x === 0 ? "0%" : x >= 0.1 && !p ? `${Math.round(x * 100)}%` : x >= 0.001 ? `${(x * 100).toFixed(1 + p)}%` : `${sci2(x * 100, p)}%`);
+/** A gap at a size other than the smallest, as a share of the constant cost's urgency: whole or one-decimal percents,
+ * then two significant digits, so a small gap that isn't 0 never prints as 0. */
+const share = (x) => (x === 0 ? "0%" : x >= 0.1 ? `${Math.round(x * 100)}%` : x >= 0.001 ? `${(x * 100).toFixed(1)}%` : `${sci2(x * 100)}%`);
 /** The readings' form of a gap: two decimals of a percent, then two significant digits below 0.01% (p more digits where
  * two gaps need them); unavailable where no time has all three curves defined. */
 export const gapShown = (x, p = 0) => (!Number.isFinite(x) ? "unavailable" : x === 0 ? "0%" : x * 100 >= 0.01 ? `${(x * 100).toFixed(2 + p)}%` : `${sci2(x * 100, p)}%`);
 /** Two gaps closer than this are a tie: computed differences that small are not a ranking. */
 export const GAP_TIE = 1e-12;
-/** Two gaps printed by fmt with as many more digits (up to 8) as it takes to tell them apart; a tie prints alike.
- * extra: how many digits were added. */
+/** Two gaps printed as the readings print them, with as many more digits (up to 8) as it takes to tell them apart; a
+ * tie prints alike. extra: how many digits were added. */
 export function gapPair(a, b, fmt = gapShown) {
   let p = 0;
   while (p < 8 && Number.isFinite(a) && Number.isFinite(b) && Math.abs(a - b) > GAP_TIE && fmt(a, p) === fmt(b, p)) p++;
   return { a: fmt(a, p), b: fmt(b, p), extra: p };
 }
-const gapText = (x, p = 0) => (x >= 1 ? `up to ${p ? x.toFixed(1 + p) : f1(x)} times the constant cost's urgency` : x > 0 ? `up to ${share(x, p)} of the constant cost's urgency` : `0`);
+const gapText = (x) => (x >= 1 ? `up to ${f1(x)} times the constant cost's urgency` : x > 0 ? `up to ${share(x)} of the constant cost's urgency` : `0`);
+/** How far apart two gaps are, in the readings' form. */
+export const gapMargin = (a, b) => gapShown(Math.abs(a - b));
 export function yoursSay(EPS, k, gFo, gPm, missing = [], outside = false, total = 0) {
   const last = EPS.length - 1, miss = (j) => missing[j] || 0, ok = (j) => Number.isFinite(gFo[j]) && Number.isFinite(gPm[j]);
-  // where the smallest size's two gaps print alike, they get the digits that tell them apart, and the ranking says by how much
-  const pr = gapPair(gFo[last], gPm[last], share), alike = pr.extra > 0, dig = k === last ? pr.extra : 0;
+  // the smallest size's two gaps as the readings print them there (one pair for the readings and this sentence): two
+  // decimals of a percent, or the more digits it takes to tell them apart
+  const pr = gapPair(gFo[last], gPm[last]), alike = pr.extra > 0;
+  const atLast = (str, x) => (x === 0 ? "0" : `up to ${str} of the constant cost's urgency`);
   let s;
   if (!ok(k)) s = `At ${sizeText(EPS[k])}${k === last ? ", the smallest" : ""}, no time drawn has all three curves defined: at each of the ${total}, a bound is at or below 0 and has no urgency, so the gaps can't be computed at that size. `;
   else {
-    s = `At ${sizeText(EPS[k])}${k === last ? ", the smallest" : ""}, the first-order urgency is off the best bound's by ${gapText(gFo[k], dig)}, and the per-moment urgency by ${gapText(gPm[k], dig)}`;
+    s = `At ${sizeText(EPS[k])}${k === last ? ", the smallest" : ""}, the first-order urgency is off the best bound's by ${k === last ? atLast(pr.a, gFo[k]) : gapText(gFo[k])}, and the per-moment urgency by ${k === last ? atLast(pr.b, gPm[k]) : gapText(gPm[k])}`;
     s += miss(k) ? `, both over the ${total - miss(k)} of ${total} times where all three curves are defined: at the other ${miss(k)}, a bound is at or below 0 and has no urgency, and the plate leaves a gap. ` : `, at every time drawn. `;
   }
   if (!ok(last)) {
@@ -105,7 +109,8 @@ export function yoursSay(EPS, k, gFo, gPm, missing = [], outside = false, total 
     return s + `so the plate ranks neither urgency.` + (outside ? ` The rising cost grows without bound, so it is outside the theorem: these gaps are a computation, with no theory behind them.` : "");
   }
   if (k !== last) s += `At the smallest size, ${sizeText(EPS[last])}, the gaps are ${pr.a} and ${pr.b}${miss(last) ? `, over the ${total - miss(last)} times where all three are defined` : ""}. `;
-  const by = alike ? `, by ${share(Math.abs(gFo[last] - gPm[last]))} of the constant cost's urgency, a margin that shows only at this precision` : "";
+  // where the two agree to the readings' two decimals, the ranking gives the measured margin and rests on this grid
+  const by = alike ? `, by ${gapMargin(gFo[last], gPm[last])} of the constant cost's urgency; the two agree to two decimals of a percent, so the ranking rests on a difference measured on this grid` : "";
   if (Math.abs(gFo[last] - gPm[last]) <= GAP_TIE) s += `There the two gaps are equal to within 10⁻¹², so neither urgency is the closer to the best bound's.`;
   else if (gFo[last] < gPm[last]) s += `There the first-order urgency, the one the prediction is about, is the closer of the two to the best bound's${by}.`;
   else s += `Even there, on this grid, the first-order urgency is not the closer of the two to the best bound's${by}.`;
