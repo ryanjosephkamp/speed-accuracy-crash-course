@@ -5,7 +5,7 @@
 import * as K from "../../book/assets/js/kernel.js";
 import { exactPolicy } from "../../book/assets/js/model.js";
 import { costOf, PRESETS, defaultDrawing, paramsOf, VIEW } from "../../book/assets/js/schedules-book.js";
-import { solveSchedule, frozenRule, costRange, leftSide, belief, gPrime, B, F, testStep, FIXED, areaTo, wAt, chords, halfCrossed, costBounds, bandStats, worstResidual, liveSummary } from "../../book/assets/js/ch05-model.js";
+import { solveSchedule, frozenRule, costRange, leftSide, belief, gPrime, B, F, testStep, FIXED, areaTo, wAt, chords, halfCrossed, costBounds, bandStats, worstResidual, liveSummary, isResolved, areaReading } from "../../book/assets/js/ch05-model.js";
 import * as S from "../../book/assets/js/say-ch05.js";
 import { check, N, asPrinted } from "./lib.mjs";
 
@@ -70,35 +70,56 @@ for (const [name, cost] of Object.entries(TEST)) {
 }
 
 // ---- the sweep stops where the program stops ---------------------------------------------------------------------
-// A bound closer to 0 than the grid's first step reads as 0 (as in model.js and the paper's backward_induction_x),
-// even where the center still waits; the sweep for E_y[c(t + tau*)] follows the program's own choice at each node.
+// When the first node past the center decides, the bound is below the grid's first step: model.js, and this chapter's
+// program, place it between the center and that node if the center still waits, and at 0 if the center decides too
+// (the paper's backward_induction_x reports 0 in both). The sweep for E_y[c(t + tau*)] follows the program's own
+// choice at each node, and the live plate treats every bound below h as unresolved, with one mask for its charts,
+// its reading at the time on show, and every number it reports.
 {
   const cost = costOf({ id: "jump", params: { at: 0.5, factor: 32 } });
-  const out = solveSchedule(cost, 10, { dt: 0.01, h: 0.02, cMin: 0.1, every: 1, lhsUpto: 3, snaps: [0.7], snapTo: 1 });
+  const out = solveSchedule(cost, 10, { dt: 0.01, h: 0.02, cMin: 0.1, every: 1, lhsUpto: 10, snaps: [0.7, 1.5], snapTo: 1 });
   const i = out.ts.findIndex((t) => Math.abs(t - 0.7) < 1e-9), sn = out.snaps[0];
-  check("grid", "a 32-fold jump at time 0.70 (Δt 0.01, h 0.02): the bound reads 0, while waiting beats deciding at the center", out.bounds[i] === 0 && sn.V[0] > 0.5 && out.centerWaits[i],
-    `bound ${out.bounds[i]}, value at 0 ${sn.V[0].toFixed(6)}, center waits ${out.centerWaits[i]}`);
+  check("grid", "a 32-fold jump at time 0.70 (Δt 0.01, h 0.02): the center waits, the first node decides, and the bound is placed between them",
+    out.bounds[i] > 0 && out.bounds[i] < 0.02 && sn.V[0] > 0.5 && out.centerWaits[i], `bound ${out.bounds[i].toFixed(5)}, value at 0 ${sn.V[0].toFixed(6)}, center waits ${out.centerWaits[i]}`);
+  const ref = exactPolicy(cost, 10, 0.01, 0.02, 5);
+  let d = 0, sub = 0, zero = 0;
+  for (let k = 0; k < ref.bounds.length - 1; k++) { d = Math.max(d, Math.abs(ref.bounds[k] - out.bounds[k])); if (out.bounds[k] > 0 && out.bounds[k] < 0.02) sub++; if (out.bounds[k] === 0) zero++; }
+  check("grid", "on that schedule, the chapter's program gives model.js's bounds at every step, below the first step included", d < 1e-9 && sub > 0, `largest difference ${d.toExponential(1)}; ${sub} steps placed below h, ${zero} at 0`);
   check("grid", "there the sweep waits at the center too: E_0[c(t + τ*)] is above the cost now, which is still rising", sn.u[0] > cost(0.7) + 1e-6, `${sn.u[0].toFixed(6)} vs ${cost(0.7).toFixed(6)}`);
-  // on the test schedules, the stop mask is the old rule |x| >= b at every step where the bound isn't 0
   let differ = 0;
   for (const name of Object.keys(TEST)) {
     const o = solveSchedule(TEST[name], 4, { dt: 0.01, h: 0.02, cMin: 0.1, every: 1, lhsUpto: 0 });
     for (let k = 0; k < o.ts.length - 1; k++) for (let n = 0; n <= o.M; n++) if ((n * 0.02 >= o.bounds[k]) !== (o.stop[k * (o.M + 1) + n] === 1)) differ++;
   }
   check("grid", "on the paper's three test schedules, the program's stop mask is exactly |x| ≥ b at every step and node", differ === 0, `${differ} nodes differ`);
-  // the live plate on that schedule, coarse grid: the count names its window, and the summaries leave those times out
-  const full = solveSchedule(cost, 10, { dt: 0.01, h: 0.02, cMin: 0.1, every: 1, lhsUpto: 10 }), rr = costRange(cost, 10);
-  Object.assign(full, { cMin: rr.lo, cMax: rr.hi });
-  const near = liveSummary(full, null, full, false, VIEW), far = liveSummary(full, null, full, true, VIEW);
-  const sayNear = S.liveSay({ label: "Cost jumps", dt: 0.01, w: near.w, wf: NaN, wc: NaN, pm: near.pm, far: false, constant: false, zeros: near.zeros, nWin: near.nWin, X: near.X, fold: near.fold, horizon: 10 });
-  const sayFar = S.liveSay({ label: "Cost jumps", dt: 0.01, w: far.w, wf: NaN, wc: NaN, pm: far.pm, far: true, tail: far.tail, constant: false, zeros: far.zeros, nWin: far.nWin, X: far.X, fold: far.fold, horizon: 10 });
-  check("words", "a 32-fold jump on Δt 0.01: the sentence counts the zero bounds in the window shown, 0 to 2.5 or to the forced choice",
-    near.zeros > 0 && near.nWin === 251 && far.nWin === 1000 && far.zeros > near.zeros && sayNear.includes(`At ${near.zeros} of the 251 times from 0 to 2.5`) && sayFar.includes(`At ${far.zeros} of the 1000 times from 0 to 10, before the forced choice`),
-    `${near.zeros} of ${near.nWin}; ${far.zeros} of ${far.nWin}`);
-  const raw = worstResidual(full, 0, VIEW);
-  check("grid", "there the largest residual leaves out the times whose bound reads 0, and says how many", near.skipped === near.zeros && near.w < raw.w,
-    `${near.w.toExponential(2)} over the resolved times, ${raw.w.toExponential(2)} with them; ${near.skipped} left out`);
-  check("grid", "and the time 0.70 on show reads as unresolved: its snapshot's bound is 0", sn.b === 0, `bound ${sn.b}`);
+  // the live plate on that schedule, coarse grid
+  const rr = costRange(cost, 10);
+  Object.assign(out, { cMin: rr.lo, cMax: rr.hi });
+  const near = liveSummary(out, null, out, false, VIEW), far = liveSummary(out, null, out, true, VIEW);
+  const unresAt = (from, to, strict) => out.ts.filter((t, k) => t >= from - 1e-9 && (strict ? t < to - 1e-9 : t <= to + 1e-9) && !isResolved(out, k)).length;
+  check("grid", "the count of unresolved times uses the plate's mask (bound below h) and names its window: 0 to 2.5, or up to the forced choice",
+    near.nWin === 251 && far.nWin === 1000 && near.unresolved === unresAt(0, 2.5, false) && far.unresolved === unresAt(0, 10, true) && near.unresolved > 0,
+    `${near.unresolved} of ${near.nWin}; ${far.unresolved} of ${far.nWin}`);
+  // every number liveSummary reports covers only resolved times: recompute each over the resolved times directly
+  const resolvedMax = (from, to, strict, arr) => { let w = -1, n = 0; out.ts.forEach((t, k) => { if (t >= from - 1e-9 && (strict ? t < to - 1e-9 : t <= to + 1e-9) && isResolved(out, k) && Number.isFinite(arr[k])) { n++; w = Math.max(w, Math.abs(arr[k] - 0.25)); } }); return n ? w : NaN; };
+  const eqOrBothNaN = (a, b) => (Number.isNaN(a) && Number.isNaN(b)) || Math.abs(a - b) < 1e-15;
+  const tailR = resolvedMax(9, 10, true, out.lhs), tailAll = worstResidual(out, 9, 10 - 1e-6).w;
+  check("grid", "the early maximum, the per-moment miss, and the last-unit maximum all use that mask (each recomputed over the resolved times)",
+    eqOrBothNaN(near.w, resolvedMax(0, 2.5, false, out.lhs)) && eqOrBothNaN(near.pm, resolvedMax(0, 2.5, false, out.pm)) && eqOrBothNaN(far.tail, tailR) && near.skipped === near.unresolved,
+    `early ${S.sci(near.w)}, per-moment ${near.pm.toFixed(4)}, last unit ${Number.isFinite(far.tail) ? far.tail.toFixed(4) : "none resolved"} (with the unresolved times: ${tailAll.toFixed(4)})`);
+  const sayNear = S.liveSay({ ...near, label: "Cost jumps", dt: 0.01, far: false, constant: false, horizon: 10 });
+  const sayFar = S.liveSay({ ...far, label: "Cost jumps", dt: 0.01, far: true, constant: false, horizon: 10 });
+  check("words", "the sentence names the window of its count, says the early maximum is over the resolved times, and reports an unresolved last unit as unresolved",
+    sayNear.includes(`At ${near.unresolved} of the 251 times from 0 to 2.5 (every 0.01)`) && sayFar.includes(`At ${far.unresolved} of the 1000 times from 0 to 10 before the forced choice`) && /at the resolved times on the grid/.test(sayNear)
+      && (Number.isFinite(far.tail) ? /at the resolved times, the left side moves away/.test(sayFar) : /isn't resolved there/.test(sayFar)) && !/moves away from ¼, by up to/.test(Number.isFinite(far.tail) ? "" : sayFar),
+    sayFar);
+  // the plate's reading at the time on show: areaReading, the function drawArea calls
+  const r07 = areaReading(out, out.snaps[0]), r15 = areaReading(out, out.snaps[1]);
+  check("grid", "the plate's reading at time 0.70 is unresolved, with no area or bound printed; where the bound is resolved, it prints both",
+    !r07.resolved && Number.isNaN(r07.area) && Number.isNaN(r07.bc) && (r15.resolved ? Number.isFinite(r15.area) && Number.isFinite(r15.bc) : true),
+    `0.70: resolved ${r07.resolved}; 1.50: resolved ${r15.resolved}, bound ${out.snaps[1].b.toFixed(4)}`);
+  const ok = solveSchedule(testStep, 4, { dt: 0.01, h: 0.02, cMin: 0.1, every: 1, lhsUpto: 3, snaps: [1.2], snapTo: 2 }), rok = areaReading(ok, ok.snaps[0]);
+  check("grid", "on the test schedule at time 1.2, the reading is resolved and is the left side at that time", rok.resolved && rok.area === ok.lhs[rok.i], `${rok.area.toFixed(4)}`);
 }
 
 // ---- the book's schedules on the live plate -----------------------------------------------------------------------
@@ -140,7 +161,7 @@ for (const [name, cost] of Object.entries(TEST)) {
       const g = costBounds(ch, paramsOf(ch));
       check("holder", "Figure 1(a): C = √15 from the formula's levels 0.1 and 1.6", Math.abs(Math.sqrt((g.hi - g.lo) / g.lo) - Math.sqrt(15)) < 1e-12, `${Math.sqrt((g.hi - g.lo) / g.lo).toFixed(6)}`);
       check("exact", "Figure 1(a): on the paper's grid, the residual over 0 to 2.5 is above the test's 1.5e-3, as the text says", w.w > 1.5e-3, `${w.w.toExponential(2)}`);
-      const say = S.liveSay({ label: "Cost jumps", dt: 0.002, w: w.w, wf: w.w, wc: wc.w, pm: 0.15, far: false, constant: false, zeros: 0, fold: r.hi / r.lo, horizon: 10 });
+      const say = S.liveSay({ label: "Cost jumps", dt: 0.002, w: w.w, wf: w.w, wc: wc.w, pm: 0.15, far: false, constant: false, unresolved: 0, skipped: 0, fold: r.hi / r.lo, horizon: 10 });
       check("words", "the live sentence on Figure 1(a): says refinement lowers the residual and names the test's allowance and the 16-fold change, without calling the grid the source",
         /lowers the largest residual/.test(say) && /1\.5 × 10⁻³/.test(say) && /16-fold/.test(say) && !/main source/.test(say), say);
     }
@@ -148,7 +169,7 @@ for (const [name, cost] of Object.entries(TEST)) {
   {
     const out = fineOf.constant, w = worstResidual(out, 0, VIEW).w;
     let tail = 0; out.ts.forEach((t, i) => { if (t >= out.horizon - 1 && Number.isFinite(out.lhs[i])) tail = Math.max(tail, Math.abs(out.lhs[i] - 0.25)); });
-    const say = S.liveSay({ label: "Constant", dt: 0.002, w, wf: w, wc: worstResidual(coarseOf.constant, 0, VIEW).w, pm: 0, far: true, tail, horizon: 10, constant: true, zeros: 0, nWin: 1000, X: 10, fold: 1 });
+    const say = S.liveSay({ label: "Constant", dt: 0.002, w, wf: w, wc: worstResidual(coarseOf.constant, 0, VIEW).w, pm: 0, far: true, tail, horizon: 10, constant: true, unresolved: 0, skipped: 0, nWin: 1000, X: 10, fold: 1 });
     check("words", "the live sentence for a constant cost, shown to the forced choice, keeps the finite-horizon explanation and limits the claim to the times shown", /forced choice at 10/.test(say) && /every time shown from 0 to 2\.5/.test(say), say);
   }
 }
@@ -160,7 +181,7 @@ const FX0 = solveSchedule(testStep, FIXED.horizon, { dt: FIXED.dt, h: FIXED.h, c
   const fine = solveSchedule(cost, 10, { dt: 0.002, h: 0.005, cMin: r.lo, every: 5, lhsUpto: 10 }), coarse = solveSchedule(cost, 10, { dt: 0.01, h: 0.02, cMin: r.lo, every: 1, lhsUpto: 10 });
   for (const o of [fine, coarse]) Object.assign(o, { cMin: r.lo, cMax: r.hi });
   const sum = liveSummary(fine, fine, coarse, false, VIEW);
-  const say = S.liveSay({ label: "Pulse", dt: 0.002, w: sum.w, wf: sum.wf, wc: sum.wc, pm: sum.pm, far: false, constant: false, zeros: sum.zeros, nWin: sum.nWin, X: sum.X, fold: sum.fold, horizon: 10, restricted: sum.nBoth < sum.nView });
+  const say = S.liveSay({ ...sum, label: "Pulse", dt: 0.002, far: false, constant: false, horizon: 10, restricted: sum.nBoth < sum.nView });
   check("words", "Pulse at factor 32: the sentence gives the cost's actual change up to time 10 (about 31-fold), not the 32 of its formula", sum.wf > 1.5e-3 && /31-fold up to time 10/.test(say) && !/32-fold/.test(say), say);
   // the band prints its interval rounded outward, so the printed interval holds the cost
   const sm = { id: "smooth", params: { c0: 0.02, size: 1 } }, cases = [sm, ...PRESETS.filter((p) => p.id !== "deadline" && p.id !== "rising").map((p) => presetChoice(p.id))];
@@ -350,7 +371,7 @@ const cumCost = (o) => {
       S.bandVerdict(["jump", "cont", null][i % 3], r(), 1 + r() * 15, r() * 4),
       S.standingNote(["deadline", "rising", "draw", "constant", "preset"][i % 5], "Pulse"),
       S.areaSay(i % 4, { t: r() * 2, u0: r(), c: r(), z: r(), Rz: r(), gap: r() * 1e-3, R: r(), bc: r() * 1.4, L: 0.25 + (r() - 0.5) * 1e-3, Bc: r() * 1.4 }),
-      S.liveSay({ label: "Pulse", dt: [0.002, 0.01][i % 2], w: r() * 1e-3, wf: i % 3 ? r() * 3e-3 : NaN, wc: i % 4 ? r() * 1e-2 : NaN, pm: r() * 0.3, far: i % 2 === 0, tail: i % 5 ? r() * 0.2 : NaN, horizon: 10, constant: i % 9 === 0, zeros: i % 6 ? 0 : 12, nWin: 251, X: i % 2 ? 2.5 : 10, restricted: i % 3 === 0, fold: i % 7 ? 1 + r() * 30 : NaN }),
+      S.liveSay({ label: "Pulse", dt: [0.002, 0.01][i % 2], w: i % 11 ? r() * 1e-3 : NaN, wf: i % 3 ? r() * 3e-3 : NaN, wc: i % 4 ? r() * 1e-2 : NaN, pm: r() * 0.3, far: i % 2 === 0, tail: i % 5 ? r() * 0.2 : NaN, tailSkipped: i % 4, horizon: 10, h: 0.02, constant: i % 9 === 0, unresolved: i % 6 ? 0 : 12, skipped: i % 6 ? 0 : 12, nWin: 251, X: i % 2 ? 2.5 : 10, restricted: i % 3 === 0, fold: i % 7 ? 1 + r() * 30 : NaN }),
       S.heroChartLabel(i % 5 ? 0.25 + (r() - 0.5) * 1e-3 : NaN), S.outward(r() * 2, i % 2 === 0),
       S.speedSay(["y", "u"][i % 2], r(), r() * 2, r(), r()),
       S.sci((r() - 0.5) * 10 ** (-1 - Math.floor(r() * 12))),
