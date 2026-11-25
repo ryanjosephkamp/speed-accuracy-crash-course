@@ -12,7 +12,8 @@ imports speed_accuracy and experiments/common.py from there (numpy and scipy), a
   schedules, and the first_order rows' fits (amplitude, phase in degrees) of the weighted and averaged-cost rules;
 - "averagedCost": shortcuts.weighted_ahead, as continuous evidence bounds, on Figure 1's four schedules at the times
   0, 0.1, ..., 2.5 (to the deadline), and on two deadlines its binned kernels reach late: a cost of 0.5 with a forced
-  choice at 3, and the 16-fold jump with a forced choice added at 2, at the times 0, 0.05, ..., to the deadline.
+  choice at 3, and the 16-fold jump with a forced choice added at 2, at the times 0, 0.05, ..., to the deadline; and a
+  cost of 1 with a forced choice at 1, at the times 0, 0.02, ..., where the deadline falls inside the kernel's last bin.
 """
 import argparse
 import io
@@ -69,6 +70,8 @@ def main():
         "deadline": (common.deadline(0.1, 1.0), times(1.0, 0.1)),
         "deadline-0.5-3": (common.deadline(0.5, 3.0), times(3.0, 0.05)),
         "jump-deadline-2": (common.Schedule("jump, forced choice at 2", jump.fn, deadline=2.0), times(2.0, 0.05)),
+        # a deadline that falls inside a kernel's last bin, past that bin's midpoint (seen from 0.34, say)
+        "deadline-1-1": (common.deadline(1.0, 1.0), times(1.0, 0.02)),
     }
     for name, (s, ts) in cases.items():
         out["averagedCost"][name] = {"t": ts.tolist(), "bound": [float(v) for v in ev(shortcuts.weighted_ahead(s, ts))]}

@@ -10,7 +10,8 @@
 // up to a deadline, so it changes continuously with the level; its crossings approximate the equation's solutions
 // (tools/checks/ch08.mjs holds them to a separate evaluation on a finer grid).
 import { boundForCost, boundaryKernel, kernelForBound, score, toDiscrete, belief, grid } from "./model.js";
-import { costOf, deadlineOf, VIEW, SPARE } from "./schedules-book.js";
+import { costOf, deadlineOf, VIEW, SPARE, DRAW_TIMES } from "./schedules-book.js";
+import { dropAt } from "./chart.js";
 import { flux, fluxTotal, kappa } from "./kernel.js";
 
 export const UPDATES = 30;
@@ -96,46 +97,83 @@ export function mapAlg(b, t, cost) {
 }
 
 // The equation's map is integrated on a fixed grid of delays: [0, 1e-4], then 2400 geometric steps to 60 (past
-// which every level's kernel holds less than 1e-16 of its weight). Each step's weight comes from the exact kernel's
-// cumulative distribution, one less its series tail (tailExact below), so a flat stretch of cost is integrated
-// exactly; elsewhere the per-moment bound is read at each step's middle (the first step, where the kernel grows like
-// s^(-1/2), at a third of its width). A deadline splits the step it falls in.
+// which every level's kernel holds less than 1e-16 of its weight), split wherever the cost has a corner or a jump
+// (a drawing's knots, a deadline). On each step the per-moment bound is replaced by the quadratic through its values
+// at the step's ends and middle, and that quadratic is integrated exactly against the kernel, using the kernel's
+// weight and first two moments over the step from its series (tailMoments below): so a flat stretch of cost is
+// exact, and a smooth one is integrated to fourth order in the step. On the first step, where the kernel grows like
+// s^(-1/2), the bound is read once, at a third of the step's width.
 const S_LO = 1e-4, S_HI = 60, S_N = 2400;
 export const MAP_GRID = { lo: S_LO, hi: S_HI, steps: S_N };
 const EDGES = Float64Array.from({ length: S_N + 2 }, (_, i) => (i === 0 ? 0 : S_LO * Math.pow(S_HI / S_LO, (i - 1) / S_N)));
-const MIDS = Float64Array.from({ length: S_N + 1 }, (_, j) => (j === 0 ? S_LO / 3 : 0.5 * (EDGES[j] + EDGES[j + 1])));
-const CDFS = new Map();
-function cdfAt(b) {
-  let W = CDFS.get(b);
-  if (!W) {
-    if (CDFS.size > 3000) CDFS.clear();
-    W = new Float64Array(S_N + 2);
-    for (let i = 1; i < S_N + 2; i++) W[i] = 1 - tailExact(b, EDGES[i]);
-    CDFS.set(b, W);
+
+/** The exact kernel's weight past x > 0 and its first two moments there, [int_x^inf w, int_x^inf s w, int_x^inf s^2 w],
+ * from the series term by term. */
+export function tailMoments(b, x) {
+  let t0 = 0, t1 = 0, t2 = 0;
+  for (let j = 0; j < 100000; j++) {
+    const k2 = kappa(j, b) ** 2, r = (1 + k2) / 2, e = r * x > 745 ? 0 : Math.exp(-r * x);
+    if (e === 0) break;
+    const c = ((k2 / (1 + k2)) * e) / r;
+    t0 += c; t1 += c * (x + 1 / r); t2 += c * (x * x + (2 * x) / r + 2 / (r * r));
   }
-  return W;
+  const k = 2 / b / fluxTotal(b);
+  return [t0 * k, t1 * k, t2 * k];
+}
+const MOMS = new Map();
+function momentsAt(b) {
+  let M = MOMS.get(b);
+  if (!M) {
+    if (MOMS.size > 3000) MOMS.clear();
+    M = { t0: new Float64Array(S_N + 2), t1: new Float64Array(S_N + 2), t2: new Float64Array(S_N + 2) };
+    for (let i = 1; i < S_N + 2; i++) { const [a, c, d] = tailMoments(b, EDGES[i]); M.t0[i] = a; M.t1[i] = c; M.t2[i] = d; }
+    MOMS.set(b, M);
+  }
+  return M;
 }
 let AHEAD = null;
-function aheadOf(t, cost, deadline) {
-  if (AHEAD && AHEAD.t === t && AHEAD.cost === cost && AHEAD.deadline === deadline) return AHEAD;
+function aheadOf(t, cost, deadline, breaks) {
+  if (AHEAD && AHEAD.t === t && AHEAD.cost === cost && AHEAD.deadline === deadline && AHEAD.breaks === breaks) return AHEAD;
   const cut = deadline === null ? Infinity : deadline - t;
-  let jc = S_N + 1;
-  if (cut <= 0) jc = 0; else if (cut < S_HI) { jc = 0; while (EDGES[jc + 1] < cut) jc++; }
-  const f = new Float64Array(S_N + 1);
-  for (let j = 0; j < Math.min(jc, S_N + 1); j++) f[j] = boundForCost(cost(t + MIDS[j]));
-  const fc = jc <= S_N && cut > 0 ? boundForCost(cost(t + (jc === 0 ? cut / 3 : 0.5 * (EDGES[jc] + cut)))) : 0;
-  AHEAD = { t, cost, deadline, cut, jc, f, fc };
+  const cuts = [...breaks.map((k) => k - t), cut].filter((x) => x > 0 && x < S_HI).sort((a, c) => a - c);
+  const pts = [0], idx = [0];
+  let c = 0;
+  for (let i = 1; i < S_N + 2; i++) {
+    while (c < cuts.length && cuts[c] < EDGES[i] - 1e-15) { if (cuts[c] > pts[pts.length - 1] + 1e-15) { pts.push(cuts[c]); idx.push(-1); } c++; }
+    while (c < cuts.length && Math.abs(cuts[c] - EDGES[i]) <= 1e-15) c++;
+    pts.push(EDGES[i]); idx.push(i);
+  }
+  const n = pts.length - 1, fa = new Float64Array(n), fm = new Float64Array(n), fc = new Float64Array(n), live = new Uint8Array(n);
+  for (let j = 0; j < n; j++) {
+    const a = pts[j], b = pts[j + 1];
+    if (a >= cut - 1e-12) continue;   // past a deadline every bound ahead is B(infinity) = 0
+    live[j] = 1;
+    if (j === 0) { fm[j] = boundForCost(cost(t + b / 3)); continue; }
+    fa[j] = boundForCost(cost(t + a)); fm[j] = boundForCost(cost(t + 0.5 * (a + b))); fc[j] = boundForCost(cost(t + b));
+  }
+  AHEAD = { t, cost, deadline, breaks, pts, idx, fa, fm, fc, live };
   return AHEAD;
 }
 
 /** The equation's map T(b; t) = int w_b(s) B(c(t + s)) ds, with the kernel for the level b itself (at least 0.001)
- * integrated on the grid above, and exactly up to a deadline: past it every bound ahead is B(infinity) = 0. */
-export function mapExact(b, t, cost, deadline = null) {
-  const lv = Math.max(b, 1e-3), A = aheadOf(t, cost, deadline), W = cdfAt(lv);
-  let acc = 0;
-  const n = Math.min(A.jc, S_N + 1);
-  for (let j = 0; j < n; j++) acc += (W[j + 1] - W[j]) * A.f[j];
-  if (A.jc <= S_N && A.cut > 0) acc += (1 - tailExact(lv, A.cut) - W[A.jc]) * A.fc;
+ * integrated on the grid above, split at the given breaks and at a deadline, past which every bound ahead is
+ * B(infinity) = 0. It is a numerical map: tools/checks/ch08.mjs holds it to a separate evaluation, Simpson's rule on
+ * the kernel's density between the breaks. */
+export function mapExact(b, t, cost, deadline = null, breaks = []) {
+  const lv = Math.max(b, 1e-3), A = aheadOf(t, cost, deadline, breaks), M = momentsAt(lv);
+  const at = (j) => { const k = A.idx[j]; return k > 0 ? [M.t0[k], M.t1[k], M.t2[k]] : k === 0 ? null : tailMoments(lv, A.pts[j]); };
+  let acc = 0, prev = at(1);
+  if (A.live[0]) acc += (1 - prev[0]) * A.fm[0];
+  for (let j = 1; j + 1 < A.pts.length; j++) {
+    const next = at(j + 1);
+    if (A.live[j]) {
+      const a = A.pts[j], c = A.pts[j + 1], m = 0.5 * (a + c), h = c - a;
+      const w0 = prev[0] - next[0], s1 = prev[1] - next[1], s2 = prev[2] - next[2];
+      const u1 = s1 - m * w0, u2 = s2 - 2 * m * s1 + m * m * w0;
+      acc += A.fa[j] * (2 * (u2 - (u1 * h) / 2)) / (h * h) + A.fm[j] * (w0 - (4 * u2) / (h * h)) + A.fc[j] * (2 * (u2 + (u1 * h) / 2)) / (h * h);
+    }
+    prev = next;
+  }
   return acc;
 }
 
@@ -143,8 +181,8 @@ export function mapExact(b, t, cost, deadline = null) {
  * levels, refined by bisection. Each root carries the slope of T there and its residual T(b) - b, which must be below
  * 1e-6 (a sign change across a jump would leave a large one; none is reported). The slope s decides, for the ideal
  * damped update b <- (b + T(b))/2, whether it moves toward the root (-3 < s < 1) or away from it. */
-export function selfConsistent(t, cost, lo, hi, n = 160, deadline = null) {
-  const g = (b) => mapExact(b, t, cost, deadline) - b;
+export function selfConsistent(t, cost, lo, hi, n = 160, deadline = null, breaks = []) {
+  const g = (b) => mapExact(b, t, cost, deadline, breaks) - b;
   const bs = Array.from({ length: n }, (_, i) => lo + ((hi - lo) * i) / (n - 1));
   const gs = bs.map(g);
   const roots = [];
@@ -154,7 +192,7 @@ export function selfConsistent(t, cost, lo, hi, n = 160, deadline = null) {
       for (let k = 0; k < 50; k++) { const m = 0.5 * (a + b), gm = g(m); if (Math.sign(gm) === Math.sign(ga)) { a = m; ga = gm; } else b = m; }
       const r = 0.5 * (a + b), h = 1e-3, residual = g(r);
       if (!(Math.abs(residual) < 1e-6)) continue;
-      roots.push({ b: r, residual, slope: (mapExact(r + h, t, cost, deadline) - mapExact(r - h, t, cost, deadline)) / (2 * h) });
+      roots.push({ b: r, residual, slope: (mapExact(r + h, t, cost, deadline, breaks) - mapExact(r - h, t, cost, deadline, breaks)) / (2 * h) });
     }
   }
   return roots;
@@ -181,9 +219,9 @@ export function tailExact(b, x) {
 // ---- the rules side by side on a schedule ---------------------------------------------------------------------
 
 /** model.js's exactPolicy, step for step (so its bounds are the same numbers, which the checks confirm), that also
- * records, at each time, whether the program waits at the center (no evidence, x = 0). Where deciding beats waiting
- * already at the grid's first step above 0, the exported bound reads 0, as in the paper's code, even at times when
- * the program still waits at the center. */
+ * records the times where the bound falls between the center and the grid's first step: deciding beats waiting
+ * already at the first step above 0, while the program still waits at the center, so the bound is placed between the
+ * two, where the program's own step changes from waiting to deciding. The paper's code reports 0 at those times. */
 export function exactPolicyCenter(cost, horizon, dt = 0.01, h = 0.02, cap = 5) {
   const steps = Math.round(horizon / dt);
   const ts = Float64Array.from({ length: steps + 1 }, (_, k) => k * dt);
@@ -192,7 +230,7 @@ export function exactPolicyCenter(cost, horizon, dt = 0.01, h = 0.02, cap = 5) {
   const decide = Float64Array.from(g, (gi) => Math.max(gi, 1 - gi));
   let v = Float64Array.from(decide);
   const wait = new Float64Array(n);
-  const bounds = new Float64Array(steps + 1), centerWaits = new Uint8Array(steps + 1);
+  const bounds = new Float64Array(steps + 1), subStep = new Uint8Array(steps + 1);
   bounds[steps] = 0;
   for (let k = steps - 1; k >= 0; k--) {
     const ck = Math.min(cost(ts[k]), 1e9) * dt;
@@ -210,25 +248,26 @@ export function exactPolicyCenter(cost, horizon, dt = 0.01, h = 0.02, cap = 5) {
     for (let i = m + 1; i < n; i++) {
       const d = decide[i] - wait[i];
       if (d > 0) {
-        if (i === m + 1) { const dc = decide[m] - wait[m]; b = dc < 0 ? x[m] - (dc * (x[i] - x[m])) / (d - dc) : 0; break; }   // as model.js
+        if (i === m + 1) { const dc = decide[m] - wait[m]; b = dc < 0 ? x[m] - (dc * (x[i] - x[m])) / (d - dc) : 0; if (dc < 0) subStep[k] = 1; break; }   // as model.js
         const dp = decide[i - 1] - wait[i - 1];
         b = x[i - 1] - (dp * (x[i] - x[i - 1])) / (d - dp);
         break;
       }
     }
     bounds[k] = b > cap ? Infinity : b;
-    centerWaits[k] = wait[m] > decide[m] ? 1 : 0;
     for (let i = 0; i < n; i++) v[i] = Math.max(decide[i], wait[i]);
   }
-  return { ts, bounds, centerWaits, dt };
+  return { ts, bounds, subStep, dt };
 }
 
 /** The reader's schedule, with a deadline added at `addDeadline` if it has none of its own: past the deadline the
  * cost is infinite, as the paper's experiments code writes a deadline. */
 export function scheduleFor(choice, addDeadline = null) {
   const base = costOf(choice), own = deadlineOf(choice);
-  if (own !== null || addDeadline === null) return { cost: base, deadline: own, own: own !== null };
-  return { cost: (t) => (t <= addDeadline + 1e-12 ? base(t) : Infinity), deadline: addDeadline, own: false };
+  // where the cost has a corner: a drawing's knots (log c is straight between them)
+  const breaks = choice?.id === "draw" ? DRAW_TIMES : [];
+  if (own !== null || addDeadline === null) return { cost: base, deadline: own, own: own !== null, breaks };
+  return { cost: (t) => (t <= addDeadline + 1e-12 ? base(t) : Infinity), deadline: addDeadline, own: false, breaks };
 }
 
 /** The dynamic program and the three rules on one schedule, on the page's grid (time step dt, evidence step h), over
@@ -258,12 +297,12 @@ export function compareRules(cost, deadline, { dt = 0.01, h = 0.02, every = 2, p
   for (let k = 0; k <= last; k += every) keep.push(k);
   if (keep[keep.length - 1] !== last) keep.push(last);
   const pick = (a) => keep.map((k) => a[k]);
-  // times before the forced choice where the exported bound reads 0 while the program waits at the center
-  let gridZero = 0;
-  for (let k = 0; k <= last; k++) if (ex.bounds[k] === 0 && ex.centerWaits[k] && (deadline === null || ts[k] < deadline - 1e-9)) gridZero++;
+  // grid times in the window where the bound sits between the center and the grid's first step
+  let subStep = 0;
+  for (let k = 0; k <= last; k++) if (ex.subStep[k]) subStep++;
   return {
     t: pick(ts), cost: pick(Float64Array.from(ts, cost)), exact: pick(ex.bounds), pm: pick(pm), avg: pick(avg), avgCode: pick(avgCode),
-    wb: pick(hist.final), updates: hist.updates.map(pick), loss, dt, h, deadline, view, horizon, thinned: every > 1, gridZero,
+    wb: pick(hist.final), updates: hist.updates.map(pick), loss, dt, h, deadline, view, horizon, thinned: every > 1, subStep,
   };
 }
 
@@ -282,6 +321,10 @@ export function codeStretches(r) {
   if (start !== null) out.push([r.t[start], r.t[r.t.length - 1]]);
   return out;
 }
+
+/** The per-moment curve as the plates draw it: on a deadline it drops straight down at the forced choice, instead of
+ * sloping across the last step (chart.js's dropAt). */
+export const pmPlot = (t, pm, deadline) => dropAt(t, pm, deadline);
 
 /** How far `iterations` damped updates move the bound from where 30 left it, at the times 0, step, ... before
  * min(6, deadline), as the paper measures it (Appendix C): the largest move and the time where it happens. */
@@ -302,13 +345,13 @@ export const spikeCost = (t) => Math.exp(Math.log(SPIKE.hi) + (Math.log(SPIKE.lo
 
 /** The equation's map T(b; t) on a grid of levels from 0.01 to a little above the largest per-moment bound ahead,
  * its crossings of the diagonal, and where Algorithm 1's 30 damped updates from the per-moment bound end at t. */
-export function rootsAt(cost, t, n = 160, deadline = null) {
+export function rootsAt(cost, t, n = 160, deadline = null, breaks = []) {
   let top = 0;
   for (let s = 0; s <= 12; s += 0.01) { const b = boundForCost(cost(t + s)); if (Number.isFinite(b)) top = Math.max(top, b); }
   const lo = 0.01, hi = Math.max(0.2, top * 1.06);
   const bs = Array.from({ length: n }, (_, i) => lo + ((hi - lo) * i) / (n - 1));
-  const map = bs.map((b) => mapExact(b, t, cost, deadline));
-  const roots = selfConsistent(t, cost, lo, hi, n, deadline);
+  const map = bs.map((b) => mapExact(b, t, cost, deadline, breaks));
+  const roots = selfConsistent(t, cost, lo, hi, n, deadline, breaks);
   const run = weightedHistory(cost, [t]);
   return { bs, map, roots, start: run.updates[0][0], path: run.updates.map((u) => u[0]), end: run.final[0], lo, hi };
 }
