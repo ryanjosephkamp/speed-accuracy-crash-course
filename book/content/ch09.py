@@ -206,7 +206,7 @@ That is a cited, leading-order result: the paper relies on its sources for it an
 """),
             ("plate", "coef"),
             ("plain", r"""
-Where the cost holds steady, the measured coefficient stays near 0.5826. Near a fast change, such as the logistic jumps of Figure 1(a) and (b), it moves away from it, in either direction: there the bound itself moves a long way within a few checks, which the leading-order result doesn't describe. Before a deadline, it holds: on the Deadline preset, it stays within 0.03 of 0.5826 until the last check or two before the forced choice.
+On the Constant preset, at a cost of 0.1, the measured coefficient stays within 0.015 of 0.5826 over the window. On the logistic changes of Figure 1(a) and (b), it moves away from 0.5826: below it on the jump, above it on the fall. On the Deadline preset, it stays within 0.03 of 0.5826 until the last check or two before the forced choice.
 
 The second plate scores the rules both ways. The shift corrects for checking at intervals, not for a rule's own error. Scoring moves a rule's bound $\hat b$ in by $\delta = 0.5826\sqrt{\Delta t}$ and clips it at 0, so the bound moves by $\min(\delta, \hat b)$. Against the program's bound $b$ on the grid, that brings it closer exactly where $\hat b$ sits more than half that move, $\tfrac12\min(\delta, \hat b)$, above $b$. A rule that is right for continuous watching sits about $\delta$ above $b$, so the shift puts it about on $b$; a rule whose bound is already at or below $b$ moves further away, or stays where it is if it is already 0. That holds moment by moment. Whether a rule's loss falls depends on where along the trial its bound moves closer or further, so the plate measures it over the whole schedule.
 """),

@@ -107,26 +107,21 @@ export function overshootSay(dt, mean, se, n) {
 
 const between = (a, b) => (f2(a) === f2(b) ? `at ${f2(a)}` : `between ${f2(a)} and ${f2(b)}`);
 /** The sentence under the coefficient plate. steady: [lo, hi] of k over the times where the cost holds steady (or
- * null); all: { lo, hi, tLo, tHi, loSteady, hiSteady, loB, hiB } over the window, with whether each extreme falls where
- * the cost holds steady and the two bounds there (null where no time has a coefficient); lastK: k at the last check
- * before a deadline (or null). A departure is a value more than 0.03 from 0.5826. A departure near a change in the cost
- * is put down to the bound moving a long way within a few checks; one where the cost holds steady is only reported. */
-export function coefSay(steady, all, lastK, constant) {
-  const K0 = 0.5826, near = (a, b) => a >= K0 - 0.03 && b <= K0 + 0.03;
+ * null), and steadyIn: { n, within }, how many of those values there are and how many lie within 0.03 of 0.5826; all:
+ * { lo, hi, tLo, tHi }, the lowest and highest values over the drawn times and their times (null where no time has a
+ * coefficient); lastK: k at the last check before a deadline (or null). It reports what was measured, and no cause. */
+export function coefSay(steady, all, lastK, constant, steadyIn = null) {
+  const K0 = 0.5826;
   if (!all) return "At every time compared, one of the two bounds is 0 or past the cap, so there is no coefficient to draw.";
-  let s = steady ? `Where the cost holds steady, the measured coefficient stays ${between(steady[0], steady[1])}, ${near(steady[0], steady[1]) ? "near" : "more than 0.03 from"} ${K0}. ` : "";
+  let s = "";
+  if (steady) {
+    const range = f4(steady[0]) === f4(steady[1]) ? `stays at ${f4(steady[0])}` : `runs from ${f4(steady[0])} to ${f4(steady[1])}`;
+    const share = !steadyIn ? "" : `, ${steadyIn.within === steadyIn.n ? "all" : steadyIn.within === 0 ? "none" : "some"} of those values within 0.03 of ${K0}${steadyIn.within > 0 && steadyIn.within < steadyIn.n ? " and some not" : ""}`;
+    s += `Where the cost holds steady, the measured coefficient ${range}${share}. `;
+  }
   if (constant) return s + "The cost never changes here, so every time is steady.";
-  const down = all.lo < K0 - 0.03, up = all.hi > K0 + 0.03;
-  const where = (st, b) => (st ? `, where the cost holds steady and the two bounds are ${f3(b[0])} and ${f3(b[1])}` : ", near a change in the cost");
-  if (down || up) {
-    const parts = [];
-    if (down) parts.push(`falls to ${f2(all.lo)} at time ${f2(all.tLo)}${where(all.loSteady, all.loB)}`);
-    if (up) parts.push(`rises to ${f2(all.hi)} at time ${f2(all.tHi)}${where(all.hiSteady, all.hiB)}`);
-    s += `It ${parts.join(", and ")}. `;
-    if ((down && !all.loSteady) || (up && !all.hiSteady)) s += "Near a change, the bound moves a long way within a few checks, which the leading-order shift doesn't describe. ";
-    if ((down && all.loSteady) || (up && all.hiSteady)) s += "Where the cost holds steady, the bound isn't moving fast: that departure is a measurement on this grid, which the leading-order result doesn't account for. ";
-  } else s += `Over the whole ${lastK !== null ? "trial" : "window"} it stays ${between(all.lo, all.hi)}, within 0.03 of ${K0}. `;
-  if (lastK !== null && Number.isFinite(lastK)) s += `At the last check before the deadline it is ${f2(lastK)}.`;
+  s += `Over the whole ${lastK !== null ? "trial" : "window"}, its lowest value is ${f3(all.lo)}, at time ${f2(all.tLo)}, and its highest ${f3(all.hi)}, at time ${f2(all.tHi)}. `;
+  if (lastK !== null && Number.isFinite(lastK)) s += `At the last check before the deadline it is ${f3(lastK)}.`;
   return s.trim();
 }
 
