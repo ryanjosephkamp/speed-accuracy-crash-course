@@ -7,6 +7,10 @@ import { costOf, PRESETS, defaultDrawing } from "../../book/assets/js/schedules-
 import * as S from "../../book/assets/js/say-ch06.js";
 import { SCALE, scaleJob, scaleGaps, YOURS_EPS, yoursPlateState, yoursMode, errorRange, errorMarks, yoursVerdict, predictView, responseChart } from "../../book/assets/js/ch06-model.js";
 import { frame } from "../../book/assets/js/chart.js";
+
+// the theory's answer as the verdicts print it, each part required: the normalization by ε, the nonzero limit over all
+// times, the order ε, the quadratic upper bound for the correction, and the sampled times the plate measures at
+const THEORY_ANSWER = /The theory, for a bounded Lipschitz change like this one: divided by ε, the per-moment error tends to a function of time that is not identically zero over all times t ≥ 0 \(unless γ is constant\), so over all times it is of order ε; the corrected one is at most of order ε²\. The plate measures both errors at the sampled times from 0 to 2\.5, every 0\.02\./;
 import { check, N, SIN, asPrinted, runWorker } from "./lib.mjs";
 
 // ---- the constant-cost bound ------------------------------------------------------------------------------
@@ -209,22 +213,25 @@ for (const row of SIN) {
   // the prediction box the page shows for each mode (predictView, which the page's setPredict applies): the two theory
   // questions for the tiny drawing, the prompt without questions for Rising, and no box for skipped selections
   const views = Object.fromEntries([["tiny", tiny.P.state.mode], ["rising", yoursMode({ id: "rising" }).mode], ["constant", yoursMode({ id: "constant" }).mode], ["flat", yoursMode(flat(0)).mode], ["deadline", yoursMode({ id: "deadline" }).mode]].map(([k, mode]) => [k, predictView(mode)]));
-  check("yours", "predictView's box and questions flags and its prompt, by mode: for the tiny drawing both flags true and the theory prompt; for Rising the box flag true, the questions flag false, and the measurement prompt; for Constant, a flat drawing, and a deadline both flags false",
-    views.tiny.box && views.tiny.questions && /how fast does the theory say/.test(views.tiny.prompt) && views.rising.box && !views.rising.questions && /outside the theorem/.test(views.rising.prompt)
+  check("yours", "predictView's box and questions flags and its prompt, by mode: for the tiny drawing both flags true and the theory prompt; for Rising the box flag true, the questions flag false, and the prompt that it is outside the theorem and offers to compare the two errors; for Constant, a flat drawing, and a deadline both flags false",
+    views.tiny.box && views.tiny.questions && /how fast does the theory say/.test(views.tiny.prompt) && views.rising.box && !views.rising.questions && views.rising.prompt === "The rising cost is outside the theorem: show how the two errors compare."
       && ["constant", "flat", "deadline"].every((k) => !views[k].box && !views[k].questions),
     Object.entries(views).map(([k, v]) => `${k}: box ${v.box}, questions ${v.questions}`).join("; "));
   // on reveal below the chart's threshold, the verdict grades the submitted guesses and gives the theory's answer, then
   // the largest error, rounded down to three figures, and the chart's threshold
   const td = tiny.P.state.data, guesses = [[{ pm: 1, fo: 2 }, /^Both guesses match the theory\. /], [{ pm: 0, fo: 1 }, /^Neither guess matches the theory\. /],
     [{ pm: 0, fo: null }, /^Your guess doesn't match the theory\. /], [{ pm: null, fo: 2 }, /^Your guess matches the theory\. /], [{ pm: null, fo: null }, /^The theory, /]];
-  const theory = /the per-moment error tends to a function of time that is not identically zero .* so over all times it is of order ε; the corrected one is at most of order ε²\. The plate measures both errors at the sampled times from 0 to 2\.5, every 0\.02\./;
-  const cutoff = /Every error here is below 10⁻⁷: the largest is (\d\.\d\d)e(-\d+), rounded down\. The log chart opens only when at least one error reaches 10⁻⁷, so it stays hidden\./;
-  const verdicts = guesses.map(([g, grade]) => {
+  const theory = THEORY_ANSWER;
+  // the printed maximum: a mantissa from 1.00 to 9.99 and the measured value's own power of ten, rounded down, so
+  // mantissa x 10^e <= measured < (mantissa + 0.01) x 10^e
+  const cutoff = /Every error here is below 10⁻⁷: the largest is ([1-9]\.\d\d)e(-\d+), rounded down\. The log chart opens only when at least one error reaches 10⁻⁷, so it stays hidden\./;
+  const e0 = Math.floor(Math.log10(bt.largest)), m0 = bt.largest / 10 ** e0;
+  const verdicts = guesses.map(([g, grade], i) => {
     const v = yoursVerdict(bt, td, g), t = v.match(theory), c = v.match(cutoff);
-    const shown = c ? +c[1] * 10 ** +c[2] : NaN, step = c ? 0.01 * 10 ** +c[2] : NaN;
-    return { v, ok: grade.test(v) && t && c && t.index < c.index && shown <= bt.largest && bt.largest < shown + step };
+    const fair = c && +c[2] === e0 && +c[1] <= m0 + 1e-12 && m0 < +c[1] + 0.01;
+    return { v, ok: grade.test(v) && t && c && t.index < c.index && fair && (i < 4 || !/guess/.test(v)) };
   });
-  check("yours", "yoursVerdict on the tiny drawing below the chart's threshold, for both guesses right, both wrong, one wrong, one right, and none: the grade (singular for one guess, none without a guess), then the theory's answer, then the largest error as printed, at most the measured maximum and within 0.01 in its third figure, and the sentence that the chart opens only when an error reaches 1e-7",
+  check("yours", "yoursVerdict on the tiny drawing below the chart's threshold, for both guesses right, both wrong, one wrong, one right, and none: the grade first (singular for one guess; no grade anywhere without a guess), then the theory's answer, then the largest error printed with a mantissa from 1.00 to 9.99 at the measured maximum's power of ten, rounded down from it, and the sentence that the chart opens only when an error reaches 1e-7",
     verdicts.every((x) => x.ok), `measured maximum ${bt.largest.toExponential(4)}; ${verdicts[2].v}`);
   // the top chart for the tiny drawing at each size (responseChart, 360 pixels): its range follows the response, so the
   // three curves don't collapse onto one line, and its tick labels are all different
@@ -250,9 +257,12 @@ for (const row of SIN) {
   const v = S.errorsVerdict({ pm: null, fo: null }, [1e-2, 5e-3], [1e-3, 3e-4], [1, 0.5], true);
   check("words", "on the rising cost, the verdict calls the errors measurements and says the theorem doesn't cover it", /says nothing about it/.test(v) && /measurements/.test(v) && !/O\(ε²\)\./.test(v), v);
   const th = S.errorsVerdict({ pm: 1, fo: 2 }, [1e-2, 5e-3], [1e-3, 3e-4], [1, 0.5], false);
-  check("words", "inside the theorem, the verdict says the per-moment limit is not identically zero over all times, and names the sampled times the plate measures the errors at", /not identically zero over all times t ≥ 0/.test(th) && /The plate measures both errors at the sampled times from 0 to 2\.5, every 0\.02\./.test(th), th);
-  const one = S.errorsVerdict({ pm: 0, fo: null }, [1e-2, 5e-3], [1e-3, 3e-4], [1, 0.5], false);
-  check("words", "with the chart shown and one guess submitted (a wrong per-moment guess), errorsVerdict opens with the singular \"Your guess doesn't match the theory.\"", /^Your guess doesn't match the theory\. /.test(one), one.slice(0, 60));
+  check("words", "errorsVerdict inside the theorem, on made-up errors, gives the theory's answer: the per-moment error divided by ε tends to a function not identically zero over all times t ≥ 0 (unless γ is constant), so it is of order ε; the corrected one at most of order ε²; and the sampled times the plate measures the errors at",
+    THEORY_ANSWER.test(th), th);
+  // the reveal path with the chart shown: the drawing from 2 to 1.9999, revealed, with one wrong guess
+  const one = yoursVerdict(b4, d4, { pm: 0, fo: null });
+  check("yours", "yoursVerdict on the revealed drawing from 2 to 1.9999 (chart shown), with one wrong per-moment guess: it opens with the singular \"Your guess doesn't match the theory.\" and carries the measured comparison",
+    !b4.hidden && /^Your guess doesn't match the theory\. (At every size|The first-order error is the smaller)/.test(one), one.slice(0, 120));
 }
 
 // ---- the error chart's guides keep their slope when clipped, and each label marks its own guide ------------------------

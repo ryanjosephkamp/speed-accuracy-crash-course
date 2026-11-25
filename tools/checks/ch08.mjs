@@ -8,10 +8,10 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import * as K from "../../book/assets/js/kernel.js";
 import { weightedBound, boundForCost, kernelForBound, boundaryKernel, toDiscrete, exactPolicy } from "../../book/assets/js/model.js";
-import { costOf, deadlineOf, PRESETS, DRAW_TIMES } from "../../book/assets/js/schedules-book.js";
+import { costOf, deadlineOf, PRESETS, DRAW_TIMES, VIEW, SPARE } from "../../book/assets/js/schedules-book.js";
 import * as R from "../../book/assets/js/ch08-rule.js";
 import * as S from "../../book/assets/js/say-ch08.js";
-import { check, N, SIN, tableNumbers, ROOT } from "./lib.mjs";
+import { check, N, SIN, tableNumbers, ROOT, centerActions, belowStepClass, fitsClass } from "./lib.mjs";
 import { frame, line } from "../../book/assets/js/chart.js";
 
 const REF = JSON.parse(readFileSync(join(ROOT, "tools/validity/ch08.json"), "utf8"));
@@ -430,4 +430,18 @@ check("bins", "levels below 0.01 use the kernel for 0.01", kernelForBound(0.004)
   check("words", "on a deadline, the sentence says the weighted rule's bound stays above 0 until the deadline (no claim that it comes down smoothly)", /stays above 0 until the deadline/.test(sdl) && !/comes down/.test(sdl), sdl.slice(0, 120));
   check("words", "the first plate's note: the constant-cost note only for an unchanged constant schedule, not with a deadline added", S.twoNote(null, true, null) === S.constantNote() && !S.twoNote(null, true, 1).includes("every rule gives") && /own deadline/.test(S.twoNote(1, false, null)), S.twoNote(null, true, 1));
   check("words", "the 300-update sentence reports the difference only, not that the 30th had settled", !/settled/.test(S.moreSay(3e-11, 0.5, 6)) && !/settled/.test(S.moreSay(0, 0, 6)), S.moreSay(3e-11, 0.5, 6));
+}
+
+// ---- below the grid's first step: the caption's two cases, against this plate's exported bound -------------------
+{
+  // Rising from 0 at rate 2: each exported bound has the class the program's Bellman step gives at its time (lib.mjs):
+  // between 0 and the first step where the center waits, 0 where the center decides too
+  const choice = { id: "rising", params: { at: 0, rate: 2 } }, act = await centerActions(costOf(choice), VIEW + SPARE);
+  const { t, exact } = (() => { const r = R.compareRules(costOf(choice), null); return { t: r.t, exact: r.exact }; })();
+  const cls = t.map((x) => belowStepClass(act[Math.round(x / 0.01)])), wrong = t.filter((x, i) => !fitsClass(cls[i], exact[i]));
+  const nB = cls.filter((c) => c === "between").length, nS = cls.filter((c) => c === "stop").length;
+  const cap = readFileSync(join(ROOT, "book/content/ch08.py"), "utf8");
+  const both = /the bound is placed between 0 and that step if the program still waits at 0[^.]*, and is 0 if the program decides at 0 too; the paper's code reports 0 in both cases\./.test(cap);
+  check("program", "the two-rules plate's caption states both cases below the grid's first step (between 0 and the step where the program waits at 0, 0 where it decides at 0 too); on Rising from 0 at rate 2, compareRules' exported bounds include both, each matching the program's Bellman step at its time",
+    both && nB > 0 && nS > 0 && wrong.length === 0, `${nB} between, ${nS} at 0, ${wrong.length} mismatched; caption states both: ${both}`);
 }

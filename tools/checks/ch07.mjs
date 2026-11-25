@@ -7,7 +7,9 @@ import { exactPolicy, score, boundForCost, toDiscrete } from "../../book/assets/
 import { costOf, defaultDrawing, VIEW, SPARE } from "../../book/assets/js/schedules-book.js";
 import * as S from "../../book/assets/js/say-ch07.js";
 import { frame } from "../../book/assets/js/chart.js";
-import { check, N, table, tableNumbers, asPrinted, runWorker } from "./lib.mjs";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { check, N, table, tableNumbers, asPrinted, runWorker, ROOT, centerActions, belowStepClass, fitsClass } from "./lib.mjs";
 
 // ---- Table 1 ------------------------------------------------------------------------------------------------
 {
@@ -351,4 +353,18 @@ for (const c of [0.02, 0.1, 0.5]) {
   const st = S.shiftState(false, 126, true), st0 = S.shiftState(true, 48, false), cut = S.lossSay(0.25, 1e-5, 1e-6, NaN, NaN, false, false);
   check("words", "the shift plate says where the program waits at 0 its bound is placed below the grid's first step and the paper's code reports 0, the band's step 3 says expected time, and losses under the cutoff are called that", /waits at 0 but decides at the grid's first step/.test(st) && /paper's code reports 0/.test(st) && !/wait/.test(st0) && /deadline/.test(st0) && /expected time spent above/.test(S.BAND_HEADS[2]) && /below the display cutoff/.test(cut) && !/resolv/.test(cut + S.conjSay(0.25, 1, false, 0, 1, false, 0, 1e-5, 1e-6)), st);
   check("words", "the loss sentence names a slope near 2 as second order, and the conjecture's sentence starts with the word Conjecture", /close to the 2/.test(S.lossSay(0.25, 1e-4, 1e-6, 1.95, 3.8, true, true)) && !/close to the 2/.test(S.lossSay(0.25, 1e-4, 1e-6, 1.2, 3.8, true, true)) && /^Conjecture/.test(S.conjSay(0.25, 1.02, true, 0.02, 1.4, false, 0.9)), S.lossSay(0.25, 1e-4, 1e-6, 1.95, 3.8, true, true));
+}
+
+// ---- below the grid's first step: the caption's two cases, against this plate's exported bound -------------------
+{
+  // Rising from 0 at rate 2: each exported bound has the class the program's Bellman step gives at its time (lib.mjs):
+  // between 0 and the first step where the center waits, 0 where the center decides too
+  const choice = { id: "rising", params: { at: 0, rate: 2 } }, act = await centerActions(costOf(choice), VIEW + SPARE);
+  const { t, exact } = await runWorker("../../book/assets/js/dp-worker.js", { job: "bounds", choice });
+  const cls = t.map((x) => belowStepClass(act[Math.round(x / 0.01)])), wrong = t.filter((x, i) => !fitsClass(cls[i], exact[i]));
+  const nB = cls.filter((c) => c === "between").length, nS = cls.filter((c) => c === "stop").length;
+  const cap = readFileSync(join(ROOT, "book/content/ch07.py"), "utf8");
+  const both = /the bound is placed between 0 and that step if the program still waits at 0[^.]*, and is 0 if the program decides at 0 too; the paper's code reports 0 in both cases\./.test(cap);
+  check("shift", "the shift plate's caption states both cases below the grid's first step (between 0 and the step where the program waits at 0, 0 where it decides at 0 too); on Rising from 0 at rate 2, the shared worker's exported bounds include both, each matching the program's Bellman step at its time",
+    both && nB > 0 && nS > 0 && wrong.length === 0, `${nB} between, ${nS} at 0, ${wrong.length} mismatched; caption states both: ${both}`);
 }
