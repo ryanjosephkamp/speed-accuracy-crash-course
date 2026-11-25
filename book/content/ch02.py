@@ -14,7 +14,7 @@ CHAPTER = {
     "title": "The ideas you need",
     "full": "The ideas you need: evidence, belief, and the process Y = |X|",
     "leaf": 3,
-    "finding": "In the paper's units, the evidence is half the log odds that H = +1, and folded at zero it is the one process the proofs work with, Y = |X|.",
+    "finding": "In the paper's units, the evidence is half the log odds that the hidden state is +1, and its size is the one process the proofs work with.",
     "readings": [
         ("PalmerT", "milliseconds in one time unit, for the mean observer of Palmer, Huk, and Shadlen (2005) at 6.4% coherence"),
         ("PalmerBound", "that observer's fitted bound, in the paper's units of evidence"),
@@ -26,9 +26,9 @@ CHAPTER = {
         "still": 0,
     },
     "intro": r"""
-In the paper's units, the evidence is half the log odds that H = +1, and folded at zero it is the one process the proofs work with, Y = |X|. This chapter teaches the pieces of probability the later chapters use, on the paper's own objects: the evidence and its time unit, the belief the evidence implies, the folded process and its generator, and the coupling that compares two starting points path by path. A reader who knows stochastic calculus can skim it; a reader who doesn't gets the pieces the proofs use, and no more.
+In the paper's units, the evidence is half the log odds that the hidden state is +1, and its size is the one process the proofs work with. This chapter teaches the pieces of probability the later chapters use, on the paper's own objects: the evidence and its time unit, the belief the evidence implies, the folded process and its generator, and the coupling that compares two starting points path by path. A reader who knows stochastic calculus can skim it; a reader who doesn't gets the pieces the proofs use, and no more.
 
-Two of the four claims rest on other work, and the paper says so. That the evidence, seen by the decision maker, is a single diffusion with drift $\tanh X$ is a standard result of filtering theory (Peskir and Shiryaev 2006). That the folded equation has exactly one solution for each start and each noise path comes from Skorokhod's lemma (Revuz and Yor 1999). The book shows both and checks what can be checked on sampled paths, but it doesn't prove them.
+Two of the four claims rest on other work, and the paper says so. That the evidence, seen by the decision maker, is a single diffusion with drift $\tanh X$ is a standard result of filtering theory (Peskir and Shiryaev 2006); the book derives the drift and checks consequences of the rest on sampled trials, but doesn't prove it. That the folded equation has exactly one solution for each start and each noise path rests on Skorokhod's lemma (Revuz and Yor 1999), which the book cites; from it, a strip gives the Picard and Gronwall argument the paper states in one sentence, and the paper's own proof that two starts on the same noise stay in order.
 """,
 }
 
@@ -38,7 +38,7 @@ MAP_LINKS = {"def:evidence": "evidence", "def:posterior": "belief", "def:reflect
 # which groups of checks in tools/checks/ch02.mjs stand behind each plate
 CHECKS = {
     "units": ["units", "palmer", "words"],
-    "yours": ["palmer", "belief", "words"],
+    "yours": ["schedule", "yours", "palmer", "words"],
     "belief": ["belief", "drift", "words"],
     "fold": ["fold", "words"],
     "facts": ["facts", "exit", "words"],
@@ -49,36 +49,36 @@ PLATES = {
     "units": {
         "title": "One path, two sets of units",
         "state": "computed",
-        "state_text": "Sampled in the page: one seeded path, rescaled exactly",
-        "caption": r"""Top: one path of evidence $Z_t$ in raw units, for the drift $\mu$ and noise $\sigma$ you set (each from 0.5 to 2), with the drift $\mu t$ (orange) and the noise's standard deviation $\sigma\sqrt t$ (orange, dashed); they meet at one time unit, $t = \sigma^2/\mu^2$. Bottom: the same path in the paper's units, $x = \mu Z/\sigma^2$ against $t' = \mu^2 t/\sigma^2$, with the drift $t'$ (gray) and $\sqrt{t'}$ (dashed); the shading is the part of it the top chart's window covers. The path has $H = +1$ and is drawn once, on steps of 0.0005 paper time units from a fixed seed (add `?seed=` to the address for another); each picture is that path, rescaled exactly.""",
+        "state_text": "Sampled in the page: one seeded path, resampled in two sets of units",
+        "caption": r"""Top: one path of evidence $Z_t$ in raw units, for the drift $\mu$ and noise $\sigma$ you set (each from 0.5 to 2), with the drift $\mu t$ (orange) and the noise's standard deviation $\sigma\sqrt t$ (orange, dashed); they meet at one time unit, $t = \sigma^2/\mu^2$. Bottom: the same path in the paper's units, $x = \mu Z/\sigma^2$ against $t' = \mu^2 t/\sigma^2$, with the drift $t'$ (gray) and $\sqrt{t'}$ (dashed); the shading is the part of it the top chart's window covers. The path has $H = +1$ and is simulated once, on steps of 0.0005 paper time units from a fixed seed (add `?seed=` to the address for another). Each chart draws that one path at 401 times across its own window, read linearly between the simulation's steps, so the two polylines are the same path sampled at different times. Each chart's vertical range widens to hold everything drawn.""",
         "wide": False,
     },
     "yours": {
         "title": "Your schedule, in milliseconds and in belief",
         "state": "computed",
-        "state_text": "Computed in the page: the best bound by dynamic programming on a grid, read through g",
-        "caption": r"""Your schedule, from the contents page. Top: the cost of time on a log scale, per time unit or per second. Bottom: the best bound (ink), from a dynamic program that checks the evidence every 0.01 time units on a grid of 0.02 and runs 6 time units past the window, and the per-moment rule's bound $B(c(t))$, moved in by the same check's shift (dashed). The right-hand axis relabels the evidence $x$ as $g(x)$, the chance that a decision made there is right. Milliseconds are for the mean observer of Palmer, Huk, and Shadlen (2005), whose time unit is $1/(21\,C)^2$ seconds at coherence $C$.""",
+        "state_text": "Computed in the page: the best bound by dynamic programming on a grid, with the evidence axis read through g",
+        "caption": r"""Your schedule, from the contents page. Top: the cost of time on a log scale, per time unit or per second. Bottom: the best bound (ink), from a dynamic program that checks the evidence every 0.01 time units on a grid of 0.02 and runs 6 time units past the window (with a deadline, up to the forced choice there), and the per-moment rule's bound $B(c(t))$, moved in by the same check's shift (dashed). Where the program waits at the center but stops at the grid's first step, the bound is placed between them. At a deadline, the choice is forced (orange line): both bounds are 0 there, so the dashed curve holds $B(c(t))$ up to the deadline and drops there. The right-hand axis relabels the evidence $x$ as $g(x)$, the chance that a decision made at evidence $x$ is right; since the evidence is checked every 0.01 time units, it can pass a bound between checks, so a decision made on reaching the bound is right with at least that chance. Milliseconds are for the mean observer of Palmer, Huk, and Shadlen (2005), whose time unit is $1/(21\,C)^2$ seconds at coherence $C$.""",
         "wide": True,
     },
     "belief": {
         "title": "What the evidence says about the answer",
         "state": "computed",
         "state_text": "Sampled in the page, beside the exact g and tanh",
-        "caption": r"""Trials with $H = +1$ or $-1$ equally likely, and evidence $X_t = Ht + W_t$ at the time $t$ you pick, drawn exactly (6,000 trials from a fixed seed; add `?seed=` for another). Step 1: the two densities of $X_t$. Step 2: the trials' evidence in bins of 0.25, with each bar's $H = +1$ part in ink. Step 3: the share with $H = +1$ in each bin with at least 20 trials, with two standard errors, beside $g(x)$; misses are measured against the exact share for the bin, which averages $g$ over it. Step 4: the mean change of the evidence over the next time unit in each bin, beside $\tanh x$. Step 5: the innovation $X_t - \int_0^t\tanh(X_s)\,ds$ for 40 of 4,000 trials, computed from the evidence alone on steps of 0.01.""",
+        "caption": r"""Trials with $H = +1$ or $-1$ equally likely, and evidence $X_t = Ht + W_t$ at the time $t$ you pick, drawn exactly (6,000 trials from a fixed seed, for steps 2 to 4; add `?seed=` for another). Step 1: the two densities of $X_t$. Step 2: the trials' evidence in bins of 0.25, with each bar's $H = +1$ part in ink. Step 3: the share with $H = +1$ in each bin with at least 20 trials, with bars of two sample standard errors, beside $g(x)$; the largest miss is measured against the exact share for the bin, which averages $g$ over it, in the binomial standard error of that exact share. Step 4: the mean change of the evidence over the next time unit, $X_{t+1} - X_t$, in each bin, with bars of two sample standard errors, beside $\tanh x$; the miss is in the bin's sample standard error. Step 5: a separate run of 4,000 trials to time 2, with the innovation $X_t - \int_0^t\tanh(X_s)\,ds$ computed from the evidence alone by left sums on steps of 0.01; 40 are drawn, with dashed guides at $\pm2\sqrt t$, two standard deviations of a Brownian motion at each time (single paths cross them). The readings are the variance of the innovation at time 2 and the correlation of its increment from time 1 to 2 with $\tanh X_1$.""",
         "wide": False,
     },
     "fold": {
         "title": "Folding at zero",
         "state": "computed",
         "state_text": "Sampled in the page: one path; the drift chart is exact",
-        "caption": r"""One path of the evidence in the decision maker's view, $dX = \tanh(X)\,dt + d\bar W$ from $X_0 = 0$ to time 2, by Euler steps of 0.001 (a fixed seed; add `?seed=` for another), with $Y = |X|$ and the local time $\ell$ from Tanaka's formula on the same steps: $\ell$ grows by $|X_{k+1}| - |X_k| - \operatorname{sign}(X_k)(X_{k+1} - X_k)$, which is positive only on a step where $X$ changes sign (ticks on the axis). Second chart: $(\E_y Y_h - y)/h$, computed exactly from the mixture $y + Ht + W_t$ with $P(H = +1) = g(y)$, beside $\tanh y$.""",
+        "caption": r"""One path of the evidence in the decision maker's view, $dX = \tanh(X)\,dt + d\bar W$ from $X_0 = 0$ to time 2, by Euler steps of 0.001 (a fixed seed; add `?seed=` for another), with $Y = |X|$ and a grid version of Tanaka's formula on the same steps: $\ell$ grows by $|X_{k+1}| - |X_k| - \operatorname{sign}(X_k)(X_{k+1} - X_k)$, with $\operatorname{sign}(0) = 0$, which is positive only on a step where the sign of $X$ on the grid changes, including the first step away from $X_0 = 0$ (ticks on the axis). This grid sum approximates the local time; Tanaka's identity for $\ell$ is the limit as the step shrinks. Second chart: $(\E_y Y_h - y)/h$, computed exactly from the mixture $y + Ht + W_t$ with $P(H = +1) = g(y)$, beside $\tanh y$.""",
         "wide": False,
     },
     "facts": {
         "title": "Three facts about g",
         "state": "computed",
         "state_text": "Computed in the page from the closed forms, with sampled runs in step 5",
-        "caption": r"""What each step of the proof is about. Steps 1 to 3: both sides of each identity at 601 points from $-3$ to 3, from the closed forms, with central difference quotients of step 0.01 in step 2. Step 4: $(\cosh^2 y\,f')'$ by central differences of step $10^{-4}$ (dots), beside $2\cosh^2 y\,\Lop f$ from the closed forms (line). Step 5: $b\tanh b - y\tanh y$ for the flat bound $b = B(c)$, with runs of the evidence from four starts until $|X|$ reaches $b$, on steps of 0.0025 against the bound moved in by $0.5826\sqrt{0.0025}$ (up to 1,000 runs per start, a fixed seed).""",
+        "caption": r"""What each step of the proof is about. Steps 1 and 2: both sides of each identity at 601 points from $-3$ to 3, from the closed forms, with central difference quotients of step 0.01 in step 2. Step 3: the generator's expression applied to $g$ at 301 points from 0 to 3, the state space of $Y$; at 0 the reflection acts, not this expression. Step 4: $(\cosh^2 y\,f')'$ by central differences of step $10^{-4}$ (dots), beside $2\cosh^2 y\,\Lop f$ from the closed forms (line); the reading is the largest difference divided by the largest size of the right side, or by 1 if that is smaller. Step 5: $b\tanh b - y\tanh y$ for the flat bound $b = B(c)$, with Euler runs of the filtered diffusion $dX = \tanh(X)\,dt + d\bar W$ from four starts until $|X|$ reaches $b$ moved in by $0.5826\sqrt{0.0025}$, on steps of 0.0025, with runs cut off at time 60 (up to 1,000 runs per start, a fixed seed). The bars show sampling error only, not the error of the Euler steps.""",
         "wide": False,
     },
     "couple": {
@@ -94,16 +94,16 @@ STRIPS = {
     "posterior": {
         "plate": "belief",
         "steps": [
-            ("Under either answer, the evidence at time $t$ is normal, and the ratio of the two densities depends only on $x$.",
-             r"Given $H$, $X_t = Ht + W_t$ is normal with mean $Ht$ and variance $t$, so $\dfrac{p_+(x)}{p_-(x)} = \dfrac{e^{-(x - t)^2/2t}}{e^{-(x + t)^2/2t}} = \class{lit}{e^{2x}}$. For a whole path the ratio is the same, $e^{x - t/2}/e^{-x - t/2}$ by Girsanov's theorem: it depends on the path only through where it ends."),
-            ("Bayes' rule with equal priors: the posterior odds are that ratio.",
+            (r"Under either answer, the evidence at time $t$ is normal, and the ratio of the two densities depends only on $x$.",
+             r"Start from $X_0 = 0$, with the noise $W$ independent of $H$. Given $H$, $X_t = Ht + W_t$ is normal with mean $Ht$ and variance $t$, so $\dfrac{p_+(x)}{p_-(x)} = \dfrac{e^{-(x - t)^2/2t}}{e^{-(x + t)^2/2t}} = \class{lit}{e^{2x}}$. For a whole path the ratio is the same, $e^{x - t/2}/e^{-x - t/2}$ by Girsanov's theorem: it depends on the path only through where it ends."),
+            (r"Bayes' rule with equal priors: the posterior odds are that ratio.",
              r"$\dfrac{P(H = +1 \mid \text{evidence})}{P(H = -1 \mid \text{evidence})} = \dfrac{1/2}{1/2}\cdot\dfrac{p_+(X_t)}{p_-(X_t)} = \class{lit}{e^{2X_t}}$."),
-            ("So the belief is a logistic function of the evidence, and the evidence is half the log odds.",
+            (r"So the belief is a logistic function of the evidence, and the evidence is half the log odds.",
              r"$P(H = +1 \mid X_t = x) = \dfrac{e^{2x}}{1 + e^{2x}} = \class{lit}{g(x) = \dfrac{1}{1 + e^{-2x}}}$, and $\log\dfrac{g}{1 - g} = 2x$."),
             (r"The decision maker's best estimate of the drift is $\tanh X$.",
              r"$\E[H \mid \text{evidence}] = (+1)\,g + (-1)(1 - g) = 2g - 1 = \dfrac{1 - e^{-2X}}{1 + e^{-2X}} = \class{lit}{\tanh X}$. Since $H$ doesn't change, the expected change of the evidence over the next $h$ time units, given what has been seen, is $h\tanh X_t$."),
-            ("What is left is fresh noise, so in the decision maker's view the evidence is one diffusion (a cited result).",
-             r"The innovation $\bar W_t = X_t - \int_0^t \tanh(X_s)\,ds$ is a Brownian motion in the decision maker's own information (Peskir and Shiryaev 2006, Ch. VI), so $\class{lit}{dX_t = \tanh(X_t)\,dt + d\bar W_t}$. The plate checks two consequences: $\bar W_t$ has variance $t$, and its later increments are uncorrelated with what has been seen."),
+            (r"What is left is fresh noise, so in the decision maker's view the evidence is one diffusion (a cited result).",
+             r"The innovation $\bar W_t = X_t - \int_0^t \tanh(X_s)\,ds$ is a Brownian motion in the decision maker's own information (Peskir and Shiryaev 2006, Ch. VI), so $\class{lit}{dX_t = \tanh(X_t)\,dt + d\bar W_t}$. The plate checks two consequences on 4,000 separate trials, from left sums on steps of 0.01: $\bar W$ has variance 2 at time 2, and its increment from time 1 to 2 has correlation 0 with $\tanh X_1$."),
         ],
     },
     "identities": {
@@ -111,28 +111,28 @@ STRIPS = {
         "steps": [
             (r"Write the belief through $\tanh$, and the product $g(1 - g)$ simplifies.",
              r"$g(y) = \dfrac{1 + \tanh y}{2}$, so $g(1 - g) = \tfrac14(1 + \tanh y)(1 - \tanh y) = \tfrac14(1 - \tanh^2 y) = \class{lit}{\dfrac{1}{4\cosh^2 y}}$."),
-            ("Differentiate: the slope of the belief is twice that product.",
+            (r"Differentiate: the slope of the belief is twice that product.",
              r"$g' = \tfrac12\sech^2 y = 2g(1 - g) = \class{lit}{\dfrac{1}{2\cosh^2 y}}$, and $g'' = -\sech^2 y\,\tanh y$."),
-            ("The generator of $Y$ sends $g$ to 0: the belief has no drift while $Y > 0$.",
-             r"$\Lop g = \tfrac12 g'' + \tanh y\,g' = -\tfrac12\sech^2 y\tanh y + \tfrac12\tanh y\,\sech^2 y = \class{lit}{0}$ for $y > 0$. At $y = 0$ the reflection adds $g'(0)\,d\ell = \tfrac12\,d\ell$, which is where the value of waiting comes from in chapter 4."),
-            ("Multiplying by $\cosh^2 y$ turns the generator into a single derivative.",
+            (r"For $y > 0$, the generator's expression sends $g$ to 0: the belief has no drift while $Y > 0$.",
+             r"$\Lop g = \tfrac12 g'' + \tanh y\,g' = -\tfrac12\sech^2 y\tanh y + \tfrac12\tanh y\,\sech^2 y = \class{lit}{0}$ for $y > 0$. At $y = 0$, the reflection adds $g'(0)\,d\ell = \tfrac12\,d\ell$, which is where the value of waiting comes from in chapter 4."),
+            (r"Multiplying by $\cosh^2 y$ turns the generator into a single derivative.",
              r"$(\cosh^2 y\,f')' = 2\cosh y\sinh y\,f' + \cosh^2 y\,f'' = 2\cosh^2 y\,(\tfrac12 f'' + \tanh y\,f') = \class{lit}{2\cosh^2 y\,\Lop f}$, for any twice differentiable $f$."),
-            ("A first use: the mean time for $Y$ to reach a level $b$.",
+            (r"A first use: the mean time for $Y$ to reach a level $b$.",
              r"$m(y) = \E_y\tau_b$ solves $\Lop m = -1$ on $[0, b)$ with $m'(0) = 0$ (the reflection) and $m(b) = 0$. Step 4 gives $(\cosh^2 y\,m')' = -2\cosh^2 y$, so $\cosh^2 y\,m' = -(y + \tfrac12\sinh 2y)$, which is $m' = -(y\tanh y)'$, and $\class{lit}{m(y) = b\tanh b - y\tanh y}$."),
         ],
     },
     "strong": {
         "plate": "couple",
         "steps": [
-            ("Reflection at 0 is a map on paths: add back the furthest the path has been below 0.",
+            (r"Reflection at 0 is a map on paths: add back the furthest the path has been below 0.",
              r"For a continuous path $U$ with $U_0 \ge 0$, Skorokhod's lemma gives the unique pair with $Y = U + \ell \ge 0$ and $\ell$ nondecreasing from $\ell_0 = 0$, growing only when $Y = 0$: $\class{lit}{\ell_t = \sup_{s \le t}(-U_s)^+}$. The map $\Gamma: U \mapsto Y$ is Lipschitz in the supremum norm, with constant 2."),
-            ("Picard iteration: reflect, recompute the drift, and reflect again.",
+            (r"Picard iteration: reflect, recompute the drift, and reflect again.",
              r"Set $Y^{n+1} = \Gamma\bigl(y + \int_0^{\cdot}\tanh(Y^n_s)\,ds + B\bigr)$. Since $\tanh$ is Lipschitz with constant 1, $\sup_{s \le t}|Y^{n+1}_s - Y^n_s| \le 2\int_0^t \sup_{r \le s}|Y^n_r - Y^{n-1}_r|\,ds$, so the distances shrink like $\class{lit}{(2t)^n/n!}$ and the iterates converge to a solution."),
-            ("Gronwall's lemma: the solution is unique, so each start and each noise path give one path.",
+            (r"Gronwall's lemma: the solution is unique, so each start and each noise path give one path.",
              r"Two solutions $Y, \tilde Y$ from the same start on the same $B$ satisfy $\sup_{s \le t}|Y_s - \tilde Y_s| \le 2\int_0^t \sup_{r \le s}|Y_r - \tilde Y_r|\,ds$, so $\class{lit}{Y = \tilde Y}$. The paper runs every start on the same $B$, so all of them share one filtration."),
-            ("Two paths that meet are one path from then on, and continuous paths can't pass each other without meeting.",
+            (r"Two paths that meet are one path from then on, and continuous paths can't pass each other without meeting.",
              r"If $Y^1_s = Y^2_s$ at some time $s$, then after $s$ both solve the same equation from the same point with the same $B$, and step 3 makes them equal. So for $y_1 \le y_2$, $\class{lit}{Y^1_t \le Y^2_t}$ for all $t$: paths that start ordered stay ordered."),
-            ("What chapter 4 uses: the lower start collects at least as much local time.",
+            (r"What chapter 4 uses: the lower start collects at least as much local time.",
              r"Write $Y^i = U^i + \ell^i$. Then $U^1 - U^2 = y_1 - y_2 + \int(\tanh Y^1 - \tanh Y^2)\,ds \le 0$, and since $\ell^i_t = \sup_{s \le t}(-U^i_s)^+$, $\class{lit}{\ell^1 \ge \ell^2}$ pathwise."),
         ],
     },
@@ -148,9 +148,9 @@ The paper's decision maker must say which of two answers is right. A hidden stat
 
 $$dZ_t = \mu H\,dt + \sigma\,dW_t,$$
 
-where $W$ is a standard Brownian motion. The decision maker knows $\mu$ and $\sigma$; only the sign $H$ is unknown.
+where $W$ is a standard Brownian motion independent of $H$, $Z_0 = 0$, and $\mu, \sigma > 0$. The decision maker knows $\mu$ and $\sigma$; only the sign $H$ is unknown.
 
-Two numbers describe the task, and a change of units sets both to 1. Measure time in units of $\sigma^2/\mu^2$ and evidence in units of $\sigma^2/\mu$, that is, set $t' = \mu^2 t/\sigma^2$ and $x = \mu Z/\sigma^2$, and the evidence has drift $H$ and noise of size 1. A cost of time changes units the same way, $c' = c\,\sigma^2/\mu^2$, so the total cost paid over a decision is unchanged. Nothing is lost: a result in the paper's units converts back by multiplying its times by $\sigma^2/\mu^2$.
+Two numbers describe the task, and a change of units sets both to 1. Measure time in units of $\sigma^2/\mu^2$ and evidence in units of $\sigma^2/\mu$, that is, set $t' = \mu^2 t/\sigma^2$ and $x = \mu Z/\sigma^2$, and the evidence has drift $H$ and noise of size 1. A cost per unit of time converts by the inverse factor: with $a = \sigma^2/\mu^2$, the cost per paper time unit at paper time $t'$ is $c'(t') = a\,c(a t')$, so the total cost paid over a decision, $\int c(t)\,dt = \int c'(t')\,dt'$, is unchanged. For a constant cost, that is the paper's $c' = c\,\sigma^2/\mu^2$. Nothing is lost: a result in the paper's units converts back by multiplying its times by $\sigma^2/\mu^2$.
 
 The time unit has a plain meaning. After time $t$, the drift has moved the evidence by $\mu t$, and the noise has a standard deviation of $\sigma\sqrt t$. The two are equal at $t = \sigma^2/\mu^2$, so one time unit is how long the evidence takes to reach a signal-to-noise ratio of one.
 
@@ -189,7 +189,7 @@ where $\bar W$, the innovation, is the evidence minus the drift the decision mak
 """),
             ("exact", "219-230|In these units|", "The paper's words"),
             ("plain", r"""
-**On your schedule.** Here is the schedule you chose on the contents page, read in milliseconds if you like, with its best bound read as a belief. The right-hand axis is the left-hand one relabeled by $g$: a decision made when the evidence reaches a bound $b$ is right with probability $g(b)$ (chapter 3 makes this the reward). A higher bound means a slower, surer choice, and a bound that falls means the decision maker accepts a lower chance of being right as time goes on.
+**On your schedule.** Here is the schedule you chose on the contents page, read in milliseconds if you like, with its best bound read as a belief. The right-hand axis is the left-hand one relabeled by $g$: a decision made at evidence $b$ is right with probability $g(b)$ (chapter 3 makes this the reward). The program checks the evidence every 0.01 time units, so the evidence can pass the bound between checks, and a decision made on reaching it is right with at least that probability. At a deadline, the choice is forced: every trial still open stops with the evidence $x$ it has, and is right with probability $g(|x|)$. A higher bound means a slower, surer choice, and a bound that falls means the decision maker accepts a lower chance of being right as time goes on.
 """),
             ("plate", "yours"),
             ("plain", r"""
@@ -206,7 +206,7 @@ The problem is symmetric. Flipping the sign of the evidence swaps the two answer
 """),
             ("plate", "fold"),
             ("plain", r"""
-Away from 0, $Y$ drifts away from it at rate $\tanh Y$: the sign of $X$ and the sign of its drift $\tanh X$ agree, because $\tanh$ is odd. At 0 it can't go lower, and it is pushed back up. Tanaka's formula makes this exact:
+Away from 0, $Y$ drifts away from it at rate $\tanh Y$: the sign of $X$ and the sign of its drift $\tanh X$ agree, because $\tanh$ is odd. At 0, it can't go lower, and it is pushed back up. Tanaka's formula makes this exact:
 
 $$dY = \tanh(Y)\,dt + dB + d\ell,$$
 
@@ -214,7 +214,7 @@ where $B$ is a Brownian motion and $\ell$, the local time at 0, grows only while
 
 $$\Lop = \tfrac12\partial_y^2 + \tanh(y)\,\partial_y,$$
 
-with a reflecting boundary at 0. The plate's second chart measures the drift directly: $(\E_y Y_h - y)/h$, the average change of $Y$ over a short time $h$, divided by $h$. It is exact, because from the decision maker's view, evidence started at $y$ is $y + Ht + W_t$ with $H = +1$ with probability $g(y)$. Away from 0 it settles on $\tanh y$ as $h$ shrinks. At 0 it grows like $\sqrt{2/(\pi h)}$, without limit: the push of the local time has no finite rate.
+with a reflecting boundary at 0. The plate's second chart measures the drift directly: $(\E_y Y_h - y)/h$, the average change of $Y$ over a short time $h$, divided by $h$. It is exact, because from the decision maker's view, evidence started at $y$ is $y + Ht + W_t$ with $H = +1$ with probability $g(y)$. Away from 0, it settles on $\tanh y$ as $h$ shrinks. At 0, it grows like $\sqrt{2/(\pi h)}$, without limit: the push of the local time has no finite rate.
 
 Three facts about $g$ and $\Lop$ are used throughout the paper:
 
@@ -222,7 +222,7 @@ Three facts about $g$ and $\Lop$ are used throughout the paper:
 - $g(1 - g) = 1/(4\cosh^2 y)$, so $g'(y) = 1/(2\cosh^2 y)$.
 - $(\cosh^2 y\,f')' = 2\cosh^2 y\,\Lop f$ for any twice differentiable $f$.
 
-Each is a line of calculus. The third turns a second-order equation $\Lop f = q$ into $(\cosh^2 y\,f')' = 2\cosh^2 y\,q$, which integrates in one step, and it is the source of every $\cosh^2$ in the paper. The strip proves the three and then uses the third once.
+Each is a line of calculus. The third turns a second-order equation $\Lop f = q$ into $(\cosh^2 y\,f')' = 2\cosh^2 y\,q$, which integrates in one step. That integration puts the weight $\cosh^2 y$ into the flat bound (chapter 3), the exact equation (chapter 5), and the kernel's start law (chapter 6); the paper also reads the same weight as the speed density of $Y$ ({{ref:rem:speed}}). The strip proves the three and then uses the third once.
 """),
             ("strip", "identities"),
             ("plain", r"""
@@ -250,7 +250,7 @@ Order belongs to the coupling, not to the process. With independent noise, the s
             ("exact", "1273-1278", "The paper's standing fact, from Appendix A"),
             ("exact", "1300-1303|By the|stay ordered.", "And the ordering, from the proof of {{ref:lem:structure}}"),
             ("limits", r"""
-**What the chapter cites, and what it shows.** Existence and uniqueness of the strong solution are cited, not proved here; the strip lays out the standard argument. The ordering is the paper's own one-line argument. The plate demonstrates both on Euler steps of 0.002 with the reflection $\max(0, \cdot)$, a scheme that keeps the order exactly. Nothing about the cost of time enters any of it.
+**What the chapter cites, and what it proves.** Skorokhod's lemma, the reflection of a given path, is cited (Revuz and Yor 1999). From it, steps 2 and 3 prove existence and uniqueness of the strong solution by the Picard and Gronwall argument the paper states in one sentence, and steps 4 and 5 prove the ordering and the local-time comparison, the paper's own argument. The plate's charts are demonstrations on Euler steps of 0.002 with the reflection $\max(0, \cdot)$, a scheme that keeps the order exactly. Nothing about the cost of time enters any of it.
 """),
         ],
     },
@@ -259,7 +259,7 @@ Order belongs to the coupling, not to the process. With independent noise, the s
         "title": "Where this chapter sits",
         "blocks": [
             ("plain", r"""
-The paper's claims and the places one uses another, with this chapter's four printed heavier. Apart from each other, they use nothing else in the paper: they are the roots of the map. The evidence and its units feed the belief, and chapter 12's scale for a real task ({{claim:claim:palmer-scale}}). The belief feeds the folded process and chapter 3's reward ({{claim:def:reward-cost}}). The folded process is the busiest node of the setup, used by seven claims: the strong solutions on this page, chapter 3's value and flat bound, chapter 4's {{ref:lem:structure}}, chapter 5's {{ref:prop:regularity}} and {{ref:prop:exact}}, and chapter 6's kernel. The strong solutions are used by {{ref:lem:structure}}, by chapter 4's fact that optimal stopping applies ({{claim:sf:stopping}}), and by {{ref:prop:regularity}}.
+The paper's claims and the places one uses another, with this chapter's four printed heavier. Apart from each other, they use nothing else in the paper. The evidence and its units feed the belief, and chapter 12's scale for a real task ({{claim:claim:palmer-scale}}). The belief feeds the folded process and chapter 3's reward ({{claim:def:reward-cost}}). The folded process is used by seven claims: the strong solutions on this page, chapter 3's value and flat bound, chapter 4's {{ref:lem:structure}}, chapter 5's {{ref:prop:regularity}} and {{ref:prop:exact}}, and chapter 6's kernel. The strong solutions are used by {{ref:lem:structure}}, by chapter 4's fact that optimal stopping applies ({{claim:sf:stopping}}), and by {{ref:prop:regularity}}.
 """),
             ("map", "def:reflected"),
         ],
@@ -272,7 +272,7 @@ The paper's claims and the places one uses another, with this chapter's four pri
             ("qs", [
                 (r"Show that $x = \mu Z/\sigma^2$, $t' = \mu^2 t/\sigma^2$ turns $dZ = \mu H\,dt + \sigma\,dW$ into evidence with drift $H$ and unit noise, and find how the cost changes.",
                  r"""
-Multiply by $\mu/\sigma^2$: $dx = (\mu^2/\sigma^2)H\,dt + (\mu/\sigma)\,dW_t$. Since $dt' = (\mu^2/\sigma^2)\,dt$, the first term is $H\,dt'$. For the noise, Brownian scaling gives $W_t = (\sigma/\mu)\,W'_{t'}$ in law for a standard Brownian motion $W'$ in the new time, so $(\mu/\sigma)\,dW_t = dW'_{t'}$. Hence $dx = H\,dt' + dW'_{t'}$. The total cost doesn't depend on the clock: $\int c\,dt = \int c\,(\sigma^2/\mu^2)\,dt'$, so the cost per unit of new time is $c' = c\,\sigma^2/\mu^2$.
+Multiply by $\mu/\sigma^2$: $dx = (\mu^2/\sigma^2)H\,dt + (\mu/\sigma)\,dW_t$. Since $dt' = (\mu^2/\sigma^2)\,dt$, the first term is $H\,dt'$. For the noise, Brownian scaling gives $W_t = (\sigma/\mu)\,W'_{t'}$ in law for a standard Brownian motion $W'$ in the new time, so $(\mu/\sigma)\,dW_t = dW'_{t'}$. Hence $dx = H\,dt' + dW'_{t'}$. For the cost, write $a = \sigma^2/\mu^2$, so $t = a t'$. The total cost doesn't depend on the clock: $\int c(t)\,dt = \int c(a t')\,a\,dt'$, so the cost per unit of new time is $c'(t') = a\,c(a t')$, which is $c\,\sigma^2/\mu^2$ for a constant cost.
 """),
                 (r"Why is $\sigma^2/\mu^2$ “the time it takes for the evidence to reach a signal-to-noise ratio of one”?",
                  r"""
@@ -320,7 +320,7 @@ Suppose $Y^1_0 \le Y^2_0$. If the paths ever met, then from that moment both wou
                 (r"“$\Lop g = 0$ means $g$ is constant.”",
                  r"It means $g(Y)$ has no drift while $Y > 0$: $g$ is harmonic for $\Lop$. At $Y = 0$, the reflection adds $g'(0)\,d\ell = \tfrac12 d\ell$, which is where the value of waiting comes from in the proof of {{ref:lem:structure}}."),
                 (r"“The coupling is an extra assumption of the paper.”",
-                 r"It is a standard fact, cited from Revuz and Yor (Ch. VI, Lemma 2.1), with the Lipschitz argument stated in one sentence. Nothing about the cost enters it."),
+                 r"It is the paper's construction on a standard fact. Skorokhod's lemma (Revuz and Yor, Ch. VI, Lemma 2.1) reflects a given path, and with Picard iteration and Gronwall's lemma it gives one solution for each start and noise path; the paper then runs every start on the same noise, and its own argument shows they stay in order. Nothing about the cost enters it."),
             ]),
         ],
     },
