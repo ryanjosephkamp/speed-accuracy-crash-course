@@ -3,9 +3,9 @@
 // waiting value at a constant cost, the time spent past the bound), and the forward computation that scores a rule
 // and gives its decision times, for the losses on the reader's schedule. tools/checks/ch07.mjs holds these to the
 // paper's generated numbers and to model.js.
-import * as K from "./kernel.js?v=850f062e96";
-import { boundForCost, toDiscrete, belief } from "./model.js?v=850f062e96";
-import { line, dropAt } from "./chart.js?v=850f062e96";
+import * as K from "./kernel.js?v=9bcb592a71";
+import { boundForCost, toDiscrete, belief } from "./model.js?v=9bcb592a71";
+import { line, dropAt } from "./chart.js?v=9bcb592a71";
 
 /** The paper's Table 1 (tab_sinusoid at the tag), c0 = 0.1 and eps = 0.01: omega, then the swing and the lead in
  * degrees for the closed form, the dynamic program, and the weighted look-ahead. Checked cell by cell against
@@ -390,11 +390,13 @@ export function lossRun(cost, EPS, { horizon = LOSS_HORIZON, view = 2.5, dt = 0.
 export const lossAxis = (pos, cutoff) => [Math.min(cutoff / 4, ...pos) / 1.5, Math.max(cutoff, ...pos) * 3];
 
 /** The shift plate's three curves as SVG paths in a frame f: the per-moment and shifted rules (dashed and dotted) and
- * the program's bound (ink). On a deadline each drops straight down at the forced choice, instead of sloping across
- * the last step. */
+ * the program's bound (ink). Each joins its values at the plotted times, except the per-moment bound on a deadline:
+ * the deadline preset's cost is flat, so that bound holds its value up to the forced choice and drops straight down
+ * there. The shifted rule and the program's bound run straight from their last values before the deadline to their 0
+ * at it, as Chapter 8's comparison draws the program's bound (the program's own value between those two times is
+ * not on the plotted grid). */
 export function shiftLines(f, t, exact, pm, sh, dl = null) {
-  const curve = (ys, cls) => { const [x, y] = dropAt(t, ys, dl); return line(f, x, y, cls); };
-  return curve(pm, "pm") + curve(sh, "wb-dots") + curve(exact, "ex");
+  return line(f, ...dropAt(t, pm, dl), "pm") + line(f, t, sh, "wb-dots") + line(f, t, exact, "ex");
 }
 
 /** The top of the ratio chart's axis: 2, or the largest ratio rounded up, at most 8. */
@@ -443,6 +445,9 @@ export function shiftedBound(cost, t, dt = 0.01) {
   if (!Number.isFinite(c)) return 0;
   return toDiscrete(boundForCost(cost(t + lookAheadClosed(c))), dt);
 }
+
+/** The shift plate's dotted curve at the worker's times t: the shifted rule, and 0 from a deadline dl on. */
+export const shiftSeries = (cost, t, dl = null) => t.map((x) => (dl !== null && x >= dl - 1e-9 ? 0 : shiftedBound(cost, x)));
 
 /** Distances from the program's bound over the window, average and largest, for the per-moment and shifted rules,
  * and how far apart the two rules are. */

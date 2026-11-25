@@ -1,7 +1,7 @@
 {
- "date": "2026-11-24",
- "total": 1350,
- "passed": 1350,
+ "date": "2026-11-25",
+ "total": 1387,
+ "passed": 1387,
  "results": [
   {
    "file": "book",
@@ -62,9 +62,9 @@
   {
    "file": "book",
    "plate": "schedule",
-   "name": "without a deadline the curve is unchanged",
+   "name": "without a deadline, or with one that isn't the curve's last time, both arrays come back unchanged",
    "ok": true,
-   "detail": "3"
+   "detail": "0, 1, 2 / 1, 0.8, 0.6"
   },
   {
    "file": "appA",
@@ -650,9 +650,9 @@
   {
    "file": "appA",
    "plate": "hero",
-   "name": "the readings: the proofs in Appendices A and B have one numerical step, in Corollary 9's proof, and the two readings are the two values Corollary 9 states for it",
+   "name": "the readings: in Appendix A.7, the proof of Corollary 9(b) says its maximum over c0 is found numerically; the two readings are the two values Corollary 9 states for that maximum, and their words credit that proof without counting the appendices' numerical steps",
    "ok": true,
-   "detail": "\"numerical\" at line 1471 (A.7); both values at line 500, in Corollary 9's statement"
+   "detail": "\"The maximum is found numerically\" at line 1470 (A.7), between \"For (b)\" at 1465 and \"For (c)\" at 1471; both values at line 500, in Corollary 9's statement"
   },
   {
    "file": "appA",
@@ -1019,6 +1019,13 @@
    "detail": "At a cost of 0.1, the two curves meet at y = 1.344, and there sinh(2b) + 2b = 10.00, which is 1/c = 10.00."
   },
   {
+   "file": "ch00",
+   "plate": "schedule",
+   "name": "Rising from 0 at rate 2, on the page's worker: some plotted bounds lie between the center and the first step (0.02) and some are a center stop at 0; chapter 0's text and the contents page each state both cases",
+   "ok": true,
+   "detail": "between at 21 times (first 1.52), 0 at 29 (first 1.94); both cases stated: true"
+  },
+  {
    "file": "ch01",
    "plate": "rule",
    "name": "B(c) from the page's table matches the root of sinh 2b + 2b = 1/c for costs 0.004 to 8 (within 1e-5)",
@@ -1133,16 +1140,16 @@
   {
    "file": "ch01",
    "plate": "code",
-   "name": "the sub-step reference was run on the page's grid",
+   "name": "the sub-step reference was run on the page's grid: time step, evidence step, evidence cap, horizon, and window",
    "ok": true,
-   "detail": "dt 0.01, h 0.02, horizon 8.5"
+   "detail": "dt 0.01, h 0.02, cap 5 (page 5), horizon 8.5, view 2.5"
   },
   {
    "file": "ch01",
    "plate": "code",
-   "name": "below the grid's first step, the page departs from the tag's 0 exactly where the center waits, and matches the tag everywhere else (within 1e-6)",
+   "name": "on the two tagged fixtures (the 32-fold jump at 0.2 and the ramp from 0 at rate 2), each with at least one such cell: below the grid's first step, the page departs from the tag's 0 exactly where the center waits, and matches the tag everywhere else (within 1e-6)",
    "ok": true,
-   "detail": "jump32: 212 cells where the tag reads 0 and the center waits (page between 0 and 0.02), 39 others within 3.9e-9; ramp2: 43 cells where the tag reads 0 and the center waits (page between 0 and 0.02), 208 others within 4.5e-9"
+   "detail": "both fixtures present; jump32: 212 cells where the tag reads 0 and the center waits (page between 0 and 0.02), 39 others within 3.9e-9; ramp2: 43 cells where the tag reads 0 and the center waits (page between 0 and 0.02), 208 others within 4.5e-9"
   },
   {
    "file": "ch01",
@@ -1329,7 +1336,7 @@
   {
    "file": "ch01",
    "plate": "fig1",
-   "name": "for the four paper schedules, the page's rule curves sit 0.032 below the printed ones wherever neither is held at 0 (within 1e-4), and where one is held at 0, both are",
+   "name": "for the four paper schedules, the page's rule curves sit the shift difference, 0.5826 (sqrt 0.01 - sqrt 0.002) = 0.0322 (the caption's 0.032, rounded), below the printed ones wherever neither is held at 0 (within 1e-4 of that difference), and where one is held at 0, both are",
    "ok": true,
    "detail": "1707 points within 5.0e-5 of the shift difference; 1 points 0 in both; 0 mixed"
   },
@@ -1392,9 +1399,9 @@
   {
    "file": "ch01",
    "plate": "fig1",
-   "name": "the chapter's worker replies to deadlines at 0.45, 0.95, 1, and 3 with every time to the forced choice, each curve the same length, the grid's own value just before it and 0 at it; and to the 16-fold rise with every curve over the whole window",
+   "name": "the chapter's worker replies to deadlines at 0.45, 0.95, 1, and 3 with every time to the forced choice, each curve the same length, the grid's own value just before it and 0 at it; and to the 16-fold rise with every time every 0.01 from 0 to 2.5 and every curve over them",
    "ok": true,
-   "detail": "T = 0.45: 46 of 46 times, last 0.45, 0.1933 just before, 0 at T; T = 0.95: 96 of 96 times, last 0.95, 0.1933 just before, 0 at T; T = 1: 101 of 101 times, last 1.00, 0.1933 just before, 0 at T; T = 3: 301 of 301 times, last 3.00, 0.1933 just before, 0 at T; rise: 251 times, all finite: true"
+   "detail": "T = 0.45: 46 of 46 times, last 0.45, 0.1933 just before, 0 at T; T = 0.95: 96 of 96 times, last 0.95, 0.1933 just before, 0 at T; T = 1: 101 of 101 times, last 1.00, 0.1933 just before, 0 at T; T = 3: 301 of 301 times, last 3.00, 0.1933 just before, 0 at T; rise: 251 of 251 times, on the 0.01 grid to 2.5: true, all finite: true"
   },
   {
    "file": "ch01",
@@ -1413,23 +1420,37 @@
   {
    "file": "ch01",
    "plate": "fig1",
-   "name": "the panels as drawn keep the cost line inside its strip on its own scale (a constant 1, a rise to 3.2, a drawing up to 2), with the dot at t = 1.25 on the line",
+   "name": "the panels as drawn keep the cost line inside its strip on its own scale (a constant 1, a rise to 3.2, a drawing alternating 0.5 and 2, and a drawing at 0.01 with one knot of 2 at t = 0.2), turn a drawing's path at each of its knots, and put the dot on the line (at t = 1.25, and at the sharp knot itself)",
    "ok": true,
-   "detail": "constant: line from 36 to 36 inside 19–53; at t = 1.25 line 36, dot 36; jump: line from 21.8 to 50.2 inside 19–53; at t = 1.25 line 21.8, dot 21.8; draw: line from 24.1 to 47.9 inside 19–53; at t = 1.25 line 36, dot 36"
+   "detail": "constant: 181 points from 36 to 36 inside 19–53; at t = 1.25 line 36, dot 36; jump: 181 points from 21.8 to 50.2 inside 19–53; at t = 1.25 line 21.8, dot 21.8; alternating drawing: 201 points from 24.1 to 47.9 inside 19–53; at t = 1.25 line 36, dot 36; a vertex at every knot: true; sharp knot: 201 points from 20.7 to 51.3 inside 19–53; at t = 0.2 line 20.7, dot 20.7; a vertex at every knot: true"
   },
   {
    "file": "ch01",
    "plate": "words",
-   "name": "on a ramp from 0 at rate 2, the worker's bound at t = 1.93 is positive but below 0.001; the tile reads \"< 0.001\" and the sentence says the program still waits at the center",
+   "name": "the read-out on a ramp from 0 at rate 2: the worker's bound at t = 1.93 is positive and would round to 0.000, so the best-bound tile reads \"< 0.001\" and the sentence says the program still waits at the center; at t = 1.92 the bound rounds to 0.001 and reads so",
    "ok": true,
-   "detail": "2.070e-4: Yours: at time 1.93, the cost is 4.0, and sampled over the next half time unit it rises, to a mean of 4.5. The best bound is below 0.001 but above 0 (the program still waits at the center), the per-moment bound 0.005, and the weighted rule 0.005. The best and per-moment bounds agree to within 0.02."
+   "detail": "2.070e-4: tile < 0.001; Yours: at time 1.93, the cost is 4.0, and sampled over the next half time unit it rises, to a mean of 4.5. The best bound is below 0.001 but above 0 (the program still waits at the center), the per-moment bound 0.005, and the weighted rule 0.005. The best and per-moment bounds agree to within 0.02. | 6.579e-4: tile 0.001"
   },
   {
    "file": "ch01",
    "plate": "fig1",
-   "name": "the fifth panel calls a schedule flat by its cost, not its name: a constant, a smooth schedule of size 0, and a drawing of equal knots are flat; a drawing from 0.010000 to 0.010025 is not",
+   "name": "the note above the fifth panel calls a schedule's cost constant by the cost, not the preset's name: Constant, Smooth of size 0, and drawings of equal knots at 0.01, 0.02, 0.05, 0.07, 0.3, 0.5, and 2 (and one that is equal once clamped) get the constant-cost note; drawings from 0.010000 to 0.010025, or with one knot 0.5000001 among 0.5, and Figure 1(a) don't",
    "ok": true,
-   "detail": "flat true, true, true; varying false, false"
+   "detail": "10 constant, 3 changing; Draw your own. Solved the same way as the four above. Where your schedule's changes are large, the weighted rule is a heuristic, and where they are also fast, Algorithm 1's 30 updates need not settle on a solution (chapter 8)."
+  },
+  {
+   "file": "ch01",
+   "plate": "fig1",
+   "name": "isFlat, the helper the note uses: equal knots at 0.02 are flat although their interpolated costs differ in the last binary digit (time 0 against 0.02)",
+   "ok": true,
+   "detail": "0.020000000000000004 and 0.019999999999999993"
+  },
+  {
+   "file": "ch01",
+   "plate": "words",
+   "name": "Figure 1's caption gives the tile's cutoff as rounding to 0.000 (0.0007 reads 0.001, 0.0004 reads < 0.001), and allows a printed comparison for the fifth panel when it is one of the four at the paper's values",
+   "ok": true,
+   "detail": "book/content/ch01.py"
   },
   {
    "file": "ch01",
@@ -1588,9 +1609,9 @@
   {
    "file": "ch02",
    "plate": "units",
-   "name": "both of the units plate's charts widen their range to hold every value drawn, at the slider's corners and Palmer's setting",
+   "name": "both of the units plate's charts, as unitsCharts builds them for the plate, pass their frames a range that holds every value drawn (the path, the drift line, and the noise curve; the path, t, and sqrt t), at the slider's corners and Palmer's setting",
    "ok": true,
-   "detail": "0 charts clipped"
+   "detail": "12 charts, 0 with a value outside the range passed; 2 raw charts widened past -2 to 6"
   },
   {
    "file": "ch02",
@@ -2302,9 +2323,9 @@
   {
    "file": "ch02",
    "plate": "yours",
-   "name": "a deadline at 0.45: before it the dashed values are the shifted formula; at it the formula is still finite, and the worker's terminal 0 is the forced choice",
+   "name": "a deadline at 0.45: at each of the 23 plotted times before it (every 0.02 from 0 to 0.44), the dashed value is the shifted formula; at 0.45 the formula is still finite, and both the dashed and the best bound are the worker's terminal 0, the forced choice",
    "ok": true,
-   "detail": "formula 1.285435, dashed 1.285435 then 0"
+   "detail": "23 times before the deadline, largest difference 0.0e+0; formula at 0.45 1.285435; terminal 0 and 0"
   },
   {
    "file": "ch02",
@@ -2910,6 +2931,20 @@
   },
   {
    "file": "ch03",
+   "plate": "words",
+   "name": "the earn caption and text call the grid's flat level the best a numerical search found, say what it scans and that it doesn't score every level, and state the gain against that level",
+   "ok": true,
+   "detail": "book/content/ch03.py"
+  },
+  {
+   "file": "ch03",
+   "plate": "words",
+   "name": "the earn verdict calls the grid's flat level the best the page's numerical search found, and states the gain from moving against that level, either way, never against every level",
+   "ok": true,
+   "detail": "On the dynamic program's grid, which checks the evidence every 0.01 time units and forces the choice at time 8.5, the best level held flat that the page's numerical search found, 1.14, earns 0.768, and the best bound that moves with the cost earns 0.790: 2.2 points per 100 decisions more than that level."
+  },
+  {
+   "file": "ch03",
    "plate": "value",
    "name": "jump {\"at\":0.2,\"factor\":32}: at every kept row the bound is above 0 exactly where the program waits at y = 0 (W(t, 0) > 0)",
    "ok": true,
@@ -2981,7 +3016,7 @@
   {
    "file": "ch03",
    "plate": "bill",
-   "name": "a drawing at 2 to time 0.2, then 0.01: the best level held flat on the program's grid scores at least every level in a scan of (0, 5) every 0.01 (to 1e-7), at least the continuous best moved in, and no more than V(0, 0)",
+   "name": "a drawing at 2 to time 0.2, then 0.01: the level the page's search finds on the program's grid scores within 1e-7 of the best level in a separate scan of (0, 5) every 0.01 (or above it), at least the continuous best moved in, and no more than V(0, 0)",
    "ok": true,
    "detail": "level 0.0700 earns 0.5258004; scan best 0.5258004 at 0.070; moved-in 0.522630; V(0, 0) 0.547975"
   },
@@ -2995,21 +3030,28 @@
   {
    "file": "ch03",
    "plate": "bill",
-   "name": "draw: the best level held flat on the program's grid scores at least every level in a scan of (0, 5) every 0.05 (to 1e-7), at least the continuous best moved in, and no more than V(0, 0)",
+   "name": "a drawing at 0.5 to time 0.8, then 0.01: the level the page's search finds on the program's grid scores within 1e-7 of the best level in a separate scan of (0, 5) every 0.01 (or above it), at least the continuous best moved in, and no more than V(0, 0)",
+   "ok": true,
+   "detail": "level 0.4300 earns 0.6156634; scan best 0.6156634 at 0.430; moved-in 0.615654; V(0, 0) 0.644444"
+  },
+  {
+   "file": "ch03",
+   "plate": "bill",
+   "name": "draw: the level the page's search finds on the program's grid scores within 1e-7 of the best level in a separate scan of (0, 5) every 0.05 (or above it), at least the continuous best moved in, and no more than V(0, 0)",
    "ok": true,
    "detail": "level 0.0700 earns 0.5258004; scan best 0.5254139 at 0.050; moved-in 0.525712; V(0, 0) 0.525800"
   },
   {
    "file": "ch03",
    "plate": "bill",
-   "name": "jump: the best level held flat on the program's grid scores at least every level in a scan of (0, 5) every 0.05 (to 1e-7), at least the continuous best moved in, and no more than V(0, 0)",
+   "name": "jump: the level the page's search finds on the program's grid scores within 1e-7 of the best level in a separate scan of (0, 5) every 0.05 (or above it), at least the continuous best moved in, and no more than V(0, 0)",
    "ok": true,
    "detail": "level 0.4302 earns 0.6812614; scan best 0.6807482 at 0.450; moved-in 0.681260; V(0, 0) 0.710314"
   },
   {
    "file": "ch03",
    "plate": "bill",
-   "name": "deadline: the best level held flat on the program's grid scores at least every level in a scan of (0, 5) every 0.05 (to 1e-7), at least the continuous best moved in, and no more than V(0, 0)",
+   "name": "deadline: the level the page's search finds on the program's grid scores within 1e-7 of the best level in a separate scan of (0, 5) every 0.05 (or above it), at least the continuous best moved in, and no more than V(0, 0)",
    "ok": true,
    "detail": "level 0.9500 earns 0.7677601; scan best 0.7677601 at 0.950; moved-in 0.767758; V(0, 0) 0.769909"
   },
@@ -3100,44 +3142,51 @@
   {
    "file": "ch03",
    "plate": "value",
-   "name": "a deadline at 2.35: the note and the solver line print the forced-choice time as 2.35, the time the program used",
+   "name": "a deadline at 2.35: the note (lastNote) and the solver line (valueState, which the plate prints as it comes) give the forced-choice time as 2.35, the time the program used",
    "ok": true,
-   "detail": "A deadline is a last moment already: the choice is forced at time 2.35, and the bound fall…"
+   "detail": "A deadline is a last moment already: the choice is forced at time 2.35, and the bound fall… | Dynamic program on a grid: time step 0.01, evidence step 0.02, the choice forced at time 2…"
   },
   {
    "file": "ch03",
    "plate": "value",
-   "name": "a deadline at 2.55: the note and the solver line print the forced-choice time as 2.55, the time the program used, and say the map stops at the window's end",
+   "name": "a deadline at 2.55: the note (lastNote) and the solver line (valueState, which the plate prints as it comes) give the forced-choice time as 2.55, the time the program used, and the note says the map stops at the window's end",
    "ok": true,
-   "detail": "A deadline is a last moment already: the choice is forced at time 2.55, past the window, s…"
+   "detail": "A deadline is a last moment already: the choice is forced at time 2.55, past the window, s… | Dynamic program on a grid: time step 0.01, evidence step 0.02, the choice forced at time 2…"
   },
   {
    "file": "ch03",
    "plate": "value",
-   "name": "a deadline at 0.45: the note and the solver line print the forced-choice time as 0.45, the time the program used",
+   "name": "a deadline at 0.45: the note (lastNote) and the solver line (valueState, which the plate prints as it comes) give the forced-choice time as 0.45, the time the program used",
    "ok": true,
-   "detail": "A deadline is a last moment already: the choice is forced at time 0.45, and the bound fall…"
+   "detail": "A deadline is a last moment already: the choice is forced at time 0.45, and the bound fall… | Dynamic program on a grid: time step 0.01, evidence step 0.02, the choice forced at time 0…"
   },
   {
    "file": "ch03",
    "plate": "value",
-   "name": "a deadline at 3: the note and the solver line print the forced-choice time as 3, the time the program used, and say the map stops at the window's end",
+   "name": "a deadline at 3: the note (lastNote) and the solver line (valueState, which the plate prints as it comes) give the forced-choice time as 3, the time the program used, and the note says the map stops at the window's end",
    "ok": true,
-   "detail": "A deadline is a last moment already: the choice is forced at time 3, past the window, so t…"
+   "detail": "A deadline is a last moment already: the choice is forced at time 3, past the window, so t… | Dynamic program on a grid: time step 0.01, evidence step 0.02, the choice forced at time 3…"
   },
   {
    "file": "ch03",
    "plate": "value",
-   "name": "a deadline at 0.8: the plotted bound keeps the last check before it, 0.79, and the drop is drawn from that check's bound",
+   "name": "a deadline at 0.8: the worker's plotted bound keeps the last check before it, 0.79, and the map's curve (mapCurves, which the plate draws as it comes) drops from that check's bound",
    "ok": true,
    "detail": "0.79: 0.1933 (the program's 0.1933); 0.78: 0.2759"
   },
   {
    "file": "ch03",
    "plate": "words",
-   "name": "a bound below the first grid step is described as where deciding starts to beat waiting, read between grid points, with V = g only at the grid points above it",
+   "name": "a bound below the first grid step is described as where deciding starts to beat waiting, read between grid points, with V = g only at the grid points above it, and the program waiting at y = 0",
    "ok": true,
-   "detail": "th W = 0.008. The bound, 0.018, is where deciding starts to beat waiting, read between the grid's evidence points; at the grid points above it, V = g."
+   "detail": " 0.02, and the bound is where deciding starts to beat waiting, read between the grid's evidence points 0 and 0.02; at the grid points above it, V = g."
+  },
+  {
+   "file": "ch03",
+   "plate": "words",
+   "name": "Rising from 0 at rate 1.75, time 2.20: the worker's bound is positive and would round to 0.000, so the marker and tile read \"< 0.001\", W(t, 0) reads \"< 0.001\", and the sentence says the program still waits at y = 0; at 2.25 the bound is 0 and the sentence says it decides at once",
+   "ok": true,
+   "detail": "bound 4.277e-4, W 1.969e-4: At time 2.20, deciding at y = 0 is a coin flip, worth 0.5; the best rule from there earns V = 0.500, so the chance to wait is worth W < 0.001, though above 0. The bound, < 0.001, is below the grid's first evidence step, 0.02: the program still waits at y = 0 and decides at y = 0.02, and the bound is where deciding starts to beat waiting, read between the grid's evidence points 0 and 0.02; at the grid points above it, V = g."
   },
   {
    "file": "ch03",
@@ -3520,7 +3569,7 @@
   {
    "file": "ch04",
    "plate": "words",
-   "name": "the sketch verdict states the 0.002 tolerance either way, and the plate applies it to a collapsed band too (Constant has a band)",
+   "name": "the sketch verdict (sketchVerdict) states the 0.002 tolerance either way",
    "ok": true,
    "detail": "Your drawing is 0.10 from the best bound on average, and 100% of it lies more than 0.002 outside the band."
   },
@@ -3548,6 +3597,13 @@
   {
    "file": "ch04",
    "plate": "words",
+   "name": "Constant 0.1 through the band plate's Show me (the worker's bounds, then bandKind, bandReveal, and revealSay, which the plate prints as they come): it gets the band, collapsed to one curve, and the constant-cost note; a drawing on the program's bound lies inside it to within 0.002, and one 0.05 above lies outside",
+   "ok": true,
+   "detail": " 0.00 from the best bound on average, and all of it lies inside the band, to within 0.002. | ound on average, and 100% of it lies more than 0.002 outside the band."
+  },
+  {
+   "file": "ch04",
+   "plate": "words",
    "name": "a guess after the median reads late, and one before it early",
    "ok": true,
    "detail": "checked"
@@ -3565,6 +3621,20 @@
    "name": "a deadline's forced decisions are named in the decision sentence, and the deadline note says the cost is infinite after it",
    "ok": true,
    "detail": "checked"
+  },
+  {
+   "file": "ch04",
+   "plate": "program",
+   "name": "a drawing that changes until 2.5 and stays at 0.2 after: at each check from 2.5 to 3, the program's bound is the constant-0.2 program's with the same time left (within 1e-9), though it moved before 2.5; the bound depends only on the cost from that time on",
+   "ok": true,
+   "detail": "largest difference 0.0e+0; bound 1.070 at 0, 0.873 at 2.5"
+  },
+  {
+   "file": "ch04",
+   "plate": "words",
+   "name": "the decision-time text says the threshold can change during a decision and is B(c) throughout once the remaining cost is a constant c on the infinite horizon; the exercise gives the proof's bracketing only for starts below b0 - a|eps|; and the strip names the Snell envelope as what is a martingale",
+   "ok": true,
+   "detail": "book/content/ch04.py"
   },
   {
    "file": "ch05",
@@ -3730,23 +3800,23 @@
   {
    "file": "ch05",
    "plate": "words",
-   "name": "the sentence names the window of its count, says the early maximum is over the resolved times, and reports an unresolved last unit as unresolved",
+   "name": "the sentence names the window of its count, calls the unresolved times gaps for this grid, says the early maximum is over the resolved times, and reports an unresolved last unit as unresolved",
    "ok": true,
-   "detail": "For “Cost jumps”, the left side stays within 0.014 of ¼ from time 0 to 2.5 at the resolved times on the grid with Δt 0.01. At 931 of the 1000 times from 0 to 10 before the forced choice (every 0.01), the bound on this grid is below its first step, 0.02, which the grid can't resolve: the program puts it between 0 and that step where the center still waits, and at 0 where the center stops too. Those times are gaps in the charts and are left out of every residual given here. With the cost now in place of the cost at decision, the left side misses ¼ by up to 0.153 at the resolved times. In the last time unit before the forced choice at 10, the bound on this grid is below its first step at every time, so the left side isn't resolved there."
+   "detail": "For “Cost jumps”, the left side stays within 0.014 of ¼ from time 0 to 2.5 at the resolved times on the grid with Δt 0.01. At 931 of the 1000 times from 0 to 10 before the forced choice (every 0.01), the bound on this grid is below its first step, 0.02, which the grid can't resolve: the program puts it between 0 and that step where the center still waits, and at 0 where the center stops too. Those times are gaps for this grid and are left out of every residual given here. With the cost now in place of the cost at decision, the left side misses ¼ by up to 0.153 at the resolved times. In the last time unit before the forced choice at 10, the bound on this grid is below its first step at every time, so the left side isn't resolved there."
   },
   {
    "file": "ch05",
    "plate": "grid",
-   "name": "the plate's reading at time 0.70 is unresolved, with no area or bound printed; where the bound is resolved, it prints both",
+   "name": "the plate's reading at time 0.70 is unresolved, with no area or bound printed",
    "ok": true,
-   "detail": "0.70: resolved false; 1.50: resolved false, bound 0.0181"
+   "detail": "0.70: resolved false, grid bound 0.0194"
   },
   {
    "file": "ch05",
    "plate": "grid",
-   "name": "on the test schedule at time 1.2, the reading is resolved and is the left side at that time",
+   "name": "on the test schedule at time 1.2, the reading is resolved: its area is the left side at 1.2 and its bound is the program's bound at 1.2 moved out by 0.5826 sqrt(0.01)",
    "ok": true,
-   "detail": "0.2522"
+   "detail": "area 0.2522, bound 0.9878 vs 0.9878"
   },
   {
    "file": "ch05",
@@ -4471,164 +4541,199 @@
   },
   {
    "file": "ch06",
-   "plate": "yours",
-   "name": "jump: the worker returns all 126 times from 0 to 2.5, a constant-cost run, and six complete runs",
+   "plate": "scale",
+   "name": "the fixed sinusoid: the worker returns the 201 times 0, 0.02, ..., 4, a constant-cost run, and the four selectable sizes (80%, 40%, 20%, 10%), each equal to model.js's program for 0.1 (1 + ε sin 2t) at those times",
    "ok": true,
-   "detail": "126 times, last 2.5"
+   "detail": "201 times, last 4, 4 runs"
+  },
+  {
+   "file": "ch06",
+   "plate": "scale",
+   "name": "the fixed sinusoid's gaps, over the plate's window (the 151 times from 0.5 to 3.5): the gap to β falls at each of the four sizes from 80% to 10%, and the gap to the per-moment response is larger than the gap to β at every size",
+   "ok": true,
+   "detail": "to β: 0.2871, 0.0858, 0.0369, 0.0167; to the per-moment response: 0.4005, 0.3707, 0.3547, 0.3479"
+  },
+  {
+   "file": "ch06",
+   "plate": "words",
+   "name": "the fixed sinusoid's sentence, at each of the four sizes, prints that size's two gaps and the run of gaps from 80% to 10% as the plate measures them",
+   "ok": true,
+   "detail": "For a change of 10%, the program's curve is within 0.017 of β and 0.348 of the per-moment response. From 80% to 10%, the gap to β shrinks from 0.287 to 0.017, while the gap to the per-moment response stays between 0.348 and 0.401."
   },
   {
    "file": "ch06",
    "plate": "yours",
-   "name": "jump: the worker's reply is complete, the chart's range is ordered, and the sentence's \"every size\" holds exactly when it is true",
+   "name": "jump: the worker returns the 126 times 0, 0.02, ..., 2.5, a finite constant-cost run, and exactly six finite runs of the same length",
    "ok": true,
-   "detail": "ratios 0.45 to 4.02 at 3 of 6 sizes; range 1.2e-4 to 1.9e+0"
+   "detail": "126 times, last 2.5, 6 runs"
   },
   {
    "file": "ch06",
    "plate": "yours",
-   "name": "fall: the worker returns all 126 times from 0 to 2.5, a constant-cost run, and six complete runs",
+   "name": "jump: with that reply, the revealed chart is drawn on an ordered range, and the verdict's comparison matches the count from the paired errors (every size, or the count it prints)",
    "ok": true,
-   "detail": "126 times, last 2.5"
+   "detail": "first-order smaller at 3 of 6 sizes; range 1.2e-4 to 1.9e+0"
   },
   {
    "file": "ch06",
    "plate": "yours",
-   "name": "fall: the worker's reply is complete, the chart's range is ordered, and the sentence's \"every size\" holds exactly when it is true",
+   "name": "fall: the worker returns the 126 times 0, 0.02, ..., 2.5, a finite constant-cost run, and exactly six finite runs of the same length",
    "ok": true,
-   "detail": "ratios 1.24 to 36.32 at 6 of 6 sizes; range 3.4e-4 to 1.8e+0"
+   "detail": "126 times, last 2.5, 6 runs"
   },
   {
    "file": "ch06",
    "plate": "yours",
-   "name": "rising: the worker returns all 126 times from 0 to 2.5, a constant-cost run, and six complete runs",
+   "name": "fall: with that reply, the revealed chart is drawn on an ordered range, and the verdict's comparison matches the count from the paired errors (every size, or the count it prints)",
    "ok": true,
-   "detail": "126 times, last 2.5"
+   "detail": "first-order smaller at 6 of 6 sizes; range 3.4e-4 to 1.8e+0"
   },
   {
    "file": "ch06",
    "plate": "yours",
-   "name": "rising: the worker's reply is complete, the chart's range is ordered, and the sentence's \"every size\" holds exactly when it is true",
+   "name": "rising: the worker returns the 126 times 0, 0.02, ..., 2.5, a finite constant-cost run, and exactly six finite runs of the same length",
    "ok": true,
-   "detail": "ratios 0.43 to 2.14 at 2 of 6 sizes; range 2.4e-4 to 1.7e+0"
+   "detail": "126 times, last 2.5, 6 runs"
   },
   {
    "file": "ch06",
    "plate": "yours",
-   "name": "pulse: the worker returns all 126 times from 0 to 2.5, a constant-cost run, and six complete runs",
+   "name": "rising: with that reply, the revealed chart is drawn on an ordered range, and the verdict's comparison matches the count from the paired errors (every size, or the count it prints)",
    "ok": true,
-   "detail": "126 times, last 2.5"
+   "detail": "first-order smaller at 2 of 6 sizes; range 2.4e-4 to 1.7e+0"
   },
   {
    "file": "ch06",
    "plate": "yours",
-   "name": "pulse: the worker's reply is complete, the chart's range is ordered, and the sentence's \"every size\" holds exactly when it is true",
+   "name": "pulse: the worker returns the 126 times 0, 0.02, ..., 2.5, a finite constant-cost run, and exactly six finite runs of the same length",
    "ok": true,
-   "detail": "ratios 1.46 to 25.11 at 6 of 6 sizes; range 4.1e-4 to 1.5e+0"
+   "detail": "126 times, last 2.5, 6 runs"
   },
   {
    "file": "ch06",
    "plate": "yours",
-   "name": "wave: the worker returns all 126 times from 0 to 2.5, a constant-cost run, and six complete runs",
+   "name": "pulse: with that reply, the revealed chart is drawn on an ordered range, and the verdict's comparison matches the count from the paired errors (every size, or the count it prints)",
    "ok": true,
-   "detail": "126 times, last 2.5"
+   "detail": "first-order smaller at 6 of 6 sizes; range 4.1e-4 to 1.5e+0"
   },
   {
    "file": "ch06",
    "plate": "yours",
-   "name": "wave: the worker's reply is complete, the chart's range is ordered, and the sentence's \"every size\" holds exactly when it is true",
+   "name": "wave: the worker returns the 126 times 0, 0.02, ..., 2.5, a finite constant-cost run, and exactly six finite runs of the same length",
    "ok": true,
-   "detail": "ratios 4.32 to 11.52 at 6 of 6 sizes; range 2.4e-4 to 3.3e-1"
+   "detail": "126 times, last 2.5, 6 runs"
   },
   {
    "file": "ch06",
    "plate": "yours",
-   "name": "smooth: the worker returns all 126 times from 0 to 2.5, a constant-cost run, and six complete runs",
+   "name": "wave: with that reply, the revealed chart is drawn on an ordered range, and the verdict's comparison matches the count from the paired errors (every size, or the count it prints)",
    "ok": true,
-   "detail": "126 times, last 2.5"
+   "detail": "first-order smaller at 6 of 6 sizes; range 2.4e-4 to 3.3e-1"
   },
   {
    "file": "ch06",
    "plate": "yours",
-   "name": "smooth: the worker's reply is complete, the chart's range is ordered, and the sentence's \"every size\" holds exactly when it is true",
+   "name": "smooth: the worker returns the 126 times 0, 0.02, ..., 2.5, a finite constant-cost run, and exactly six finite runs of the same length",
    "ok": true,
-   "detail": "ratios 2.77 to 31.10 at 6 of 6 sizes; range 1.7e-4 to 9.0e-1"
+   "detail": "126 times, last 2.5, 6 runs"
   },
   {
    "file": "ch06",
    "plate": "yours",
-   "name": "multistep: the worker returns all 126 times from 0 to 2.5, a constant-cost run, and six complete runs",
+   "name": "smooth: with that reply, the revealed chart is drawn on an ordered range, and the verdict's comparison matches the count from the paired errors (every size, or the count it prints)",
    "ok": true,
-   "detail": "126 times, last 2.5"
+   "detail": "first-order smaller at 6 of 6 sizes; range 1.7e-4 to 9.0e-1"
   },
   {
    "file": "ch06",
    "plate": "yours",
-   "name": "multistep: the worker's reply is complete, the chart's range is ordered, and the sentence's \"every size\" holds exactly when it is true",
+   "name": "multistep: the worker returns the 126 times 0, 0.02, ..., 2.5, a finite constant-cost run, and exactly six finite runs of the same length",
    "ok": true,
-   "detail": "ratios 2.60 to 34.94 at 6 of 6 sizes; range 2.0e-4 to 1.3e+0"
+   "detail": "126 times, last 2.5, 6 runs"
   },
   {
    "file": "ch06",
    "plate": "yours",
-   "name": "piecewise: the worker returns all 126 times from 0 to 2.5, a constant-cost run, and six complete runs",
+   "name": "multistep: with that reply, the revealed chart is drawn on an ordered range, and the verdict's comparison matches the count from the paired errors (every size, or the count it prints)",
    "ok": true,
-   "detail": "126 times, last 2.5"
+   "detail": "first-order smaller at 6 of 6 sizes; range 2.0e-4 to 1.3e+0"
   },
   {
    "file": "ch06",
    "plate": "yours",
-   "name": "piecewise: the worker's reply is complete, the chart's range is ordered, and the sentence's \"every size\" holds exactly when it is true",
+   "name": "piecewise: the worker returns the 126 times 0, 0.02, ..., 2.5, a finite constant-cost run, and exactly six finite runs of the same length",
    "ok": true,
-   "detail": "ratios 2.56 to 23.98 at 6 of 6 sizes; range 3.4e-4 to 1.8e+0"
+   "detail": "126 times, last 2.5, 6 runs"
   },
   {
    "file": "ch06",
    "plate": "yours",
-   "name": "draw (the default drawing): the worker returns all 126 times from 0 to 2.5, a constant-cost run, and six complete runs",
+   "name": "piecewise: with that reply, the revealed chart is drawn on an ordered range, and the verdict's comparison matches the count from the paired errors (every size, or the count it prints)",
    "ok": true,
-   "detail": "126 times, last 2.5"
+   "detail": "first-order smaller at 6 of 6 sizes; range 3.4e-4 to 1.8e+0"
   },
   {
    "file": "ch06",
    "plate": "yours",
-   "name": "draw (the default drawing): the worker's reply is complete, the chart's range is ordered, and the sentence's \"every size\" holds exactly when it is true",
+   "name": "draw (the default drawing): the worker returns the 126 times 0, 0.02, ..., 2.5, a finite constant-cost run, and exactly six finite runs of the same length",
    "ok": true,
-   "detail": "ratios 1.53 to 25.45 at 6 of 6 sizes; range 2.6e-4 to 9.9e-1"
+   "detail": "126 times, last 2.5, 6 runs"
   },
   {
    "file": "ch06",
    "plate": "yours",
-   "name": "Smooth at middle cost 0.02, size 0.05: the worker returns all 126 times from 0 to 2.5, a constant-cost run, and six complete runs",
+   "name": "draw (the default drawing): with that reply, the revealed chart is drawn on an ordered range, and the verdict's comparison matches the count from the paired errors (every size, or the count it prints)",
    "ok": true,
-   "detail": "126 times, last 2.5"
+   "detail": "first-order smaller at 6 of 6 sizes; range 2.6e-4 to 9.9e-1"
   },
   {
    "file": "ch06",
    "plate": "yours",
-   "name": "Smooth at middle cost 0.02, size 0.05: the worker's reply is complete, the chart's range is ordered, and the sentence's \"every size\" holds exactly when it is true",
+   "name": "Smooth at middle cost 0.02, size 0.05: the worker returns the 126 times 0, 0.02, ..., 2.5, a finite constant-cost run, and exactly six finite runs of the same length",
    "ok": true,
-   "detail": "ratios 4.00 to 20.11 at 6 of 6 sizes; range 2.4e-5 to 3.2e-2"
+   "detail": "126 times, last 2.5, 6 runs"
   },
   {
    "file": "ch06",
    "plate": "yours",
-   "name": "Smooth at middle cost 0.5, size 0.05: the worker returns all 126 times from 0 to 2.5, a constant-cost run, and six complete runs",
+   "name": "Smooth at middle cost 0.02, size 0.05: with that reply, the revealed chart is drawn on an ordered range, and the verdict's comparison matches the count from the paired errors (every size, or the count it prints)",
    "ok": true,
-   "detail": "126 times, last 2.5"
+   "detail": "first-order smaller at 6 of 6 sizes; range 2.4e-5 to 3.2e-2"
   },
   {
    "file": "ch06",
    "plate": "yours",
-   "name": "Smooth at middle cost 0.5, size 0.05: the worker's reply is complete, the chart's range is ordered, and the sentence's \"every size\" holds exactly when it is true",
+   "name": "Smooth at middle cost 0.5, size 0.05: the worker returns the 126 times 0, 0.02, ..., 2.5, a finite constant-cost run, and exactly six finite runs of the same length",
    "ok": true,
-   "detail": "ratios 2.66 to 5.57 at 6 of 6 sizes; range 2.1e-5 to 1.6e-2"
+   "detail": "126 times, last 2.5, 6 runs"
   },
   {
    "file": "ch06",
    "plate": "yours",
-   "name": "a nearly flat drawing (2 to 1.99999): no log chart is drawn, and the plate gives the largest error and says it is below what the chart displays",
+   "name": "Smooth at middle cost 0.5, size 0.05: with that reply, the revealed chart is drawn on an ordered range, and the verdict's comparison matches the count from the paired errors (every size, or the count it prints)",
    "ok": true,
-   "detail": "largest error 2.64e-8"
+   "detail": "first-order smaller at 6 of 6 sizes; range 2.1e-5 to 1.6e-2"
+  },
+  {
+   "file": "ch06",
+   "plate": "yours",
+   "name": "the plate's state on a revealed, nearly flat drawing (2 to 1.99999): the bottom chart stays hidden, and the verdict gives the largest error and says the chart opens only when one error reaches 1e-7",
+   "ok": true,
+   "detail": "largest error 2.64e-8; Every error here is below 10⁻⁷: the largest is 2.6e-8. The log chart opens only when at least one error reaches 10⁻⁷, so it stays hidden. Pick a schedule that moves more."
+  },
+  {
+   "file": "ch06",
+   "plate": "yours",
+   "name": "the plate's state on a revealed drawing from 2 to 1.9999: one error reaches 1e-7, so the chart opens, and its range holds the errors below 1e-7 too (the threshold is on the largest, not on each error)",
+   "ok": true,
+   "detail": "largest 2.64e-7, 8 errors below 1e-7, range from 2.62e-9"
+  },
+  {
+   "file": "ch06",
+   "plate": "yours",
+   "name": "the plate's state: a reply that arrives after a switch to a skipped selection (Constant) is dropped, so no data and no chart remain even with the chart revealed; a deadline and a flat drawing are skipped too",
+   "ok": true,
+   "detail": "reply kept: false; mode after the switch constant; chart hidden: true"
   },
   {
    "file": "ch06",
@@ -4639,10 +4744,24 @@
   },
   {
    "file": "ch06",
+   "plate": "words",
+   "name": "inside the theorem, the verdict says the per-moment limit is not identically zero over all times, and names the window the chart measures",
+   "ok": true,
+   "detail": "Both guesses match the theory. At every size from 100% to 50%, the first-order error is smaller than the per-moment error, by a factor of 10.00 to 16.67. Both also carry numerical error from the grid, the finite horizon, and the kernel's series; subtracting the constant-cost run cancels only the part the two runs share, and what remains can change with ε, so the slopes on this chart aren't a test of the theory's rates. The theory, for a bounded Lipschitz change like this one: divided by ε, the per-moment error tends to a function of time that is not identically zero over all times t ≥ 0 (unless γ is constant), so over all times it is of order ε; the corrected one is at most of order ε². This chart measures both only at the times from 0 to 2.5, every 0.02."
+  },
+  {
+   "file": "ch06",
    "plate": "yours",
-   "name": "a slope-2 guide clipped to the plot keeps slope 2 and stays inside it",
+   "name": "a slope-2 guide clipped to the plot keeps slope 2 and stays inside it (a helper test)",
    "ok": true,
    "detail": "slope 1.9999999999999996, from 1.00e-1 to 1.00e+0"
+  },
+  {
+   "file": "ch06",
+   "plate": "yours",
+   "name": "the error chart as the plate draws it (420 pixels, the drawing from 2 to 1.9999): each guide's label sits at the left end of its own clipped segment; a guide entirely outside the plot is drawn without a label",
+   "ok": true,
+   "detail": "2 guides, labels slope 1 at (70.1, 142.3), slope 2 at (226.9, 176); guide starts (66.1, 148.3), (222.9, 180)"
   },
   {
    "file": "ch07",
@@ -5228,16 +5347,16 @@
   {
    "file": "ch07",
    "plate": "loss",
-   "name": "on a drawing whose losses all sit below the display cutoff, the loss chart's range still holds the cutoff, and the reading counts the losses above it",
+   "name": "on a drawing whose losses all sit below the display cutoff, the loss chart's range still holds the cutoff, and the reading prints each rule's count of losses above it, both 0, as counted from the raw losses",
    "ok": true,
-   "detail": "cutoff 2.12e-5, axis 1.18e-6 to 6.37e-5; 0 and 0 above the cutoff; At ε = 1, the per-moment rule loses 1.8 × 10⁻⁶ of reward, below the display cutoff, and the first-order bound 3.5 × 10⁻⁶ of reward, below the display cutoff. None of the per-moment rule's 7 losses are above the display cutoff; a slope takes three. None of the first-order bound's 7 losses are above the display cutoff; a slope takes three."
+   "detail": "cutoff 2.12e-5, axis 1.18e-6 to 6.37e-5; 0 and 0 above the cutoff, printed 0 and 0; At ε = 1, the per-moment rule loses 1.8 × 10⁻⁶ of reward, below the display cutoff, and the first-order bound 3.5 × 10⁻⁶ of reward, below the display cutoff. None of the per-moment rule's 7 losses are above the display cutoff; a slope takes three. None of the first-order bound's 7 losses are above the display cutoff; a slope takes three."
   },
   {
    "file": "ch07",
    "plate": "shift",
-   "name": "on a deadline at 0.95 (an odd step), the shift plate's per-moment curve holds its level to the forced choice and drops straight down there, as do the other two curves",
+   "name": "on a deadline at 1 and at 0.95 (an odd step), from the worker's reply: the per-moment curve holds its value to the forced choice and drops straight down there; the program's bound and the dotted rule end on a straight segment from their values at the last plotted time before the deadline to 0 at it",
    "ok": true,
-   "detail": "last two per-moment points 318,103.9 and 318,160; held level 0.4067"
+   "detail": "deadline 1: last plotted time before it 0.98, program 0.174098 there, per-moment held at 0.4067; ink ends 312.5,136 to 318,160; deadline 0.95: last plotted time before it 0.9400000000000001, program 0.125083 there, per-moment held at 0.4067; ink ends 315.1,142.7 to 318,160"
   },
   {
    "file": "ch07",
@@ -5788,9 +5907,16 @@
   {
    "file": "ch08",
    "plate": "roots",
-   "name": "the page's map agrees with the separate evaluation (Simpson's rule on the density) within 1e-6, the caption's figure, on eight schedules at the levels 0.05, 0.30, ..., 2.30",
+   "name": "the page's map agrees with the separate evaluation (Simpson's rule on the density) within 1e-6, the caption's figure, on 9 schedules at the levels 0.05, 0.30, ..., 2.30: all 90 differences finite and below it",
    "ok": true,
-   "detail": "largest difference 1.39e-7 (a drawing alternating 2 and 0.01, at 0.02, level 0.80)"
+   "detail": "90 differences, largest 1.39e-7 (a drawing alternating 2 and 0.01, at 0.02, level 0.80)"
+  },
+  {
+   "file": "ch08",
+   "plate": "roots",
+   "name": "Rising from 2 at rate 2, seen from 0: the map splits at the start of the rise, and its one crossing is confirmed by the separate evaluation (residual below 1e-6, with a sign change); the same map without that split misses it by more than 1e-6",
+   "ok": true,
+   "detail": "1.290077214 (separate residual 4.8e-10); without the split 1.290079812 (-2.9e-6)"
   },
   {
    "file": "ch08",
@@ -5823,16 +5949,16 @@
   {
    "file": "ch08",
    "plate": "roots",
-   "name": "a drawing from 1 to 0.0765913: one crossing found and confirmed, and none near the close approach at 0.586, where the separate evaluation stays below the diagonal",
+   "name": "a drawing from 1 to 0.0765913: one crossing found and confirmed, and none at the close approach near 0.586, whose local maximum of T(b) − b, located by search in the separate evaluation, stays below 0 (and below 0 again with four times the panels)",
    "ok": true,
-   "detail": "0.2521; largest T - b near 0.586: -1.04e-8"
+   "detail": "0.2521; local maximum of T - b at 0.58606: -6.401e-9 (1024 panels: -9.577e-9)"
   },
   {
    "file": "ch08",
    "plate": "roots",
-   "name": "a drawing from 1 to 0.0766: one crossing found and confirmed, and none near the close approach at 0.586, where the separate evaluation stays below the diagonal",
+   "name": "a drawing from 1 to 0.0766: one crossing found and confirmed, and none at the close approach near 0.586, whose local maximum of T(b) − b, located by search in the separate evaluation, stays below 0 (and below 0 again with four times the panels)",
    "ok": true,
-   "detail": "0.2521; largest T - b near 0.586: -1.84e-5"
+   "detail": "0.2521; local maximum of T - b at 0.58604: -1.839e-5 (1024 panels: -1.839e-5)"
   },
   {
    "file": "ch08",
@@ -5844,9 +5970,9 @@
   {
    "file": "ch08",
    "plate": "words",
-   "name": "a gap below 1e-6 reads as within the computed map's resolution, not as a fit",
+   "name": "a gap below 1e-6 reads as within 10⁻⁶ in this computed map, the threshold for reporting a fit, and not as the map's resolution",
    "ok": true,
-   "detail": "At the level 1.000, the per-moment bounds ahead average to 1.000, within 10⁻⁶ of the level, as close as this computed map can resolve. The 30 damped updates from the per-moment bound, 0.000, end at 0.000."
+   "detail": "At the level 1.000, the per-moment bounds ahead average to 1.000, within 10⁻⁶ of the level in this computed map, the threshold this page uses to report a fit. The 30 damped updates from the per-moment bound, 0.000, end at 0.000."
   },
   {
    "file": "ch08",
@@ -5900,9 +6026,9 @@
   {
    "file": "ch08",
    "plate": "endpoint",
-   "name": "a deadline at 0.95 with a cost of 0.5: the drawn per-moment path ends with a vertical drop at the deadline, from the held bound to 0; without a deadline the arrays pass through unchanged",
+   "name": "a deadline at 0.95 with a cost of 0.5: the drawn per-moment path, in the comparison and Algorithm 1's Shift step and in Algorithm 1's Start step, ends with a vertical drop at the deadline's x from the held bound to the y of 0; without a deadline the arrays pass through unchanged",
    "ok": true,
-   "detail": "last two points (348, 50) and (348, 172)"
+   "detail": "moved in: (348, 50) and (348, 172), deadline at x 348.0, 0 at y 172.0; start: (348, 32.5) and (348, 172), deadline at x 348.0, 0 at y 172.0"
   },
   {
    "file": "ch08",
@@ -6600,58 +6726,58 @@
   {
    "file": "ch09",
    "plate": "edges",
-   "name": "deadline at 0.45: every plate's computation runs; the program, the density, the coefficient, and the shift plot all end where they should; and the numbers and sentences are clean",
+   "name": "deadline at 0.45: the computations of the six plates that take the reader's schedule (the program, the density, a run of 2,000 trials, the coefficient, the shift, and the refinement) run; the program, the density, the coefficient's drawn curve, and the shift plot end where they should; and their numbers and sentences are clean",
    "ok": true,
-   "detail": "reward 0.7126, decided by the plot's end 1.000000, losses 0.7047 0.7385 0.0166 0.0290 0.7047 0.0166 0.7156 0.0174 0.7214 0.0179, plots end at 0.45 and 0.44"
+   "detail": "reward 0.7126, decided by the plot's end 1.000000, trials 0.709, losses 0.7047 0.7385 0.0166 0.0290 0.7047 0.0166 0.7156 0.0174 0.7214 0.0179, plots end at 0.45 and 0.44"
   },
   {
    "file": "ch09",
    "plate": "edges",
-   "name": "deadline at 3 with cost 0.02: every plate's computation runs; the program, the density, the coefficient, and the shift plot all end where they should; and the numbers and sentences are clean",
+   "name": "deadline at 3 with cost 0.02: the computations of the six plates that take the reader's schedule (the program, the density, a run of 2,000 trials, the coefficient, the shift, and the refinement) run; the program, the density, the coefficient's drawn curve, and the shift plot end where they should; and their numbers and sentences are clean",
    "ok": true,
-   "detail": "reward 0.9211, decided by the plot's end 1.000000, losses 0.2505 0.3012 0.0007 0.0074 0.2505 0.0007 0.2512 0.0007 0.2518 0.0007, plots end at 3 and 2.99"
+   "detail": "reward 0.9211, decided by the plot's end 1.000000, trials 0.923, losses 0.2505 0.3012 0.0007 0.0074 0.2505 0.0007 0.2512 0.0007 0.2518 0.0007, plots end at 3 and 2.99"
   },
   {
    "file": "ch09",
    "plate": "edges",
-   "name": "constant: every plate's computation runs; the program, the density, the coefficient, and the shift plot all end where they should; and the numbers and sentences are clean",
+   "name": "constant: the computations of the six plates that take the reader's schedule (the program, the density, a run of 2,000 trials, the coefficient, the shift, and the refinement) run; the program, the density, the coefficient's drawn curve, and the shift plot end where they should; and their numbers and sentences are clean",
    "ok": true,
-   "detail": "reward 0.8188, decided by the plot's end 0.922104, losses 0.0002 0.0330 0.0002 0.0330 0.0002 0.0002 0.0002 0.0002 0.0002 0.0002, plots end at 2.5 and 8.49"
+   "detail": "reward 0.8188, decided by the plot's end 0.922104, trials 0.816, losses 0.0002 0.0330 0.0002 0.0330 0.0002 0.0002 0.0002 0.0002 0.0002 0.0002, plots end at 2.5 and 2.50"
   },
   {
    "file": "ch09",
    "plate": "edges",
-   "name": "flat drawing: every plate's computation runs; the program, the density, the coefficient, and the shift plot all end where they should; and the numbers and sentences are clean",
+   "name": "flat drawing: the computations of the six plates that take the reader's schedule (the program, the density, a run of 2,000 trials, the coefficient, the shift, and the refinement) run; the program, the density, the coefficient's drawn curve, and the shift plot end where they should; and their numbers and sentences are clean",
    "ok": true,
-   "detail": "reward 0.8188, decided by the plot's end 0.922104, losses 0.0002 0.0330 0.0002 0.0330 0.0002 0.0002 0.0002 0.0002 0.0002 0.0002, plots end at 2.5 and 8.49"
+   "detail": "reward 0.8188, decided by the plot's end 0.922104, trials 0.816, losses 0.0002 0.0330 0.0002 0.0330 0.0002 0.0002 0.0002 0.0002 0.0002 0.0002, plots end at 2.5 and 2.50"
   },
   {
    "file": "ch09",
    "plate": "edges",
-   "name": "smooth at size 0: every plate's computation runs; the program, the density, the coefficient, and the shift plot all end where they should; and the numbers and sentences are clean",
+   "name": "smooth at size 0: the computations of the six plates that take the reader's schedule (the program, the density, a run of 2,000 trials, the coefficient, the shift, and the refinement) run; the program, the density, the coefficient's drawn curve, and the shift plot end where they should; and their numbers and sentences are clean",
    "ok": true,
-   "detail": "reward 0.8188, decided by the plot's end 0.922104, losses 0.0002 0.0330 0.0002 0.0330 0.0002 0.0002 0.0002 0.0002 0.0002 0.0002, plots end at 2.5 and 8.49"
+   "detail": "reward 0.8188, decided by the plot's end 0.922104, trials 0.816, losses 0.0002 0.0330 0.0002 0.0330 0.0002 0.0002 0.0002 0.0002 0.0002 0.0002, plots end at 2.5 and 2.50"
   },
   {
    "file": "ch09",
    "plate": "edges",
-   "name": "rising: every plate's computation runs; the program, the density, the coefficient, and the shift plot all end where they should; and the numbers and sentences are clean",
+   "name": "rising: the computations of the six plates that take the reader's schedule (the program, the density, a run of 2,000 trials, the coefficient, the shift, and the refinement) run; the program, the density, the coefficient's drawn curve, and the shift plot end where they should; and their numbers and sentences are clean",
    "ok": true,
-   "detail": "reward 0.7534, decided by the plot's end 1.000000, losses 0.6627 0.9857 0.0135 0.0331 0.6627 0.0135 0.6705 0.0125 0.6751 0.0121, plots end at 2.5 and 8.49"
+   "detail": "reward 0.7534, decided by the plot's end 1.000000, trials 0.758, losses 0.6627 0.9857 0.0135 0.0331 0.6627 0.0135 0.6705 0.0125 0.6751 0.0121, plots end at 2.5 and 2.50"
   },
   {
    "file": "ch09",
    "plate": "edges",
-   "name": "jump to 3.2 (a bound below the grid's first step): every plate's computation runs; the program, the density, the coefficient, and the shift plot all end where they should; and the numbers and sentences are clean",
+   "name": "jump to 3.2 (a bound below the grid's first step): the computations of the six plates that take the reader's schedule (the program, the density, a run of 2,000 trials, the coefficient, the shift, and the refinement) run; the program, the density, the coefficient's drawn curve, and the shift plot end where they should; and their numbers and sentences are clean",
    "ok": true,
-   "detail": "reward 0.7025, decided by the plot's end 1.000000, losses 0.9249 1.3147 0.0238 0.0584 0.9249 0.0238 0.9497 0.0209 0.9628 0.0195, plots end at 2.5 and 8.49"
+   "detail": "reward 0.7025, decided by the plot's end 1.000000, trials 0.699, losses 0.9249 1.3147 0.0238 0.0584 0.9249 0.0238 0.9497 0.0209 0.9628 0.0195, plots end at 2.5 and 2.50"
   },
   {
    "file": "ch09",
    "plate": "edges",
-   "name": "drawing at its extremes: every plate's computation runs; the program, the density, the coefficient, and the shift plot all end where they should; and the numbers and sentences are clean",
+   "name": "drawing at its extremes: the computations of the six plates that take the reader's schedule (the program, the density, a run of 2,000 trials, the coefficient, the shift, and the refinement) run; the program, the density, the coefficient's drawn curve, and the shift plot end where they should; and their numbers and sentences are clean",
    "ok": true,
-   "detail": "reward 0.6528, decided by the plot's end 0.999997, losses 3.4812 2.4282 6.9722 8.3496 3.4812 6.9722 3.6096 6.6117 3.6510 6.5189, plots end at 2.5 and 8.49"
+   "detail": "reward 0.6528, decided by the plot's end 0.999997, trials 0.648, losses 3.4812 2.4282 6.9722 8.3496 3.4812 6.9722 3.6096 6.6117 3.6510 6.5189, plots end at 2.5 and 2.50"
   },
   {
    "file": "ch09",
@@ -6712,9 +6838,9 @@
   {
    "file": "ch09",
    "plate": "words",
-   "name": "the trials sentence keeps the number of trials needed back until the reader has guessed, and names the grid's error beside the sampling error",
+   "name": "the trials sentence keeps the number of trials needed back until the reader has guessed, gives the signed move of the score from the evidence step (not a grid error), and calls the finer score an approximation to the trials' expected reward",
    "ok": true,
-   "detail": "with and without"
+   "detail": "After 100 thousand simulated trials, the average reward is 0.7090 ± 0.0028 (two standard errors, sampling only). The density gives 0.7103 on this page's grid and 0.7103 on one four times finer: at the same bound and time step, refining the evidence step moves the score by +1 × 10⁻⁵. The trials' evidence isn't on a grid; the finer score is an approximation to their expected reward, not that value, and their average is 0.9 standard errors below it. One trial's reward has a spread of 0.437, and the standard error shrinks like one over the square root of the number of trials."
   },
   {
    "file": "ch09",
@@ -6845,14 +6971,14 @@
   {
    "file": "ch09",
    "plate": "coef",
-   "name": "the coefficient plate compares the last check before a deadline (0.99 for a deadline at 1), as well as every other check",
+   "name": "the coefficient plate compares every other check from 0 (0, 0.02, 0.04, ...) and the last check before a deadline (0.99 for a deadline at 1, which is not one of them; 1.04 for one at 1.05, which is), with no time missing or repeated",
    "ok": true,
-   "detail": "last 0.99, 51 times"
+   "detail": "deadline 1: 51 times, 0 to 0.99; deadline 1.05: 53 times, 0 to 1.04"
   },
   {
    "file": "ch09",
    "plate": "trials",
-   "name": "the text's claim: on the book's schedules (and a flat drawing at its top cost), the grid's own error, an evidence step of 0.02 against 0.0025, is far smaller (under a fifth) than the standard error of 100,000 trials",
+   "name": "the text's claim: on the book's schedules (and a flat drawing at its top cost), the move of the best bound's score when the scorer's evidence step goes from 0.02 to 0.0025 (same bound and time step) is under a fifth of the standard error of 100,000 trials",
    "ok": true,
    "detail": "largest grid move 4.6e-5, at most 0.029 standard errors (draw)"
   },
@@ -6869,6 +6995,41 @@
    "name": "on the 32-fold jump, some slice's bound lies between the center and the grid's first step, and the plate's sentence says it is placed there and that the paper's code reports 0",
    "ok": true,
    "detail": "at time 8.48, bound 0.01802"
+  },
+  {
+   "file": "ch09",
+   "plate": "density",
+   "name": "the rate plot's bins (rateBins, what the plate draws) cover every ordinary step once, and with the forced choice as a separate point mass reproduce the cumulative correct and wrong totals (within 1e-12), at deadlines on odd (0.45, 1.05) and even (1, 3) steps for the per-moment rule and the best bound, and on the jump to the window's end",
+   "ok": true,
+   "detail": "largest gap 1.1e-15; 0.45: last bin 2 steps at 0.435, forced 84.9254%; 1: last bin 1 step at 0.990, forced 46.3763%; 1.05: last bin 2 steps at 1.035, forced 43.7358%; 3: last bin 1 step at 2.990, forced 4.3567%"
+  },
+  {
+   "file": "ch09",
+   "plate": "shift",
+   "name": "the text's condition with clipping: at every step on the book's schedules and Rising from 0 at rate 2, moving a rule's bound in by 0.5826 sqrt(0.01) and clipping at 0 brings it closer to the program's bound exactly where it sat more than half its actual move, min(delta, bound) / 2, above it; the unclipped delta / 2 condition fails at some of those steps",
+   "ok": true,
+   "detail": "18924 comparisons, 0 against the condition; 855 against the unclipped one"
+  },
+  {
+   "file": "ch09",
+   "plate": "overshoot",
+   "name": "the overshoot plate rings the first fine step past the bound only inside the nine checks it draws, and gives its time when it comes earlier: earlier for ?seed=19 at dt = 0.000625 (and the default seed at 0.0025), ringed for the opening run at 0.04, and the rule holds on 200 more runs",
+   "ok": true,
+   "detail": "seed 19: first at 0.259714, window from 0.262500; opening run ringed at 0.7133"
+  },
+  {
+   "file": "ch09",
+   "plate": "words",
+   "name": "the shift sentence on a flat cost names the forced choice at 8.5, the shift's leading order, and the grid in the residual, never the grid alone, and at a flat 0.2, where the loss with the shift is negative, says why",
+   "ok": true,
+   "detail": "flat 0.2: −0.00018 with the shift; On this schedule both rules give the constant-cost bound, which loses −0.00018 with the shift and 0.0658 without it (points per 100 trials, against the program on the same grid). The loss left with the shift is a measured difference, not an error estimate: it includes the forced choice at 8.50, which the rule doesn't know about; the shift itself, which is right only to leading order; and the grid. Here it is negative: the program's bound as scored, read between grid points, earns slightly less than the program's own value, and the rule's bound lands in between."
+  },
+  {
+   "file": "ch09",
+   "plate": "grid",
+   "name": "the grid legend in points names all 8 schedules for both rules; as shares, all 8 per-moment and 6 of 8 weighted, with Smooth 4 and Step 10 named as left out, as the caption names them",
+   "ok": true,
+   "detail": "Per-moment, all 8 schedules; Weighted, 6 of 8 schedules (Smooth 4 and Step 10 left out)"
   },
   {
    "file": "ch10",
@@ -7062,9 +7223,9 @@
   {
    "file": "ch10",
    "plate": "words",
-   "name": "the scaling plate's page-grid sentence gives the constant-cost loss with its sign as one difference, not an error bound, and names the amplitudes this grid can't resolve",
+   "name": "the scaling plate's page-grid sentence gives the constant-cost loss with its sign as one difference, not an error bound, and where the two grids differ in sign or by more than half (a = 0.05, 0.1, and 0.2) gives both grids' signed losses, with no claim about what a grid resolves",
    "ok": true,
-   "detail": "On this page's grid, the per-moment rule's loss at the constant cost is −1.8 × 10⁻⁴ points per 100 trials (the dotted line marks its size): one signed difference at one cost, not an error bound for the other amplitudes. The weighted rule's loss on this grid is within 28% of the paper's grid at a = 0.4 and 16% at a = 0.8; at a = 0.05, 0.1, and 0.2, this grid and the paper's differ in sign or by more than half, below what this coarser grid resolves. The per-moment loss is within 10% of the paper's grid at a = 0.2, 0.4, and 0.8."
+   "detail": "On this page's grid, the per-moment rule's loss at the constant cost is −1.8 × 10⁻⁴ points per 100 trials (the dotted line marks its size): one signed difference at one cost, not an error bound for the other amplitudes. The weighted rule's loss on this grid is within 28% of the paper's grid at a = 0.4 and 16% at a = 0.8; at a = 0.05, 0.1, and 0.2, the two grids differ in sign or by more than half: this grid gives 2.6 × 10⁻⁵, −3.1 × 10⁻⁵, and 3.9 × 10⁻⁷, the paper's −1.4 × 10⁻⁶, 6.2 × 10⁻⁷, and 7.8 × 10⁻⁶. The per-moment loss is within 10% of the paper's grid at a = 0.2, 0.4, and 0.8."
   },
   {
    "file": "ch10",
@@ -7076,170 +7237,170 @@
   {
    "file": "ch10",
    "plate": "rules",
-   "name": "preset jump: the page's program matches the paper's code at every grid time before min(4, deadline) within 1e-6, except cells below the grid's first step where the paper's reports 0; its 7 rules' losses, accuracy, and decision time within 1e-5 points; their gap statistic within 1e-6 against the paper's program bound; tuned bound within 1e-6",
+   "name": "preset jump: the page's program matches the paper's code at every grid time before min(4, deadline) within 1e-6, except cells below the grid's first step where the paper's reports 0; its 7 rules' losses, accuracy, and decision time within 1e-5 points; their gap statistic within 1e-6 against the paper's program bound; each displayed gap within 1e-6 of the gap recomputed from the page's own bounds (and of the paper's where no sub-step cell exists); tuned bound within 1e-6",
    "ok": true,
-   "detail": "program bound 6.1e-9 (0 sub-step cells of 400), loss etc. 1.2e-7, gap statistic 2.2e-9 (as shown 6.0e-9), program value 1.3e-9, tuned bound 2.2e-9"
+   "detail": "program bound 6.1e-9 (0 sub-step cells of 400), loss etc. 1.2e-7, gap statistic 2.2e-9 (as shown, against the page's bounds 0.0e+0, against the paper's 6.0e-9), program value 1.3e-9, tuned bound 2.2e-9"
   },
   {
    "file": "ch10",
    "plate": "rules",
-   "name": "preset fall: the page's program matches the paper's code at every grid time before min(4, deadline) within 1e-6, except cells below the grid's first step where the paper's reports 0; its 7 rules' losses, accuracy, and decision time within 1e-5 points; their gap statistic within 1e-6 against the paper's program bound; tuned bound within 1e-6",
+   "name": "preset fall: the page's program matches the paper's code at every grid time before min(4, deadline) within 1e-6, except cells below the grid's first step where the paper's reports 0; its 7 rules' losses, accuracy, and decision time within 1e-5 points; their gap statistic within 1e-6 against the paper's program bound; each displayed gap within 1e-6 of the gap recomputed from the page's own bounds (and of the paper's where no sub-step cell exists); tuned bound within 1e-6",
    "ok": true,
-   "detail": "program bound 6.5e-9 (0 sub-step cells of 400), loss etc. 2.0e-6, gap statistic 1.3e-8 (as shown 8.6e-9), program value 1.3e-8, tuned bound 1.3e-8"
+   "detail": "program bound 6.5e-9 (0 sub-step cells of 400), loss etc. 2.0e-6, gap statistic 1.3e-8 (as shown, against the page's bounds 0.0e+0, against the paper's 8.6e-9), program value 1.3e-8, tuned bound 1.3e-8"
   },
   {
    "file": "ch10",
    "plate": "rules",
-   "name": "preset rising: the page's program matches the paper's code at every grid time before min(4, deadline) within 1e-6, except cells below the grid's first step where the paper's reports 0; its 7 rules' losses, accuracy, and decision time within 1e-5 points; their gap statistic within 1e-6 against the paper's program bound; tuned bound within 1e-6",
+   "name": "preset rising: the page's program matches the paper's code at every grid time before min(4, deadline) within 1e-6, except cells below the grid's first step where the paper's reports 0; its 7 rules' losses, accuracy, and decision time within 1e-5 points; their gap statistic within 1e-6 against the paper's program bound; each displayed gap within 1e-6 of the gap recomputed from the page's own bounds (and of the paper's where no sub-step cell exists); tuned bound within 1e-6",
    "ok": true,
-   "detail": "program bound 6.9e-9 (0 sub-step cells of 400), loss etc. 2.8e-7, gap statistic 4.3e-9 (as shown 6.2e-9), program value 1.6e-9, tuned bound 4.3e-9"
+   "detail": "program bound 6.9e-9 (0 sub-step cells of 400), loss etc. 2.8e-7, gap statistic 4.3e-9 (as shown, against the page's bounds 0.0e+0, against the paper's 6.2e-9), program value 1.6e-9, tuned bound 4.3e-9"
   },
   {
    "file": "ch10",
    "plate": "rules",
-   "name": "preset deadline: the page's program matches the paper's code at every grid time before min(4, deadline) within 1e-6, except cells below the grid's first step where the paper's reports 0; its 7 rules' losses, accuracy, and decision time within 1e-5 points; their gap statistic within 1e-6 against the paper's program bound; tuned bound within 1e-6",
+   "name": "preset deadline: the page's program matches the paper's code at every grid time before min(4, deadline) within 1e-6, except cells below the grid's first step where the paper's reports 0; its 7 rules' losses, accuracy, and decision time within 1e-5 points; their gap statistic within 1e-6 against the paper's program bound; each displayed gap within 1e-6 of the gap recomputed from the page's own bounds (and of the paper's where no sub-step cell exists); tuned bound within 1e-6",
    "ok": true,
-   "detail": "program bound 6.6e-9 (0 sub-step cells of 100), loss etc. 3.5e-7, gap statistic 8.0e-9 (as shown 5.7e-9), program value 1.4e-9, tuned bound 8.0e-9"
+   "detail": "program bound 6.6e-9 (0 sub-step cells of 100), loss etc. 3.5e-7, gap statistic 8.0e-9 (as shown, against the page's bounds 0.0e+0, against the paper's 5.7e-9), program value 1.4e-9, tuned bound 8.0e-9"
   },
   {
    "file": "ch10",
    "plate": "rules",
-   "name": "preset pulse: the page's program matches the paper's code at every grid time before min(4, deadline) within 1e-6, except cells below the grid's first step where the paper's reports 0; its 7 rules' losses, accuracy, and decision time within 1e-5 points; their gap statistic within 1e-6 against the paper's program bound; tuned bound within 1e-6",
+   "name": "preset pulse: the page's program matches the paper's code at every grid time before min(4, deadline) within 1e-6, except cells below the grid's first step where the paper's reports 0; its 7 rules' losses, accuracy, and decision time within 1e-5 points; their gap statistic within 1e-6 against the paper's program bound; each displayed gap within 1e-6 of the gap recomputed from the page's own bounds (and of the paper's where no sub-step cell exists); tuned bound within 1e-6",
    "ok": true,
-   "detail": "program bound 7.0e-9 (0 sub-step cells of 400), loss etc. 3.3e-7, gap statistic 5.5e-9 (as shown 6.0e-9), program value 1.8e-9, tuned bound 5.5e-9"
+   "detail": "program bound 7.0e-9 (0 sub-step cells of 400), loss etc. 3.3e-7, gap statistic 5.5e-9 (as shown, against the page's bounds 0.0e+0, against the paper's 6.0e-9), program value 1.8e-9, tuned bound 5.5e-9"
   },
   {
    "file": "ch10",
    "plate": "rules",
-   "name": "preset wave: the page's program matches the paper's code at every grid time before min(4, deadline) within 1e-6, except cells below the grid's first step where the paper's reports 0; its 7 rules' losses, accuracy, and decision time within 1e-5 points; their gap statistic within 1e-6 against the paper's program bound; tuned bound within 1e-6",
+   "name": "preset wave: the page's program matches the paper's code at every grid time before min(4, deadline) within 1e-6, except cells below the grid's first step where the paper's reports 0; its 7 rules' losses, accuracy, and decision time within 1e-5 points; their gap statistic within 1e-6 against the paper's program bound; each displayed gap within 1e-6 of the gap recomputed from the page's own bounds (and of the paper's where no sub-step cell exists); tuned bound within 1e-6",
    "ok": true,
-   "detail": "program bound 7.2e-9 (0 sub-step cells of 400), loss etc. 1.3e-6, gap statistic 1.8e-9 (as shown 6.7e-9), program value 4.9e-9, tuned bound 1.8e-9"
+   "detail": "program bound 7.2e-9 (0 sub-step cells of 400), loss etc. 1.3e-6, gap statistic 1.8e-9 (as shown, against the page's bounds 0.0e+0, against the paper's 6.7e-9), program value 4.9e-9, tuned bound 1.8e-9"
   },
   {
    "file": "ch10",
    "plate": "rules",
-   "name": "preset constant: the page's program matches the paper's code at every grid time before min(4, deadline) within 1e-6, except cells below the grid's first step where the paper's reports 0; its 7 rules' losses, accuracy, and decision time within 1e-5 points; their gap statistic within 1e-6 against the paper's program bound; tuned bound within 1e-6",
+   "name": "preset constant: the page's program matches the paper's code at every grid time before min(4, deadline) within 1e-6, except cells below the grid's first step where the paper's reports 0; its 7 rules' losses, accuracy, and decision time within 1e-5 points; their gap statistic within 1e-6 against the paper's program bound; each displayed gap within 1e-6 of the gap recomputed from the page's own bounds (and of the paper's where no sub-step cell exists); tuned bound within 1e-6",
    "ok": true,
-   "detail": "program bound 6.6e-9 (0 sub-step cells of 400), loss etc. 1.2e-6, gap statistic 6.2e-9 (as shown 6.5e-9), program value 3.6e-9, tuned bound 6.2e-9"
+   "detail": "program bound 6.6e-9 (0 sub-step cells of 400), loss etc. 1.2e-6, gap statistic 6.2e-9 (as shown, against the page's bounds 0.0e+0, against the paper's 6.5e-9), program value 3.6e-9, tuned bound 6.2e-9"
   },
   {
    "file": "ch10",
    "plate": "rules",
-   "name": "preset smooth: the page's program matches the paper's code at every grid time before min(4, deadline) within 1e-6, except cells below the grid's first step where the paper's reports 0; its 7 rules' losses, accuracy, and decision time within 1e-5 points; their gap statistic within 1e-6 against the paper's program bound; tuned bound within 1e-6",
+   "name": "preset smooth: the page's program matches the paper's code at every grid time before min(4, deadline) within 1e-6, except cells below the grid's first step where the paper's reports 0; its 7 rules' losses, accuracy, and decision time within 1e-5 points; their gap statistic within 1e-6 against the paper's program bound; each displayed gap within 1e-6 of the gap recomputed from the page's own bounds (and of the paper's where no sub-step cell exists); tuned bound within 1e-6",
    "ok": true,
-   "detail": "program bound 7.6e-9 (0 sub-step cells of 400), loss etc. 7.9e-7, gap statistic 2.3e-9 (as shown 7.6e-9), program value 1.5e-9, tuned bound 2.3e-9"
+   "detail": "program bound 7.6e-9 (0 sub-step cells of 400), loss etc. 7.9e-7, gap statistic 2.3e-9 (as shown, against the page's bounds 0.0e+0, against the paper's 7.6e-9), program value 1.5e-9, tuned bound 2.3e-9"
   },
   {
    "file": "ch10",
    "plate": "rules",
-   "name": "preset multistep: the page's program matches the paper's code at every grid time before min(4, deadline) within 1e-6, except cells below the grid's first step where the paper's reports 0; its 7 rules' losses, accuracy, and decision time within 1e-5 points; their gap statistic within 1e-6 against the paper's program bound; tuned bound within 1e-6",
+   "name": "preset multistep: the page's program matches the paper's code at every grid time before min(4, deadline) within 1e-6, except cells below the grid's first step where the paper's reports 0; its 7 rules' losses, accuracy, and decision time within 1e-5 points; their gap statistic within 1e-6 against the paper's program bound; each displayed gap within 1e-6 of the gap recomputed from the page's own bounds (and of the paper's where no sub-step cell exists); tuned bound within 1e-6",
    "ok": true,
-   "detail": "program bound 7.5e-9 (0 sub-step cells of 400), loss etc. 6.1e-7, gap statistic 1.8e-9 (as shown 6.7e-9), program value 1.6e-9, tuned bound 1.8e-9"
+   "detail": "program bound 7.5e-9 (0 sub-step cells of 400), loss etc. 6.1e-7, gap statistic 1.8e-9 (as shown, against the page's bounds 0.0e+0, against the paper's 6.7e-9), program value 1.6e-9, tuned bound 1.8e-9"
   },
   {
    "file": "ch10",
    "plate": "rules",
-   "name": "preset piecewise: the page's program matches the paper's code at every grid time before min(4, deadline) within 1e-6, except cells below the grid's first step where the paper's reports 0; its 7 rules' losses, accuracy, and decision time within 1e-5 points; their gap statistic within 1e-6 against the paper's program bound; tuned bound within 1e-6",
+   "name": "preset piecewise: the page's program matches the paper's code at every grid time before min(4, deadline) within 1e-6, except cells below the grid's first step where the paper's reports 0; its 7 rules' losses, accuracy, and decision time within 1e-5 points; their gap statistic within 1e-6 against the paper's program bound; each displayed gap within 1e-6 of the gap recomputed from the page's own bounds (and of the paper's where no sub-step cell exists); tuned bound within 1e-6",
    "ok": true,
-   "detail": "program bound 9.0e-9 (0 sub-step cells of 400), loss etc. 6.1e-7, gap statistic 6.5e-9 (as shown 8.5e-9), program value 1.6e-9, tuned bound 6.5e-9"
+   "detail": "program bound 9.0e-9 (0 sub-step cells of 400), loss etc. 6.1e-7, gap statistic 6.5e-9 (as shown, against the page's bounds 0.0e+0, against the paper's 8.5e-9), program value 1.6e-9, tuned bound 6.5e-9"
   },
   {
    "file": "ch10",
    "plate": "rules",
-   "name": "preset draw: the page's program matches the paper's code at every grid time before min(4, deadline) within 1e-6, except cells below the grid's first step where the paper's reports 0; its 7 rules' losses, accuracy, and decision time within 1e-5 points; their gap statistic within 1e-6 against the paper's program bound; tuned bound within 1e-6",
+   "name": "preset draw: the page's program matches the paper's code at every grid time before min(4, deadline) within 1e-6, except cells below the grid's first step where the paper's reports 0; its 7 rules' losses, accuracy, and decision time within 1e-5 points; their gap statistic within 1e-6 against the paper's program bound; each displayed gap within 1e-6 of the gap recomputed from the page's own bounds (and of the paper's where no sub-step cell exists); tuned bound within 1e-6",
    "ok": true,
-   "detail": "program bound 6.7e-9 (0 sub-step cells of 400), loss etc. 1.4e-6, gap statistic 3.9e-9 (as shown 5.8e-9), program value 6.0e-9, tuned bound 3.9e-9"
+   "detail": "program bound 6.7e-9 (0 sub-step cells of 400), loss etc. 1.4e-6, gap statistic 3.9e-9 (as shown, against the page's bounds 0.0e+0, against the paper's 5.8e-9), program value 6.0e-9, tuned bound 3.9e-9"
   },
   {
    "file": "ch10",
    "plate": "rules",
-   "name": "development schedule 0 (smooth): the page's program matches the paper's code at every grid time before min(4, deadline) within 1e-6, except cells below the grid's first step where the paper's reports 0; its 7 rules' losses, accuracy, and decision time within 1e-5 points; their gap statistic within 1e-6 against the paper's program bound; tuned bound within 1e-6",
+   "name": "development schedule 0 (smooth): the page's program matches the paper's code at every grid time before min(4, deadline) within 1e-6, except cells below the grid's first step where the paper's reports 0; its 7 rules' losses, accuracy, and decision time within 1e-5 points; their gap statistic within 1e-6 against the paper's program bound; each displayed gap within 1e-6 of the gap recomputed from the page's own bounds (and of the paper's where no sub-step cell exists); tuned bound within 1e-6",
    "ok": true,
-   "detail": "program bound 6.8e-9 (0 sub-step cells of 400), loss etc. 2.1e-6, gap statistic 6.9e-9 (as shown 6.3e-9), program value 1.4e-8, tuned bound 6.9e-9"
+   "detail": "program bound 6.8e-9 (0 sub-step cells of 400), loss etc. 2.1e-6, gap statistic 6.9e-9 (as shown, against the page's bounds 0.0e+0, against the paper's 6.3e-9), program value 1.4e-8, tuned bound 6.9e-9"
   },
   {
    "file": "ch10",
    "plate": "rules",
-   "name": "development schedule 30 (step): the page's program matches the paper's code at every grid time before min(4, deadline) within 1e-6, except cells below the grid's first step where the paper's reports 0; its 7 rules' losses, accuracy, and decision time within 1e-5 points; their gap statistic within 1e-6 against the paper's program bound; tuned bound within 1e-6",
+   "name": "development schedule 30 (step): the page's program matches the paper's code at every grid time before min(4, deadline) within 1e-6, except cells below the grid's first step where the paper's reports 0; its 7 rules' losses, accuracy, and decision time within 1e-5 points; their gap statistic within 1e-6 against the paper's program bound; each displayed gap within 1e-6 of the gap recomputed from the page's own bounds (and of the paper's where no sub-step cell exists); tuned bound within 1e-6",
    "ok": true,
-   "detail": "program bound 6.7e-9 (0 sub-step cells of 400), loss etc. 9.6e-7, gap statistic 6.5e-9 (as shown 5.4e-9), program value 2.9e-9, tuned bound 6.5e-9"
+   "detail": "program bound 6.7e-9 (0 sub-step cells of 400), loss etc. 9.6e-7, gap statistic 6.5e-9 (as shown, against the page's bounds 0.0e+0, against the paper's 5.4e-9), program value 2.9e-9, tuned bound 6.5e-9"
   },
   {
    "file": "ch10",
    "plate": "rules",
-   "name": "development schedule 47 (step): the page's program matches the paper's code at every grid time before min(4, deadline) within 1e-6, except cells below the grid's first step where the paper's reports 0; its 7 rules' losses, accuracy, and decision time within 1e-5 points; their gap statistic within 1e-6 against the paper's program bound; tuned bound within 1e-6",
+   "name": "development schedule 47 (step): the page's program matches the paper's code at every grid time before min(4, deadline) within 1e-6, except cells below the grid's first step where the paper's reports 0; its 7 rules' losses, accuracy, and decision time within 1e-5 points; their gap statistic within 1e-6 against the paper's program bound; each displayed gap within 1e-6 of the gap recomputed from the page's own bounds (and of the paper's where no sub-step cell exists); tuned bound within 1e-6",
    "ok": true,
-   "detail": "program bound 6.7e-9 (0 sub-step cells of 400), loss etc. 2.0e-6, gap statistic 2.7e-9 (as shown 9.2e-9), program value 8.7e-9, tuned bound 2.7e-9"
+   "detail": "program bound 6.7e-9 (0 sub-step cells of 400), loss etc. 2.0e-6, gap statistic 2.7e-9 (as shown, against the page's bounds 0.0e+0, against the paper's 9.2e-9), program value 8.7e-9, tuned bound 2.7e-9"
   },
   {
    "file": "ch10",
    "plate": "rules",
-   "name": "development schedule 60 (deadline): the page's program matches the paper's code at every grid time before min(4, deadline) within 1e-6, except cells below the grid's first step where the paper's reports 0; its 7 rules' losses, accuracy, and decision time within 1e-5 points; their gap statistic within 1e-6 against the paper's program bound; tuned bound within 1e-6",
+   "name": "development schedule 60 (deadline): the page's program matches the paper's code at every grid time before min(4, deadline) within 1e-6, except cells below the grid's first step where the paper's reports 0; its 7 rules' losses, accuracy, and decision time within 1e-5 points; their gap statistic within 1e-6 against the paper's program bound; each displayed gap within 1e-6 of the gap recomputed from the page's own bounds (and of the paper's where no sub-step cell exists); tuned bound within 1e-6",
    "ok": true,
-   "detail": "program bound 6.3e-9 (0 sub-step cells of 130), loss etc. 4.6e-7, gap statistic 4.1e-9 (as shown 6.1e-9), program value 1.5e-9, tuned bound 4.1e-9"
+   "detail": "program bound 6.3e-9 (0 sub-step cells of 130), loss etc. 4.6e-7, gap statistic 4.1e-9 (as shown, against the page's bounds 0.0e+0, against the paper's 6.1e-9), program value 1.5e-9, tuned bound 4.1e-9"
   },
   {
    "file": "ch10",
    "plate": "rules",
-   "name": "held-out schedule 0 (smooth): the page's program matches the paper's code at every grid time before min(4, deadline) within 1e-6, except cells below the grid's first step where the paper's reports 0; its 7 rules' losses, accuracy, and decision time within 1e-5 points; their gap statistic within 1e-6 against the paper's program bound; tuned bound within 1e-6",
+   "name": "held-out schedule 0 (smooth): the page's program matches the paper's code at every grid time before min(4, deadline) within 1e-6, except cells below the grid's first step where the paper's reports 0; its 7 rules' losses, accuracy, and decision time within 1e-5 points; their gap statistic within 1e-6 against the paper's program bound; each displayed gap within 1e-6 of the gap recomputed from the page's own bounds (and of the paper's where no sub-step cell exists); tuned bound within 1e-6",
    "ok": true,
-   "detail": "program bound 7.1e-9 (0 sub-step cells of 400), loss etc. 9.2e-7, gap statistic 8.6e-9 (as shown 6.7e-9), program value 1.6e-9, tuned bound 8.6e-9"
+   "detail": "program bound 7.1e-9 (0 sub-step cells of 400), loss etc. 9.2e-7, gap statistic 8.6e-9 (as shown, against the page's bounds 0.0e+0, against the paper's 6.7e-9), program value 1.6e-9, tuned bound 8.6e-9"
   },
   {
    "file": "ch10",
    "plate": "rules",
-   "name": "held-out schedule 30 (step): the page's program matches the paper's code at every grid time before min(4, deadline) within 1e-6, except cells below the grid's first step where the paper's reports 0; its 7 rules' losses, accuracy, and decision time within 1e-5 points; their gap statistic within 1e-6 against the paper's program bound; tuned bound within 1e-6",
+   "name": "held-out schedule 30 (step): the page's program matches the paper's code at every grid time before min(4, deadline) within 1e-6, except cells below the grid's first step where the paper's reports 0; its 7 rules' losses, accuracy, and decision time within 1e-5 points; their gap statistic within 1e-6 against the paper's program bound; each displayed gap within 1e-6 of the gap recomputed from the page's own bounds (and of the paper's where no sub-step cell exists); tuned bound within 1e-6",
    "ok": true,
-   "detail": "program bound 6.7e-9 (0 sub-step cells of 400), loss etc. 6.1e-7, gap statistic 7.7e-9 (as shown 7.0e-9), program value 1.5e-9, tuned bound 7.7e-9"
+   "detail": "program bound 6.7e-9 (0 sub-step cells of 400), loss etc. 6.1e-7, gap statistic 7.7e-9 (as shown, against the page's bounds 0.0e+0, against the paper's 7.0e-9), program value 1.5e-9, tuned bound 7.7e-9"
   },
   {
    "file": "ch10",
    "plate": "rules",
-   "name": "held-out schedule 60 (deadline): the page's program matches the paper's code at every grid time before min(4, deadline) within 1e-6, except cells below the grid's first step where the paper's reports 0; its 7 rules' losses, accuracy, and decision time within 1e-5 points; their gap statistic within 1e-6 against the paper's program bound; tuned bound within 1e-6",
+   "name": "held-out schedule 60 (deadline): the page's program matches the paper's code at every grid time before min(4, deadline) within 1e-6, except cells below the grid's first step where the paper's reports 0; its 7 rules' losses, accuracy, and decision time within 1e-5 points; their gap statistic within 1e-6 against the paper's program bound; each displayed gap within 1e-6 of the gap recomputed from the page's own bounds (and of the paper's where no sub-step cell exists); tuned bound within 1e-6",
    "ok": true,
-   "detail": "program bound 7.6e-9 (0 sub-step cells of 98), loss etc. 2.9e-7, gap statistic 7.0e-9 (as shown 7.3e-9), program value 1.4e-9, tuned bound 7.0e-9"
+   "detail": "program bound 7.6e-9 (0 sub-step cells of 98), loss etc. 2.9e-7, gap statistic 7.0e-9 (as shown, against the page's bounds 0.0e+0, against the paper's 7.3e-9), program value 1.4e-9, tuned bound 7.0e-9"
   },
   {
    "file": "ch10",
    "plate": "rules",
-   "name": "held-out schedule 90 (pulse): the page's program matches the paper's code at every grid time before min(4, deadline) within 1e-6, except cells below the grid's first step where the paper's reports 0; its 7 rules' losses, accuracy, and decision time within 1e-5 points; their gap statistic within 1e-6 against the paper's program bound; tuned bound within 1e-6",
+   "name": "held-out schedule 90 (pulse): the page's program matches the paper's code at every grid time before min(4, deadline) within 1e-6, except cells below the grid's first step where the paper's reports 0; its 7 rules' losses, accuracy, and decision time within 1e-5 points; their gap statistic within 1e-6 against the paper's program bound; each displayed gap within 1e-6 of the gap recomputed from the page's own bounds (and of the paper's where no sub-step cell exists); tuned bound within 1e-6",
    "ok": true,
-   "detail": "program bound 8.4e-9 (0 sub-step cells of 400), loss etc. 1.2e-6, gap statistic 4.8e-9 (as shown 1.3e-8), program value 1.5e-9, tuned bound 4.8e-9"
+   "detail": "program bound 8.4e-9 (0 sub-step cells of 400), loss etc. 1.2e-6, gap statistic 4.8e-9 (as shown, against the page's bounds 0.0e+0, against the paper's 1.3e-8), program value 1.5e-9, tuned bound 4.8e-9"
   },
   {
    "file": "ch10",
    "plate": "rules",
-   "name": "held-out schedule 120 (ramp): the page's program matches the paper's code at every grid time before min(4, deadline) within 1e-6, except cells below the grid's first step where the paper's reports 0; its 7 rules' losses, accuracy, and decision time within 1e-5 points; their gap statistic within 1e-6 against the paper's program bound; tuned bound within 1e-6",
+   "name": "held-out schedule 120 (ramp): the page's program matches the paper's code at every grid time before min(4, deadline) within 1e-6, except cells below the grid's first step where the paper's reports 0; its 7 rules' losses, accuracy, and decision time within 1e-5 points; their gap statistic within 1e-6 against the paper's program bound; each displayed gap within 1e-6 of the gap recomputed from the page's own bounds (and of the paper's where no sub-step cell exists); tuned bound within 1e-6",
    "ok": true,
-   "detail": "program bound 7.2e-9 (0 sub-step cells of 400), loss etc. 1.3e-6, gap statistic 1.0e-8 (as shown 6.4e-9), program value 4.6e-9, tuned bound 1.0e-8"
+   "detail": "program bound 7.2e-9 (0 sub-step cells of 400), loss etc. 1.3e-6, gap statistic 1.0e-8 (as shown, against the page's bounds 0.0e+0, against the paper's 6.4e-9), program value 4.6e-9, tuned bound 1.0e-8"
   },
   {
    "file": "ch10",
    "plate": "rules",
-   "name": "held-out schedule 150 (multi-step): the page's program matches the paper's code at every grid time before min(4, deadline) within 1e-6, except cells below the grid's first step where the paper's reports 0; its 7 rules' losses, accuracy, and decision time within 1e-5 points; their gap statistic within 1e-6 against the paper's program bound; tuned bound within 1e-6",
+   "name": "held-out schedule 150 (multi-step): the page's program matches the paper's code at every grid time before min(4, deadline) within 1e-6, except cells below the grid's first step where the paper's reports 0; its 7 rules' losses, accuracy, and decision time within 1e-5 points; their gap statistic within 1e-6 against the paper's program bound; each displayed gap within 1e-6 of the gap recomputed from the page's own bounds (and of the paper's where no sub-step cell exists); tuned bound within 1e-6",
    "ok": true,
-   "detail": "program bound 5.8e-9 (118 sub-step cells of 400), loss etc. 3.9e-7, gap statistic 4.8e-9 (as shown 4.6e-3), program value 1.8e-9, tuned bound 4.8e-9"
+   "detail": "program bound 5.8e-9 (118 sub-step cells of 400), loss etc. 3.9e-7, gap statistic 4.8e-9 (as shown, against the page's bounds 0.0e+0, against the paper's 4.6e-3), program value 1.8e-9, tuned bound 4.8e-9"
   },
   {
    "file": "ch10",
    "plate": "rules",
-   "name": "held-out schedule 180 (piecewise): the page's program matches the paper's code at every grid time before min(4, deadline) within 1e-6, except cells below the grid's first step where the paper's reports 0; its 7 rules' losses, accuracy, and decision time within 1e-5 points; their gap statistic within 1e-6 against the paper's program bound; tuned bound within 1e-6",
+   "name": "held-out schedule 180 (piecewise): the page's program matches the paper's code at every grid time before min(4, deadline) within 1e-6, except cells below the grid's first step where the paper's reports 0; its 7 rules' losses, accuracy, and decision time within 1e-5 points; their gap statistic within 1e-6 against the paper's program bound; each displayed gap within 1e-6 of the gap recomputed from the page's own bounds (and of the paper's where no sub-step cell exists); tuned bound within 1e-6",
    "ok": true,
-   "detail": "program bound 7.1e-9 (0 sub-step cells of 400), loss etc. 6.0e-7, gap statistic 8.3e-9 (as shown 5.7e-9), program value 1.5e-9, tuned bound 8.3e-9"
+   "detail": "program bound 7.1e-9 (0 sub-step cells of 400), loss etc. 6.0e-7, gap statistic 8.3e-9 (as shown, against the page's bounds 0.0e+0, against the paper's 5.7e-9), program value 1.5e-9, tuned bound 8.3e-9"
   },
   {
    "file": "ch10",
    "plate": "rules",
-   "name": "held-out schedule 185 (piecewise): the page's program matches the paper's code at every grid time before min(4, deadline) within 1e-6, except cells below the grid's first step where the paper's reports 0; its 7 rules' losses, accuracy, and decision time within 1e-5 points; their gap statistic within 1e-6 against the paper's program bound; tuned bound within 1e-6",
+   "name": "held-out schedule 185 (piecewise): the page's program matches the paper's code at every grid time before min(4, deadline) within 1e-6, except cells below the grid's first step where the paper's reports 0; its 7 rules' losses, accuracy, and decision time within 1e-5 points; their gap statistic within 1e-6 against the paper's program bound; each displayed gap within 1e-6 of the gap recomputed from the page's own bounds (and of the paper's where no sub-step cell exists); tuned bound within 1e-6",
    "ok": true,
-   "detail": "program bound 9.0e-9 (0 sub-step cells of 400), loss etc. 8.9e-7, gap statistic 2.9e-9 (as shown 8.9e-9), program value 2.5e-9, tuned bound 2.9e-9"
+   "detail": "program bound 9.0e-9 (0 sub-step cells of 400), loss etc. 8.9e-7, gap statistic 2.9e-9 (as shown, against the page's bounds 0.0e+0, against the paper's 8.9e-9), program value 2.5e-9, tuned bound 2.9e-9"
   },
   {
    "file": "ch10",
    "plate": "rules",
-   "name": "the exception above is used: some compared schedule reaches a bound below the grid's first step (held-out schedule 150 does), so the time-by-time rule is tested",
+   "name": "the exception above is used: held-out schedule 150, compared on its own, reaches a bound below the grid's first step, so the time-by-time rule is tested",
    "ok": true,
-   "detail": "118 such cells in all"
+   "detail": "118 such cells on held-out schedule 150, 118 in all"
   },
   {
    "file": "ch10",
@@ -7377,9 +7538,9 @@
   {
    "file": "ch10",
    "plate": "words",
-   "name": "two grids that differ in sign are read as below the page's resolution; two that agree say within how much",
+   "name": "two grids that differ in sign say so, two more than half apart say by how much of the paper's, and two that agree say within how much; none claims what a grid resolves",
    "ok": true,
-   "detail": "The two grids disagree on the weighted loss even in sign: at 1.2 × 10⁻⁵, it is below what the page's grid resolves. | The two grids agree on the per-moment loss to within 1%."
+   "detail": "The two grids differ on the weighted loss even in sign. | The two grids agree on the per-moment loss to within 1%. | The two grids differ on the weighted loss by 160% of the paper's."
   },
   {
    "file": "ch10",
@@ -7657,16 +7818,23 @@
   {
    "file": "ch11",
    "plate": "rules",
-   "name": "the plug-in bound is 0 (the rule decides at once) exactly where 4 c (t + a) >= 1, with a = 1, away from that boundary: the known-reliability rule for a small estimated drift doesn't wait",
+   "name": "the unshifted plug-in bound is 0 exactly where 4 c (t + a) >= 1, with a = 1, at every time from 0 to 3 in steps of 0.01 farther than 0.001 from that switch: the known-reliability rule for a small estimated drift doesn't wait",
    "ok": true,
-   "detail": "costs 0.05 to 1, times 0 to 3"
+   "detail": "1804 times at costs 0.05 to 1"
   },
   {
    "file": "ch11",
    "plate": "rules",
-   "name": "on Table 10's eight schedules, a fall at time 2 by 16, a late jump, a pulse, a deadline at 0.75, and a drawing that rises in the middle, the plate's stretches where the plug-in bound is 0 are the times drawn with 4c(t)(t + 1) >= 1, the sentence names each (a zero at the start as from the start), and no time at a deadline is drawn",
+   "name": "on 14 schedules (Table 10's eight, a fall at time 2 by 16, a late jump, a pulse, a deadline at 0.75, a drawing that rises in the middle, and a flat drawing at 0.2499999), at every time drawn the plotted plug-in bound is 0 exactly where the unshifted one is at most 0.5826 sqrt(0.005); the plate's stretches are those times, the sentence names each stretch's endpoints as drawn, and no time at a deadline is drawn",
    "ok": true,
-   "detail": "13 schedules, 9 with zero stretches"
+   "detail": "1574 times on 14 schedules, 10 with zero stretches"
+  },
+  {
+   "file": "ch11",
+   "plate": "rules",
+   "name": "a flat drawing at 0.2499999: at t = 0 the unshifted plug-in bound is positive (4c(t + a) < 1) and below 0.5826 sqrt(0.005), and the plotted bound there is 0",
+   "ok": true,
+   "detail": "unshifted 0.03310, delta 0.04120, plotted 0"
   },
   {
    "file": "ch11",
@@ -7909,7 +8077,7 @@
   {
    "file": "ch11",
    "plate": "sine",
-   "name": "the lag is the grid's: halving both steps cuts the upper bound's lead gap at omega = 8 (r- = 0.5) by a factor between 1.6 and 2.5",
+   "name": "halving both steps (the evidence grid and the check interval) cuts the upper bound's lead residual from the first order at omega = 8 (r- = 0.5) by a factor between 1.6 and 2.5",
    "ok": true,
    "detail": "1.135 degrees on (0.01, 0.02), 0.588 on (0.005, 0.01)"
   },
@@ -7936,6 +8104,13 @@
   },
   {
    "file": "ch11",
+   "plate": "program",
+   "name": "Rising from 0 at rate 2, at t = 1.30: the program reports the bound 1/2, but at the center itself one more step of its own transition and then deciding beats deciding at once (so 1/2 is what the grid reports when its first nodes stop, not a center stop)",
+   "ok": true,
+   "detail": "reported 0.5; one step then decide 0.50135045 against 0.5"
+  },
+  {
+   "file": "ch11",
    "plate": "sine",
    "name": "on the sinusoid plate's runs, both bounds stay more than 0.5 from x*, so the program's report of x* for a bound inside its first step never arises there",
    "ok": true,
@@ -7944,7 +8119,7 @@
   {
    "file": "ch11",
    "plate": "envelope",
-   "name": "the green curve's own crossing near h0 and the first-order bound (the dot) differ by an amount that falls about fourfold when dc halves (second order), so the dots are the linearization, not the curve's root",
+   "name": "at the upper bound only, for r-/r+ = 0.5 and 0.25: the green curve's own crossing near h0 and the first-order bound (the dot) differ by an amount that falls about fourfold when dc halves (second order), so the upper dot is the linearization, not the curve's root",
    "ok": true,
    "detail": "0.5: 3.81  0.25: 3.77  "
   },
@@ -7960,7 +8135,7 @@
    "plate": "words",
    "name": "the plates' sentences never print NaN, undefined, Infinity, or null (random inputs and every real computation above)",
    "ok": true,
-   "detail": "19764 sentences, 0 bad"
+   "detail": "19765 sentences, 0 bad"
   },
   {
    "file": "ch11",
@@ -8504,6 +8679,13 @@
   {
    "file": "ch12",
    "plate": "gate",
+   "name": "on the default path, seed 25's, and 40 more, the moving bound as drawn (gateBoundLine) passes through the marked crossing (within 1e-12); with only its 160 even knots it would miss it slightly",
+   "ok": true,
+   "detail": "largest miss 0.0e+0; on the default path, the even knots alone miss by 2.69e-5"
+  },
+  {
+   "file": "ch12",
+   "plate": "gate",
    "name": "the path for ?seed=25 crosses at the lower level, and the plate says so",
    "ok": true,
    "detail": "hit 1.2331, sign -1"
@@ -8574,9 +8756,16 @@
   {
    "file": "ch12",
    "plate": "control",
-   "name": "at c0 = 0.03 and t = 4, the window holds 0.6 time units ahead: the plate's reading puts about 29% of the weight past its edge, and the mean, 0.618 ahead, lies past it (marked by an arrow)",
+   "name": "controlWindow, which the plate's reading and arrow use: at c0 = 0.03 and t = 4 it gives the reading “29%” and puts the mean, 0.618 ahead, past the chart's edge (so the plate draws the arrow); at c0 = 1 it gives no reading, with under 0.5% past the edge",
    "ok": true,
-   "detail": "29.48% past; mean at 4.618"
+   "detail": "29.48% past, mean at 4.618; at c0 = 1, 2.63e-4% past, no reading"
+  },
+  {
+   "file": "ch12",
+   "plate": "control",
+   "name": "the control caption states the reading's threshold, the plate's own (PAST_SHOWN = 0.005)",
+   "ok": true,
+   "detail": "PAST_SHOWN 0.005"
   },
   {
    "file": "ch12",
@@ -8658,23 +8847,30 @@
   {
    "file": "ch12",
    "plate": "yours",
-   "name": "deadline at 1: the worker's times end on the forced choice, and the plate draws finite urgencies up to 0.98, short of it",
+   "name": "deadline at 1, cost 0.1: the worker's times end on the forced choice, and the plate draws finite urgencies up to 0.98, short of it, and says so",
    "ok": true,
-   "detail": "50 points, last ratio 4.66"
+   "detail": "50 points, last ratio 4.66; The best bound's urgency is 4.7 times the per-moment one at time 0.98, the last moment the plate draws before the deadline at 1.00."
   },
   {
    "file": "ch12",
    "plate": "yours",
-   "name": "deadline at 1.05: the worker's times end on the forced choice, and the plate draws finite urgencies up to 1.04, short of it",
+   "name": "deadline at 1.05, cost 0.1: the worker's times end on the forced choice, and the plate draws finite urgencies up to 1.04, short of it, and says so",
    "ok": true,
-   "detail": "53 points, last ratio 6.65"
+   "detail": "53 points, last ratio 6.65; The best bound's urgency is 6.7 times the per-moment one at time 1.04, the last moment the plate draws before the deadline at 1.05."
   },
   {
    "file": "ch12",
    "plate": "yours",
-   "name": "deadline at 0.45: the worker's times end on the forced choice, and the plate draws finite urgencies up to 0.44, short of it",
+   "name": "deadline at 0.45, cost 0.1: the worker's times end on the forced choice, and the plate draws finite urgencies up to 0.44, short of it, and says so",
    "ok": true,
-   "detail": "23 points, last ratio 6.65"
+   "detail": "23 points, last ratio 6.65; The best bound's urgency is 6.7 times the per-moment one at time 0.44, the last moment the plate draws before the deadline at 0.45."
+  },
+  {
+   "file": "ch12",
+   "plate": "yours",
+   "name": "deadline at 0.45, cost 0.5: the worker's times end on the forced choice, and the plate draws finite urgencies up to 0.44, short of it, and says so",
+   "ok": true,
+   "detail": "23 points, last ratio 3.25; The best bound's urgency is 3.3 times the per-moment one at time 0.44, the last moment the plate draws before the deadline at 0.45."
   },
   {
    "file": "ch12",
@@ -8682,6 +8878,27 @@
    "name": "the Constant preset, a flat drawing, and Smooth at size 0 are found not to move, and the Wave preset is found to move",
    "ok": true,
    "detail": "three flat, one moving"
+  },
+  {
+   "file": "ch12",
+   "plate": "yours",
+   "name": "the Constant preset, a flat drawing, and Smooth at size 0: at each of the three sizes, the plate's text (yoursText) gives both gaps as 0% and the flat sentence, which names no rule as the closer",
+   "ok": true,
+   "detail": "On a cost that doesn't move, the three urgencies are the same flat line at every size: both gaps are 0, and neither rule is the closer."
+  },
+  {
+   "file": "ch12",
+   "plate": "yours",
+   "name": "a nearly flat drawing (one point raised by 10⁻⁶): the smallest size's gaps are positive and under 10⁻⁶, and the plate prints both to two significant digits (not 0.00%) in the readings and the sentence before naming the closer",
+   "ok": true,
+   "detail": "gaps 7.07e-9 and 2.11e-7; readings 7.1 × 10⁻⁷% and 2.1 × 10⁻⁵%; At 6.25% of its size, the smallest, the first-order urgency is off the best bound's by up to 7.1 × 10⁻⁷% of the constant cost's urgency, and the per-moment urgency by up to 2.1 × 10⁻⁵% of the constant cost's urgency, at every time drawn. There the first-order urgency, the one the prediction is about, is the closer of the two to the best bound's."
+  },
+  {
+   "file": "ch12",
+   "plate": "words",
+   "name": "two gaps equal to within 1e-12 are a tie, named as such; gaps of 7.1e-9 and 2.1e-7 print as 7.1 × 10⁻⁷% and 2.1 × 10⁻⁵% and name the first-order urgency as the closer",
+   "ok": true,
+   "detail": "At 6.25% of its size, the smallest, the first-order urgency is off the best bound's by up to 3.0 × 10⁻⁷% of the constant cost's urgency, and the per-moment urgency by up to 3.0 × 10⁻⁷% of the constant cost's urgency, at every time drawn. There the two gaps are equal to within 10⁻¹², so neither urgency is the closer to the best bound's. | At 6.25% of its size, the smallest, the first-order urgency is off the best bound's by up to 7.1 × 10⁻⁷% of the constant cost's urgency, and the per-moment urgency by up to 2.1 × 10⁻⁵% of the constant cost's urgency, at every time drawn. There the first-order urgency, the one the prediction is about, is the closer of the two to the best bound's."
   },
   {
    "file": "ch12",
@@ -8882,541 +9099,597 @@
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "jump: the page's dynamic program matches the paper's backward_induction_x over the window (within 1e-6)",
+   "name": "the comparator (a helper test): a resolved pair 2e-6 apart fails at a tolerance of 1e-6; a page bound of 0.03 against the tag's 0 fails, since it is above the first step; 0.018 against 0 is a below-step pair for an exact bound and a failure for any other series",
    "ok": true,
-   "detail": "largest difference 6.15e-9"
+   "detail": "2 entries, largest difference 2.00e-6, 0 both off the cap, 0 below-step pairs; entry 0: 0.500002 against 0.5; 1 entries, largest difference 3.00e-2, 0 both off the cap, 0 below-step pairs; entry 0: 0.03 against 0; 1 entries, largest difference 0.00e+0, 0 both off the cap, 1 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "jump: the per-moment bound matches the paper's bound_for_cost (within 1e-10)",
+   "name": "the comparator (a helper test): the page's Infinity and the fixtures' null both read as off the cap and agree; off the cap on one side only fails, as do NaN, minus infinity, and series shorter than the expected length",
    "ok": true,
-   "detail": "largest difference 1.83e-13"
+   "detail": "3 entries, largest difference 0.00e+0, 2 both off the cap, 0 below-step pairs; 0 entries, largest difference 0.00e+0, 0 both off the cap, 0 below-step pairs; lengths 2 and 2, expected 3"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "jump: the weighted look-ahead matches the paper's weighted_bound (within 1e-10)",
+   "name": "jump: the page's dynamic program matches the paper's backward_induction_x at all 251 times of the window (within 1e-6)",
    "ok": true,
-   "detail": "largest difference 3.48e-14"
+   "detail": "251 entries, largest difference 6.15e-9, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "jump: what the exact policy earns matches the paper's known_reward (within 1e-7)",
+   "name": "jump: the per-moment bound matches the paper's bound_for_cost at all 251 times (within 1e-10)",
    "ok": true,
-   "detail": "reward 0.710306 vs 0.710306, largest difference 1.26e-9"
+   "detail": "251 entries, largest difference 1.83e-13, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "jump: what the per-moment rule earns matches the paper's known_reward (within 1e-7)",
+   "name": "jump: the weighted look-ahead matches the paper's weighted_bound at all 251 times (within 1e-10)",
    "ok": true,
-   "detail": "reward 0.701234 vs 0.701234, largest difference 1.38e-9"
+   "detail": "251 entries, largest difference 3.48e-14, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "jump: what the weighted rule earns matches the paper's known_reward (within 1e-7)",
+   "name": "jump: what the exact policy earns matches the paper's known_reward in reward, accuracy, and cost (within 1e-7)",
    "ok": true,
-   "detail": "reward 0.710167 vs 0.710167, largest difference 1.14e-9"
+   "detail": "reward 0.710306 vs 0.710306; 3 entries, largest difference 1.26e-9, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "fall: the page's dynamic program matches the paper's backward_induction_x over the window (within 1e-6)",
+   "name": "jump: what the per-moment rule earns matches the paper's known_reward in reward, accuracy, and cost (within 1e-7)",
    "ok": true,
-   "detail": "largest difference 6.60e-9"
+   "detail": "reward 0.701234 vs 0.701234; 3 entries, largest difference 1.38e-9, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "fall: the per-moment bound matches the paper's bound_for_cost (within 1e-10)",
+   "name": "jump: what the weighted rule earns matches the paper's known_reward in reward, accuracy, and cost (within 1e-7)",
    "ok": true,
-   "detail": "largest difference 2.67e-13"
+   "detail": "reward 0.710167 vs 0.710167; 3 entries, largest difference 1.14e-9, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "fall: the weighted look-ahead matches the paper's weighted_bound (within 1e-10)",
+   "name": "fall: the page's dynamic program matches the paper's backward_induction_x at all 251 times of the window (within 1e-6)",
    "ok": true,
-   "detail": "largest difference 1.47e-14"
+   "detail": "251 entries, largest difference 6.60e-9, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "fall: what the exact policy earns matches the paper's known_reward (within 1e-7)",
+   "name": "fall: the per-moment bound matches the paper's bound_for_cost at all 251 times (within 1e-10)",
    "ok": true,
-   "detail": "reward 0.782504 vs 0.782504, largest difference 1.04e-9"
+   "detail": "251 entries, largest difference 2.67e-13, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "fall: what the per-moment rule earns matches the paper's known_reward (within 1e-7)",
+   "name": "fall: the weighted look-ahead matches the paper's weighted_bound at all 251 times (within 1e-10)",
    "ok": true,
-   "detail": "reward 0.739892 vs 0.739892, largest difference 1.01e-9"
+   "detail": "251 entries, largest difference 1.47e-14, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "fall: what the weighted rule earns matches the paper's known_reward (within 1e-7)",
+   "name": "fall: what the exact policy earns matches the paper's known_reward in reward, accuracy, and cost (within 1e-7)",
    "ok": true,
-   "detail": "reward 0.782408 vs 0.782408, largest difference 1.09e-9"
+   "detail": "reward 0.782504 vs 0.782504; 3 entries, largest difference 1.04e-9, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "rising: the page's dynamic program matches the paper's backward_induction_x over the window (within 1e-6)",
+   "name": "fall: what the per-moment rule earns matches the paper's known_reward in reward, accuracy, and cost (within 1e-7)",
    "ok": true,
-   "detail": "largest difference 6.94e-9"
+   "detail": "reward 0.739892 vs 0.739892; 3 entries, largest difference 1.01e-9, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "rising: the per-moment bound matches the paper's bound_for_cost (within 1e-10)",
+   "name": "fall: what the weighted rule earns matches the paper's known_reward in reward, accuracy, and cost (within 1e-7)",
    "ok": true,
-   "detail": "largest difference 2.64e-13"
+   "detail": "reward 0.782408 vs 0.782408; 3 entries, largest difference 1.09e-9, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "rising: the weighted look-ahead matches the paper's weighted_bound (within 1e-10)",
+   "name": "rising: the page's dynamic program matches the paper's backward_induction_x at all 251 times of the window (within 1e-6)",
    "ok": true,
-   "detail": "largest difference 5.71e-14"
+   "detail": "251 entries, largest difference 6.94e-9, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "rising: what the exact policy earns matches the paper's known_reward (within 1e-7)",
+   "name": "rising: the per-moment bound matches the paper's bound_for_cost at all 251 times (within 1e-10)",
    "ok": true,
-   "detail": "reward 0.753409 vs 0.753409, largest difference 1.55e-9"
+   "detail": "251 entries, largest difference 2.64e-13, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "rising: what the per-moment rule earns matches the paper's known_reward (within 1e-7)",
+   "name": "rising: the weighted look-ahead matches the paper's weighted_bound at all 251 times (within 1e-10)",
    "ok": true,
-   "detail": "reward 0.746782 vs 0.746782, largest difference 1.71e-9"
+   "detail": "251 entries, largest difference 5.71e-14, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "rising: what the weighted rule earns matches the paper's known_reward (within 1e-7)",
+   "name": "rising: what the exact policy earns matches the paper's known_reward in reward, accuracy, and cost (within 1e-7)",
    "ok": true,
-   "detail": "reward 0.753274 vs 0.753274, largest difference 1.39e-9"
+   "detail": "reward 0.753409 vs 0.753409; 3 entries, largest difference 1.55e-9, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "deadline: the page's dynamic program matches the paper's backward_induction_x over the window (within 1e-6)",
+   "name": "rising: what the per-moment rule earns matches the paper's known_reward in reward, accuracy, and cost (within 1e-7)",
    "ok": true,
-   "detail": "largest difference 6.62e-9"
+   "detail": "reward 0.746782 vs 0.746782; 3 entries, largest difference 1.71e-9, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "deadline: the per-moment bound matches the paper's bound_for_cost (within 1e-10)",
+   "name": "rising: what the weighted rule earns matches the paper's known_reward in reward, accuracy, and cost (within 1e-7)",
    "ok": true,
-   "detail": "largest difference 6.88e-15"
+   "detail": "reward 0.753274 vs 0.753274; 3 entries, largest difference 1.39e-9, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "deadline: the weighted look-ahead matches the paper's weighted_bound (within 1e-10)",
+   "name": "deadline: the page's dynamic program matches the paper's backward_induction_x at all 101 times of the window (within 1e-6)",
    "ok": true,
-   "detail": "largest difference 6.88e-15"
+   "detail": "101 entries, largest difference 6.62e-9, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "deadline: what the exact policy earns matches the paper's known_reward (within 1e-7)",
+   "name": "deadline: the per-moment bound matches the paper's bound_for_cost at all 101 times (within 1e-10)",
    "ok": true,
-   "detail": "reward 0.769906 vs 0.769906, largest difference 1.41e-9"
+   "detail": "101 entries, largest difference 6.88e-15, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "deadline: what the per-moment rule earns matches the paper's known_reward (within 1e-7)",
+   "name": "deadline: the weighted look-ahead matches the paper's weighted_bound at all 101 times (within 1e-10)",
    "ok": true,
-   "detail": "reward 0.761453 vs 0.761453, largest difference 1.66e-9"
+   "detail": "101 entries, largest difference 6.88e-15, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "deadline: what the weighted rule earns matches the paper's known_reward (within 1e-7)",
+   "name": "deadline: what the exact policy earns matches the paper's known_reward in reward, accuracy, and cost (within 1e-7)",
    "ok": true,
-   "detail": "reward 0.769533 vs 0.769533, largest difference 1.36e-9"
+   "detail": "reward 0.769906 vs 0.769906; 3 entries, largest difference 1.41e-9, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "pulse: the page's dynamic program matches the paper's backward_induction_x over the window (within 1e-6)",
+   "name": "deadline: what the per-moment rule earns matches the paper's known_reward in reward, accuracy, and cost (within 1e-7)",
    "ok": true,
-   "detail": "largest difference 7.07e-9"
+   "detail": "reward 0.761453 vs 0.761453; 3 entries, largest difference 1.66e-9, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "pulse: the per-moment bound matches the paper's bound_for_cost (within 1e-10)",
+   "name": "deadline: what the weighted rule earns matches the paper's known_reward in reward, accuracy, and cost (within 1e-7)",
    "ok": true,
-   "detail": "largest difference 2.01e-13"
+   "detail": "reward 0.769533 vs 0.769533; 3 entries, largest difference 1.36e-9, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "pulse: the weighted look-ahead matches the paper's weighted_bound (within 1e-10)",
+   "name": "pulse: the page's dynamic program matches the paper's backward_induction_x at all 251 times of the window (within 1e-6)",
    "ok": true,
-   "detail": "largest difference 3.84e-14"
+   "detail": "251 entries, largest difference 7.07e-9, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "pulse: what the exact policy earns matches the paper's known_reward (within 1e-7)",
+   "name": "pulse: the per-moment bound matches the paper's bound_for_cost at all 251 times (within 1e-10)",
    "ok": true,
-   "detail": "reward 0.756590 vs 0.756590, largest difference 1.76e-9"
+   "detail": "251 entries, largest difference 2.01e-13, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "pulse: what the per-moment rule earns matches the paper's known_reward (within 1e-7)",
+   "name": "pulse: the weighted look-ahead matches the paper's weighted_bound at all 251 times (within 1e-10)",
    "ok": true,
-   "detail": "reward 0.746298 vs 0.746298, largest difference 1.66e-9"
+   "detail": "251 entries, largest difference 3.84e-14, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "pulse: what the weighted rule earns matches the paper's known_reward (within 1e-7)",
+   "name": "pulse: what the exact policy earns matches the paper's known_reward in reward, accuracy, and cost (within 1e-7)",
    "ok": true,
-   "detail": "reward 0.755032 vs 0.755032, largest difference 1.50e-9"
+   "detail": "reward 0.756590 vs 0.756590; 3 entries, largest difference 1.76e-9, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "wave: the page's dynamic program matches the paper's backward_induction_x over the window (within 1e-6)",
+   "name": "pulse: what the per-moment rule earns matches the paper's known_reward in reward, accuracy, and cost (within 1e-7)",
    "ok": true,
-   "detail": "largest difference 7.26e-9"
+   "detail": "reward 0.746298 vs 0.746298; 3 entries, largest difference 1.66e-9, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "wave: the per-moment bound matches the paper's bound_for_cost (within 1e-10)",
+   "name": "pulse: what the weighted rule earns matches the paper's known_reward in reward, accuracy, and cost (within 1e-7)",
    "ok": true,
-   "detail": "largest difference 2.97e-13"
+   "detail": "reward 0.755032 vs 0.755032; 3 entries, largest difference 1.50e-9, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "wave: the weighted look-ahead matches the paper's weighted_bound (within 1e-10)",
+   "name": "wave: the page's dynamic program matches the paper's backward_induction_x at all 251 times of the window (within 1e-6)",
    "ok": true,
-   "detail": "largest difference 8.50e-14"
+   "detail": "251 entries, largest difference 7.26e-9, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "wave: what the exact policy earns matches the paper's known_reward (within 1e-7)",
+   "name": "wave: the per-moment bound matches the paper's bound_for_cost at all 251 times (within 1e-10)",
    "ok": true,
-   "detail": "reward 0.803738 vs 0.803738, largest difference 1.40e-9"
+   "detail": "251 entries, largest difference 2.97e-13, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "wave: what the per-moment rule earns matches the paper's known_reward (within 1e-7)",
+   "name": "wave: the weighted look-ahead matches the paper's weighted_bound at all 251 times (within 1e-10)",
    "ok": true,
-   "detail": "reward 0.803264 vs 0.803264, largest difference 1.35e-9"
+   "detail": "251 entries, largest difference 8.50e-14, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "wave: what the weighted rule earns matches the paper's known_reward (within 1e-7)",
+   "name": "wave: what the exact policy earns matches the paper's known_reward in reward, accuracy, and cost (within 1e-7)",
    "ok": true,
-   "detail": "reward 0.803735 vs 0.803735, largest difference 1.40e-9"
+   "detail": "reward 0.803738 vs 0.803738; 3 entries, largest difference 1.40e-9, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "constant: the page's dynamic program matches the paper's backward_induction_x over the window (within 1e-6)",
+   "name": "wave: what the per-moment rule earns matches the paper's known_reward in reward, accuracy, and cost (within 1e-7)",
    "ok": true,
-   "detail": "largest difference 6.60e-9"
+   "detail": "reward 0.803264 vs 0.803264; 3 entries, largest difference 1.35e-9, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "constant: the per-moment bound matches the paper's bound_for_cost (within 1e-10)",
+   "name": "wave: what the weighted rule earns matches the paper's known_reward in reward, accuracy, and cost (within 1e-7)",
    "ok": true,
-   "detail": "largest difference 6.88e-15"
+   "detail": "reward 0.803735 vs 0.803735; 3 entries, largest difference 1.40e-9, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "constant: the weighted look-ahead matches the paper's weighted_bound (within 1e-10)",
+   "name": "constant: the page's dynamic program matches the paper's backward_induction_x at all 251 times of the window (within 1e-6)",
    "ok": true,
-   "detail": "largest difference 7.55e-15"
+   "detail": "251 entries, largest difference 6.60e-9, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "constant: what the exact policy earns matches the paper's known_reward (within 1e-7)",
+   "name": "constant: the per-moment bound matches the paper's bound_for_cost at all 251 times (within 1e-10)",
    "ok": true,
-   "detail": "reward 0.818768 vs 0.818768, largest difference 1.39e-9"
+   "detail": "251 entries, largest difference 6.88e-15, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "constant: what the per-moment rule earns matches the paper's known_reward (within 1e-7)",
+   "name": "constant: the weighted look-ahead matches the paper's weighted_bound at all 251 times (within 1e-10)",
    "ok": true,
-   "detail": "reward 0.818766 vs 0.818766, largest difference 1.38e-9"
+   "detail": "251 entries, largest difference 7.55e-15, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "constant: what the weighted rule earns matches the paper's known_reward (within 1e-7)",
+   "name": "constant: what the exact policy earns matches the paper's known_reward in reward, accuracy, and cost (within 1e-7)",
    "ok": true,
-   "detail": "reward 0.818766 vs 0.818766, largest difference 1.38e-9"
+   "detail": "reward 0.818768 vs 0.818768; 3 entries, largest difference 1.39e-9, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "smooth: the page's dynamic program matches the paper's backward_induction_x over the window (within 1e-6)",
+   "name": "constant: what the per-moment rule earns matches the paper's known_reward in reward, accuracy, and cost (within 1e-7)",
    "ok": true,
-   "detail": "largest difference 7.57e-9"
+   "detail": "reward 0.818766 vs 0.818766; 3 entries, largest difference 1.38e-9, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "smooth: the per-moment bound matches the paper's bound_for_cost (within 1e-10)",
+   "name": "constant: what the weighted rule earns matches the paper's known_reward in reward, accuracy, and cost (within 1e-7)",
    "ok": true,
-   "detail": "largest difference 2.86e-13"
+   "detail": "reward 0.818766 vs 0.818766; 3 entries, largest difference 1.38e-9, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "smooth: the weighted look-ahead matches the paper's weighted_bound (within 1e-10)",
+   "name": "smooth: the page's dynamic program matches the paper's backward_induction_x at all 251 times of the window (within 1e-6)",
    "ok": true,
-   "detail": "largest difference 3.80e-14"
+   "detail": "251 entries, largest difference 7.57e-9, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "smooth: what the exact policy earns matches the paper's known_reward (within 1e-7)",
+   "name": "smooth: the per-moment bound matches the paper's bound_for_cost at all 251 times (within 1e-10)",
    "ok": true,
-   "detail": "reward 0.779361 vs 0.779361, largest difference 1.54e-9"
+   "detail": "251 entries, largest difference 2.86e-13, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "smooth: what the per-moment rule earns matches the paper's known_reward (within 1e-7)",
+   "name": "smooth: the weighted look-ahead matches the paper's weighted_bound at all 251 times (within 1e-10)",
    "ok": true,
-   "detail": "reward 0.776744 vs 0.776744, largest difference 1.55e-9"
+   "detail": "251 entries, largest difference 3.80e-14, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "smooth: what the weighted rule earns matches the paper's known_reward (within 1e-7)",
+   "name": "smooth: what the exact policy earns matches the paper's known_reward in reward, accuracy, and cost (within 1e-7)",
    "ok": true,
-   "detail": "reward 0.779348 vs 0.779348, largest difference 1.54e-9"
+   "detail": "reward 0.779361 vs 0.779361; 3 entries, largest difference 1.54e-9, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "multistep: the page's dynamic program matches the paper's backward_induction_x over the window (within 1e-6)",
+   "name": "smooth: what the per-moment rule earns matches the paper's known_reward in reward, accuracy, and cost (within 1e-7)",
    "ok": true,
-   "detail": "largest difference 7.49e-9"
+   "detail": "reward 0.776744 vs 0.776744; 3 entries, largest difference 1.55e-9, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "multistep: the per-moment bound matches the paper's bound_for_cost (within 1e-10)",
+   "name": "smooth: what the weighted rule earns matches the paper's known_reward in reward, accuracy, and cost (within 1e-7)",
    "ok": true,
-   "detail": "largest difference 2.31e-13"
+   "detail": "reward 0.779348 vs 0.779348; 3 entries, largest difference 1.54e-9, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "multistep: the weighted look-ahead matches the paper's weighted_bound (within 1e-10)",
+   "name": "multistep: the page's dynamic program matches the paper's backward_induction_x at all 251 times of the window (within 1e-6)",
    "ok": true,
-   "detail": "largest difference 8.80e-14"
+   "detail": "251 entries, largest difference 7.49e-9, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "multistep: what the exact policy earns matches the paper's known_reward (within 1e-7)",
+   "name": "multistep: the per-moment bound matches the paper's bound_for_cost at all 251 times (within 1e-10)",
    "ok": true,
-   "detail": "reward 0.770313 vs 0.770313, largest difference 1.57e-9"
+   "detail": "251 entries, largest difference 2.31e-13, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "multistep: what the per-moment rule earns matches the paper's known_reward (within 1e-7)",
+   "name": "multistep: the weighted look-ahead matches the paper's weighted_bound at all 251 times (within 1e-10)",
    "ok": true,
-   "detail": "reward 0.767445 vs 0.767445, largest difference 1.57e-9"
+   "detail": "251 entries, largest difference 8.80e-14, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "multistep: what the weighted rule earns matches the paper's known_reward (within 1e-7)",
+   "name": "multistep: what the exact policy earns matches the paper's known_reward in reward, accuracy, and cost (within 1e-7)",
    "ok": true,
-   "detail": "reward 0.770281 vs 0.770281, largest difference 1.57e-9"
+   "detail": "reward 0.770313 vs 0.770313; 3 entries, largest difference 1.57e-9, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "piecewise: the page's dynamic program matches the paper's backward_induction_x over the window (within 1e-6)",
+   "name": "multistep: what the per-moment rule earns matches the paper's known_reward in reward, accuracy, and cost (within 1e-7)",
    "ok": true,
-   "detail": "largest difference 8.99e-9"
+   "detail": "reward 0.767445 vs 0.767445; 3 entries, largest difference 1.57e-9, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "piecewise: the per-moment bound matches the paper's bound_for_cost (within 1e-10)",
+   "name": "multistep: what the weighted rule earns matches the paper's known_reward in reward, accuracy, and cost (within 1e-7)",
    "ok": true,
-   "detail": "largest difference 2.95e-13"
+   "detail": "reward 0.770281 vs 0.770281; 3 entries, largest difference 1.57e-9, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "piecewise: the weighted look-ahead matches the paper's weighted_bound (within 1e-10)",
+   "name": "piecewise: the page's dynamic program matches the paper's backward_induction_x at all 251 times of the window (within 1e-6)",
    "ok": true,
-   "detail": "largest difference 3.93e-14"
+   "detail": "251 entries, largest difference 8.99e-9, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "piecewise: what the exact policy earns matches the paper's known_reward (within 1e-7)",
+   "name": "piecewise: the per-moment bound matches the paper's bound_for_cost at all 251 times (within 1e-10)",
    "ok": true,
-   "detail": "reward 0.782124 vs 0.782124, largest difference 1.62e-9"
+   "detail": "251 entries, largest difference 2.95e-13, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "piecewise: what the per-moment rule earns matches the paper's known_reward (within 1e-7)",
+   "name": "piecewise: the weighted look-ahead matches the paper's weighted_bound at all 251 times (within 1e-10)",
    "ok": true,
-   "detail": "reward 0.776793 vs 0.776793, largest difference 1.54e-9"
+   "detail": "251 entries, largest difference 3.93e-14, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "piecewise: what the weighted rule earns matches the paper's known_reward (within 1e-7)",
+   "name": "piecewise: what the exact policy earns matches the paper's known_reward in reward, accuracy, and cost (within 1e-7)",
    "ok": true,
-   "detail": "reward 0.781415 vs 0.781415, largest difference 1.65e-9"
+   "detail": "reward 0.782124 vs 0.782124; 3 entries, largest difference 1.62e-9, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "draw: the page's dynamic program matches the paper's backward_induction_x over the window (within 1e-6)",
+   "name": "piecewise: what the per-moment rule earns matches the paper's known_reward in reward, accuracy, and cost (within 1e-7)",
    "ok": true,
-   "detail": "largest difference 6.71e-9"
+   "detail": "reward 0.776793 vs 0.776793; 3 entries, largest difference 1.54e-9, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "draw: the per-moment bound matches the paper's bound_for_cost (within 1e-10)",
+   "name": "piecewise: what the weighted rule earns matches the paper's known_reward in reward, accuracy, and cost (within 1e-7)",
    "ok": true,
-   "detail": "largest difference 3.53e-13"
+   "detail": "reward 0.781415 vs 0.781415; 3 entries, largest difference 1.65e-9, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "draw: the weighted look-ahead matches the paper's weighted_bound (within 1e-10)",
+   "name": "draw: the page's dynamic program matches the paper's backward_induction_x at all 251 times of the window (within 1e-6)",
    "ok": true,
-   "detail": "largest difference 7.37e-14"
+   "detail": "251 entries, largest difference 6.71e-9, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "draw: what the exact policy earns matches the paper's known_reward (within 1e-7)",
+   "name": "draw: the per-moment bound matches the paper's bound_for_cost at all 251 times (within 1e-10)",
    "ok": true,
-   "detail": "reward 0.762625 vs 0.762625, largest difference 1.40e-9"
+   "detail": "251 entries, largest difference 3.53e-13, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "draw: what the per-moment rule earns matches the paper's known_reward (within 1e-7)",
+   "name": "draw: the weighted look-ahead matches the paper's weighted_bound at all 251 times (within 1e-10)",
    "ok": true,
-   "detail": "reward 0.756271 vs 0.756271, largest difference 1.25e-9"
+   "detail": "251 entries, largest difference 7.37e-14, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "draw: what the weighted rule earns matches the paper's known_reward (within 1e-7)",
+   "name": "draw: what the exact policy earns matches the paper's known_reward in reward, accuracy, and cost (within 1e-7)",
    "ok": true,
-   "detail": "reward 0.762598 vs 0.762598, largest difference 1.56e-9"
+   "detail": "reward 0.762625 vs 0.762625; 3 entries, largest difference 1.40e-9, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "jump: the page's worker returns the reference bound at every time it plots (within 1e-6)",
+   "name": "draw: what the per-moment rule earns matches the paper's known_reward in reward, accuracy, and cost (within 1e-7)",
    "ok": true,
-   "detail": "largest difference 5.96e-9, 126 of 126 times compared"
+   "detail": "reward 0.756271 vs 0.756271; 3 entries, largest difference 1.25e-9, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "fall: the page's worker returns the reference bound at every time it plots (within 1e-6)",
+   "name": "draw: what the weighted rule earns matches the paper's known_reward in reward, accuracy, and cost (within 1e-7)",
    "ok": true,
-   "detail": "largest difference 6.41e-9, 126 of 126 times compared"
+   "detail": "reward 0.762598 vs 0.762598; 3 entries, largest difference 1.56e-9, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "rising: the page's worker returns the reference bound at every time it plots (within 1e-6)",
+   "name": "the eleven schedules at their starting settings never reach a bound below the grid's first step, so every cell above was compared to 1e-6 (the edge cases below exercise that branch)",
    "ok": true,
-   "detail": "largest difference 6.80e-9, 126 of 126 times compared"
+   "detail": "0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "deadline: the page's worker returns the reference bound at every time it plots (within 1e-6)",
+   "name": "at a constant cost of 3.2 with the choice forced at 2, the tag reports 0 at time 0 and its center value is above 0.5 (the center waits); the page's bound there lies between 0 and the first step, and the comparator counts it as a below-step pair, with every other time compared",
    "ok": true,
-   "detail": "largest difference 6.53e-9, 51 of 51 times compared"
+   "detail": "tag 0, center value 0.50835887; page 0.0181357; 201 entries, largest difference 0.00e+0, 0 both off the cap, 200 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "pulse: the page's worker returns the reference bound at every time it plots (within 1e-6)",
+   "name": "at a constant cost of 4.2 with the choice forced at 2, the tag reports 0 at time 0 and its center value is exactly 0.5 (the center stops); the page's bound is 0 there too, an equal pair, and no time is a below-step pair",
    "ok": true,
-   "detail": "largest difference 6.97e-9, 126 of 126 times compared"
+   "detail": "tag 0, center value 0.5; page 0; 201 entries, largest difference 0.00e+0, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "wave: the page's worker returns the reference bound at every time it plots (within 1e-6)",
+   "name": "jump: the page's worker returns the expected 126 times, and the reference's exact bound (within 1e-6) and per-moment bound moved in (within 1e-10, 0 at a forced choice) at each",
    "ok": true,
-   "detail": "largest difference 7.14e-9, 126 of 126 times compared"
+   "detail": "exact: 126 entries, largest difference 5.96e-9, 0 both off the cap, 0 below-step pairs; per-moment: 126 entries, largest difference 1.83e-13, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "constant: the page's worker returns the reference bound at every time it plots (within 1e-6)",
+   "name": "fall: the page's worker returns the expected 126 times, and the reference's exact bound (within 1e-6) and per-moment bound moved in (within 1e-10, 0 at a forced choice) at each",
    "ok": true,
-   "detail": "largest difference 6.60e-9, 126 of 126 times compared"
+   "detail": "exact: 126 entries, largest difference 6.41e-9, 0 both off the cap, 0 below-step pairs; per-moment: 126 entries, largest difference 1.32e-13, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "smooth: the page's worker returns the reference bound at every time it plots (within 1e-6)",
+   "name": "rising: the page's worker returns the expected 126 times, and the reference's exact bound (within 1e-6) and per-moment bound moved in (within 1e-10, 0 at a forced choice) at each",
    "ok": true,
-   "detail": "largest difference 7.56e-9, 126 of 126 times compared"
+   "detail": "exact: 126 entries, largest difference 6.80e-9, 0 both off the cap, 0 below-step pairs; per-moment: 126 entries, largest difference 2.64e-13, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "multistep: the page's worker returns the reference bound at every time it plots (within 1e-6)",
+   "name": "deadline: the page's worker returns the expected 51 times, and the reference's exact bound (within 1e-6) and per-moment bound moved in (within 1e-10, 0 at a forced choice) at each",
    "ok": true,
-   "detail": "largest difference 7.49e-9, 126 of 126 times compared"
+   "detail": "exact: 51 entries, largest difference 6.53e-9, 0 both off the cap, 0 below-step pairs; per-moment: 51 entries, largest difference 6.88e-15, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "piecewise: the page's worker returns the reference bound at every time it plots (within 1e-6)",
+   "name": "pulse: the page's worker returns the expected 126 times, and the reference's exact bound (within 1e-6) and per-moment bound moved in (within 1e-10, 0 at a forced choice) at each",
    "ok": true,
-   "detail": "largest difference 8.99e-9, 126 of 126 times compared"
+   "detail": "exact: 126 entries, largest difference 6.97e-9, 0 both off the cap, 0 below-step pairs; per-moment: 126 entries, largest difference 2.01e-13, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "draw: the page's worker returns the reference bound at every time it plots (within 1e-6)",
+   "name": "wave: the page's worker returns the expected 126 times, and the reference's exact bound (within 1e-6) and per-moment bound moved in (within 1e-10, 0 at a forced choice) at each",
    "ok": true,
-   "detail": "largest difference 6.68e-9, 126 of 126 times compared"
+   "detail": "exact: 126 entries, largest difference 7.14e-9, 0 both off the cap, 0 below-step pairs; per-moment: 126 entries, largest difference 2.97e-13, 0 both off the cap, 0 below-step pairs"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "constant: the page's worker returns the expected 126 times, and the reference's exact bound (within 1e-6) and per-moment bound moved in (within 1e-10, 0 at a forced choice) at each",
+   "ok": true,
+   "detail": "exact: 126 entries, largest difference 6.60e-9, 0 both off the cap, 0 below-step pairs; per-moment: 126 entries, largest difference 6.88e-15, 0 both off the cap, 0 below-step pairs"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "smooth: the page's worker returns the expected 126 times, and the reference's exact bound (within 1e-6) and per-moment bound moved in (within 1e-10, 0 at a forced choice) at each",
+   "ok": true,
+   "detail": "exact: 126 entries, largest difference 7.56e-9, 0 both off the cap, 0 below-step pairs; per-moment: 126 entries, largest difference 2.86e-13, 0 both off the cap, 0 below-step pairs"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "multistep: the page's worker returns the expected 126 times, and the reference's exact bound (within 1e-6) and per-moment bound moved in (within 1e-10, 0 at a forced choice) at each",
+   "ok": true,
+   "detail": "exact: 126 entries, largest difference 7.49e-9, 0 both off the cap, 0 below-step pairs; per-moment: 126 entries, largest difference 2.31e-13, 0 both off the cap, 0 below-step pairs"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "piecewise: the page's worker returns the expected 126 times, and the reference's exact bound (within 1e-6) and per-moment bound moved in (within 1e-10, 0 at a forced choice) at each",
+   "ok": true,
+   "detail": "exact: 126 entries, largest difference 8.99e-9, 0 both off the cap, 0 below-step pairs; per-moment: 126 entries, largest difference 2.00e-13, 0 both off the cap, 0 below-step pairs"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "draw: the page's worker returns the expected 126 times, and the reference's exact bound (within 1e-6) and per-moment bound moved in (within 1e-10, 0 at a forced choice) at each",
+   "ok": true,
+   "detail": "exact: 126 entries, largest difference 6.68e-9, 0 both off the cap, 0 below-step pairs; per-moment: 126 entries, largest difference 3.53e-13, 0 both off the cap, 0 below-step pairs"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "chapter 1's stress schedule jump32 (tools/validity/ch01.json): the worker's 126 times and exact bounds match the tag's, with the times below the first step counted as below-step pairs and every other time within 1e-6",
+   "ok": true,
+   "detail": "126 entries, largest difference 3.91e-9, 0 both off the cap, 106 below-step pairs"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "chapter 1's stress schedule ramp2 (tools/validity/ch01.json): the worker's 126 times and exact bounds match the tag's, with the times below the first step counted as below-step pairs and every other time within 1e-6",
+   "ok": true,
+   "detail": "126 entries, largest difference 4.25e-9, 0 both off the cap, 21 below-step pairs"
+  },
+  {
+   "file": "paper-code",
+   "plate": "schedule",
+   "name": "a cost that falls to 1e-5 at time 1: the worker writes Infinity where the tag writes null, past the cap, and the comparator pairs them; the finite times and the per-moment bound match (within 1e-6 and 1e-10)",
+   "ok": true,
+   "detail": "exact: 126 entries, largest difference 5.93e-9, 58 both off the cap, 0 below-step pairs; per-moment: 126 entries, largest difference 8.69e-12, 0 both off the cap, 0 below-step pairs"
   },
   {
    "file": "paper-code",
@@ -9438,20 +9711,6 @@
    "name": "a deadline at 0.8: the worker's last point is the forced choice, at the deadline, with both bounds 0",
    "ok": true,
    "detail": "last point 0.8, bounds 0 and 0"
-  },
-  {
-   "file": "paper-code",
-   "plate": "schedule",
-   "name": "at a constant cost of 3.2, where the paper's code reports 0, the page places the bound between the center and the grid's first step (0.02), since its program waits at the center",
-   "ok": true,
-   "detail": "page 0.01814, shifted constant-cost bound 0.01971"
-  },
-  {
-   "file": "paper-code",
-   "plate": "schedule",
-   "name": "the eleven schedules at their starting settings never reach a bound below the grid's first step (so every cell was compared to 1e-6; the cost-3.2 case above shows the rule)",
-   "ok": true,
-   "detail": "0 such cells"
   }
  ]
 }

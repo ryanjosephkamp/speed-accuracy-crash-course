@@ -1,11 +1,13 @@
 // Chapter 1's Figure 1 panels as SVG strings, with no DOM: the plate draws them, and tools/checks/ch01.mjs reads the
 // same strings back, so the checks see what the reader sees. A panel is a title, the cost strip (log c over the
 // schedule's own range), and the three bounds on the panel's bound scale; the time line and its dots are drawn apart,
-// so moving the time redraws only them.
-import { boundForCost, toDiscrete } from "./model.js?v=850f062e96";
-import { VIEW } from "./schedules-book.js?v=850f062e96";
-import { ticks, dropAt } from "./chart.js?v=850f062e96";
-import { at, costStrip, DT } from "./ch01-model.js?v=850f062e96";
+// so moving the time redraws only them. The read-out's tiles and sentence, and the note above the fifth panel, are
+// built here too, and the plate prints them as they come.
+import { boundForCost, toDiscrete } from "./model.js?v=9bcb592a71";
+import { VIEW, SPARE, deadlineOf, labelOf } from "./schedules-book.js?v=9bcb592a71";
+import { ticks, dropAt } from "./chart.js?v=9bcb592a71";
+import { at, ahead, costStrip, stripTimes, isFlat, fig1Of, DT } from "./ch01-model.js?v=9bcb592a71";
+import * as S from "./say-ch01.js?v=9bcb592a71";
 
 export const ROWS = { title: 15, gap: 5 };
 const range = (a, b, n) => Array.from({ length: n }, (_, i) => a + ((b - a) * i) / (n - 1));
@@ -20,15 +22,16 @@ export function pathD(xs, ys, sx, sy) {
 /** The points of a path's d string, for the checks. */
 export const points = (d) => [...d.matchAll(/[ML](-?[\d.]+) (-?[\d.]+)/g)].map((m) => [+m[1], +m[2]]);
 
-/** One panel at (x0, y0) of width w. p = { cost, dl, data } (data from the worker, or null while it solves). Returns
- * the static marks, each curve's d string, and the scales the time line needs. */
+/** One panel at (x0, y0) of width w. p = { cost, dl, data, knots } (data from the worker, or null while it solves;
+ * knots a drawing's knot times, or null). Returns the static marks, each curve's d string, and the scales the time line
+ * needs. */
 export function panel(p, { x0, y0, w, bh, yTop, selected, title }) {
   const view = p.dl ?? VIEW, l = 28, r = 6, cH = Math.round(Math.min(40, Math.max(28, bh * 0.26)));
   const sx = (u) => x0 + l + (u / view) * (w - l - r);
   const cT = y0 + ROWS.title + 4, cB = cT + cH, bT = cB + ROWS.gap + 4, bB = bT + bh;
   // the cost and the bounds have their own scales: the cost strip is log c over the schedule's own range, and only
   // the bounds are held to the panel's bound scale
-  const tsC = range(0, view, 181), strip = costStrip(p.cost, view);
+  const tsC = stripTimes(view, p.knots), strip = costStrip(p.cost, view, p.knots);
   const syC = (c) => cB - strip.y(c) * (cB - cT);
   const syB = (b) => bB - (Math.min(b, yTop * 1.02) / yTop) * (bB - bT);
   const paths = { cost: pathD(tsC, tsC.map(p.cost), sx, syC) };
@@ -67,4 +70,26 @@ export function nowMarks(p, g, t) {
     s += `<circle class="ink-dot" cx="${X}" cy="${g.syB(at(p.data, "exact", t)).toFixed(1)}" r="3.4"/>`;
   }
   return s;
+}
+
+/** The read-out under Figure 1 for panel p at time t: the four tiles (cost, best bound, per-moment, weighted), as text
+ * and as the plate's HTML, and the sentence. name is the panel's name; explain whether the sentence may give a reason
+ * for the gap (one of the paper's four schedules at its own values). */
+export function panelReadOut(p, t, name, explain) {
+  if (!p.data) return { tiles: null, html: "", say: `${name}: solving…` };
+  const view = p.dl ?? VIEW, past = t > view + 1e-9;
+  const c = past ? NaN : p.cost(t), best = past ? NaN : at(p.data, "exact", t), pm = past ? NaN : pmShifted(p.cost, t), wb = past ? NaN : at(p.data, "wbShift", t);
+  const tiles = past ? { cost: "–", best: "–", pm: "–", wb: "–" } : { cost: S.cf(c), best: S.bf(best), pm: S.bf(pm), wb: S.bf(wb) };
+  const html = `<div class="k-acc"><dt>Cost at ${t.toFixed(2)}</dt><dd>${tiles.cost}</dd></div>
+      <div><dt>Best bound</dt><dd>${tiles.best}</dd></div><div class="k-pm"><dt>Per-moment</dt><dd>${tiles.pm}</dd></div><div class="k-wb"><dt>Weighted</dt><dd>${tiles.wb}</dd></div>`;
+  const say = past && p.dl === null ? S.beyondSay(name, t, view) : S.panelSay({ name, t, c, best, pm, wb, next: ahead(p.cost, t, p.dl), dl: p.dl, explain });
+  return { tiles, html, say };
+}
+
+/** The note above the fifth panel for the reader's schedule: a deadline, a cost that doesn't change (isFlat over the
+ * program's whole run), or anything else, and which of Figure 1's panels it is. */
+export function fifthNote(choice) {
+  const dl = deadlineOf(choice), f = fig1Of(choice);
+  const kind = dl !== null ? "deadline" : isFlat(choice, VIEW + SPARE) ? "constant" : "other";
+  return S.yoursNote({ label: labelOf(choice), kind, letter: f?.letter, same: f?.same, dl });
 }

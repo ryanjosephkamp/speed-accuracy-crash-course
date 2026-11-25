@@ -59,13 +59,13 @@ export function errorsVerdict(guess, ePm, eFo, EPS, outside = false) {
     : `The first-order error is the smaller of the two at ${r.smaller} of the ${EPS.length} sizes. `;
   s += "Both also carry numerical error from the grid, the finite horizon, and the kernel's series; subtracting the constant-cost run cancels only the part the two runs share, and what remains can change with ε, so the slopes on this chart aren't a test of the theory's rates. ";
   if (outside) return s + "The rising cost grows without bound, so the theorem says nothing about it: these are measurements on this grid only.";
-  s += "The theory, for a bounded Lipschitz change like this one: the per-moment error is of order ε (divided by ε, it tends to a nonzero function of time), and the corrected one is at most of order ε².";
+  s += "The theory, for a bounded Lipschitz change like this one: divided by ε, the per-moment error tends to a function of time that is not identically zero over all times t ≥ 0 (unless γ is constant), so over all times it is of order ε; the corrected one is at most of order ε². This chart measures both only at the times from 0 to 2.5, every 0.02.";
   if (guess.pm === null && guess.fo === null) return s;
   const right = (guess.pm === 1) + (guess.fo === 2);
   return (right === 2 ? "Both guesses match the theory. " : right === 1 ? "One guess matches the theory. " : "Neither guess matches the theory. ") + s;
 }
 
-export const tooSmallSay = (largest) => `Every error here is below 10⁻⁷, the smallest this chart displays (the largest is ${Number(largest).toExponential(1)}). Pick a schedule that moves more.`;
+export const tooSmallSay = (largest) => `Every error here is below 10⁻⁷: the largest is ${Number(largest).toExponential(1)}. The log chart opens only when at least one error reaches 10⁻⁷, so it stays hidden. Pick a schedule that moves more.`;
 
 /** A guide y = ya (x / xa)^p on log axes, clipped to x in [xLo, xHi] and y in [yLo, yHi] so its slope stays true;
  * null when no part of it is inside. */

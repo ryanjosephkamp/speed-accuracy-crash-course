@@ -9,10 +9,10 @@
 // jumps. The equation's map (mapExact) uses the level's own kernel, integrated with its exact cumulative weights and
 // up to a deadline, so it changes continuously with the level; its crossings approximate the equation's solutions
 // (tools/checks/ch08.mjs holds them to a separate evaluation on a finer grid).
-import { boundForCost, boundaryKernel, kernelForBound, score, toDiscrete, belief, grid } from "./model.js?v=850f062e96";
-import { costOf, deadlineOf, VIEW, SPARE, DRAW_TIMES } from "./schedules-book.js?v=850f062e96";
-import { dropAt } from "./chart.js?v=850f062e96";
-import { flux, fluxTotal, kappa } from "./kernel.js?v=850f062e96";
+import { boundForCost, boundaryKernel, kernelForBound, score, toDiscrete, belief, grid } from "./model.js?v=9bcb592a71";
+import { costOf, deadlineOf, paramsOf, VIEW, SPARE, DRAW_TIMES } from "./schedules-book.js?v=9bcb592a71";
+import { dropAt } from "./chart.js?v=9bcb592a71";
+import { flux, fluxTotal, kappa } from "./kernel.js?v=9bcb592a71";
 
 export const UPDATES = 30;
 
@@ -98,7 +98,7 @@ export function mapAlg(b, t, cost) {
 
 // The equation's map is integrated on a fixed grid of delays: [0, 1e-4], then 2400 geometric steps to 60 (past
 // which every level's kernel holds less than 1e-16 of its weight), split wherever the cost has a corner or a jump
-// (a drawing's knots, a deadline). On each step the per-moment bound is replaced by the quadratic through its values
+// (a drawing's knots, the time Rising starts to rise, a deadline). On each step the per-moment bound is replaced by the quadratic through its values
 // at the step's ends and middle, and that quadratic is integrated exactly against the kernel, using the kernel's
 // weight and first two moments over the step from its series (tailMoments below): so a flat stretch of cost is
 // exact, and a smooth one is integrated to fourth order in the step. On the first step, where the kernel grows like
@@ -264,8 +264,8 @@ export function exactPolicyCenter(cost, horizon, dt = 0.01, h = 0.02, cap = 5) {
  * cost is infinite, as the paper's experiments code writes a deadline. */
 export function scheduleFor(choice, addDeadline = null) {
   const base = costOf(choice), own = deadlineOf(choice);
-  // where the cost has a corner: a drawing's knots (log c is straight between them)
-  const breaks = choice?.id === "draw" ? DRAW_TIMES : [];
+  // where the cost has a corner: a drawing's knots (log c is straight between them) and the time Rising starts to rise
+  const breaks = choice?.id === "draw" ? DRAW_TIMES : choice?.id === "rising" ? [paramsOf(choice).at] : [];
   if (own !== null || addDeadline === null) return { cost: base, deadline: own, own: own !== null, breaks };
   return { cost: (t) => (t <= addDeadline + 1e-12 ? base(t) : Infinity), deadline: addDeadline, own: false, breaks };
 }

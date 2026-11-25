@@ -2,13 +2,13 @@
 // 16-fold rise, and Figure 1 rebuilt live with the reader's schedule as a fifth panel. The best bound and the weighted
 // look-ahead come from ch01-model.js in ch01-worker.js (the dynamic program and Algorithm 1, from model.js); the
 // per-moment bound is B(c(t)) from model.js's table. The words under each plate come from say-ch01.js.
-import { boundForCost, toDiscrete } from "./model.js?v=850f062e96";
-import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, defaultDrawing, VIEW, SPARE } from "./schedules-book.js?v=850f062e96";
-import { getChoice, setChoice, solve, onVisible, watchVisible, liftReady, calm } from "./book.js?v=850f062e96";
-import { frame, line, axes, svg, fmt, keepDrawn } from "./chart.js?v=850f062e96";
-import { FIG1, fig1Choice, fig1Of, at, ahead, isFlat, DT, SHIFT } from "./ch01-model.js?v=850f062e96";
-import { panel, nowMarks, ROWS } from "./ch01-draw.js?v=850f062e96";
-import * as S from "./say-ch01.js?v=850f062e96";
+import { boundForCost, toDiscrete } from "./model.js?v=9bcb592a71";
+import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, defaultDrawing, VIEW, SPARE } from "./schedules-book.js?v=9bcb592a71";
+import { getChoice, setChoice, solve, onVisible, watchVisible, liftReady, calm } from "./book.js?v=9bcb592a71";
+import { frame, line, axes, svg, fmt, keepDrawn } from "./chart.js?v=9bcb592a71";
+import { FIG1, fig1Choice, fig1Of, at, ahead, knotsOf, DT, SHIFT } from "./ch01-model.js?v=9bcb592a71";
+import { panel, nowMarks, panelReadOut, fifthNote, ROWS } from "./ch01-draw.js?v=9bcb592a71";
+import * as S from "./say-ch01.js?v=9bcb592a71";
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const plate = (id) => document.getElementById("plate-" + id);
@@ -35,7 +35,7 @@ function follow(pick, onChange) {
 const fail = (id, e) => { const r = rootOf(id); if (r) r.innerHTML = `<p class="plate-fail">The live plate could not start: ${String(e.message).replace(/[<>&]/g, "")}</p>`; console.error(e); };
 
 // ---------------------------------------------------------------- the solver: one schedule's three bounds, shared
-const WORKER = new URL("./ch01-worker.js?v=850f062e96", import.meta.url);
+const WORKER = new URL("./ch01-worker.js?v=9bcb592a71", import.meta.url);
 const SOLVED = new Map();
 function three(choice, progress = null) {
   const k = JSON.stringify(choice);
@@ -330,24 +330,18 @@ function figurePlate() {
   const readOut = () => {
     const p = sel === 4 ? yours : panels[sel];
     const name = sel === 4 ? `Your schedule (${labelOf(choice)})` : `(${p.letter}) ${p.short}`;
-    if (!p.data) { reads.innerHTML = ""; say.textContent = `${name}: solving…`; return; }
-    const view = p.dl ?? VIEW, past = t > view + 1e-9;
-    const c = past ? NaN : p.cost(t), best = past ? NaN : at(p.data, "exact", t), pm = past ? NaN : pmShifted(p.cost, t), wb = past ? NaN : at(p.data, "wbShift", t);
-    reads.innerHTML = `<div class="k-acc"><dt>Cost at ${t.toFixed(2)}</dt><dd>${past ? "–" : S.cf(c)}</dd></div>
-      <div><dt>Best bound</dt><dd>${past ? "–" : S.bf(best)}</dd></div><div class="k-pm"><dt>Per-moment</dt><dd>${past ? "–" : S.bf(pm)}</dd></div><div class="k-wb"><dt>Weighted</dt><dd>${past ? "–" : S.bf(wb)}</dd></div>`;
-    say.textContent = past && p.dl === null ? S.beyondSay(name, t, view) : S.panelSay({ name, t, c, best, pm, wb, next: ahead(p.cost, t, p.dl), dl: p.dl, explain: sel < 4 || !!fig1Of(choice)?.same });
+    const r = panelReadOut(p, t, name, sel < 4 || !!fig1Of(choice)?.same);
+    reads.innerHTML = r.html; say.textContent = r.say;
   };
   const choose = (k) => { sel = k; setSeg(el, "f1-sel", k); drawFour(); drawYours(); };
   const setupYours = () => {
     pick.value = choice.id;
-    yours.choice = choice; yours.cost = costOf(choice); yours.dl = deadlineOf(choice); yours.data = null;
+    yours.choice = choice; yours.cost = costOf(choice); yours.dl = deadlineOf(choice); yours.knots = knotsOf(choice); yours.data = null;
     // the time line reaches the end of every panel, a late deadline included
     inp.max = String(Math.max(VIEW, yours.dl ?? 0)); if (t > +inp.max) { t = +inp.max; inp.value = t; }
-    const f = fig1Of(choice);
     // a schedule is flat when its cost doesn't change at all (a constant, a smooth one of size 0, a drawing of equal
     // knots), whatever its preset is called; a drawing that changes in its fifth digit is not flat
-    const flat = yours.dl === null && isFlat(yours.cost, VIEW + SPARE);
-    note.textContent = S.yoursNote({ label: labelOf(choice), kind: yours.dl !== null ? "deadline" : flat ? "constant" : "other", letter: f?.letter, same: f?.same, dl: yours.dl });
+    note.textContent = fifthNote(choice);
     drawYours();
     const c = choice;
     three(c).then((r) => { if (c !== choice) return; yours.data = r; drawYours(); liftReady(fig); }).catch((e) => { state.textContent = "The solver stopped: " + e.message; });

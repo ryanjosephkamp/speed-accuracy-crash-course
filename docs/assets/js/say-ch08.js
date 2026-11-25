@@ -151,7 +151,7 @@ export function rootsVerdict(guess, roots) {
 
 export function rootsSay(b, Tb, start, end) {
   const d = Tb - b;
-  const fit = Math.abs(d) < 1e-6 ? "within 10⁻⁶ of the level, as close as this computed map can resolve"
+  const fit = Math.abs(d) < 1e-6 ? "within 10⁻⁶ of the level in this computed map, the threshold this page uses to report a fit"
     : `${num(Math.abs(d))} ${d > 0 ? "above" : "below"} the level, so it doesn't fit`;
   return `At the level ${f3(b)}, the per-moment bounds ahead average to ${f3(Tb)}, ${fit}. ` +
     `The 30 damped updates from the per-moment bound, ${f3(start)}, end at ${f3(end)}.`;

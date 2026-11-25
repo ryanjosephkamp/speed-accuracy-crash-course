@@ -1,12 +1,12 @@
 // Chapter 7's plates. Every number drawn comes from kernel.js (the series and the closed forms), ch07-model.js (the
 // series form of the transfer function, the scans, the closed forms behind the loss, and the forward computation),
 // the solver's workers, or the paper's Table 1; the words under each plate come from the functions in say-ch07.js.
-import * as K from "./kernel.js?v=850f062e96";
-import * as M from "./ch07-model.js?v=850f062e96";
-import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, VIEW, defaultDrawing } from "./schedules-book.js?v=850f062e96";
-import { getChoice, setChoice, solve, onVisible, watchVisible, liftReady, calm, seedParam, wireStrips } from "./book.js?v=850f062e96";
-import { frame, line, area, axes, svg, tags, fmt, keepDrawn } from "./chart.js?v=850f062e96";
-import * as S from "./say-ch07.js?v=850f062e96";
+import * as K from "./kernel.js?v=9bcb592a71";
+import * as M from "./ch07-model.js?v=9bcb592a71";
+import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, VIEW, defaultDrawing } from "./schedules-book.js?v=9bcb592a71";
+import { getChoice, setChoice, solve, onVisible, watchVisible, liftReady, calm, seedParam, wireStrips } from "./book.js?v=9bcb592a71";
+import { frame, line, area, axes, svg, tags, fmt, keepDrawn } from "./chart.js?v=9bcb592a71";
+import * as S from "./say-ch07.js?v=9bcb592a71";
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const plate = (id) => document.getElementById("plate-" + id);
@@ -465,7 +465,7 @@ function shiftPlate() {
     state.textContent = "Solving the dynamic program…";
     solve({ job: "bounds", choice }, { key: "ch07-shift" }).then((m) => {
       const t = m.t, view = dl ?? VIEW;
-      const sh = t.map((x) => (dl !== null && x >= dl - 1e-9 ? 0 : M.shiftedBound(cost, x)));
+      const sh = M.shiftSeries(cost, t, dl);
       data = { t, exact: m.exact, pm: m.pm, sh, c: m.cost, view, dl };
       const n = t.length, G = M.shiftGaps(m.exact, m.pm, sh);
       reads.innerHTML = `<div class="k-pm"><dt>Per-moment: average gap</dt><dd>${fmt(G.avgPm, 3)}<small>largest ${fmt(G.maxPm, 3)}</small></dd></div>
@@ -724,7 +724,7 @@ let lossWorker = null, lossNext = 1;
 const lossPending = new Map(), lossCache = new Map();
 function getLossWorker() {
   if (lossWorker) return lossWorker;
-  lossWorker = new Worker(new URL("./ch07-worker.js?v=850f062e96", import.meta.url), { type: "module" });
+  lossWorker = new Worker(new URL("./ch07-worker.js?v=9bcb592a71", import.meta.url), { type: "module" });
   lossWorker.onmessage = (e) => {
     const m = e.data, p = lossPending.get(m.id);
     if (!p) return;

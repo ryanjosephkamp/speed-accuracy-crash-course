@@ -1,12 +1,12 @@
 // Chapter 12's plates. Every number drawn comes from kernel.js (the series and the closed forms), ch12-model.js (the
 // Palmer observer, the ramp's exact look-ahead, the kernel's quantiles, the averaged bounds, the gate), or the solver's
 // worker; the words under each plate come from say-ch12.js, which takes numbers and returns sentences.
-import * as K from "./kernel.js?v=850f062e96";
-import * as M from "./ch12-model.js?v=850f062e96";
-import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, VIEW, SPARE, defaultDrawing } from "./schedules-book.js?v=850f062e96";
-import { getChoice, setChoice, solve, onVisible, watchVisible, liftReady, calm, seedParam, wireStrips } from "./book.js?v=850f062e96";
-import { frame, line, area, axes, svg, fmt, keepDrawn } from "./chart.js?v=850f062e96";
-import * as S from "./say-ch12.js?v=850f062e96";
+import * as K from "./kernel.js?v=9bcb592a71";
+import * as M from "./ch12-model.js?v=9bcb592a71";
+import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, VIEW, SPARE, defaultDrawing } from "./schedules-book.js?v=9bcb592a71";
+import { getChoice, setChoice, solve, onVisible, watchVisible, liftReady, calm, seedParam, wireStrips } from "./book.js?v=9bcb592a71";
+import { frame, line, area, axes, svg, fmt, keepDrawn } from "./chart.js?v=9bcb592a71";
+import * as S from "./say-ch12.js?v=9bcb592a71";
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const plate = (id) => document.getElementById("plate-" + id);
@@ -187,9 +187,8 @@ function argumentPlate() {
     reads.innerHTML = "";
     if (step === 0) {
       head.textContent = S.GATE_HEAD;
-      const end = Number.isFinite(gate.hit) ? gate.hit * 1.15 + 0.05 : 4;
       const { ts, xs, gated } = M.gateDisplay(gate, bnd);
-      const tb = range(0, end, 160), bs = tb.map(bnd), top0 = Math.max(...bs) * 1.1;
+      const { end, ts: tb, b: bs } = M.gateBoundLine(gate, bnd), top0 = Math.max(...bs) * 1.1;
       const f = frame(top, { x: [0, end], y: [-top0, top0], aspect: 0.4, minH: 150, maxH: 220 });
       let g = axes(f, { yl: "evidence X and the bound ±b(t)", xl: "", grid: true, zero: true });
       g += line(f, tb, bs, "bound-line") + line(f, tb, bs.map((v) => -v), "bound-line") + line(f, ts, xs, "dim");
@@ -295,7 +294,8 @@ function yoursPlate() {
     if (data.kind === "scale") ({ best, fo, pm } = data.u[sel]); else ({ best, pm } = data);
     const vals = [...best, ...pm, ...(fo || [])].filter((v) => Number.isFinite(v) && v > 0);
     const lo = Math.min(...vals), hi = Math.max(...vals), useLog = hi / lo > 3;
-    const pad = useLog ? 1.25 : (hi - lo) * 0.12 + 1e-3;
+    // a flat or nearly flat set of curves gets a wide range, so the ticks don't all print as 1
+    const pad = useLog ? 1.25 : hi - lo < 1e-4 ? 0.25 : (hi - lo) * 0.12 + 1e-3;
     const f = frame(chart, { x: [0, view], y: useLog ? [lo / pad, hi * pad] : [lo - pad, hi + pad], ylog: useLog, aspect: 0.5, minH: 190, maxH: 300 });
     let g = axes(f, { yl: data.kind === "scale" ? "urgency ÷ the constant cost's" : "urgency ÷ the per-moment urgency at time 0", xl: "time", grid: true });
     if (!useLog && f.y[0] < 1 && f.y[1] > 1) g += hline(f, 1);
@@ -310,16 +310,13 @@ function yoursPlate() {
   const drawAll = () => {
     drawCost(); drawChart();
     if (!data) return;
+    const T = S.yoursText(data, EPS, sel);
     if (data.kind === "scale") {
-      const x = data.u[sel], over = S.overTimes(x.used, x.total);
-      reads.innerHTML = `<div class="k-wb"><dt>First order vs best, largest gap</dt><dd>${fmt(data.gFo[sel] * 100, 2)}%<small>of the constant cost's urgency, ${over}</small></dd></div>
-        <div class="k-pm"><dt>Per-moment vs best, largest gap</dt><dd>${fmt(data.gPm[sel] * 100, 2)}%<small>the same times</small></dd></div>
+      reads.innerHTML = `<div class="k-wb"><dt>First order vs best, largest gap</dt><dd>${T.fo}<small>of the constant cost's urgency, ${T.over}</small></dd></div>
+        <div class="k-pm"><dt>Per-moment vs best, largest gap</dt><dd>${T.pm}<small>the same times</small></dd></div>
         <div><dt>Middle cost, c₀</dt><dd>${fmt(data.c0, 3)}<small>the window's average</small></dd></div>`;
-      say.textContent = S.yoursSay(EPS, sel, data.gFo, data.gPm, data.u.map((v) => v.total - v.used), data.outside, x.total);
-    } else {
-      reads.innerHTML = `<div class="k-ex"><dt>Best bound's urgency, last time drawn</dt><dd>${fmt(data.ratio, 1)}×<small>the per-moment urgency then</small></dd></div>`;
-      say.textContent = S.deadlineSay(data.tLast, data.deadline, data.ratio);
-    }
+    } else reads.innerHTML = `<div class="k-ex"><dt>Best bound's urgency, last time drawn</dt><dd>${fmt(data.ratio, 1)}×<small>the per-moment urgency then</small></dd></div>`;
+    say.textContent = T.say;
   };
   const run = () => {
     const my = ++gen;
@@ -343,9 +340,8 @@ function yoursPlate() {
     const c0 = tsAvg.reduce((a, t) => a + cost(t), 0) / tsAvg.length;
     if (!M.moves(cost, c0, VIEW, SPARE)) {
       note.textContent = S.outsideNote("constant"); state.textContent = "";
-      const t = range(0, VIEW, 126);
-      data = { kind: "scale", t, cost: t.map(() => c0), c0, outside: false, gFo: EPS.map(() => 0), gPm: EPS.map(() => 0), u: EPS.map(() => ({ best: t.map(() => 1), fo: t.map(() => 1), pm: t.map(() => 1), holes: false, used: t.length, total: t.length })) };
-      drawAll(); say.textContent = "";
+      data = M.flatUrgency(range(0, VIEW, 126), c0, EPS);
+      drawAll();
       return;
     }
     const outside = choice.id === "rising";
@@ -468,8 +464,8 @@ function controlPlate() {
     g += area(f, ss.map((s) => t + s), ws.map((v) => base + (Math.min(v, cap) / cap) * hgt), base, "wb-fill");
     g += line(f, tAll, tAll.map(cost), "cost") + vline(f, t, "dim", "2 3");
     // the window: the weight past its right edge, and the mean, marked by an arrow when it lies past the edge
-    const past = 1 - M.kernelCdf(xEnd - t, c0);
-    if (t + D.m <= xEnd) g += vline(f, t + D.m, "wb", "3 3") + txt(Math.min(f.sx(t + D.m) + 4, f.W - f.r - 28), f.t + 10, "mean", "tag-wb");
+    const win = M.controlWindow(t, c0, xEnd);
+    if (win.meanInside) g += vline(f, win.meanAt, "wb", "3 3") + txt(Math.min(f.sx(win.meanAt) + 4, f.W - f.r - 28), f.t + 10, "mean", "tag-wb");
     else g += arrowPx(f.W - f.r - 26, f.t + 8, f.W - f.r - 2, f.t + 8, "wb", 5) + txt(f.W - f.r - 30, f.t + 12, "mean", "tag-wb", "end");
 
     top.innerHTML = svg(f, g, `The cost of time and the kernel's weights drawn forward from time ${t.toFixed(2)}, within the chart's window`);
@@ -485,7 +481,7 @@ function controlPlate() {
       <div class="k-pm"><dt>Bound for the cost now alone</dt><dd>${fmt(pmNow, 3)}</dd></div>
       <div class="k-wb"><dt>Half the weight within</dt><dd>${fmt(D.med, 2)}<small>90% within ${fmt(D.q90, 2)}</small></dd></div>
       <div class="k-wb"><dt>Mean look-ahead</dt><dd>${fmt(D.m, 3)}<small>time units</small></dd></div>` +
-      (past >= 0.005 ? `<div><dt>Weight past the chart's right edge</dt><dd>${Math.round(past * 100)}%<small>${S.PAST_EDGE}</small></dd></div>` : "");
+      (win.reading ? `<div><dt>Weight past the chart's right edge</dt><dd>${win.reading}<small>${S.PAST_EDGE}</small></dd></div>` : "");
     say.textContent = S.controlSay(t, c0, D.m, D.med, D.q90, avgNow, pmNow);
     liftReady(fig);
   };

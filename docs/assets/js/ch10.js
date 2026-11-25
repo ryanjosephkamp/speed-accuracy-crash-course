@@ -3,12 +3,12 @@
 // computes it, and held to the paper's tables by tools/checks/ch10.mjs. What the page solves itself (a tapped schedule,
 // the reader's schedule, Table 9's shape on the page's grid) runs in ch10-worker.js with ch10-model.js. The words under
 // each plate come from say-ch10.js.
-import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, defaultDrawing } from "./schedules-book.js?v=850f062e96";
-import { getChoice, setChoice, solve, onVisible, liftReady } from "./book.js?v=850f062e96";
-import { frame, line, axes, svg, keepDrawn } from "./chart.js?v=850f062e96";
-import { rng } from "./kernel.js?v=850f062e96";
-import * as M from "./ch10-model.js?v=850f062e96";
-import * as S from "./say-ch10.js?v=850f062e96";
+import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, defaultDrawing } from "./schedules-book.js?v=9bcb592a71";
+import { getChoice, setChoice, solve, onVisible, liftReady } from "./book.js?v=9bcb592a71";
+import { frame, line, axes, svg, keepDrawn } from "./chart.js?v=9bcb592a71";
+import { rng } from "./kernel.js?v=9bcb592a71";
+import * as M from "./ch10-model.js?v=9bcb592a71";
+import * as S from "./say-ch10.js?v=9bcb592a71";
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const plate = (id) => document.getElementById("plate-" + id);
@@ -25,10 +25,10 @@ const tick3 = (v) => String(+v.toPrecision(3));
 
 // ---- the paper's data, loaded once when a plate first needs it ----------------------------------------------------------
 let DATA_P = null;
-const data = () => (DATA_P ||= import("./ch10-data.js?v=850f062e96").then((m) => m.default));
+const data = () => (DATA_P ||= import("./ch10-data.js?v=9bcb592a71").then((m) => m.default));
 
 // ---- the page's own runs, in chapter 10's worker -----------------------------------------------------------------------
-const WORKER = new URL("./ch10-worker.js?v=850f062e96", import.meta.url);
+const WORKER = new URL("./ch10-worker.js?v=9bcb592a71", import.meta.url);
 const RUNS = new Map();
 /** The program and the seven rules on the reader's schedule, once per schedule, shared by every plate that shows it. */
 function yoursFor(choice, onProgress) {

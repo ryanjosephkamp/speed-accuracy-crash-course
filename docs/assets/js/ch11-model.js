@@ -12,7 +12,7 @@
 //
 // tools/checks/ch11.mjs holds these to the paper's code (tools/validity/ch11.json) and to identities.
 
-import { B as Bknown } from "./kernel.js?v=850f062e96";
+import { B as Bknown } from "./kernel.js?v=9bcb592a71";
 
 export const OVERSHOOT = 0.5826;
 
@@ -279,7 +279,9 @@ export function unknownProgram(cost, horizon, { n = 300, dt = 0.005, a = 1, prog
       wait[i] = num / den - ck;
     }
     // the grid has no point at 1/2: the two nearest, g[half - 1] and g[half], are mirror images, so deciding minus
-    // waiting is the same at both, and a stop at g[half] means a stop at 1/2 too (the bound 1/2 is then exact)
+    // waiting is the same at both (symGap measures it). Where g[half] stops, the program reports the bound 1/2: that is
+    // what this midpoint grid reports when its first nodes stop, not a finding that the center itself stops (with the
+    // payoff's kink at 1/2, one more step from the center can be worth more than deciding there; a check runs one)
     symGap = Math.max(symGap, Math.abs((decide[half] - wait[half]) - (decide[half - 1] - wait[half - 1])));
     // the bound: the first belief above 1/2 where deciding beats waiting, interpolated (known.bound_from_values)
     let bnd = 1;

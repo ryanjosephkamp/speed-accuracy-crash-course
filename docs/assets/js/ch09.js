@@ -2,12 +2,12 @@
 // paper's backward_induction_x and known_reward); the trials and the overshoots are sampled here, in small batches,
 // with kernel.js's seeded generator; the paper's Tables 1, 2, and 12 come from ch09-model.js, checked cell by cell
 // against the generated tables. The words under each plate come from say-ch09.js.
-import * as K from "./kernel.js?v=850f062e96";
-import * as M from "./ch09-model.js?v=850f062e96";
-import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, defaultDrawing } from "./schedules-book.js?v=850f062e96";
-import { getChoice, setChoice, solve, onVisible, watchVisible, liftReady, calm, seedParam } from "./book.js?v=850f062e96";
-import { frame, line, area, axes, svg, fmt, keepDrawn } from "./chart.js?v=850f062e96";
-import * as S from "./say-ch09.js?v=850f062e96";
+import * as K from "./kernel.js?v=9bcb592a71";
+import * as M from "./ch09-model.js?v=9bcb592a71";
+import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, defaultDrawing } from "./schedules-book.js?v=9bcb592a71";
+import { getChoice, setChoice, solve, onVisible, watchVisible, liftReady, calm, seedParam } from "./book.js?v=9bcb592a71";
+import { frame, line, area, axes, svg, fmt, keepDrawn } from "./chart.js?v=9bcb592a71";
+import * as S from "./say-ch09.js?v=9bcb592a71";
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const plate = (id) => document.getElementById("plate-" + id);
@@ -16,7 +16,7 @@ const segHTML = (name, opts, cur, legend) => `<fieldset class="seg"><legend>${le
   `<label><input type="radio" name="${name}" value="${v}"${String(v) === String(cur) ? " checked" : ""}><span>${lbl}</span></label>`).join("")}</div></fieldset>`;
 const onSeg = (el, name, fn) => el.querySelectorAll(`input[name="${name}"]`).forEach((r) => r.addEventListener("change", () => fn(r.value)));
 const setSeg = (el, name, v) => el.querySelectorAll(`input[name="${name}"]`).forEach((r) => { r.checked = r.value === String(v); });
-const WORKER = new URL("./ch09-worker.js?v=850f062e96", import.meta.url);
+const WORKER = new URL("./ch09-worker.js?v=9bcb592a71", import.meta.url);
 const run = (job, opts = {}) => solve(job, { worker: WORKER, ...opts });
 const fail = (state, e) => { if (e.message !== "superseded") state.textContent = "The solver stopped: " + e.message; };
 const finiteMax = (arr) => arr.reduce((m, v) => (Number.isFinite(v) ? Math.max(m, v) : m), -Infinity);
@@ -256,9 +256,9 @@ function densityPlate() {
   let data = null, pol = "best", j = 0, gen = 0, playing = false, visible = false, raf = 0, t0 = 0, j0 = 0;
   const CLS = { best: "ex", pm: "pm", wb: "wb" };
   // at a deadline, every trial still deciding at its last step decides there: at the bound, or by the sign of the
-  // evidence (endUp, endLo); those decisions are counted together as the forced choice
-  const forcedOf = (P) => { const kF = data.ts.length - 1; return data.deadline === null ? null : { k: kF, up: P.upAt[kF] + P.endUp, lo: P.loAt[kF] + P.endLo }; };
-  const cumAt = (P, k) => M.decidedBy(P, k, data.deadline === null ? null : data.ts.length - 1);
+  // evidence (endUp, endLo); those decisions are counted together as the forced choice, a point mass
+  const forcedK = () => (data.deadline === null ? null : data.ts.length - 1);
+  const cumAt = (P, k) => M.decidedBy(P, k, forcedK());
   const drawMap = () => {
     if (!data) { map.innerHTML = ""; return; }
     const P = data.policies[pol], view = data.view, xr = data.xr, kNow = P.snapK[j];
@@ -286,25 +286,30 @@ function densityPlate() {
   const drawRate = () => {
     if (!data) { rate.innerHTML = ""; return; }
     const P = data.policies[pol], view = data.view, kNow = P.snapK[j];
-    // the rate of deciding, per unit time, over pairs of steps
-    const ts = [], up = [], lo = [], F = forcedOf(P);
-    for (let k = 2; k < data.ts.length && data.ts[k] <= view + 1e-9; k += 2) {
-      if (F && k >= F.k) break;   // the forced choice is a point mass, marked below, not a rate
-      ts.push(data.ts[k] - M.DT / 2); up.push((P.upAt[k] + P.upAt[k - 1]) / (2 * M.DT)); lo.push(-(P.loAt[k] + P.loAt[k - 1]) / (2 * M.DT));
-    }
+    // the rate of deciding, per unit time, over pairs of steps (and a last single step before an even deadline); the
+    // forced choice is a point mass, marked apart from the rate scale below
+    let kEnd = 0;
+    while (kEnd + 1 < data.ts.length && data.ts[kEnd + 1] <= view + 1e-9) kEnd++;
+    const R = M.rateBins(P, data.ts, kEnd, forcedK()), F = R.forced;
+    const ts = R.t, up = R.up, lo = R.lo.map((v) => -v);
+    // at a deadline, room above the curve for the forced choice's two lines of text
     const hi = Math.max(0.5, finiteMax(up)), dn = Math.max(0.1, -Math.min(...lo, 0));
-    const f = frame(rate, { x: [0, view], y: [-dn * 1.1, hi * 1.08], aspect: 0.36, minH: 150, maxH: 210 });
+    const f = frame(rate, { x: [0, view], y: [-dn * 1.1, hi * (F ? 1.6 : 1.08)], aspect: 0.36, minH: 150, maxH: 210 });
     let s = axes(f, { yl: "decided per unit time", xl: "time", grid: true, zero: true, fy: (v) => String(+Math.abs(v).toFixed(3)) });
     const n = ts.filter((t) => t <= data.ts[kNow] + 1e-9).length;
     if (n > 1) s += area(f, ts.slice(0, n), up.slice(0, n), 0, "ex-fill") + area(f, ts.slice(0, n), lo.slice(0, n), 0, "pm-fill");
     s += line(f, ts, up, "ex-thin") + line(f, ts, lo, "ex-thin");
     s += `<path class="dim" stroke-dasharray="2 3" d="M${f.sx(data.ts[kNow]).toFixed(1)} ${f.t}V${f.H - f.b}"/>`;
+    let note = "";
     if (F && kNow >= F.k) {
-      const X = f.sx(data.ts[F.k]).toFixed(1);
-      s += `<path class="ex" stroke-width="4" d="M${X} ${f.sy(0).toFixed(1)}V${f.t}"/><path class="pm" stroke-width="4" stroke-dasharray="none" d="M${X} ${f.sy(0).toFixed(1)}V${(f.H - f.b).toFixed(1)}"/>`;
-      s += `<text class="tag-ex" x="${(+X - 6).toFixed(1)}" y="${f.t + 10}" text-anchor="end">forced at the deadline: ${(100 * (F.up + F.lo)).toFixed(1)}%</text>`;
+      // a share of all trials, not a rate: a dotted line at the deadline, with the shares written beside it
+      const X = f.sx(F.t).toFixed(1), pc = (x) => `${(100 * x).toFixed(1)}%`;
+      s += `<path class="guide" d="M${X} ${f.t}V${(f.H - f.b).toFixed(1)}"/>`;
+      s += `<text class="tag-ex" x="${(+X - 6).toFixed(1)}" y="${f.t + 10}" text-anchor="end">forced at the deadline (a share):</text>`;
+      s += `<text class="tk" x="${(+X - 6).toFixed(1)}" y="${f.t + 23}" text-anchor="end">${pc(F.up)} correct, ${pc(F.lo)} wrong</text>`;
+      note = `; at the deadline, a dotted line marks the forced choice, ${(100 * F.up).toFixed(1)}% of trials correct and ${(100 * F.lo).toFixed(1)}% wrong, a share and not a rate`;
     }
-    rate.innerHTML = svg(f, s, "How many trials decide per unit time, correctly above the axis and wrongly below it, and the share forced to choose at a deadline");
+    rate.innerHTML = svg(f, s, `How many trials decide per unit time, correctly above the axis and wrongly below it${note}`);
   };
   const draw = () => {
     if (!data) return;
@@ -479,9 +484,12 @@ function overshootPlate() {
     const st = P.stop, over = s0 * st[1] - b;
     s += `<path class="acc" stroke-width="2.6" d="M${f.sx(st[0]).toFixed(1)} ${f.sy(b).toFixed(1)}V${f.sy(s0 * st[1]).toFixed(1)}"/>`;
     s += `<text class="tag-acc" x="${(f.sx(st[0]) - 6).toFixed(1)}" y="${(f.sy(s0 * st[1]) - 6).toFixed(1)}" text-anchor="end">past by ${fmt(over, 3)}</text>`;
-    if (P.first[0] < st[0] - 1e-12 && P.first[0] >= tBeg) {
-      const fx = f.sx(P.first[0]), right = fx < f.W * 0.6;
+    const mk = M.firstPastMark(P, dt);
+    if (mk.kind === "ring") {
+      const fx = f.sx(mk.t), right = fx < f.W * 0.6;
       s += `<circle class="ring-ex" cx="${fx.toFixed(1)}" cy="${f.sy(s0 * P.first[1]).toFixed(1)}" r="4"/><text class="tk" x="${(fx + (right ? 6 : -6)).toFixed(1)}" y="${(f.sy(b) + 14).toFixed(1)}" text-anchor="${right ? "start" : "end"}">first fine step past it, unseen</text>`;
+    } else if (mk.kind === "earlier") {
+      s += `<text class="tk" x="${f.l + 4}" y="${(f.sy(b) + 14).toFixed(1)}">first fine step past it: earlier, at ${String(+mk.t.toFixed(4))}</text>`;
     }
     pathEl.innerHTML = svg(f, s, `One run checked every ${dt}: the evidence between checks, the checks, and how far past the bound it is when a check first sees it there`);
   };
@@ -626,7 +634,7 @@ function shiftPlate() {
       if (my !== gen) return;
       const dl = deadlineOf(choice);
       data = { ...m, view: dl ?? M.WINDOW };
-      say.textContent = S.shiftSay(m.loss, isFlat(costOf(choice)));
+      say.textContent = S.shiftSay(m.loss, isFlat(costOf(choice)), dl ?? M.WINDOW + M.SPARE);
       state.textContent = `Losses in points per 100 trials, each policy scored by the density on the evidence grid (step ${M.H}, checks every ${M.DT}), ${dl !== null ? "to the deadline" : "to a forced choice at " + (M.WINDOW + M.SPARE)}.`;
       keepDrawn(chart, draw);
     }).catch((e) => { if (my === gen) fail(state, e); });
@@ -758,11 +766,11 @@ function sweepPlate() {
     if (mine) for (const r of mine.rows) { const e = Math.max(0.03, Math.abs(r.ratio - 1) * 100); s += `<circle class="ring-acc" cx="${(f.sx(r.rel) + 12).toFixed(1)}" cy="${f.sy(e).toFixed(1)}" r="4.5"/>`; }
     chart.innerHTML = svg(f, s, "The fitted swing's error against the size of the change, on log axes, from Table 2 and this page's program, with a slope-2 guide");
     const fp = frame(phase, { x: [0.04, 0.8], y: [0.05, 3], xlog: true, ylog: true, aspect: 0.32, minH: 140, maxH: 190 });
-    let p = axes(fp, { yl: "largest phase error (°)", xl: "ε/c₀", grid: true, xt: M.SWEEP.rels, fx: (v) => String(v) });
+    let p = axes(fp, { yl: "phase error (°)", xl: "ε/c₀", grid: true, xt: M.SWEEP.rels, fx: (v) => String(v) });
     p += line(fp, M.TABLE2.map((r) => r[0]), M.TABLE2.map((r) => r[4]), "ex-thin");
     for (const r of M.TABLE2) p += `<circle class="ink-dot" cx="${fp.sx(r[0]).toFixed(1)}" cy="${fp.sy(r[4]).toFixed(1)}" r="3.4"/>`;
     if (mine) for (const r of mine.rows) p += `<circle class="ring-acc" cx="${(fp.sx(r.rel) + 8).toFixed(1)}" cy="${fp.sy(Math.max(0.05, Math.min(3, Math.abs(r.phase)))).toFixed(1)}" r="4.5"/>`;
-    phase.innerHTML = svg(fp, p, "The largest phase error against the size of the change, from Table 2 and this page's program");
+    phase.innerHTML = svg(fp, p, `The phase error against the size of the change: Table 2's largest at each size over its six costs and frequencies (dots)${mine ? `, and this page's program at c₀ = ${mine.c0} and ω = ${mine.om} (rings)` : ""}`);
     liftReady(fig);
   };
   const reveal = () => { shown = true; verdict.textContent = S.sweepVerdict(guess, at03, at06); draw(); };
@@ -798,7 +806,7 @@ function gridPlate() {
     <div id="gr-paper" hidden>
       <div class="controls">${segHTML("gr-unit", [["abs", "In points"], ["rel", "As a share of the loss"]], "abs", "Table 12's moves from the paper's grid")}</div>
       <div class="chart-wrap" id="gr-chart"></div>
-      <ul class="legend"><li><span class="key key-pm">Per-moment, eight schedules</span></li><li><span class="key key-wb">Weighted, the same eight</span></li></ul></div>
+      <ul class="legend" id="gr-key"></ul></div>
     <div class="controls">${pickHTML("gr-pick")}</div>
     <div class="chart-wrap" id="gr-mine"></div>
     <ul class="legend"><li><span class="key key-pm">Per-moment, your schedule</span></li><li><span class="key key-wb">Weighted, your schedule</span></li></ul>
@@ -822,6 +830,9 @@ function gridPlate() {
     let s = axes(f, { yl: unit === "abs" ? "change from grid 2 (points)" : "change from grid 2 (%)", xl: "grid", grid: true, zero: true, xt: [1, 2, 3, 4], fx: (v) => (v === 2 ? "2, the paper's" : String(v)) });
     for (const se of series) if (se.v.every(Number.isFinite)) s += line(f, [1, 2, 3, 4], se.v, se.cls === "pm" ? "pm" : "wb");
     if (unit === "rel") s += `<text class="tk" x="${f.W - f.r}" y="${f.t + 10}" text-anchor="end">losses under ${M.SHARE_FLOOR} points left out</text>`;
+    // the legend names what is drawn: as shares, the losses under the floor on grid 2 are left out
+    const key = M.gridKey(M.RESULTS12, unit);
+    $("#gr-key", el).innerHTML = `<li><span class="key key-pm">${key.pm}</span></li><li><span class="key key-wb">${key.wb}</span></li>`;
     chart.innerHTML = svg(f, s, `Table 12's losses on four grids, unrounded, as changes from the paper's grid, ${unit === "abs" ? "in points per 100 trials" : "as a share of the loss"}`);
   };
   const drawMine = () => {

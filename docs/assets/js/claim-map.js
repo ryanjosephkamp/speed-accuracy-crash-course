@@ -75,7 +75,7 @@ export function mountMap(root, { data, chapter = null, focus = "thm:main", links
   <div class="cm3"><p class="cm-info">Loading the 3D map…</p></div>
 </div>
 <div class="cm-view" data-view="pages">
-  <p class="cm-how">One page per chapter, chapter 1 at the back, with each page's claims set by layer. On the page in hand, the number badges of the pages it uses turn slate and of the pages that use it green (slate wins where links run both ways); tap a page's number to take it in hand.</p>
+  <p class="cm-how">One page per chapter, chapter 1 at the back, with each page's entries set by layer. On the page in hand, the outlines of the number badges of the pages it uses turn slate and of the pages that use it green (slate wins where links run both ways); tap a page's number to take it in hand.</p>
   <div class="cm3"><p class="cm-info">Loading the 3D map…</p></div>
 </div>`;
   const $ = (s) => root.querySelector(s);
@@ -137,7 +137,7 @@ export function mountMap(root, { data, chapter = null, focus = "thm:main", links
     const up = closure(id, deps), down = closure(id, uses);
     layers.classList.add("sel");
     layers.querySelectorAll(".node").forEach((b) => { const x = b.dataset.id; b.classList.toggle("on", x === id); b.classList.toggle("up", !!up[x]); b.classList.toggle("down", !!down[x]); });
-    linfo.innerHTML = `<strong>${esc(N[id].name)}</strong> (${esc(N[id].statusLabel.toLowerCase())}) uses ${Object.keys(up).length === 1 ? "1 claim" : Object.keys(up).length + " claims"}, directly or through others, and ${Object.keys(down).length === 1 ? "1 uses" : Object.keys(down).length + " use"} it. ${where(id)}.`;
+    linfo.innerHTML = `<strong>${esc(N[id].name)}</strong> (${esc(N[id].statusLabel.toLowerCase())}) uses ${Object.keys(up).length === 1 ? "1 entry" : Object.keys(up).length + " entries"}, directly or through others, and ${Object.keys(down).length === 1 ? "1 uses" : Object.keys(down).length + " use"} it. ${where(id)}.`;
     drawLayers();
   }
   function drawLayers() {
@@ -162,7 +162,7 @@ export function mountMap(root, { data, chapter = null, focus = "thm:main", links
   function initOutline() {
     outline.innerHTML = D.chapters.map((c) => {
       const open = chapter === null ? c.num === N[focus].ch : c.num === chapter;
-      return `<details${open ? " open" : ""}${chapter === c.num ? ' class="here"' : ""}><summary><span class="cn">${c.num}</span>${esc(c.title)}<span class="cc">${c.items.length} claims${chapter === c.num ? " · this chapter" : ""}</span></summary>` +
+      return `<details${open ? " open" : ""}${chapter === c.num ? ' class="here"' : ""}><summary><span class="cn">${c.num}</span>${esc(c.title)}<span class="cc">${c.items.length === 1 ? "1 entry" : c.items.length + " entries"}${chapter === c.num ? " · this chapter" : ""}</span></summary>` +
         c.items.map((id) => {
           const n = N[id];
           const link = (x) => `<a href="#${oid(x)}" data-go="${x}">${esc(N[x].label)}${N[x].ch !== n.ch ? ` <span class="m">(ch. ${N[x].ch})</span>` : ""}</a>`;
@@ -197,7 +197,7 @@ export function mountMap(root, { data, chapter = null, focus = "thm:main", links
     arcs.classList.add("sel");
     arcs.querySelectorAll(".node").forEach((b) => { const x = b.dataset.id; b.classList.toggle("on", x === id); b.classList.toggle("up", deps[id].includes(x)); b.classList.toggle("down", uses[id].includes(x)); });
     const fwd = deps[id].filter((x) => pos[x] > pos[id]).length;
-    ainfo.innerHTML = `<strong>${esc(N[id].name)}</strong> (${esc(N[id].statusLabel.toLowerCase())}) uses ${deps[id].length === 1 ? "1 claim" : deps[id].length + " claims"}${fwd ? ` (${fwd} taught later in the book)` : ""}, and ${uses[id].length === 1 ? "1 uses" : uses[id].length + " use"} it. ${where(id)}.`;
+    ainfo.innerHTML = `<strong>${esc(N[id].name)}</strong> (${esc(N[id].statusLabel.toLowerCase())}) uses ${deps[id].length === 1 ? "1 entry" : deps[id].length + " entries"}${fwd ? ` (${fwd} taught later in the book)` : ""}, and ${uses[id].length === 1 ? "1 uses" : uses[id].length + " use"} it. ${where(id)}.`;
     drawPath();
   }
   function drawPath() {
@@ -226,7 +226,7 @@ export function mountMap(root, { data, chapter = null, focus = "thm:main", links
   const d3 = {};
   function init3d(name) {
     const box = root.querySelector(`[data-view="${name}"] .cm3`);
-    import("./claim-map-3d.js?v=850f062e96").then(({ mount3d }) => {
+    import("./claim-map-3d.js?v=9bcb592a71").then(({ mount3d }) => {
       d3[name] = mount3d(box, { view: name, data: D, chapter, focus, where });
       if (current === name) d3[name]?.resize();
     }).catch((e) => { box.innerHTML = '<p class="plate-fail">The 3D map could not load. Focus, Layers, Outline, and Book path still work.</p>'; console.error(e); });

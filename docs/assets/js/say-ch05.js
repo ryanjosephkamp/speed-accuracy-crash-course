@@ -147,7 +147,7 @@ export function liveSay(o) {
   const res = o.skipped > 0 ? " at the resolved times" : "";
   const window = Number.isFinite(o.nWin) && Number.isFinite(o.X) ? ` of the ${o.nWin} times from 0 to ${o.X}${o.far ? " before the forced choice" : ""} (every 0.01)` : " of the times shown";
   const h = Number.isFinite(o.h) ? `, ${o.h}` : "";
-  const unres = o.unresolved > 0 ? ` At ${o.unresolved}${window}, the bound on this grid is below its first step${h}, which the grid can't resolve: the program puts it between 0 and that step where the center still waits, and at 0 where the center stops too. Those times are gaps in the charts and are left out of every residual given here.` : "";
+  const unres = o.unresolved > 0 ? ` At ${o.unresolved}${window}, the bound on this grid is below its first step${h}, which the grid can't resolve: the program puts it between 0 and that step where the center still waits, and at 0 where the center stops too. Those times are gaps for this grid and are left out of every residual given here.` : "";
   let tail = "";
   if (o.far) tail = Number.isFinite(o.tail)
     ? ` In the last time unit before the forced choice at ${o.horizon}, ${o.tailSkipped > 0 ? "at the resolved times, " : ""}the left side moves away from ¼, by up to ${f3(o.tail)}: there the bound is the finite-horizon problem's, which the equation is not about.`

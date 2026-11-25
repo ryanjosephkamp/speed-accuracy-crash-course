@@ -1,9 +1,9 @@
 // Chapter 4's model, with no DOM: model.js's dynamic program with its values kept, a schedule's lowest and highest
 // cost over all time, two starts driven by the same noise, and decisions sampled against a computed bound. The
 // worker (ch04-worker.js) runs the program; the page and tools/checks/ch04.mjs run the rest.
-import { grid, belief } from "./model.js?v=850f062e96";
-import { costOf } from "./schedules-book.js?v=850f062e96";
-import { B } from "./kernel.js?v=850f062e96";
+import { grid, belief } from "./model.js?v=9bcb592a71";
+import { costOf, deadlineOf } from "./schedules-book.js?v=9bcb592a71";
+import { B } from "./kernel.js?v=9bcb592a71";
 
 export const DT = 0.01, H = 0.02, CAP = 5;
 export const OVERSHOOT = 0.5826; // the program, checking every dt, stops about this many sqrt(dt) inside the continuous bound
@@ -186,6 +186,40 @@ export function bandStats(ts, bs, up, dn, upC, dnC, pm, tol = 0.002, h = H) {
     if (bs[k] > pm[k] + tol) above++;
   }
   return { up: up[0], dn: dn[0], gapUp, atUp, gapDn, atDn, shiftGap, horizonPull: pull > tol, subStep: sub, below: below / ts.length, above: above / ts.length };
+}
+
+/** The band plate's kind of schedule: a deadline, the rising cost (no c_max), the Constant preset, or one the band
+ * covers ("ok"). Constant and "ok" get the band between the same program's bounds for c_min and c_max. */
+export const bandKind = (choice) => (deadlineOf(choice) !== null ? "deadline" : choice.id === "rising" ? "rising" : choice.id === "constant" ? "constant" : "ok");
+export const hasBand = (kind) => kind === "ok" || kind === "constant";
+/** The band plate's per-moment bound on the grid: B(c(t)) moved in by 0.5826 sqrt(dt), and 0 from a deadline on. */
+export const pmOnGrid = (cost, dl) => (t) => (dl !== null && t >= dl - 1e-9 ? 0 : flatOnGrid(cost(t)));
+
+/** The band plate's series over [0, view] at the program's checks: the times, the program's bound (data, the worker's
+ * values reply), the per-moment bound, and the band's upper and lower edges, the programs' bounds for c_min and c_max
+ * (flats = { lo, hi }, or null without a band). */
+export function bandSeries(data, flats, view, cost, dl) {
+  const k = Math.round(view / data.dt), ts = Array.from({ length: k + 1 }, (_, j) => j * data.dt);
+  const cut = (P) => (P ? Array.from(P.bounds.subarray(0, k + 1)) : null);
+  return { ts, bs: cut(data), pm: ts.map(pmOnGrid(cost, dl)), up: cut(flats?.lo), dn: cut(flats?.hi) };
+}
+
+/** After Show me on the band plate: the reader's drawing (its values at sketch.length evenly spaced times over
+ * [0, view], NaN where nothing was drawn) against the program's bound, each point at the check nearest it: its mean
+ * distance from the bound, and the share of it more than 0.002 outside the band where there is one; with a band, the
+ * band's measured statistics (bandStats); without one, the bound's range. ext is extremes() of the cost. */
+export function bandReveal({ kind, sketch, view, data, flats, cost, dl, ext }) {
+  const { ts, bs, pm, up, dn } = bandSeries(data, flats, view, cost, dl), n = sketch.length;
+  let miss = 0, cnt = 0, out = 0;
+  sketch.forEach((v, i) => {
+    if (!Number.isFinite(v)) return;
+    const k = Math.min(bs.length - 1, Math.round(((i / (n - 1)) * view) / data.dt));
+    miss += Math.abs(v - bs[k]); cnt++;
+    if (up && (v > up[k] + 0.002 || v < dn[k] - 0.002)) out++;
+  });
+  const band = hasBand(kind) && up !== null;
+  return { kind, band, cnt, miss: cnt ? miss / cnt : NaN, outside: cnt ? out / cnt : 0, lo: Math.min(...bs), hi: Math.max(...bs),
+    st: band ? bandStats(ts, bs, up, dn, flatOnGrid(ext.lo), flatOnGrid(ext.hi), pm) : null };
 }
 
 /** The moments of decision counted in bins of width bw from xMin, with a moment at the right edge xMax counted in

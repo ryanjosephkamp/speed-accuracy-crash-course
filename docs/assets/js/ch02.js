@@ -2,12 +2,12 @@
 // the belief from sampled trials, the fold Y = |X| and its measured drift, the three facts about g, and two starts
 // on the same noise. Paths and trials are sampled with rng() from kernel.js and ?seed=; every exact curve comes
 // from ch02-model.js; the best bound comes from the dynamic program in the worker. Sentences come from say-ch02.js.
-import { rng, B, decide } from "./kernel.js?v=850f062e96";
-import * as M from "./ch02-model.js?v=850f062e96";
-import { costOf, deadlineOf, labelOf, VIEW } from "./schedules-book.js?v=850f062e96";
-import { getChoice, solve, onVisible, watchVisible, liftReady, calm, seedParam, wireStrips } from "./book.js?v=850f062e96";
-import { frame, line, axes, svg, fmt, keepDrawn, ticks, dropAt } from "./chart.js?v=850f062e96";
-import * as S from "./say-ch02.js?v=850f062e96";
+import { rng, B, decide } from "./kernel.js?v=9bcb592a71";
+import * as M from "./ch02-model.js?v=9bcb592a71";
+import { costOf, deadlineOf, labelOf, VIEW } from "./schedules-book.js?v=9bcb592a71";
+import { getChoice, solve, onVisible, watchVisible, liftReady, calm, seedParam, wireStrips } from "./book.js?v=9bcb592a71";
+import { frame, line, axes, svg, fmt, keepDrawn, ticks, dropAt } from "./chart.js?v=9bcb592a71";
+import * as S from "./say-ch02.js?v=9bcb592a71";
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const plate = (id) => document.getElementById("plate-" + id);
@@ -97,14 +97,13 @@ function unitsPlate() {
     <dl class="reads" id="un-reads"></dl><p class="say" id="un-say" aria-live="polite"></p>`;
   const raw = $("#un-raw", el), pap = $("#un-paper", el), reads = $("#un-reads", el), say = $("#un-say", el), verdict = $("#un-verdict", el);
   const inMu = $("#un-mu", el), inSg = $("#un-sg", el);
-  const at = (tp) => M.pathAt(xp, DT, tp);
   const drawRaw = () => {
     const k = (mu * mu) / (sigma * sigma), E = (sigma * sigma) / mu, T1 = 1 / k;
-    const ts = range(0, RAW_T, 401), zs = M.rawSamples(xp, DT, mu, sigma, ts);
-    const f = frame(raw, { x: [0, RAW_T], y: M.unitsRange([...zs, mu * RAW_T, sigma * Math.sqrt(RAW_T)]), aspect: 0.5, minH: 180, maxH: 250 });
+    const { ts, zs, drift, noise, y } = M.unitsCharts(xp, DT, mu, sigma, RAW_T).raw;
+    const f = frame(raw, { x: [0, RAW_T], y, aspect: 0.5, minH: 180, maxH: 250 });
     let s = axes(f, { yl: "evidence Z, raw units", xl: shown && Math.abs(mu - palmerMu) < 1e-9 && sigma === 1 ? "time, seconds" : "time, raw units", grid: true, zero: true });
     s += line(f, ts, zs, "ex");
-    s += line(f, ts, ts.map((t) => mu * t), "acc") + line(f, ts, ts.map((t) => sigma * Math.sqrt(t)), "acc", 'stroke-dasharray="5 4"');
+    s += line(f, ts, drift, "acc") + line(f, ts, noise, "acc", 'stroke-dasharray="5 4"');
     if (T1 <= RAW_T) {
       s += `<circle class="acc-dot" cx="${f.sx(T1).toFixed(1)}" cy="${f.sy(E).toFixed(1)}" r="4.5"/>`;
       const right = f.sx(T1) > f.W * 0.6;
@@ -114,11 +113,11 @@ function unitsPlate() {
   };
   const drawPaper = () => {
     const k = (mu * mu) / (sigma * sigma), reach = RAW_T * k;
-    const ts = range(0, 4, 401), xs = ts.map(at);
-    const f = frame(pap, { x: [0, 4], y: M.unitsRange([...xs, 4]), aspect: 0.5, minH: 180, maxH: 250 });
+    const { ts, xs, line: diag, sqrt, y } = M.unitsCharts(xp, DT, mu, sigma, RAW_T).paper;
+    const f = frame(pap, { x: [0, 4], y, aspect: 0.5, minH: 180, maxH: 250 });
     let s = reach < 4 ? `<rect class="band" x="${f.l}" y="${f.t}" width="${(f.sx(reach) - f.l).toFixed(1)}" height="${f.H - f.t - f.b}"/>` : "";
     s += axes(f, { yl: "evidence x, the paper's units", xl: "time, the paper's units", grid: true, zero: true });
-    s += line(f, ts, xs, "ex") + line(f, ts, ts, "dim") + line(f, ts, ts.map(Math.sqrt), "guide");
+    s += line(f, ts, xs, "ex") + line(f, ts, diag, "dim") + line(f, ts, sqrt, "guide");
     s += `<circle class="ink-dot" cx="${f.sx(1).toFixed(1)}" cy="${f.sy(1).toFixed(1)}" r="4"/><text class="tag-ex" x="${(f.sx(1) + 8).toFixed(1)}" y="${(f.sy(1) + 16).toFixed(1)}">one time unit: 1</text>`;
     s += `<text class="tk" x="${f.W - f.r - 4}" y="${f.H - f.b - 6}" text-anchor="end">${reach < 4 ? "shaded: the top chart's window, to " + fmt(reach, 2) : "the top chart's window covers all of this"}</text>`;
     pap.innerHTML = svg(f, s, "The same path in the paper's units, where drift and noise meet at time 1 for every drift and noise");

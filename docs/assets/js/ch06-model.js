@@ -1,6 +1,32 @@
-// Chapter 6's "Your schedule, scaled down": the errors the plate draws, from the scale job's programs, shared by the
-// page and its check so both compute the same thing.
-import * as K from "./kernel.js?v=850f062e96";
+// Chapter 6's two dynamic-program plates without their pages: what "Shrink the change" measures from the scale job's
+// reply, and what "Your schedule, scaled down" does with each selection and reply, shared by the page and its check so
+// both compute the same thing.
+import * as K from "./kernel.js?v=9bcb592a71";
+import { costOf, deadlineOf, VIEW } from "./schedules-book.js?v=9bcb592a71";
+import { line } from "./chart.js?v=9bcb592a71";
+import { guideInRange } from "./say-ch06.js?v=9bcb592a71";
+
+// ---- "Shrink the change": a fixed sinusoid ----------------------------------------------------------------------
+
+/** The fixed sinusoid's plate: its job for the worker (cost c0 (1 + eps sin(omega t)) at four sizes eps, every 0.02
+ * to time 4) and the window over which it measures its gaps. */
+export const SCALE = { c0: 0.1, amp: 0.1, omega: 2, eps: [0.8, 0.4, 0.2, 0.1], view: 4, lo: 0.5, hi: 3.5 };
+export const scaleJob = () => ({ job: "scale", wave: { amp: SCALE.amp, omega: SCALE.omega }, c0: SCALE.c0, eps: SCALE.eps, view: SCALE.view });
+
+/** From the scale job's reply m: each size's bound move divided by its eps, the first-order and per-moment responses
+ * at the reply's times, the indices of the times from lo to hi, and each size's largest gap there to each response. */
+export function scaleGaps(m, { c0, amp, omega, eps, lo, hi } = SCALE) {
+  const t = m.t, gamma = (x) => amp * Math.sin(omega * x);
+  const dev = m.runs.map((r, k) => r.map((v, i) => (v - m.b0[i]) / eps[k]));
+  const beta = Array.from(K.firstOrder(gamma, t, c0)), pmr = Array.from(K.perMomentResponse(gamma, t, c0));
+  const win = t.map((x, i) => (x >= lo && x <= hi ? i : -1)).filter((i) => i >= 0);
+  const gap = (d, ref) => Math.max(...win.map((i) => Math.abs(d[i] - ref[i])));
+  return { t, dev, beta, pmr, win, gFo: dev.map((d) => gap(d, beta)), gPm: dev.map((d) => gap(d, pmr)) };
+}
+
+// ---- "Your schedule, scaled down" ---------------------------------------------------------------------------------
+
+export const YOURS_EPS = [1, 0.5, 0.25, 0.125, 0.0625, 0.03125];
 
 /** From the scale job's reply m (times t, the constant-cost bound b0, a run per size), with the cost and its middle
  * c0: the largest error over the window of the per-moment bound (the full B(c0 + eps gamma)) and of the first-order
@@ -13,9 +39,77 @@ export function yoursErrors(m, cost, c0, EPS) {
   return { beta, ePm, eFo };
 }
 
-/** The bottom chart's log range, always ordered; null when every error is too small for this grid to show. */
+/** The bottom chart's log range, always ordered; null when every error is below `tiny`. The test is on the largest
+ * error of the whole comparison: once one error reaches `tiny`, the chart opens and plots every positive error, smaller
+ * ones included. */
 export function errorRange(ePm, eFo, tiny = 1e-7) {
   const vals = [...ePm, ...eFo].filter((v) => v > 0 && Number.isFinite(v));
   if (!vals.length || Math.max(...vals) < tiny) return null;
   return [Math.min(...vals) / 3, Math.max(...vals) * 3];
+}
+
+/** What the plate does with a selection: "deadline", and "constant" for a cost that doesn't move (a flat drawing, a
+ * size of 0, whatever its preset), skip the solve; "measure" (the rising cost, outside the theorem) and "theory" solve
+ * it. c0 is the cost's average over the window, from 501 times. */
+export function yoursMode(choice) {
+  if (deadlineOf(choice) !== null) return { mode: "deadline", cost: null, c0: NaN };
+  const cost = costOf(choice);
+  const ts = Array.from({ length: 501 }, (_, i) => (i * VIEW) / 500);
+  const c0 = ts.reduce((a, t) => a + cost(t), 0) / ts.length;
+  let moves = 0; for (let t = 0; t <= VIEW + 6; t += 0.01) moves = Math.max(moves, Math.abs(cost(t) - c0));
+  if (moves <= 1e-9 * c0) return { mode: "constant", cost, c0 };
+  return { mode: choice.id === "rising" ? "measure" : "theory", cost, c0 };
+}
+
+/** The plate's state across selections and replies, with no DOM: select(choice) starts a selection and returns its
+ * number and the job for the worker (null when the plate skips it); take(my, m) keeps reply m only if it answers the
+ * latest selection; show() reveals the bottom chart (it stays revealed across selections); bottom() says what that
+ * chart shows: hidden until there is data and it is revealed, and hidden with the largest error when every error is
+ * below the chart's threshold. */
+export function yoursPlateState() {
+  let gen = 0;
+  const st = { mode: null, cost: null, c0: NaN, data: null, reveal: false };
+  return {
+    state: st,
+    select(choice) {
+      const my = ++gen, m = yoursMode(choice);
+      Object.assign(st, { mode: m.mode, cost: m.cost, c0: m.c0, data: null });
+      const job = m.mode === "deadline" || m.mode === "constant" ? null : { job: "scale", choice, c0: m.c0, eps: YOURS_EPS, view: VIEW };
+      return { my, job };
+    },
+    current: (my) => my === gen,
+    take(my, m) {
+      if (my !== gen) return false;
+      const { cost, c0 } = st, gamma = (x) => cost(x) - c0;
+      const { beta, ePm, eFo } = yoursErrors(m, cost, c0, YOURS_EPS);
+      const pmr = Array.from(K.perMomentResponse(gamma, m.t, c0));
+      const dev = m.runs.map((r, k) => r.map((v, i) => (v - m.b0[i]) / YOURS_EPS[k]));
+      st.data = { t: m.t, dev, beta, pmr, ePm, eFo, c0, outside: st.mode === "measure" };
+      return true;
+    },
+    show() { st.reveal = true; },
+    bottom() {
+      if (!st.data || !st.reveal) return { hidden: true, range: null, largest: NaN };
+      const { ePm, eFo } = st.data, range = errorRange(ePm, eFo);
+      return { hidden: !range, range, largest: Math.max(...ePm, ...eFo) };
+    },
+  };
+}
+
+/** The bottom chart's marks in a frame f (log axes, eps from the smallest size to 1.3): guide lines of slope 1 and 2
+ * through the per-moment error at the largest size, each clipped to the plot so its slope stays true and labeled at
+ * its own left end (no label when no part of it is inside), then the two errors. */
+export function errorMarks(f, EPS, ePm, eFo) {
+  const [yLo, yHi] = f.y, e0 = EPS[0], y0 = ePm[0] || yHi / 3;
+  let g = "";
+  for (const [ya, p, below] of [[y0, 1, false], [y0 / 3, 2, true]]) {
+    const seg = guideInRange(e0, ya, p, EPS[EPS.length - 1], e0, yLo, yHi);
+    if (!seg) continue;
+    g += line(f, seg[0], seg[1], "guide");
+    const x = Math.min(f.sx(seg[0][0]) + 4, f.W - f.r - 44), y = f.sy(seg[1][0]) + (below ? 14 : -6);
+    g += `<text class="tk" x="${x.toFixed(1)}" y="${Math.max(f.t + 10, Math.min(f.H - f.b - 4, y)).toFixed(1)}">slope ${p}</text>`;
+  }
+  g += line(f, EPS, ePm, "pm") + line(f, EPS, eFo, "wb");
+  g += EPS.map((e, k) => (eFo[k] > 0 ? `<circle class="wb-dot" cx="${f.sx(e).toFixed(1)}" cy="${f.sy(eFo[k]).toFixed(1)}" r="3"/>` : "")).join("");
+  return g;
 }
