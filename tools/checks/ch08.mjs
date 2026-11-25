@@ -445,3 +445,12 @@ check("bins", "levels below 0.01 use the kernel for 0.01", kernelForBound(0.004)
   check("program", "the two-rules plate's caption states both cases below the grid's first step (between 0 and the step where the program waits at 0, 0 where it decides at 0 too); on Rising from 0 at rate 2, compareRules' exported bounds include both, each matching the program's Bellman step at its time",
     both && nB > 0 && nS > 0 && wrong.length === 0, `${nB} between, ${nS} at 0, ${wrong.length} mismatched; caption states both: ${both}`);
 }
+
+// ---- the rule's proved results, and the comparison sentence's wording ------------------------------------------------
+{
+  const text = readFileSync(join(ROOT, "book/content/ch08.py"), "utf8");
+  check("words", "chapter 8 calls Proposition 13 the rule's one guarantee about its bound, names Proposition 10 for its reward loss, and doesn't call Proposition 13 the only guarantee the rule has",
+    JSON.parse(readFileSync(join(ROOT, "paper/labels.json"), "utf8")).labels["prop:loss"].num === "10" && /\{\{ref:prop:rule\}\} is the rule's one guarantee about its bound; \{\{ref:prop:loss\}\} \(chapter 7\) bounds its reward loss at second order\./.test(text) && !/only guarantee the rule has|is the rule's one guarantee\./.test(text), "ch08.py");
+  const less = S.twoSay("Cost jumps", { pm: 1, avg: 0.5, wb: 2, avgCode: 0.5 }, null, false);
+  check("words", "when the averaged-cost rule loses less than the weighted rule, the sentence says it loses less, with no size word", /Here averaging the costs loses less than averaging the bounds\./.test(less) && !/a little/.test(less), less);
+}

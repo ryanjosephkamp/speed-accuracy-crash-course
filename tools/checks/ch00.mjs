@@ -80,3 +80,12 @@ for (const p of PRESETS) {
     m.t.length === 126 && wrong.length === 0 && between.length > 0 && stops.length > 0 && both,
     `${between.length} times between (first ${between[0]}), ${stops.length} center stops (first ${stops[0]}), ${wrong.length} mismatched${wrong.length ? ` (first at ${wrong[0]})` : ""}; both cases stated: ${both}`);
 }
+
+// ---- the words of the schedule and guess plates ----------------------------------------------------------------------
+{
+  const text = readFileSync(join(ROOT, "book/content/ch00.py"), "utf8");
+  check("words", "chapter 0's text says the program agrees with the paper's code run on the same grid, limits the nondecreasing-cost claim to costs the standing assumption allows, and the guess plate's caption gives the log scale and the per-moment bound's shift",
+    /agrees with the paper's code run on the same grid to within/.test(text) && /for a cost the standing assumption allows \(continuous, between two positive levels\) that never falls after a moment/.test(text)
+      && /Your schedule's cost \(top, on a log scale\) and the per-moment rule's bound, moved in by \$0\.5826\\sqrt\{0\.01\}\$/.test(text),
+    "ch00.py");
+}

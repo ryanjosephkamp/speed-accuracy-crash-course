@@ -7,10 +7,13 @@ const SUP = { "-": "⁻", 0: "⁰", 1: "¹", 2: "²", 3: "³", 4: "⁴", 5: "⁵
 const sci = (x) => {
   if (x === 0) return "0";
   if (Math.abs(x) >= 0.001 && Math.abs(x) < 1000) return String(+x.toPrecision(2));
-  const e = Math.floor(Math.log10(Math.abs(x))), mant = +(Math.abs(x) / 10 ** e).toFixed(1);
+  let e = Math.floor(Math.log10(Math.abs(x))), mant = +(Math.abs(x) / 10 ** e).toFixed(1);
+  if (mant >= 10) { e += 1; mant = +(mant / 10).toFixed(1); }   // 9.96 rounds to 10: write it as 1 × 10 to the next power
   const p = "10" + String(e).split("").map((c) => SUP[c]).join("");
   return (x < 0 ? "−" : "") + (mant === 1 ? p : `${mant} × ${p}`);
 };
+/** d decimals, or two significant figures as a power of ten when that would print only zeros. */
+export const fixedOr = (x, d) => (x === 0 || Math.abs(x) >= 10 ** -d ? x.toFixed(d) : sci(x));
 /** The same form for a plate's own readings. */
 export const num = (x) => (Math.abs(x) >= 0.01 && Math.abs(x) < 1000 ? String(+x.toPrecision(2)) : sci(x));
 const frac = (eps) => (eps >= 1 ? "1" : `1/${Math.round(1 / eps)}`);
@@ -54,7 +57,7 @@ export function lookaheadVerdict(guess, mSmall, cSmall, decSmall) {
 }
 
 export function lookaheadSay(c0, m, dec, maxM, maxC) {
-  let s = `At c₀ = ${sci(c0)}, the bound looks ${f3(m)} time units ahead on average, and a decision from 0 takes ${f2(dec)}`;
+  let s = `At c₀ = ${sci(c0)}, the bound looks ${fixedOr(m, 3)} time units ahead on average, and a decision from 0 takes ${fixedOr(dec, 2)}`;
   s += dec > m ? `, ${f1(dec / m)} times as long. ` : `. `;
   s += `Over costs from 10⁻⁴ to 10, the scan finds the longest look-ahead, ${f3(maxM)}, at c₀ ≈ ${f3(maxC)}; that maximum is numerical, not proved.`;
   return s;
@@ -99,15 +102,18 @@ export const HALF_HEADS = [
   "Step 5: half an integration: slope −½, against −1 for an exponential kernel with the same mean.",
 ];
 
+/** The lead's path over the scanned frequencies, from leadPeak: what the scan measured, and no more. */
 export function leadPeakSay(c0, peak) {
-  if (peak.lead > 45.005) return `At c₀ = ${c0}, the lead passes 45°: it reaches ${f2(peak.lead)}° near ω = ${Math.round(peak.omega)} and then comes back toward 45°.`;
-  return `At c₀ = ${c0}, the lead rises toward 45° from below over this range (${f2(peak.lead)}° at ω = ${sci(peak.omega)}).`;
+  const end = `at ω = ${sci(peak.last.omega)}, the highest frequency scanned, it is ${f3(peak.last.lead)}°${peak.last.lead < 45 ? ", below 45°" : ""}${peak.last.rising ? " and rising" : ""}.`;
+  if (peak.lead > 45 && Number.isFinite(peak.back)) return `At c₀ = ${c0}, the lead rises above 45°, to ${f2(peak.lead)}° near ω = ${Math.round(peak.omega)}, falls back below 45° by ω = ${Math.round(peak.back)}, and ${end}`;
+  if (peak.lead > 45) return `At c₀ = ${c0}, the lead rises above 45°, to ${f2(peak.lead)}° near ω = ${Math.round(peak.omega)}, and ${end}`;
+  return `At c₀ = ${c0}, the lead stays below 45° at every frequency scanned; ${end}`;
 }
 
 // ---- the reward of a flat bound --------------------------------------------------------------------------------
 
 export function rewardVerdict(guess, ratioUp, ratioDown, c) {
-  const fact = `At c = ${c}, missing the peak by 0.2 loses ${f1(ratioUp)} times what missing by 0.1 loses (above the peak; ${f1(ratioDown)} below it): about the square, as a quadratic loss says.`;
+  const fact = `At c = ${c}, missing the peak by 0.2 loses ${f1(ratioUp)} times what missing by 0.1 loses above the peak, and ${f1(ratioDown)} times below it; twice the miss, squared, is 4.`;
   if (guess === "four") return "Right. " + fact;
   if (guess === "two") return "More than twice. " + fact;
   return "Not the same. " + fact;

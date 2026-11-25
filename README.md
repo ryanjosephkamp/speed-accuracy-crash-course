@@ -1,39 +1,40 @@
 # Waiting, weighted: a crash course
 
-A course book for the paper *Waiting, weighted* ([source](https://github.com/ryanjosephkamp/speed-accuracy-tradeoff)),
-built one result at a time on a cost-of-time schedule the reader picks or draws. Every figure on a chapter page is
-computed in the browser from the paper's equations: the kernel from its series, the Laplace transform and the
-transfer function from their closed forms, decision times sampled from the paper's start law, and the optimal bound
-from a dynamic program on an evidence grid. A check script holds those computations to the paper's generated numbers
-and code.
-
-Chapter 6, the kernel and the theorem, is the first chapter built.
+A course book for the paper *Waiting, weighted* ([source](https://github.com/ryanjosephkamp/speed-accuracy-tradeoff)).
+It works through the paper one result at a time, on a cost-of-time schedule the reader picks or draws. Each chapter
+puts the paper's statements beside plain-language explanations, proof strips, and live plates. The plates compute in
+the browser from the paper's equations: the boundary kernel from its series, the transform and transfer function from
+their closed forms, decision times sampled from the paper's start law, and the best bound from a dynamic program on an
+evidence grid. A check script holds those computations to the paper's generated numbers and to the paper's own code.
 
 ## Layout
 
 | Path | What it holds |
 |---|---|
-| `paper/` | The paper's `main.tex`, generated numbers, and Table 1's rows at the tag `paper-v1.2`, and the number LaTeX gave each label (`labels.json`), copied by `tools/vendor_paper.py` |
-| `book/content/` | The book's text: the contents page (`book.py`), each chapter (`ch06.py`), and the claim map's graph (`map.json`: 50 claims, 118 uses) |
-| `book/build.py` | Builds `docs/` from the content and the paper; every number is a macro from `numbers.tex` and every cross-reference a label |
-| `book/texconv.py` | Converts excerpts of `main.tex` to HTML for the Exact setting of the depth dial |
-| `book/assets/js/kernel.js` | The chapter's model: the bound, the kernel, its transform, the transfer function, the start law, and the sampler |
-| `book/assets/js/model.js` | The dynamic program and the per-moment bound, shared with the paper's site |
-| `book/assets/js/claim-map.js` | The claim map in four views (Focus, Layers, Outline, Book path), with the reader's choice kept in their browser |
-| `book/assets/js/ch06.js`, `say-ch06.js` | Chapter 6's plates, and the sentences under them as functions of their numbers |
-| `tools/check_book.mjs` | The checks; writes `book/checks.json`, which the build prints under each plate |
+| `paper/` | The paper's `main.tex`, its generated numbers and tables, and the number LaTeX gave each label (`labels.json`), at the tag `paper-v1.2`, copied by `tools/vendor_paper.py` |
+| `book/content/` | The text: the contents page (`book.py`), the chapters (`ch00.py` to `ch12.py`), Appendix A (`appA.py`), and the claim map's graph (`map.json`) |
+| `book/build.py` | Builds `docs/` from the content and the paper; numbers come from the paper's macros and cross-references from its labels |
+| `book/texconv.py` | Converts excerpts of `main.tex` to HTML for the pages' Exact setting |
+| `book/assets/js/` | The plates: shared models (`model.js`, `kernel.js`, `schedules-book.js`), each chapter's plates and workers (`chNN*.js`), the sentences under them as functions of their numbers (`say-chNN.js`), and the claim map |
+| `tools/check_book.mjs`, `tools/checks/` | The checks, one file per chapter plus the shared ones; the run writes `book/checks.json`, which the build prints under each plate |
+| `tools/validity/` | Reference values computed by the paper's code at the tag, and the scripts that compute them |
+| `tools/shoot.mjs` | Opens the built pages in headless Chrome at phone and desktop widths, in both themes, and reports console errors, failed plates, and sideways scroll |
 | `tools/math/render.mjs` | Sets the TeX in the built pages as SVG, so the pages load no math library |
-| `tools/themed-figures/` | Redraws the paper's figures in the book's inks, a print for each theme |
+| `tools/themed-figures/` | Redraws the paper's figures in the book's inks, one print for each theme |
 | `docs/` | The built site |
 
-## Build
+## Build and check
 
 ```sh
 npm install --prefix tools/math        # once
-node tools/check_book.mjs              # 59 checks; exits 1 on a failure
+node tools/check_book.mjs              # every check; exits 1 on a failure
 python3 book/build.py                  # writes docs/, then sets the math
+node tools/shoot.mjs --both-widths index.html kernel/    # optional: pictures and console errors
 python3 -m http.server 8750 --directory docs
 ```
+
+`node tools/check_book.mjs ch06` runs the shared `book.mjs` and chapter 6's checks. The reference files in
+`tools/validity/` are rebuilt with the paper repository's Python, as each script's header says.
 
 The printed figures are redrawn from the paper's plotting script at the tag:
 

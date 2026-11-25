@@ -48,7 +48,7 @@ PLATES = {
         "title": "A sinusoid in, a sinusoid out",
         "state": "computed",
         "state_text": "Computed in the page from the closed-form transform; the dots are the paper's Table 1",
-        "caption": r"""A cost $c_0\,(1 + 0.3\sin\omega t)$. Top: the cost (orange) over two periods. Middle: the per-moment response $B'(c_0)\gamma(t)$ (dashed) and the first-order response $\beta(t)$ (green), each divided by the per-moment swing; the arrow between two troughs is the lead. Bottom, as in Figure 3: the gain $|\tilde w(-i\omega)|$ on log axes, and the lead $\arg\tilde w(-i\omega)$ in degrees against $\omega$ on a log axis, with the high-frequency gain $2c_0\cosh^2 b_0\sqrt{2/\omega}$ dotted. Your cost's curves are drawn bold from the lowest frequency you have visited to the highest; when you reveal the answer, that range starts as Table 1's, 0.5 to 8. Dots: the paper's dynamic program at $c_0 = 0.1$ and $\varepsilon = 0.01$ (Table 1).""",
+        "caption": r"""A cost $c_0\,(1 + 0.3\sin\omega t)$. Top: the cost (orange) over two periods. Middle: the per-moment response $B'(c_0)\gamma(t)$ (dashed) and, after Show me, the first-order response $\beta(t)$ (green), each divided by the per-moment swing; the arrow between two troughs is the lead. Bottom, after Show me, as in Figure 3: the gain $|\tilde w(-i\omega)|$ on log axes, and the lead $\arg\tilde w(-i\omega)$ in degrees against $\omega$ on a log axis, with the high-frequency gain $2c_0\cosh^2 b_0\sqrt{2/\omega}$ dotted. Your cost's curves are drawn bold from the lowest frequency you have visited to the highest; when you reveal the answer, that range starts as Table 1's, 0.5 to 8. Dots: the paper's dynamic program at $c_0 = 0.1$ and $\varepsilon = 0.01$ (Table 1).""",
         "wide": True,
     },
     "arrows": {
@@ -191,7 +191,7 @@ At every frequency $\omega > 0$, the swing is less than the per-moment swing and
 
 Which way is ahead? $B'(c_0) < 0$, so the per-moment response is the cost turned upside down: the bound falls when the cost rises. The first-order bound leads that inverted curve, so it starts to fall before the cost starts to rise.
 
-A lead of $\varphi$ degrees at frequency $\omega$ is a lead in time of $\varphi$ in radians divided by $\omega$. The plate's readings show that time: it is largest for slow waves, where it approaches the mean look-ahead of the next section, and it falls as the frequency rises, while the lead in degrees can first rise and then fall (at $c_0 = 1$ it passes $45^\circ$ and comes back, as section 3 shows). That the lead in time falls, and stays below the mean look-ahead, is what the page computes on every cost it offers; the paper doesn't state it.
+A lead of $\varphi$ degrees at frequency $\omega$ is a lead in time of $\varphi$ in radians divided by $\omega$. The plate's readings show that time: it is largest for slow waves, where it approaches the mean look-ahead of the next section, and it falls as the frequency rises, while the lead in degrees can first rise and then fall (at $c_0 = 1$ it rises above $45^\circ$ and falls back below it, as section 3 shows). That the lead in time falls, and stays below the mean look-ahead, is what the page computes on every cost it offers; the paper doesn't state it.
 """),
             ("table", "tab:sinusoid"),
             ("figure", "transfer"),
@@ -252,7 +252,7 @@ $$|\tilde w(-i\omega)| \sim 2c_0\cosh^2 b_0\sqrt{2/\omega}, \qquad \arg\tilde w(
 
 The swing falls like $\omega^{-1/2}$, not like $\omega^{-1}$, and the lead tends to $45^\circ$. Both mark a half-integration. Integrating a wave over time divides its swing by $\omega$ and turns it by $90^\circ$; the kernel does half of each, because near $s = 0$ it behaves like $s^{-1/2}$. So fast changes in the cost are smoothed, not ignored.
 
-"Tends to" is the whole claim about the lead. It isn't capped at $45^\circ$: at larger costs, the lead passes $45^\circ$ at high frequencies and then comes back to it, and step 3 of the plate shows by how much. What falls steadily as the frequency rises, on every cost the page computes, is the lead in time; that is a computation, not a result of the paper.
+"Tends to" is the whole claim about the lead. It isn't capped at $45^\circ$: at $c_0 = 1$, the lead rises above $45^\circ$, falls back below it, and at the highest frequencies the plate scans it is below $45^\circ$ and rising, as it is at the plate's other costs; step 3 of the plate shows by how much. What falls steadily as the frequency rises, on every cost the page computes, is the lead in time; that is a computation, not a result of the paper.
 """),
             ("strip", "half"),
             ("exact", "513-515|Part (c)|ignored.,1471-1472|For (c)|", "The paper's words on part (c), and its proof from Appendix A"),

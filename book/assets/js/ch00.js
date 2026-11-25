@@ -93,11 +93,13 @@ function guessPlate() {
     drawAll();
   };
   const drawCost = () => {
+    // the schedule plate's log axis (contents.js): its range and its ticks
     const cs = ts.map((t) => cost(t)), fin = cs.filter(Number.isFinite);
-    const f = frame(costEl, { x: [0, view], y: [Math.min(...fin) / 1.6, Math.max(...fin, 0.2) * 1.6], ylog: true, aspect: 0.22, minH: 90, maxH: 130, b: 22 });
-    let s = axes(f, { yl: "cost of time", yt: [] }) + line(f, ts, cs, "cost");
+    const lo = Math.max(0.005, Math.min(...fin) / 1.6), hi = Math.min(40, Math.max(...fin) * 1.6);
+    const f = frame(costEl, { x: [0, view], y: [Math.min(lo, 0.05), Math.max(hi, 0.3)], ylog: true, aspect: 0.32, minH: 120, maxH: 190, b: 22 });
+    let s = axes(f, { yl: "cost of time", grid: true, xt: [] }) + line(f, ts, cs, "cost");
     s += `<path class="dim" stroke-dasharray="2 3" d="M${f.sx(tStar).toFixed(1)} ${f.t}V${f.H - f.b}"/>`;
-    costEl.innerHTML = svg(f, s, `The cost of time for ${labelOf(choice)}`);
+    costEl.innerHTML = svg(f, s, `The cost of time for ${labelOf(choice)}, on a log scale`);
   };
   const drawBound = () => {
     const f = frame(boundEl, { x: [0, view], y: [0, yTop], aspect: 0.5, minH: 190, maxH: 280 });

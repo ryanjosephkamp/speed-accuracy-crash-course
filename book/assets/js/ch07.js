@@ -105,7 +105,7 @@ function wavePlate() {
       <input type="range" id="wv-om" min="${Math.log10(0.1)}" max="2" step="0.005" value="${lom}" aria-label="Frequency omega, on a log scale"></label>
       <div class="actions"><button class="btn" type="button" id="wv-play" aria-pressed="false">Sweep</button></div></div>
     <div class="chart-wrap" id="wv-cost"></div><div class="chart-wrap" id="wv-resp"></div>
-    <ul class="legend"><li><span class="key key-cost">Cost</span></li><li><span class="key key-pm">Per-moment response</span></li><li><span class="key key-wb">First-order bound</span></li></ul>
+    <ul class="legend"><li><span class="key key-cost">Cost</span></li><li><span class="key key-pm">Per-moment response</span></li><li id="wv-fokey" hidden><span class="key key-wb">First-order bound</span></li></ul>
     <div id="wv-fig" hidden><div class="chart-wrap" id="wv-gain"></div><div class="chart-wrap" id="wv-lead"></div>
     <ul class="legend"><li><span class="key key-wb">Your c₀</span></li><li>Gray: the other costs</li><li>Black dots: the dynamic program, c₀ = 0.1</li><li>Orange: your ω</li></ul></div>
     <dl class="reads" id="wv-reads"></dl><p class="say" id="wv-say"></p>`;
@@ -131,6 +131,7 @@ function wavePlate() {
       h += arrowPx(fr.sx(tPm), y, fr.sx(tFo), y, "wb", 5);
       h += txt(fr.sx(tFo) - 4, y + 4, `${tr.lead.toFixed(1)}°`, "tag-wb", "end");
     }
+    $("#wv-fokey", el).hidden = !shown;
     resp.innerHTML = svg(fr, h, shown ? `The per-moment response and the first-order bound's response at frequency ${om.toFixed(2)}, the bound ${tr.lead.toFixed(1)} degrees ahead` : `The per-moment response at frequency ${om.toFixed(2)}`);
   };
   const drawFig = () => {
@@ -318,8 +319,8 @@ function lookaheadPlate() {
     h += `<rect class="hit" x="${fm.l}" y="${fm.t}" width="${fm.W - fm.l - fm.r}" height="${fm.H - fm.t - fm.b}"/>`;
     mEl.innerHTML = svg(fm, h, "The mean look-ahead and the mean decision time against the cost, with the chosen cost marked");
     mEl._f = fm;
-    reads.innerHTML = `<div class="k-wb"><dt>Mean look-ahead, m(c₀)</dt><dd>${fmt(m, 3)}<small>time units</small></dd></div>
-      <div><dt>Mean decision time from 0</dt><dd>${fmt(dec, 2)}<small>b₀ tanh b₀</small></dd></div>
+    reads.innerHTML = `<div class="k-wb"><dt>Mean look-ahead, m(c₀)</dt><dd>${S.fixedOr(m, 3)}<small>time units</small></dd></div>
+      <div><dt>Mean decision time from 0</dt><dd>${S.fixedOr(dec, 2)}<small>b₀ tanh b₀</small></dd></div>
       <div><dt>Bound, b₀</dt><dd>${fmt(K.B(c0), 3)}</dd></div>
       <div class="k-wb"><dt>Largest look-ahead</dt><dd>${fmt(best.m, 3)}<small>at c₀ ≈ ${fmt(best.cost, 3)}, scanned over 10⁻⁴ to 10</small></dd></div>`;
     say.textContent = S.lookaheadSay(c0, m, dec, best.m, best.cost);

@@ -77,6 +77,17 @@ for (const c of [1e-4, 3e-4, 1e-3, 3e-3, 0.01, 0.02, 0.035, 0.05, 0.1, 0.2, 0.3,
 
 // ---- the lead near 45 degrees ------------------------------------------------------------------------------
 {
+  // the lead's path, as the half-integration plate scans it (100 frequencies a decade from 0.01 to 1e6), at every cost the
+  // wave and half-integration plates offer: at the scan's last frequency, 1e6, it is below 45 and higher than at the
+  // frequency before; at c0 = 1 it rises above 45 and falls back below it after its peak; at the other costs it stays
+  // below 45 throughout. And the sentence at the half-integration plate's costs prints those measurements
+  const paths = [0.02, 0.1, 0.3, 1].map((c) => ({ c, pk: M.leadPeak(c) }));
+  const pathOk = paths.every(({ c, pk }) => Math.abs(pk.last.omega - 1e6) < 1e-3 && pk.last.lead < 45 && pk.last.rising && (c === 1 ? pk.lead > 45 && pk.back > pk.omega && K.transfer(1, pk.back).lead < 45 : pk.lead < 45));
+  const says = [0.02, 0.1, 1].map((c) => { const pk = paths.find((q) => q.c === c).pk; return { pk, s: S.leadPeakSay(c, pk) }; });
+  const saysOk = says.every(({ pk, s: t }) => t.includes(`at ω = 10⁶, the highest frequency scanned, it is ${pk.last.lead.toFixed(3)}°, below 45° and rising.`) && !/comes back|10 × 10/.test(t)
+    && (pk.lead > 45 ? t.includes(`rises above 45°, to ${pk.lead.toFixed(2)}° near ω = ${Math.round(pk.omega)}, falls back below 45° by ω = ${Math.round(pk.back)}`) : /stays below 45° at every frequency scanned/.test(t)));
+  check("lead", "at each cost the plates offer (0.02, 0.1, 0.3, 1), the lead at omega = 1e6, the scan's last frequency, is below 45 degrees and above its value at the frequency before; at 1 it rises above 45 and is below 45 again at a later scanned frequency; at the others it stays below 45; the half-integration plate's sentence at 0.02, 0.1, and 1 prints those numbers",
+    pathOk && saysOk, says.map((x) => x.s).join(" | "));
   const p1 = M.leadPeak(1), p01 = M.leadPeak(0.1);
   check("lead", "at c0 = 1 the lead passes 45 degrees (about 46, near omega = 66)", p1.lead > 45.5 && p1.lead < 46.5 && p1.omega > 40 && p1.omega < 100, `${p1.lead.toFixed(3)} at ${p1.omega.toFixed(1)}`);
   check("lead", "at c0 = 0.1 the lead stays below 45 degrees over omega from 0.01 to 1e6", p01.lead < 45, `largest ${p01.lead.toFixed(3)} at ${p01.omega.toExponential(1)}`);
@@ -330,7 +341,7 @@ for (const c of [0.02, 0.1, 0.5]) {
       S.lookaheadSay(10 ** (-4 + 5 * u()), u(), 5 * u(), 0.619, 0.035),
       S.shiftSay("Cost jumps", { maxPm: u(), maxSh: u(), avgPm: u(), avgSh: u(), apart: u() * 1e-3 }, i % 2 === 0),
       S.shiftNote(["deadline", "constant", ""][i % 3], "Wave"),
-      S.leadPeakSay([0.02, 0.1, 1][i % 3], { lead: 40 + 7 * u(), omega: 10 ** (6 * u()) }),
+      S.leadPeakSay([0.02, 0.1, 1][i % 3], { lead: 40 + 7 * u(), omega: 10 ** (6 * u()), back: i % 2 ? NaN : 10 ** (6 * u()), last: { omega: 1e6, lead: 44 + 2 * u(), rising: i % 4 < 2 } }),
       S.rewardVerdict(["same", "two", "four"][i % 3], 3 + u(), 3 + u(), 0.1),
       S.rewardSay(0.1, (u() - 0.5) * (i % 5 ? 1 : 1e-5), u() * 0.01, u() * 0.01),
       S.bandSay(0.3 * u() + 1e-3, u() * 1e-3, u() * 1e-3, u() * 1e-3),
@@ -345,10 +356,20 @@ for (const c of [0.02, 0.1, 0.5]) {
   }
   check("words", "the plates' sentences never print NaN, undefined, Infinity, or null", bad === 0, `${n} sentences, ${bad} bad`);
   const p1 = S.leadPeakSay(1, M.leadPeak(1)), p01 = S.leadPeakSay(0.1, M.leadPeak(0.1));
-  check("words", "the lead sentence says the lead passes 45 degrees at c0 = 1 and not at 0.1, and never says it is capped", /passes 45°/.test(p1) && !/passes/.test(p01) && !/at most 45|up to an eighth/.test(p1 + p01 + S.waveSay(1, 66, 0.3, 45.9, 0.01, 0.04)), p1);
+  check("words", "the lead sentence says the lead rises above 45 degrees at c0 = 1 and stays below at 0.1, and never says it is capped", /rises above 45°/.test(p1) && /stays below 45°/.test(p01) && !/rises above/.test(p01) && !/at most 45|up to an eighth/.test(p1 + p01 + S.waveSay(1, 66, 0.3, 45.9, 0.01, 0.04)), p1);
   check("words", "the wave sentence flags a lead above 45 degrees only when there is one", /above 45°/.test(S.waveSay(1, 66, 0.3, 45.9, 0.01, 0.04)) && !/above 45°/.test(S.waveSay(0.1, 8, 0.358, 36.7, 0.08, 0.546)), S.waveSay(1, 66, 0.3, 45.9, 0.01, 0.04));
   const neg = S.lossSay(0.25, -9.5e-6, 1e-6, NaN, NaN, false, false), cj = S.conjSay(0.25, 1.02, true, 0.02, 1.4, true, 0.9, 1e-4, 1e-6);
   const la = S.lookaheadSay(1e-4, 0.504, 4.95, 0.619, 0.035) + S.lookaheadVerdict("half", 0.504, 1e-4, 4.95);
+  check("words", "num, the plates' number helper, prints 999,999 as 10⁶ and 0.0000996 as 10⁻⁴: a mantissa that rounds to 10 moves to the next power of ten", S.num(999999) === "10⁶" && S.num(9.96e-5) === "10⁻⁴" && S.num(2.5e-5) === "2.5 × 10⁻⁵", `${S.num(999999)}, ${S.num(9.96e-5)}`);
+  // the look-ahead sentence at the slider's top, c0 = 10: both times are positive and print as powers of ten, not zeros
+  const m10 = M.lookAheadClosed(10), d10 = K.meanDecisionTime(10), la10 = S.lookaheadSay(10, m10, d10, 0.619, 0.035);
+  check("words", "the look-ahead sentence at c0 = 10 prints the look-ahead and the decision time (both below 0.001) to two figures as powers of ten, with no 0.000 or 0.00",
+    m10 > 0 && m10 < 1e-3 && d10 > 0 && d10 < 1e-3 && la10.includes(`looks ${S.fixedOr(m10, 3)} time units`) && la10.includes(`takes ${S.fixedOr(d10, 2)},`) && /× 10⁻⁴/.test(la10) && !/ 0\.0+[ ,]/.test(la10), la10);
+  // the reward plate's verdict at each cost it offers: the two ratios it prints, which lie near 4
+  const rw = [0.02, 0.1, 0.5].map((c) => { const B = K.B(c), RB = M.flatReward(B, c), r = (d) => RB - M.flatReward(B + d, c), up = r(0.2) / r(0.1), dn = r(-0.2) / r(-0.1); return { c, up, dn, v: S.rewardVerdict("four", up, dn, c) }; });
+  check("words", "the reward plate's verdict at each cost it offers (0.02, 0.1, 0.5): the loss at a miss of 0.2 over the loss at 0.1, above and below the peak, both between 3.7 and 4.3, printed to one decimal, beside 4, twice the miss squared",
+    rw.every(({ up, dn, v }) => up > 3.7 && up < 4.3 && dn > 3.7 && dn < 4.3 && v.includes(`loses ${up.toFixed(1)} times what missing by 0.1 loses above the peak, and ${dn.toFixed(1)} times below it; twice the miss, squared, is 4.`)),
+    rw.map(({ c, up, dn }) => `${c}: ${up.toFixed(3)}, ${dn.toFixed(3)}`).join("; "));
   check("words", "a nonpositive loss is a difference the grid can't measure, the first-order ratio is not credited to the conjecture, and powers of ten read as 10⁻⁴", /no reward measurable on this grid/.test(neg) && !/loses −/.test(neg) && /doesn't cover the first-order bound/.test(cj) && /10⁻⁴ to 10/.test(la) && /c₀ = 10⁻⁴/.test(la) && !/e-\d/.test(la + neg), `${neg} | ${la}`);
   const st = S.shiftState(false, 126, true), st0 = S.shiftState(true, 48, false), cut = S.lossSay(0.25, 1e-5, 1e-6, NaN, NaN, false, false);
   check("words", "the shift plate says where the program waits at 0 its bound is placed below the grid's first step and the paper's code reports 0, the band's step 3 says expected time, and losses under the cutoff are called that", /waits at 0 but decides at the grid's first step/.test(st) && /paper's code reports 0/.test(st) && !/wait/.test(st0) && /deadline/.test(st0) && /expected time spent above/.test(S.BAND_HEADS[2]) && /below the display cutoff/.test(cut) && !/resolv/.test(cut + S.conjSay(0.25, 1, false, 0, 1, false, 0, 1e-5, 1e-6)), st);
