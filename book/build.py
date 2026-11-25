@@ -34,7 +34,10 @@ _lab = json.loads((ROOT / "paper/labels.json").read_text())
 LABELS, CITES = _lab["labels"], _lab["cites"]
 SOURCE = json.loads((ROOT / "paper/SOURCE.json").read_text())
 CONV = Converter(TEX_LINES, LABELS, CITES, NUMBERS)
-PAPER_PDF = "https://github.com/ryanjosephkamp/speed-accuracy-tradeoff/blob/main/paper/main.pdf"
+# the public repository's own paths (its history is its own, so the archive's tags aren't there)
+PAPER_PDF = "https://github.com/ryanjosephkamp/speed-accuracy-tradeoff/blob/main/paper/Kamp-2026-Waiting-weighted.pdf"
+PAPER_SRC = "https://github.com/ryanjosephkamp/speed-accuracy-tradeoff/tree/main/paper"
+PAPER_VERSION = "1.2"   # the version of the paper the book is built against
 PAPER_REPO = SOURCE["repository"]
 CREDIT = (HERE / "credit.html").read_text()
 
@@ -230,7 +233,7 @@ def excerpt(spec, head):
             body = body + " <span class='cut'>…</span>"
         parts.append(body)
         lines_shown.append(f"{a}–{b}")
-    src = (f"<p class='src'>main.tex at <code>{SOURCE['tag']}</code>, lines {', '.join(lines_shown)}</p>")
+    src = (f"<p class='src'>The paper's source, version {PAPER_VERSION}, main.tex lines {', '.join(lines_shown)}</p>")
     return (f"<div class='x-exact'><span class='x-head'>{inline(head)}</span>"
             + "\n".join(parts) + src + "</div>")
 
@@ -544,7 +547,7 @@ def shell(*, title, desc, body, depth, leaf, current, bar_title, thumbs_html, sc
 </main>
 {turn}
 <footer class="foot"><div class="foot-inner">
-<p class="src-line">Built from the paper's source at <a href="{PAPER_REPO}/tree/{SOURCE['tag']}"><code>{SOURCE['tag']}</code></a> ({SOURCE['commit'][:7]}). <a href="{PAPER_PDF}">Read the paper</a>.</p>
+<p class="src-line">Built against version {PAPER_VERSION} of the paper. <a href="{PAPER_SRC}">Its source</a>. <a href="{PAPER_PDF}">Read the paper</a>.</p>
 {CREDIT}
 </div></footer>
 <script src="{a}assets/js/thumb-index.js" defer></script>

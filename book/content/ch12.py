@@ -82,7 +82,7 @@ PLATES = {
         "title": "Credited, proved, or new?",
         "state": "exploration",
         "state_text": "From the paper's own sentences, in Sections 1 and 8",
-        "caption": r"""Eight statements about the paper's results. Mark each, then show the paper's answers: each gives the reason in the paper's terms and the lines of main.tex at `paper-v1.2` that say so. One statement has two right answers: the identities behind the exact equation appear, for smooth losses, in Campbell and Engelund (2026), and the paper proves them for the 0-1 loss.""",
+        "caption": r"""Eight statements about the paper's results. Mark each, then show the paper's answers: each gives the reason in the paper's terms and the lines of main.tex, version 1.2, that say so. One statement has two right answers: the identities behind the exact equation appear, for smooth losses, in Campbell and Engelund (2026), and the paper proves them for the 0-1 loss.""",
         "wide": False,
     },
 }
@@ -247,9 +247,9 @@ Each is taught where it arises: the conjecture in chapter 7, the sweep in chapte
         "title": "The code",
         "blocks": [
             ("plain", r"""
-The paper's code computes the exact policies, the rules, the scoring, and every number, table, and figure in the paper, except the timings in {{ref:sec:rule}}, which come from runs on one computer. It is public, at [github.com/ryanjosephkamp/speed-accuracy-tradeoff](https://github.com/ryanjosephkamp/speed-accuracy-tradeoff), and this book follows the paper at the tag [paper-v1.2](https://github.com/ryanjosephkamp/speed-accuracy-tradeoff/tree/paper-v1.2).
+The paper's code computes the exact policies, the rules, the scoring, and every number, table, and figure in the paper, except the timings in {{ref:sec:rule}}, which come from runs on one computer. It is public, at [github.com/ryanjosephkamp/speed-accuracy-tradeoff](https://github.com/ryanjosephkamp/speed-accuracy-tradeoff), and this book is built against version 1.2 of the paper ([its source](https://github.com/ryanjosephkamp/speed-accuracy-tradeoff/tree/main/paper)).
 
-Every result of the paper that the book quotes is one of its generated numbers or table cells, read from the files the code writes. The plates recompute what they draw in the page, and a check script holds those computations to the generated numbers and, where the paper prints no number, to the paper's code at the tag; the line under each plate says how many of its checks pass. Inputs, such as the observer's drift of $21 \times 0.064$ per second, are quoted as the paper states them.
+Every result of the paper that the book quotes is one of its generated numbers or table cells, read from the files the code writes. The plates recompute what they draw in the page, and a check script holds those computations to the generated numbers and, where the paper prints no number, to the paper's code at version 1.2; the line under each plate says how many of its checks pass. Inputs, such as the observer's drift of $21 \times 0.064$ per second, are quoted as the paper states them.
 """),
             ("exact", "1255-1257", "The paper's code and data"),
         ],
