@@ -404,6 +404,13 @@ export function sweepTest(c0, om, rels, { dt = DT, h = H, progress = null } = {}
   return out;
 }
 
+/** What the overshoot plate draws of a run P checked every dt: its window, from firstPastMark's start to the stop, and
+ * the fine path and the checks inside it (the axes and the dots both come from here). */
+export function overshootView(P, dt) {
+  const mk = firstPastMark(P, dt), tBeg = mk.tBeg;
+  return { mk, tBeg, tEnd: P.stop[0], path: P.path.filter((p) => p[0] >= tBeg - 1e-12), checks: P.checks.filter((p) => p[0] >= tBeg - 1e-12) };
+}
+
 /** Where the sweep's bottom panel puts this page's ring for a row: the size of its signed phase residual, held inside
  * the panel's range of 0.05 to 3 degrees. */
 export const phasePlotted = (r) => Math.max(0.05, Math.min(3, Math.abs(r.phase)));
@@ -433,15 +440,18 @@ export function shiftCoef(cost, horizon, { dtC = 0.01, dtF = 0.0025, h = 0.01, c
 /** What the coefficient plate prints from a shiftCoef run m on the schedule cost (deadline dl or null): the times it
  * draws (up to 2.5 or the deadline) and how many have a finite coefficient, the time of the last of those, the range
  * where the cost holds steady (within 2% in log over 0.3 time units either side, and not in the last 0.1 before a
- * deadline; null with fewer than 5 such times) with how many of those values lie within 0.03 of 0.5826 (steadyIn), the
+ * deadline, so they end at least 0.4 before it; null with fewer than 5 such times) with how many of those values lie
+ * within 0.03 of 0.5826 (steadyIn) and the last of those times (steadyEnd), the
  * lowest and highest values over all drawn times with their times (null if none is finite), and the value at the last
  * check before a deadline. */
 export function coefSummary(m, cost, dl) {
   const view = dl ?? WINDOW;
   const steadyAt = (x) => { const c = cost(x); for (let u = Math.max(0, x - 0.3); u <= x + 0.3 + 1e-9; u += 0.01) { if (dl !== null && u > dl - 0.1) return false; if (!(Math.abs(Math.log(cost(u) / c)) < 0.02)) return false; } return true; };
   const drawn = m.t.map((x, i) => i).filter((i) => m.t[i] <= view + 1e-9), inView = drawn.filter((i) => Number.isFinite(m.k[i]));
-  const st = inView.filter((i) => steadyAt(m.t[i])).map((i) => m.k[i]);
+  const stI = inView.filter((i) => steadyAt(m.t[i])), st = stI.map((i) => m.k[i]);
   const steady = st.length >= 5 ? [Math.min(...st), Math.max(...st)] : null;
+  // before a deadline the steady times end at least 0.4 before it (0.3 either side, and not in its last 0.1)
+  const steadyEnd = steady ? m.t[stI[stI.length - 1]] : null;
   const steadyIn = steady ? { n: st.length, within: st.filter((v) => Math.abs(v - OVERSHOOT) <= 0.03).length } : null;
   let all = null;
   for (const i of inView) {
@@ -450,7 +460,7 @@ export function coefSummary(m, cost, dl) {
     if (m.k[i] > all.hi) { all.hi = m.k[i]; all.tHi = m.t[i]; }
   }
   const lastK = dl !== null && inView.length ? m.k[inView[inView.length - 1]] : null;
-  return { view, drawn: drawn.length, finite: inView.length, lastT: inView.length ? m.t[inView[inView.length - 1]] : null, steady, steadyIn, all, lastK, flat: isFlat(cost) };
+  return { view, drawn: drawn.length, finite: inView.length, lastT: inView.length ? m.t[inView[inView.length - 1]] : null, steady, steadyIn, steadyEnd, all, lastK, flat: isFlat(cost) };
 }
 
 /** Whether a schedule's cost never moves (a flat drawing, Smooth at size 0, Constant): checked every 0.01 to 8.5. */

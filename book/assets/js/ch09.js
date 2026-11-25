@@ -466,9 +466,8 @@ function overshootPlate() {
   const newPath = () => { onePath = M.onePath(b, dt, K.rng(seed + 101 + runN * 7 + Math.round(dt * 1e6))); };
   const drawPath = () => {
     const P = onePath, s0 = P.side;
-    // the window's start comes from firstPastMark, which also decides the ring, so the two can't disagree
-    const mk = M.firstPastMark(P, dt), tEnd = P.stop[0], tBeg = mk.tBeg;
-    const fp = P.path.filter((p) => p[0] >= tBeg - 1e-12), cp = P.checks.filter((p) => p[0] >= tBeg - 1e-12);
+    // the window, the fine path, and the checks all come from overshootView, which takes its start from firstPastMark
+    const V = M.overshootView(P, dt), { mk, tBeg, tEnd } = V, fp = V.path, cp = V.checks;
     const ys = fp.map((p) => s0 * p[1]);
     const lo = Math.min(...ys, b - 0.1), hi = Math.max(...ys, b + 0.05);
     const pad = (hi - lo) * 0.08;
@@ -574,10 +573,10 @@ function coefPlate() {
       const cost = costOf(choice), dl = deadlineOf(choice);
       const C = M.coefSummary(m, cost, dl), { view, steady, all, lastK } = C;
       data = { ...m, view, cost };
-      reads.innerHTML = `${steady ? `<div><dt>Where the cost is steady</dt><dd>${fmt(steady[0], 3) === fmt(steady[1], 3) ? fmt(steady[0], 3) : `${fmt(steady[0], 3)} to ${fmt(steady[1], 3)}`}</dd></div>` : ""}
+      reads.innerHTML = `${steady ? `<div><dt>Where the cost is steady${dl !== null ? `, to ${C.steadyEnd.toFixed(2)}` : ""}</dt><dd>${fmt(steady[0], 3) === fmt(steady[1], 3) ? fmt(steady[0], 3) : `${fmt(steady[0], 3)} to ${fmt(steady[1], 3)}`}</dd></div>` : ""}
         ${all ? `<div class="k-ex"><dt>Over the ${dl !== null ? "trial" : "window"}</dt><dd>${fmt(all.lo, 3)} to ${fmt(all.hi, 3)}</dd></div>` : ""}
         ${lastK !== null ? `<div><dt>Last check before the deadline</dt><dd>${fmt(lastK, 3)}</dd></div>` : ""}`;
-      say.textContent = S.coefSay(steady, all, lastK, C.flat, C.steadyIn);
+      say.textContent = S.coefSay(steady, all, lastK, C.flat, C.steadyIn, C.steadyEnd);
       state.textContent = `Two programs on an evidence grid of ${m.h}, ${dl !== null ? "to the deadline" : "to a forced choice at " + (M.WINDOW + M.SPARE)}, compared every ${2 * m.dtC} time units${dl !== null ? " up to the last check before it" : ""}.`;
       keepDrawn(chart, draw);
     }).catch((e) => { if (my === gen) fail(state, e); });

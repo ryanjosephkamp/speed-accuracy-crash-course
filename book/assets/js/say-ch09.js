@@ -109,15 +109,17 @@ const between = (a, b) => (f2(a) === f2(b) ? `at ${f2(a)}` : `between ${f2(a)} a
 /** The sentence under the coefficient plate. steady: [lo, hi] of k over the times where the cost holds steady (or
  * null), and steadyIn: { n, within }, how many of those values there are and how many lie within 0.03 of 0.5826; all:
  * { lo, hi, tLo, tHi }, the lowest and highest values over the drawn times and their times (null where no time has a
- * coefficient); lastK: k at the last check before a deadline (or null). It reports what was measured, and no cause. */
-export function coefSay(steady, all, lastK, constant, steadyIn = null) {
+ * coefficient); lastK: k at the last check before a deadline (or null); steadyEnd: the last steady time, named before a
+ * deadline, where the steady times stop short of it. It reports what was measured, and no cause. */
+export function coefSay(steady, all, lastK, constant, steadyIn = null, steadyEnd = null) {
   const K0 = 0.5826;
   if (!all) return "At every time compared, one of the two bounds is 0 or past the cap, so there is no coefficient to draw.";
   let s = "";
   if (steady) {
     const range = f4(steady[0]) === f4(steady[1]) ? `stays at ${f4(steady[0])}` : `runs from ${f4(steady[0])} to ${f4(steady[1])}`;
     const share = !steadyIn ? "" : `, ${steadyIn.within === steadyIn.n ? "all" : steadyIn.within === 0 ? "none" : "some"} of those values within 0.03 of ${K0}${steadyIn.within > 0 && steadyIn.within < steadyIn.n ? " and some not" : ""}`;
-    s += `Where the cost holds steady, the measured coefficient ${range}${share}. `;
+    const upto = lastK !== null && steadyEnd !== null ? `, up to time ${f2(steadyEnd)}` : "";
+    s += `Where the cost holds steady${upto}, the measured coefficient ${range}${share}. `;
   }
   if (constant) return s + "The cost never changes here, so every time is steady.";
   s += `Over the whole ${lastK !== null ? "trial" : "window"}, its lowest value is ${f3(all.lo)}, at time ${f2(all.tLo)}, and its highest ${f3(all.hi)}, at time ${f2(all.tHi)}. `;
