@@ -214,7 +214,7 @@ The reference is the exact policy, from a dynamic program over a grid of 300 bel
             ("plate", "rules"),
             ("table", "tab:unknown"),
             ("plain", r"""
-Two things to look for in the plate. Even at a constant cost, the exact bound moves over the trial, because the cost per unit of information rises; the frozen-time rule, which looks only at the present $\kappa$, starts above it on all eight schedules. And the plug-in rule fails in its own way: when the estimate of the drift is small, the known-reliability rule for that small drift says waiting isn't worth its cost: the plug-in bound is 0, so the rule stops at once, wherever $4c(t)\,(t + a) \ge 1$; the plate's bound, moved in for checks every 0.005, reaches 0 a little before that.
+Two things to look for in the plate. Even at a constant cost, the exact bound moves over the trial, because the cost per unit of information rises; the frozen-time rule, which looks only at the present $\kappa$, starts above it on all eight schedules. And the plug-in rule fails in its own way: when the estimate of the drift is small, the known-reliability rule for that small drift says waiting isn't worth its cost: the plug-in bound is 0, so the rule stops at once, wherever $4c(t)\,(t + a) \ge 1$; the inward shift for checks every 0.005 can also make the plotted bound 0 where the unshifted plug-in bound is still positive.
 """),
             ("exact", "1038-1046", "The paper's comparison, in Section 7.1"),
         ],
