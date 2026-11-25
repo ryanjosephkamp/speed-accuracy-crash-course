@@ -52,9 +52,6 @@ function hero() {
 }
 
 // ---------------------------------------------------------------- start
-// The build marks the map with this page's number, "A", which the map would read as a chapter number; an appendix
-// has no claims of its own, so the map draws as it does on the contents page.
-document.querySelectorAll("[data-claim-map][data-chapter]").forEach((m) => { if (!/^\d+$/.test(m.dataset.chapter)) delete m.dataset.chapter; });
 try { hero(); } catch (e) {
   const el = document.getElementById("hero-svg");
   if (el) el.innerHTML = `<text class="lab" x="12" y="20">The picture could not load: ${esc(e.message)}</text>`;

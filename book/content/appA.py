@@ -23,7 +23,7 @@ def _load(name):
     return m
 
 
-_CH = {name: _load(name) for name in ("ch02", "ch03", "ch04", "ch05", "ch06", "ch07", "ch08")}
+_CH = {name: _load(name) for name in ("ch02", "ch03", "ch04", "ch05", "ch06", "ch07", "ch08", "ch11")}
 
 # the claims whose proofs (or derivations) each section holds, in the paper's order; the hero draws them in this order
 PROVES = {
@@ -105,10 +105,14 @@ _REUSED = [("ch02", "identities"), ("ch03", "routes"), ("ch03", "inverse"), ("ch
            ("ch07", "half"), ("ch08", "prop13"), ("ch07", "loss")]
 
 STRIPS = {sid: _reuse(ch, sid) for ch, sid in _REUSED}
+# Appendix B's steps are this page's own; chapter 11 draws the same derivation in its own strip, beside a plate
+_B11 = _CH["ch11"]
+_B11_SEC = next(s for s in _B11.SECTIONS if any(b[0] == "strip" and b[1] == "appB" for b in s["blocks"]))
 STRIPS["lopsided"] = {
     "plate": None,
-    "see": "These steps are this appendix's own; chapter 11 teaches "
-           "{{claim:ext:lopsided|the first-order argument for unequal rewards}} that {{ref:sec:lopsided}} builds on them.",
+    "see": (f"These steps are this appendix's own. Chapter 11 draws the same derivation, in steps of its own, beside its "
+            f"live plate “{_B11.PLATES[_B11.STRIPS['appB']['plate']]['title']}”, in "
+            f"[{_B11_SEC['title']}](../{_B11.CHAPTER['slug']}/index.html#{_B11_SEC['id']})."),
     "steps": [
         ("With unequal rewards, the problem can't be folded at 0: the evidence is followed on both sides, and stopping earns the better of the two choices.",
          r"A correct $+$ earns $r_+$ and a correct $-$ earns $r_-$, so stopping at $x$ earns $\class{lit}{G(x) = \max\bigl(r_+ g(x),\ r_-(1 - g(x))\bigr)}$. For a constant cost $c$, the decision maker waits while $\ell < x < h$, an interval around $x^* = \tfrac12\log(r_-/r_+)$, where the two choices earn the same."),
@@ -116,7 +120,7 @@ STRIPS["lopsided"] = {
          r"$X$ has the generator $\Lop = \tfrac12\partial_x^2 + \tanh(x)\,\partial_x$, so on $(\ell, h)$, $\Lop V = c$ becomes $(\cosh^2 x\,V')' = 2c\cosh^2 x$, and $\class{lit}{\cosh^2 x\,V'(x) = c\,S(x) + K}$ with $S(x) = x + \tfrac12\sinh 2x$. For equal rewards, the reflecting center gave $V'(0) = 0$ and so $K = 0$; here nothing fixes $K$ yet."),
         ("Smooth fit at each bound gives one equation each.",
          r"At $h$ the value meets $r_+ g$, whose slope is $r_+ g'(h) = r_+/(2\cosh^2 h)$; at $\ell$ it meets $r_-(1 - g)$, whose slope is $-r_-/(2\cosh^2\ell)$. Multiplied by $\cosh^2$, the two slopes give $\class{lit}{c\,S(h) + K = \tfrac12 r_+}$ and $\class{lit}{c\,S(\ell) + K = -\tfrac12 r_-}$."),
-        ("Value matching gives the third: across the interval, the value rises by exactly as much as the reward for stopping does.",
+        ("Value matching gives the third: across the interval, the value changes by exactly as much as the reward for stopping does.",
          r"Since $S' = 2\cosh^2 x$, integrating by parts gives $\int S\sech^2 x\,dx = S\tanh x - \tfrac12\cosh 2x$, so $A$, which is $c\,\bigl(S\tanh x - \tfrac12\cosh 2x\bigr)$ plus $K\tanh x$, has $A' = V'$. Then $V(h) - V(\ell) = G(h) - G(\ell)$ reads $\class{lit}{A(h) - A(\ell) = r_+ g(h) - r_-\bigl(1 - g(\ell)\bigr)}$. With step 3, that is three equations for $\ell$, $h$, and $K$."),
         ("Equal rewards give back the flat bound.",
          r"For $r_+ = r_- = 1$, $h = -\ell$ and $K = 0$ satisfy both equations of step 3 when $c\,S(h) = \tfrac12$, which is $\class{lit}{\sinh(2h) + 2h = 1/c}$, so $h = -\ell = B(c)$. Value matching holds too: $A$ is then even, and $1 - g(-h) = g(h)$, so both sides of step 4 are 0. For a common reward $r$, dividing the equations by $r$ gives $h = -\ell = B(c/r)$."),
@@ -150,8 +154,8 @@ CHAPTER = {
         "still": _ORDER.index("thm:main"),
     },
     "readings": [
-        ("MaxLookAhead", "the largest mean look-ahead over all costs, in time units: the one value in the proofs found numerically, not proved"),
-        ("MaxLookAheadCost", "the cost at which that largest look-ahead falls, also found numerically"),
+        ("MaxLookAhead", "the largest mean look-ahead over all costs, in time units, from the one step of the proofs done numerically rather than proved"),
+        ("MaxLookAheadCost", "the cost at which that largest look-ahead falls, from the same numerical step"),
     ],
     "intro": r"""
 The exact equation rests on every result before it in Appendix A, and Theorem 7 needs only two more: the kernel's lemma and the slope of the flat bound.
@@ -186,7 +190,7 @@ SECTIONS = [
         "title": "The flat bound and its slope, from Section 2",
         "blocks": [
             ("md", r"""
-For a constant cost $c$, the problem looks the same from every start time, and the best rule stops when $Y$ first reaches a fixed level, $B(c)$. The paper finds the level two ways, from the value's equation with smooth fit and by maximizing the reward of a flat bound, and differentiates the result to get the slope $B'(c)$, which is negative at every cost. These are derivations in the text of {{ref:sec:model}}, not proofs in {{ref:app:proofs}}, but the appendix uses both: the flat bound in {{ref:lem:structure}}(c), the optimal-stopping fact, {{ref:lem:kernel}}, {{ref:cor:limits}}, and {{ref:prop:loss}}, and the slope in {{ref:thm:main}}.
+For a constant cost $c$, the problem looks the same from every start time, and the best rule stops when $Y$ first reaches a fixed level, $B(c)$. The paper finds the level two ways, from the value's equation with smooth fit and by maximizing the reward of a flat bound, and differentiates the result to get the slope $B'(c)$, which is negative at every cost. These are derivations in the text of {{ref:sec:model}}, not proofs in {{ref:app:proofs}}, but the appendix uses both, among other places: the flat bound in {{ref:lem:structure}}(c), the optimal-stopping fact, {{ref:lem:kernel}}, {{ref:cor:limits}}, {{ref:prop:rule}}, and {{ref:prop:loss}}, and the slope in {{ref:thm:main}} and {{ref:prop:rule}}. The claim map, below, records fewer of these uses.
 """),
             _edges_md("flat"),
             ("exact", "252-267", "The derivation, in Section 2"),
@@ -205,7 +209,7 @@ For a constant cost $c$, the problem looks the same from every start time, and t
 
 *Strong solutions* is cited: Skorokhod's lemma (Revuz and Yor, 1999, Ch. VI, Lemma 2.1) reflects every continuous path at 0 through a map that is Lipschitz in the supremum norm, and Picard iteration with Gronwall's lemma gives one strong solution from every start. The paper runs every start on the same Brownian motion, so later proofs can compare two starts path by path.
 
-*Optimal stopping* applies a cited theorem, Peskir and Shiryaev's (2006, Ch. I, Thm. 2.2) for continuous gains, through an argument of the paper's own. The theorem asks for $\E\sup_s|G_s| < \infty$, which fails here because the gain is unbounded below, so the paper caps each decision at the flat bound for the lowest cost, $\bar b = B(c_{\min})$, and shows that the cap never lowers the expected gain. The cap uses {{ref:lem:structure}}(b), which the paper proves just after. The conclusion: the first entry into the stopping set, $\tau^*_{t,y}$, is optimal, and the value process stopped there is a martingale.
+*Optimal stopping* applies a cited theorem, Peskir and Shiryaev's (2006, Ch. I, Thm. 2.2) for continuous gains, through an argument of the paper's own. The theorem assumes $\E\sup_s|G_s| < \infty$, which fails here because the gain is unbounded below, so the paper caps each decision at the flat bound for the lowest cost, $\bar b = B(c_{\min})$, and shows that the cap never lowers the expected gain. The cap uses {{ref:lem:structure}}(b), which the paper proves just after. The conclusion: the first entry into the stopping set, $\tau^*_{t,y}$, is optimal, and the value process $V(t + s, Y_s) - \int_0^s c(t + u)\,du$, stopped there, is a martingale.
 """),
             _edges_md("standing"),
             ("exact", "1267-1271", "The standing assumptions, in Appendix A"),
@@ -309,7 +313,7 @@ The proof is the paper's own: subtract the exact equations for the two costs, br
         "title": r"{{ref:cor:transfer}} and {{ref:cor:limits}}: the transfer function and the limits",
         "blocks": [
             ("md", r"""
-Both read the kernel's transform. {{ref:cor:transfer}}: a sinusoidal change in the cost moves the bound by a sinusoid of the same frequency, whose swing is $|\tilde w(-i\omega)| < 1$ times the per-moment response's, with a phase lead between $0^\circ$ and $90^\circ$. {{ref:cor:limits}}: (a) very slow changes recover the per-moment rule; (b) the mean look-ahead has a closed form, tends to $\tfrac12$ as time becomes free and to 0 as it becomes expensive, and peaks at about {{MaxLookAhead}}, near $c_0 \approx$ {{MaxLookAheadCost}}, a maximum the paper finds numerically; (c) at high frequency, the swing falls like $\omega^{-1/2}$, and the lead tends to $45^\circ$. Both proofs are the paper's own, from {{ref:lem:kernel}}'s series and transform.
+Both read the kernel's transform. {{ref:cor:transfer}}: a sinusoidal change in the cost moves the bound, to first order, by a sinusoid of the same frequency, whose swing is $|\tilde w(-i\omega)| < 1$ times the per-moment response's, with a phase lead between $0^\circ$ and $90^\circ$. {{ref:cor:limits}}: (a) very slow changes recover the per-moment rule; (b) the mean look-ahead has a closed form, tends to $\tfrac12$ as time becomes free and to 0 as it becomes expensive, and peaks at about {{MaxLookAhead}}, near $c_0 \approx$ {{MaxLookAheadCost}}, a maximum the paper finds numerically; (c) at high frequency, the swing falls like $\omega^{-1/2}$, and the lead tends to $45^\circ$. Both proofs are the paper's own, from {{ref:lem:kernel}}'s series and transform.
 """),
             _edges_md("corollaries"),
             ("exact", "472-507", "The statements, in Section 4.3"),
@@ -395,7 +399,7 @@ Four citations, in the opening facts and in the proofs of {{ref:lem:envelope}} a
                 (r"“The appendix proves every step from scratch.”",
                  r"The paper calls two facts standard and cites them, and it follows De Angelis and Peskir (2020) for smooth fit and Peskir and Shiryaev (2006) for the smoothness in {{ref:lem:envelope}}. Each section above says what is the paper's own."),
                 (r"“The proofs cover deadlines and large steps.”",
-                 r"Every proof assumes a continuous cost between two positive constants, on an infinite horizon, and {{ref:thm:main}}, {{ref:prop:rule}}, and {{ref:prop:loss}} are about small changes around a constant cost. A deadline makes the cost infinite. There, the paper's rules are heuristics, judged by measurement ({{ref:sec:experiments}})."),
+                 r"The standing assumptions make the cost continuous and keep it between two positive constants, on an infinite horizon; the paper notes that {{ref:lem:structure}}(d) holds for any bounded measurable cost. {{ref:thm:main}}, {{ref:prop:rule}}, and {{ref:prop:loss}} are about small changes around a constant cost. A deadline makes the cost infinite. There, the paper's rules are heuristics, judged by measurement ({{ref:sec:experiments}})."),
                 (r"“{{ref:app:lopsided}} proves the rule for unequal rewards.”",
                  r"It derives the two bounds for a constant cost. The first-order argument for unequal rewards in {{ref:sec:lopsided}}, one kernel for each bound, is formal; the paper checks it numerically."),
             ]),
