@@ -236,7 +236,8 @@ for (const c of [0.02, 0.1, 0.5]) {
 {
   // the program scored from its own stop set: its score is its value and it matches exactPolicy's bounds; on four
   // schedules, three policies score at or below it: the per-moment rule, the first-order bound b0 + beta (eps = 1,
-  // around c(0), clipped at 0), and the exported bound, including where a high cost puts the exported bound at 0
+  // around c(0), clipped at 0), and the exported bound, including where a high cost puts the exported bound below the
+  // grid's first step
   const cases = [["Smooth", costOf({ id: "smooth" })], ["32-fold jump at 0.2", costOf({ id: "jump", params: { at: 0.2, factor: 32 } })], ["flat 0.98", () => 0.98], ["flat 3.2", () => 3.2]];
   const out = [];
   let ok = true;
@@ -252,9 +253,11 @@ for (const c of [0.02, 0.1, 0.5]) {
     out.push(`${name}: value ${P.value.toFixed(6)}; losses: per-moment ${lossPm.toExponential(1)}, first-order ${lossFo.toExponential(1)}, exported bound ${lossB.toExponential(1)}`);
   }
   check("scorer", "the program scored from its own stop set earns its value and equals exactPolicy's bounds; on four schedules the per-moment rule, the first-order bound, and the exported bound each score at or below it", ok, out.join("; "));
-  const P = M.gridProgram(() => 3.2, 8.5);
-  const zeroLoss = P.value - score(exactPolicy(() => 3.2, 8.5).bounds, P.ts, () => 3.2).reward;
-  check("scorer", "at a cost of 3.2 the exported bound reads 0 (as in the paper's code) though the center waits: scored as a bound it loses, scored from the stop set it doesn't", P.bounds[0] === 0 && P.best[0] > 0 && zeroLoss > 1e-3, `bound ${P.bounds[0]}, interpolated ${P.best[0].toFixed(4)}; the exported bound loses ${zeroLoss.toExponential(2)}`);
+  // at a cost of 3.2 the program waits at the center but decides one grid step out (the paper's code reports 0 there);
+  // the exported bound lies between the two, and scored as a bound it earns within 1e-4 of the stop set's value
+  const P = M.gridProgram(() => 3.2, 8.5), E = exactPolicy(() => 3.2, 8.5);
+  const gap = P.value - score(E.bounds, P.ts, () => 3.2).reward;
+  check("scorer", "at a cost of 3.2 the program waits at the center and decides one step out, where the paper's code reports 0: the exported bound lies between 0 and 0.02, and scored as a bound it earns within 1e-4 of the stop set's value", P.paperZero[0] === 1 && E.bounds[0] > 0 && E.bounds[0] < 0.02 && gap >= -1e-12 && gap < 1e-4, `bound ${E.bounds[0].toFixed(4)}; value ${P.value.toFixed(6)}, the bound scores ${gap.toExponential(2)} below it (an exported 0 would score 0.5, ${(P.value - 0.5).toExponential(2)} below)`);
 }
 {
   // the audit's drawing (2 for its first point, 0.01 after) at eps = 1: both ratios fit the axis, which grows to 7;
@@ -300,6 +303,6 @@ for (const c of [0.02, 0.1, 0.5]) {
   const la = S.lookaheadSay(1e-4, 0.504, 4.95, 0.619, 0.035) + S.lookaheadVerdict("half", 0.504, 1e-4, 4.95);
   check("words", "a nonpositive loss is a difference the grid can't measure, the first-order ratio is not credited to the conjecture, and powers of ten read as 10⁻⁴", /no reward measurable on this grid/.test(neg) && !/loses −/.test(neg) && /doesn't cover the first-order bound/.test(cj) && /10⁻⁴ to 10/.test(la) && /c₀ = 10⁻⁴/.test(la) && !/e-\d/.test(la + neg), `${neg} | ${la}`);
   const st = S.shiftState(false, 126, true), st0 = S.shiftState(true, 48, false), cut = S.lossSay(0.25, 1e-5, 1e-6, NaN, NaN, false, false);
-  check("words", "the shift plate says the program can still wait at 0 where its exported bound reads 0, the band's step 3 says expected time, and losses under the cutoff are called that", /can still wait at 0/.test(st) && !/wait/.test(st0) && /deadline/.test(st0) && /expected time spent above/.test(S.BAND_HEADS[2]) && /below the display cutoff/.test(cut) && !/resolv/.test(cut + S.conjSay(0.25, 1, false, 0, 1, false, 0, 1e-5, 1e-6)), st);
+  check("words", "the shift plate says where the program waits at 0 its bound is placed below the grid's first step and the paper's code reports 0, the band's step 3 says expected time, and losses under the cutoff are called that", /waits at 0 but decides at the grid's first step/.test(st) && /paper's code reports 0/.test(st) && !/wait/.test(st0) && /deadline/.test(st0) && /expected time spent above/.test(S.BAND_HEADS[2]) && /below the display cutoff/.test(cut) && !/resolv/.test(cut + S.conjSay(0.25, 1, false, 0, 1, false, 0, 1e-5, 1e-6)), st);
   check("words", "the loss sentence names a slope near 2 as second order, and the conjecture's sentence starts with the word Conjecture", /close to the 2/.test(S.lossSay(0.25, 1e-4, 1e-6, 1.95, 3.8, true, true)) && !/close to the 2/.test(S.lossSay(0.25, 1e-4, 1e-6, 1.2, 3.8, true, true)) && /^Conjecture/.test(S.conjSay(0.25, 1.02, true, 0.02, 1.4, false, 0.9)), S.lossSay(0.25, 1e-4, 1e-6, 1.95, 3.8, true, true));
 }

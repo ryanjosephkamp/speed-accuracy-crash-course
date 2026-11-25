@@ -79,7 +79,7 @@ export function shiftSay(label, G, flat = false) {
 
 export function shiftState(deadline, n, zero) {
   let s = `Time step 0.01, evidence step 0.02, ${deadline ? "run to the forced choice at the deadline" : "run to 6 time units past the window"}; ${n} times shown, every 0.02 and the last one; gaps measured from the program's exported bound.`;
-  if (zero) s += " Where the exported bound reads 0 (below the grid's first step, as the paper's code reports it), the program can still wait at 0 itself.";
+  if (zero) s += " Where the program waits at 0 but decides at the grid's first step, its bound is placed between the two, below 0.02; the paper's code reports 0 there.";
   return s;
 }
 
@@ -171,6 +171,6 @@ export function noLossNote() {
 export function lossState(horizon, centerWaits, kind) {
   let s = `Time step 0.01, evidence step 0.02, a forced choice at time ${horizon}; the best policy is scored from the program's own stop set, so no rule can score above it on the grid.`;
   if (kind === "conj") s += " The prediction leaves out the last grid time.";
-  if (centerWaits) s += " At some times the program waits at 0 but stops at the grid's first step; its bound is drawn between the two there (the paper's code reports 0).";
+  if (centerWaits) s += " At some times the program waits at 0 but decides at the grid's first step; its bound is placed between the two there, and the paper's code reports 0.";
   return s;
 }
