@@ -49,13 +49,14 @@ export function devTap(label, paper, page) {
 }
 /** The whole-percent agreement of two positive losses within half of each other, else null. */
 const within = (paper, page) => { const rel = Math.abs(page / paper - 1); return paper > 0 && page > 0 && rel <= 0.5 ? Math.max(1, Math.ceil(rel * 100)) : null; };
-/** How a loss on the page's grid compares with the paper's: within a share, or apart; a pair that differs in sign or by
- * more than half is below what the coarser grid resolves (the paper's own reading of two grids that differ widely). */
+/** How a loss on the page's grid compares with the paper's: within a share, or apart, in sign or by how much of the
+ * paper's. A comparison of two grids, it measures neither grid's error. */
 export function agree(who, paper, page) {
   if (!Number.isFinite(paper) || !Number.isFinite(page)) return "";
   const w = within(paper, page);
   if (w !== null) return `The two grids agree on the ${who} loss to within ${w}%.`;
-  return `The two grids disagree on the ${who} loss${Math.sign(paper) !== Math.sign(page) ? " even in sign" : ""}: at ${num(paper)}, it is below what the page's grid resolves.`;
+  if (Math.sign(paper) !== Math.sign(page)) return `The two grids differ on the ${who} loss even in sign.`;
+  return `The two grids differ on the ${who} loss by ${Math.round(100 * Math.abs(page / paper - 1))}% of the paper's.`;
 }
 
 // ---- the held-out schedules ------------------------------------------------------------------------------------------
@@ -161,7 +162,7 @@ export function scalingPage(rows, paper) {
   let s = `On this page's grid, the per-moment rule's loss at the constant cost is ${num(floor.pm)} points per 100 trials (the dotted line marks its size): one signed difference at one cost, not an error bound for the other amplitudes. `;
   const pctOf = (r) => `${Math.max(1, Math.ceil(100 * Math.abs(r.wb / pOf(r.a).wb - 1)))}%`;
   s += wbOk.length ? `The weighted rule's loss on this grid is within ${list(wbOk.map((r, i) => (i ? `${pctOf(r)} at a = ${r.a}` : `${pctOf(r)} of the paper's grid at a = ${r.a}`)))}` : "The weighted rule's loss on this grid is not within half of the paper's grid at any amplitude";
-  s += wbOff.length ? `; at a = ${list(wbOff.map((r) => String(r.a)))}, this grid and the paper's differ ${wbOff.some((r) => Math.sign(r.wb) !== Math.sign(pOf(r.a).wb)) ? "in sign or " : ""}by more than half, below what this coarser grid resolves` : "";
+  s += wbOff.length ? `; at a = ${list(wbOff.map((r) => String(r.a)))}, the two grids differ ${wbOff.some((r) => Math.sign(r.wb) !== Math.sign(pOf(r.a).wb)) ? "in sign or " : ""}by more than half: this grid gives ${list(wbOff.map((r) => num(r.wb)))}, the paper's ${list(wbOff.map((r) => num(pOf(r.a).wb)))}` : "";
   s += pmOk.length ? `. The per-moment loss is within 10% of the paper's grid at a = ${list(pmOk.map(String))}.` : ". The per-moment loss differs from the paper's grid by more than 10% at every amplitude.";
   return s;
 }

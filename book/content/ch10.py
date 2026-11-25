@@ -207,7 +207,7 @@ For your schedule, the plate scores all seven rules and gives the same three rea
 """),
             ("plate", "yours"),
             ("plain", r"""
-The page's grid checks the evidence every 0.01 time units on an evidence grid of 0.02: five times coarser in time and four times in evidence than the paper's. Its losses are its own measurement. Its rules, its program, and its scorer are held to the paper's code run on the same grid, on the book's schedules and on some of the paper's own (the line under the plate counts those checks). On the paper's schedules that the checks run, its per-moment losses come within 5% of the paper's. Its weighted losses, which are far smaller, agree less closely: within 30% where they are at least 0.001, and below that they can differ even in sign, beyond what this grid resolves.
+The page's grid checks the evidence every 0.01 time units on an evidence grid of 0.02: five times coarser in time and four times in evidence than the paper's. Its losses are its own measurement. Its rules, its program, and its scorer are held to the paper's code run on the same grid, on the book's schedules and on some of the paper's own (the line under the plate counts those checks). On the paper's schedules that the checks run, its per-moment losses come within 5% of the paper's. Its weighted losses, which are far smaller, agree less closely: within 30% where they are at least 0.001, and below that they can differ even in sign. These compare two grids; they don't measure either grid's own error.
 """),
             ("exact", r"865-866|\Cref{tab:behavior} reports|decision time.", "The paper's words"),
         ],
@@ -217,7 +217,7 @@ The page's grid checks the evidence every 0.01 time units on an evidence grid of
         "title": "Close in reward, wrong in timing",
         "blocks": [
             ("plain", r"""
-The per-moment rule's bound is wrong at first order. For a small change $\varepsilon\gamma$ around a constant cost, its error divided by $\varepsilon$ tends to $B'(c_0)\,(\gamma - w \star \gamma)$, which isn't the zero function unless $\gamma$ is constant, though it can be zero at single moments (chapter 6). In reward, though, it is already close to optimal. That is consistent with {{ref:prop:loss}}, a statement about small changes in the continuous model: a policy that stops when the evidence first reaches a continuous bound within a constant times $\varepsilon$ of $b_0$ loses reward only of order $\varepsilon^2$, because the reward is flat at its peak (chapter 7).
+The per-moment rule's bound is wrong at first order. For a small change $\varepsilon\gamma$ around a constant cost, its error divided by $\varepsilon$ tends to $B'(c_0)\,(\gamma - w \star \gamma)$, which isn't the zero function unless $\gamma$ is constant, though it can vanish at particular times or on whole intervals: where $\gamma$ stays constant from some time on, for example, $w \star \gamma$ equals it there (chapter 6). In reward, though, it is already close to optimal. That is consistent with {{ref:prop:loss}}, a statement about small changes in the continuous model: from a fixed start $y_0$ with $0 \le y_0 < b_0$, a policy that stops when the evidence first reaches a continuous bound within a constant times $\varepsilon$ of $b_0$ loses reward only of order $\varepsilon^2$, because the reward is flat at its peak (chapter 7).
 
 The held-out schedules measure it for changes that aren't small. The per-moment rule gives up a median of {{HeldShareMedian}}% of the reward. It loses under 0.1 point per 100 trials on {{HeldPerMomentUnderTenth}} of the {{HeldCount}} schedules, and 1 or more on only {{HeldPerMomentOverOne}}, up to {{HeldPerMomentMax}} on the worst.
 
@@ -231,7 +231,7 @@ What the look-ahead changes is where the bound sits and when it moves. So, in th
 """),
             ("exact", "144-147|In reward|moves.,1207-1212", "The paper's words: its introduction, and the start of Section 9"),
             ("limits", r"""
-**What is measured, and what is proved.** Measured: the losses and shares on the held-out schedules. Proved: {{ref:prop:loss}}, in the continuous model, for small changes around a constant cost, a fixed start, and policies that stop when the evidence first reaches a continuous bound within a constant times $\varepsilon$ of $b_0$. The held-out schedules have large changes and deadlines, outside the proposition; the measurement is consistent with it, not a consequence of it.
+**What is measured, and what is proved.** Measured: the losses and shares on the held-out schedules. Proved: {{ref:prop:loss}}, in the continuous model, for small changes around a constant cost, a fixed start $y_0$ with $0 \le y_0 < b_0$, and policies that stop when the evidence first reaches a continuous bound within a constant times $\varepsilon$ of $b_0$. The held-out schedules have large changes and deadlines, outside the proposition; the measurement is consistent with it, not a consequence of it.
 """),
         ],
     },
@@ -274,7 +274,7 @@ Each amplitude is scored on the paper's grid and again on one twice as fine in t
             ("plain", r"""
 From $a = 0.05$ to 0.4, each doubling multiplies the per-moment rule's loss by {{ScalingPmGrowthLow}} to {{ScalingPmGrowthHigh}}, close to the 4 of a second-order loss; its effective order over that range, the slope of log loss against log amplitude, is {{ScalingPmOrder}}. The weighted rule's loss is far smaller. The paper reads its order only from $a = 0.2$ up, where the two grids agree to within {{ScalingGridChangeTwo}}% at $a = 0.2$ and better above. At $a = 0.1$, they happen to agree more closely, on a loss under $10^{-6}$ points per 100 trials, and at the smallest amplitude they differ even in sign. A loss of $10^{-6}$ points per 100 trials is a difference of $10^{-8}$ in the reward per trial, so a small change in the grid can move such a loss by as much as its size. From $a = 0.2$ to 0.8, its effective order is {{ScalingWbOrderLow}} on one grid and {{ScalingWbOrderHigh}} on the other. That is consistent with the heuristic fourth order of chapter 7, but it is a measurement over a short range, not an asymptotic result.
 
-The page's own grid is coarser than both. Run the shape on it, and at the three smallest amplitudes its weighted losses differ from the paper's grid in sign or by more than half: below what this grid resolves. At the constant cost, where the per-moment rule would be optimal on an infinite horizon with continuous checking, this grid scores it a small negative loss; that is one signed difference at one cost, not an error bound for the other amplitudes.
+The page's own grid is coarser than both. Run the shape on it, and at the three smallest amplitudes its weighted losses differ from the paper's grid in sign or by more than half; the plate's sentence gives both grids' signed values. That is a comparison of two grids, not a measure of what either one resolves. At the constant cost, where the per-moment rule would be optimal on an infinite horizon with continuous checking, this grid scores it a small negative loss; that is one signed difference at one cost, not an error bound for the other amplitudes.
 """),
             ("table", "tab:scaling"),
             ("exact", "957-969", "The paper's scaling test"),
@@ -343,7 +343,7 @@ If the loss is about $K a^p$, then $\log(L(a_2)/L(a_1))/\log(a_2/a_1) = p$; that
 """),
                 (r"Why aren't the weighted rule's losses at the smallest amplitudes used for its order?",
                  r"""
-At $a = 0.05$, the two grids disagree even in sign ({{T:tab_scaling:1:4}} against {{T:tab_scaling:1:5}}): the loss is below what the grid resolves. At $a = 0.1$, the two values are close ({{T:tab_scaling:2:4}} and {{T:tab_scaling:2:5}}), but both are tiny, and the paper estimates the effective order only from $a = 0.2$ to 0.8, where it reports that the grids agree to within {{ScalingGridChangeTwo}}% or better.
+At $a = 0.05$, the two grids disagree even in sign ({{T:tab_scaling:1:4}} against {{T:tab_scaling:1:5}}): in the words of the table's caption, the loss is below what the grid resolves. At $a = 0.1$, the two values are close ({{T:tab_scaling:2:4}} and {{T:tab_scaling:2:5}}), but both are tiny, and the paper estimates the effective order only from $a = 0.2$ to 0.8, where it reports that the grids agree to within {{ScalingGridChangeTwo}}% or better.
 """),
             ]),
             ("md", "**Common misreadings.**"),

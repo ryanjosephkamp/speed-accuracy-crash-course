@@ -4,8 +4,8 @@ const f2 = (x) => x.toFixed(2), f3 = (x) => x.toFixed(3), f4 = (x) => x.toFixed(
 const pct = (x) => `${Math.round(x * 100)}%`;
 /** A share as a percent, with a decimal below 10%. */
 const pc1 = (x) => (Math.abs(x) < 0.1 ? (x * 100).toFixed(1) : String(Math.round(x * 100))) + "%";
-/** A loss in points per 100 trials, to the decimals that show it. */
-export const pts = (x) => (Math.abs(x) >= 0.1 ? x.toFixed(3) : Math.abs(x) >= 0.001 ? x.toFixed(4) : x.toFixed(5));
+/** A loss in points per 100 trials, to the decimals that show it, with a minus sign for a negative one. */
+export const pts = (x) => (Math.abs(x) >= 0.1 ? x.toFixed(3) : Math.abs(x) >= 0.001 ? x.toFixed(4) : x.toFixed(5)).replace(/^-/, "−");
 const SUP = { "-": "⁻", 0: "⁰", 1: "¹", 2: "²", 3: "³", 4: "⁴", 5: "⁵", 6: "⁶", 7: "⁷", 8: "⁸", 9: "⁹" };
 /** A small number as a reader writes it: 5 × 10⁻⁶ (one significant figure), or "under 10⁻⁹". */
 export function sci(x) {
@@ -78,11 +78,12 @@ export function trialsVerdict(guess, needed) {
 }
 
 /** The sentence under the trials plate: exact is the density's score on the page's grid and fine on a grid four
- * times finer, which the trials' continuous evidence is closer to; needed is null until the reader has guessed or
- * pressed Show me. */
+ * times finer (the same bound and time step), both approximations of the trials' continuous-evidence expected reward;
+ * needed is null until the reader has guessed or pressed Show me. */
 export function trialsSay(n, mean, se, exact, fine, sd, target, needed) {
-  const z = (mean - fine) / se;
-  let s = `After ${count(n)} simulated trials, the average reward is ${f4(mean)} ± ${f4(2 * se)} (two standard errors, sampling only). The density gives ${f4(exact)} on this page's grid and ${f4(fine)} on one four times finer, ${Math.abs(z).toFixed(1)} standard errors from the trials' average: the trials' evidence isn't on a grid, so they differ from the scorer by its grid's error too, here ${sci(Math.abs(fine - exact))} between the two grids. `;
+  const z = (mean - fine) / se, d = fine - exact;
+  const move = Math.abs(d) < 1e-9 ? "by less than 10⁻⁹" : `by ${d > 0 ? "+" : "−"}${sci(Math.abs(d))}`;
+  let s = `After ${count(n)} simulated trials, the average reward is ${f4(mean)} ± ${f4(2 * se)} (two standard errors, sampling only). The density gives ${f4(exact)} on this page's grid and ${f4(fine)} on one four times finer: at the same bound and time step, refining the evidence step moves the score ${move}. The trials' evidence isn't on a grid; the finer score is an approximation to their expected reward, not that value, and their average is ${Math.abs(z).toFixed(1)} standard errors ${z >= 0 ? "above" : "below"} it. `;
   s += `One trial's reward has a spread of ${f3(sd)}`;
   s += needed === null ? ", and the standard error shrinks like one over the square root of the number of trials." : `, so a standard error of 2 × 10⁻⁵ would take about ${count(needed)} trials.`;
   return s;
@@ -123,11 +124,15 @@ export function coefSay(steady, all, lastK, constant) {
   return s.trim();
 }
 
-/** The sentence under the shift plate: the two rules' losses with and without the shift (points per 100 trials). */
-export function shiftSay(L, same) {
+/** The sentence under the shift plate: the two rules' losses with and without the shift (points per 100 trials);
+ * same when both rules are the constant-cost bound, and horizon the program's forced choice. */
+export function shiftSay(L, same, horizon = 8.5) {
   const both = (x) => (pts(x.on) === pts(x.off) ? `${pts(x.on)} with the shift and the same without it`
     : `${pts(x.on)} with the shift and ${pts(x.off)} without it${x.on < x.off ? "" : ", so here the shift makes it worse"}`);
-  if (same) return `On this schedule both rules give the constant-cost bound, which loses ${both(L.pm)} (points per 100 trials, against the program on the same grid).${L.pm.on < L.pm.off ? " What is left with the shift is the grid's own resolution." : ""}`;
+  if (same) {
+    const sign = L.pm.on < 0 ? " Here it is negative: the program's bound as scored, read between grid points, earns slightly less than the program's own value, and the rule's bound lands in between." : "";
+    return `On this schedule both rules give the constant-cost bound, which loses ${both(L.pm)} (points per 100 trials, against the program on the same grid). The loss left with the shift is a measured difference, not an error estimate: it includes the forced choice at ${f2(horizon)}, which the rule doesn't know about; the shift itself, which is right only to leading order; and the grid.${sign}`;
+  }
   return `The per-moment rule loses ${both(L.pm)}; the weighted rule loses ${both(L.wb)} (points per 100 trials, against the program on the same grid).`;
 }
 

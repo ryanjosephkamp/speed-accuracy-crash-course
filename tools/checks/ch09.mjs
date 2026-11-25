@@ -267,19 +267,24 @@ check("sweep", "the plate's SweepSwingThird and SweepSwingSixTenths are the pape
     const T = Array.from(B.ts), b = Array.from(B.bounds, (v) => (Number.isFinite(v) ? v : 5));
     const F = M.forward(b, T, cost, { upto: Math.round((dl ?? 2.5) / 0.01) });
     const C = M.shiftCoef(cost, H), Lr = M.ruleLosses(cost, H, { view: dl ?? 2.5 }), Rf = M.refine(cost, H);
-    const nums = [F.reward, F.p, F.rt, F.paid, Lr.loss.pm.on, Lr.loss.pm.off, Lr.loss.wb.on, Lr.loss.wb.off, ...Rf.flatMap((r) => [r.pm, r.wb])];
+    const Tr = M.trialStats(M.trials(b, T, cost, 2000, K.rng(1)));
+    const nums = [F.reward, F.p, F.rt, F.paid, Tr.mean, Tr.sd, Lr.loss.pm.on, Lr.loss.pm.off, Lr.loss.wb.on, Lr.loss.wb.off, ...Rf.flatMap((r) => [r.pm, r.wb])];
     const lastT = Lr.t[Lr.t.length - 1];
     const sents = [
       S.backwardSay(T[0], B.bounds[0], 0.3, H, dl !== null, 5, 0.02), S.densitySay("best", 1, 0.3, 0.1, F),
-      S.shiftSay(Lr.loss, choice.id === "constant"), S.refineSay(Rf, name),
+      S.trialsSay(Tr.n, Tr.mean, Tr.se, F.reward, F.reward, Tr.sd, 2e-5, M.trialsFor(Tr.sd, 2e-5)),
+      S.shiftSay(Lr.loss, choice.id === "constant", H), S.refineSay(Rf, name),
     ];
     // the density plate's last kept step is the end of what it draws, and at a deadline every trial has decided by then
     const kEnd = Math.round((dl ?? 2.5) / 0.01), dEnd = M.decidedBy(F, F.snapK[F.snapK.length - 1], dl !== null ? T.length - 1 : null);
     const okD = F.snapK[F.snapK.length - 1] === kEnd && (dl === null || Math.abs(dEnd.up + dEnd.lo - 1) < 1e-12) && dEnd.up + dEnd.lo <= 1 + 1e-12;
-    const okC = Math.abs(C.t[C.t.length - 1] - (H - 0.01)) < 1e-9;
-    check("edges", `${name}: every plate's computation runs; the program, the density, the coefficient, and the shift plot all end where they should; and the numbers and sentences are clean`,
-      okB && okD && okC && finite(nums) && C.k.length > 0 && Math.abs(lastT - (dl ?? 2.5)) < 1e-9 && !sents.some(bad) && nums.slice(4).every((v) => v > -1e-3),
-      `reward ${F.reward.toFixed(4)}, decided by the plot's end ${(dEnd.up + dEnd.lo).toFixed(6)}, losses ${nums.slice(4).map((v) => v.toFixed(4)).join(" ")}, plots end at ${lastT} and ${C.t[C.t.length - 1].toFixed(2)}`);
+    // the coefficient: the solver compares up to the last check before the horizon, and the plate draws the times up to
+    // its view, so the drawn curve ends at 2.5 or at the last check before a deadline
+    const drawnC = C.t.filter((t) => t <= (dl ?? 2.5) + 1e-9), endC = drawnC[drawnC.length - 1];
+    const okC = Math.abs(C.t[C.t.length - 1] - (H - 0.01)) < 1e-9 && Math.abs(endC - (dl !== null ? dl - 0.01 : 2.5)) < 1e-9;
+    check("edges", `${name}: the computations of the six plates that take the reader's schedule (the program, the density, a run of 2,000 trials, the coefficient, the shift, and the refinement) run; the program, the density, the coefficient's drawn curve, and the shift plot end where they should; and their numbers and sentences are clean`,
+      okB && okD && okC && finite(nums) && C.k.length > 0 && Math.abs(lastT - (dl ?? 2.5)) < 1e-9 && !sents.some(bad) && nums.slice(6).every((v) => v > -1e-3),
+      `reward ${F.reward.toFixed(4)}, decided by the plot's end ${(dEnd.up + dEnd.lo).toFixed(6)}, trials ${Tr.mean.toFixed(3)}, losses ${nums.slice(6).map((v) => v.toFixed(4)).join(" ")}, plots end at ${lastT} and ${endC.toFixed(2)}`);
   }
   // the refinement on the reader's schedule: every grid gives a loss, and the page's grid's is model.js's
   const r = M.refine(costOf(preset("jump")), 8.5);
@@ -327,9 +332,12 @@ check("sweep", "the plate's SweepSwingThird and SweepSwingSixTenths are the pape
     S.shiftSay({ pm: { on: 1, off: 1 }, wb: { on: 0.01, off: 0.05 } }, false));
   check("words", "the trials verdict counts powers of ten the right way", /about ten times more/.test(S.trialsVerdict(1e7, 1.1e8)) && /about 2 powers of ten more/.test(S.trialsVerdict(1e6, 1.2e8)) && /About right/.test(S.trialsVerdict(3e8, 4.7e8)), S.trialsVerdict(1e6, 1.2e8));
   check("words", "counts read as a reader says them", S.count(4.7e8) === "470 million" && S.count(2345) === "2,345" && S.count(1.25e10) === "13 billion" && S.count(4.1e9) === "4.1 billion" && S.count(1e6) === "1 million", [4.7e8, 2345, 1.25e10, 4.1e9, 1e6].map(S.count).join(", "));
-  check("words", "the trials sentence keeps the number of trials needed back until the reader has guessed, and names the grid's error beside the sampling error",
-    !/million|billion/.test(S.trialsSay(1e5, 0.709, 0.0014, 0.7103, 0.71031, 0.437, 2e-5, null)) && /476 million/.test(S.trialsSay(1e5, 0.709, 0.0014, 0.7103, 0.71031, 0.437, 2e-5, 4.76e8))
-    && /grid's error/.test(S.trialsSay(1e5, 0.709, 0.0014, 0.7103, 0.71031, 0.437, 2e-5, null)), "with and without");
+  {
+    const t1 = S.trialsSay(1e5, 0.709, 0.0014, 0.7103, 0.71031, 0.437, 2e-5, null), t2 = S.trialsSay(1e5, 0.709, 0.0014, 0.7103, 0.70029, 0.437, 2e-5, null);
+    check("words", "the trials sentence keeps the number of trials needed back until the reader has guessed, gives the signed move of the score from the evidence step (not a grid error), and calls the finer score an approximation to the trials' expected reward",
+      !/million|billion/.test(t1) && /476 million/.test(S.trialsSay(1e5, 0.709, 0.0014, 0.7103, 0.71031, 0.437, 2e-5, 4.76e8))
+      && /moves the score by \+1 × 10⁻⁵/.test(t1) && /moves the score by −1 × 10⁻²/.test(t2) && /an approximation to their expected reward/.test(t1) && !/grid's error/.test(t1), t1);
+  }
   check("words", "the backward sentence places a bound below the grid's first step between the center and that step, and says the paper's code reports 0 there",
     /placed between them/.test(S.backwardSay(1, 0.0183, 0.01, 8.5, false, 5, 0.02)) && /reports 0/.test(S.backwardSay(1, 0.0183, 0.01, 8.5, false, 5, 0.02)) && /even at x = 0/.test(S.backwardSay(1, 0, 0, 8.5, false, 5, 0.02)), S.backwardSay(1, 0.0183, 0.01, 8.5, false, 5, 0.02));
   check("words", "the hero's list ends with an Oxford comma and 'and'", /wrongly, and/.test(S.heroLabel(0.6, 0.75, 0.24)), S.heroLabel(0.6, 0.75, 0.24));
@@ -396,8 +404,14 @@ check("sweep", "the plate's SweepSwingThird and SweepSwingSixTenths are the pape
     }
   }
   // the coefficient plate's last comparison is the last check before the deadline
-  const r = M.shiftCoef((t) => (t <= 1 + 1e-12 ? 0.1 : Infinity), 1);
-  check("coef", "the coefficient plate compares the last check before a deadline (0.99 for a deadline at 1), as well as every other check", Math.abs(r.t[r.t.length - 1] - 0.99) < 1e-9 && Math.abs(r.t[1] - 0.02) < 1e-9, `last ${r.t[r.t.length - 1]}, ${r.t.length} times`);
+  let cOk = true, cDet = [];
+  for (const [at, n] of [[1, 51], [1.05, 53]]) {
+    const r = M.shiftCoef((t) => (t <= at + 1e-12 ? 0.1 : Infinity), at), last = Math.round(at / 0.01) - 1;
+    const evens = r.t.slice(0, Math.floor(last / 2) + 1), tail = r.t.slice(evens.length);
+    cOk = cOk && r.t.length === n && evens.every((t, i) => Math.abs(t - 0.02 * i) < 1e-9) && (last % 2 === 0 ? tail.length === 0 : tail.length === 1 && Math.abs(tail[0] - last * 0.01) < 1e-9);
+    cDet.push(`deadline ${at}: ${r.t.length} times, ${r.t[0]} to ${r.t[r.t.length - 1].toFixed(2)}`);
+  }
+  check("coef", "the coefficient plate compares every other check from 0 (0, 0.02, 0.04, ...) and the last check before a deadline (0.99 for a deadline at 1, which is not one of them; 1.04 for one at 1.05, which is), with no time missing or repeated", cOk, cDet.join("; "));
 }
 {
   // the trials: their continuous evidence against the scorer's grid, on every schedule the book offers at its settings
@@ -408,7 +422,7 @@ check("sweep", "the plate's SweepSwingThird and SweepSwingSixTenths are the pape
     const sd = Math.sqrt(M.trialStats(M.trials(b, T, c, 4000, K.rng(3))).sd ** 2), se = sd / Math.sqrt(1e5);
     worstGrid = Math.max(worstGrid, g); if (g / se > ratio) { ratio = g / se; names = [choice.id]; }
   }
-  check("trials", "the text's claim: on the book's schedules (and a flat drawing at its top cost), the grid's own error, an evidence step of 0.02 against 0.0025, is far smaller (under a fifth) than the standard error of 100,000 trials",
+  check("trials", "the text's claim: on the book's schedules (and a flat drawing at its top cost), the move of the best bound's score when the scorer's evidence step goes from 0.02 to 0.0025 (same bound and time step) is under a fifth of the standard error of 100,000 trials",
     ratio < 0.2, `largest grid move ${worstGrid.toExponential(1)}, at most ${ratio.toFixed(3)} standard errors (${names.join(", ")})`);
   const cost = costOf(preset("jump")), { ts, bounds } = exactPolicy(cost, 8.5), T = Array.from(ts), b = Array.from(bounds, (v) => (Number.isFinite(v) ? v : 5));
   const st = M.trialStats(M.trials(b, T, cost, 40000, K.rng(2026))), fine = score(b, T, cost, M.FINE_H).reward;
@@ -420,5 +434,92 @@ check("sweep", "the plate's SweepSwingThird and SweepSwingSixTenths are the pape
   const k = B.keepK.find((kk) => B.bounds[kk] > 0 && B.bounds[kk] < B.h);
   const sent = k === undefined ? "" : S.backwardSay(B.ts[k], B.bounds[k], 0.01, 8.5, false, 5, B.h);
   check("backward", "on the 32-fold jump, some slice's bound lies between the center and the grid's first step, and the plate's sentence says it is placed there and that the paper's code reports 0",
-    k !== undefined && /placed between them/.test(sent) && !/reads as 0/.test(sent), k === undefined ? "none" : `at time ${B.ts[k].toFixed(2)}, bound ${B.bounds[k].toFixed(5)}`);
+    k !== undefined && /placed between them/.test(sent) && /the paper's code reports 0 there/.test(sent) && !/reads as 0/.test(sent), k === undefined ? "none" : `at time ${B.ts[k].toFixed(2)}, bound ${B.bounds[k].toFixed(5)}`);
+}
+
+// ---- round 4 of the audits: the rate plot's bins, the shift's condition with clipping, the overshoot's window, and the
+// constant-cost residual's sentence ------------------------------------------------------------------------------------
+{
+  // the density plate's rate plot draws M.rateBins: pairs of steps, a last single step where a deadline on an even step
+  // leaves one unpaired, and the forced choice apart, as shares. Its bins times their widths, plus those shares, must be
+  // the cumulative correct and wrong totals the readings print, at deadlines on odd (0.45, 1.05) and even (1, 3) steps
+  let worst = 0, cover = true, det = [];
+  for (const at of [0.45, 1, 1.05, 3]) {
+    const choice = preset("deadline", { at }), cost = costOf(choice), { ts, bounds } = exactPolicy(cost, at), T = Array.from(ts), kD = T.length - 1;
+    for (const [name, b] of [["per-moment", Array.from(perMoment(cost, T), (v) => toDiscrete(v, 0.01))], ["best", Array.from(bounds, (v) => (Number.isFinite(v) ? v : 5))]]) {
+      const F = M.forward(b, T, cost, { every: 2, upto: kD }), R = M.rateBins(F, T, kD, kD), d = M.decidedBy(F, kD, kD);
+      const sum = (a) => a.reduce((x, v, i) => x + v * R.w[i] * R.dt, 0);
+      const up = sum(R.up) + R.forced.up, lo = sum(R.lo) + R.forced.lo;
+      worst = Math.max(worst, Math.abs(up - d.up), Math.abs(lo - d.lo), Math.abs(up - F.p));
+      cover = cover && R.w.reduce((x, v) => x + v, 0) === kD - 1 && R.forced.k === kD && (kD % 2 === 0) === (R.w[R.w.length - 1] === 1);
+      if (name === "per-moment") det.push(`${at}: last bin ${R.w[R.w.length - 1]} step${R.w[R.w.length - 1] > 1 ? "s" : ""} at ${R.t[R.t.length - 1].toFixed(3)}, forced ${(100 * (R.forced.up + R.forced.lo)).toFixed(4)}%`);
+    }
+  }
+  // and without a deadline, to the window's end
+  {
+    const cost = costOf(preset("jump")), { ts, bounds } = exactPolicy(cost, 8.5), T = Array.from(ts), kE = Math.round(2.5 / 0.01);
+    const F = M.forward(Array.from(bounds, (v) => (Number.isFinite(v) ? v : 5)), T, cost, { every: 2, upto: kE }), R = M.rateBins(F, T, kE, null), d = M.decidedBy(F, kE);
+    const sum = (a) => a.reduce((x, v, i) => x + v * R.w[i] * R.dt, 0);
+    worst = Math.max(worst, Math.abs(sum(R.up) - d.up), Math.abs(sum(R.lo) - d.lo));
+    cover = cover && R.forced === null && R.w.reduce((x, v) => x + v, 0) === kE;
+  }
+  check("density", "the rate plot's bins (rateBins, what the plate draws) cover every ordinary step once, and with the forced choice as a separate point mass reproduce the cumulative correct and wrong totals (within 1e-12), at deadlines on odd (0.45, 1.05) and even (1, 3) steps for the per-moment rule and the best bound, and on the jump to the window's end",
+    worst < 1e-12 && cover, `largest gap ${worst.toExponential(1)}; ${det.join("; ")}`);
+}
+{
+  // the text's condition: scoring moves a bound bh in by delta and clips at 0, so by min(delta, bh), and that brings it
+  // closer to the program's bound b exactly where bh - b > min(delta, bh) / 2. Tested at every step on the book's
+  // schedules and on Rising from 0 at rate 2, where the unclipped condition, bh - b > delta / 2, fails
+  const dlt = 0.5826 * Math.sqrt(0.01);
+  let n = 0, wrong = 0, unclipped = 0, first = "";
+  for (const choice of [...ALL, preset("rising", { at: 0, rate: 2 })]) {
+    const cost = costOf(choice), H = horizonOf(choice), R = M.ruleLosses(cost, H, { view: H, every: 1 });
+    R.t.forEach((t, i) => {
+      const b = R.exact[i];
+      if (!Number.isFinite(b)) return;
+      for (const bh of [R.pm[i], R.wb[i]]) {
+        if (!Number.isFinite(bh) || bh < 0) continue;
+        const moved = M.asScored(bh, 0.01, true), gain = Math.abs(bh - b) - Math.abs(moved - b), edge = bh - b - Math.min(dlt, bh) / 2;
+        if (Math.abs(gain) < 1e-12 || Math.abs(edge) < 1e-12) continue;   // a tie, within rounding
+        n++;
+        if ((gain > 0) !== (edge > 0)) { wrong++; if (!first) first = `${choice.id} at ${t.toFixed(2)}`; }
+        if ((gain > 0) !== (bh - b > dlt / 2)) unclipped++;
+      }
+    });
+  }
+  check("shift", "the text's condition with clipping: at every step on the book's schedules and Rising from 0 at rate 2, moving a rule's bound in by 0.5826 sqrt(0.01) and clipping at 0 brings it closer to the program's bound exactly where it sat more than half its actual move, min(delta, bound) / 2, above it; the unclipped delta / 2 condition fails at some of those steps",
+    wrong === 0 && unclipped > 0 && n > 1000, `${n} comparisons, ${wrong} against the condition${first ? " (" + first + ")" : ""}; ${unclipped} against the unclipped one`);
+}
+{
+  // the overshoot plate: a ring only inside the nine checks drawn, and the time instead when the first fine step past the
+  // bound comes before them (the plate's run for ?seed=19 at dt = 0.000625, and the default seed at 0.0025)
+  const b = K.B(0.1), runOf = (seed, dt) => M.onePath(b, dt, K.rng(seed + 101 + Math.round(dt * 1e6)));
+  const m19 = M.firstPastMark(runOf(19, 0.000625), 0.000625), m25 = M.firstPastMark(runOf(2026, 0.0025), 0.0025), m04 = M.firstPastMark(runOf(2026, 0.04), 0.04);
+  let ok = true;
+  for (let i = 0; i < 200; i++) {
+    const dt = [0.04, 0.01, 0.0025, 0.000625][i % 4], P = M.onePath(b, dt, K.rng(900 + i)), m = M.firstPastMark(P, dt), tBeg = Math.max(0, P.stop[0] - 9 * dt);
+    const want = !(P.first[0] < P.stop[0] - 1e-12) ? null : P.first[0] >= tBeg - 1e-12 ? "ring" : "earlier";
+    if (m.kind !== want) ok = false;
+  }
+  check("overshoot", "the overshoot plate rings the first fine step past the bound only inside the nine checks it draws, and gives its time when it comes earlier: earlier for ?seed=19 at dt = 0.000625 (and the default seed at 0.0025), ringed for the opening run at 0.04, and the rule holds on 200 more runs",
+    ok && m19.kind === "earlier" && m19.t < m19.tBeg && m25.kind === "earlier" && m04.kind === "ring", `seed 19: first at ${m19.t.toFixed(6)}, window from ${m19.tBeg.toFixed(6)}; opening run ringed at ${m04.t.toFixed(4)}`);
+}
+{
+  // the shift sentence on a flat cost: the residual named as a measured difference with the forced choice, the shift's
+  // leading order, and the grid, and, at a flat 0.2, a negative loss explained by the scored reference
+  const L1 = M.ruleLosses(costOf(preset("constant")), 8.5).loss, L2 = M.ruleLosses(costOf({ id: "draw", points: Array(26).fill(0.2) }), 8.5).loss;
+  const s1 = S.shiftSay(L1, true, 8.5), s2 = S.shiftSay(L2, true, 8.5);
+  check("words", "the shift sentence on a flat cost names the forced choice at 8.5, the shift's leading order, and the grid in the residual, never the grid alone, and at a flat 0.2, where the loss with the shift is negative, says why",
+    /forced choice at 8\.50/.test(s1) && /right only to leading order/.test(s1) && !/grid's own resolution/.test(s1) && !/negative/.test(s1) && L2.pm.on < 0 && /negative/.test(s2) && /read between grid points/.test(s2),
+    `flat 0.2: ${S.pts(L2.pm.on)} with the shift; ${s2}`);
+}
+{
+  // the grid plate's legend (gridKey, what the plate prints) follows the unit: as shares, it names the two weighted losses
+  // the floor leaves out, which the caption names too
+  const abs = M.gridKey(M.RESULTS12, "abs"), rel = M.gridKey(M.RESULTS12, "rel");
+  const cap = readFileSync(join(ROOT, "book/content/ch09.py"), "utf8");
+  check("grid", "the grid legend in points names all 8 schedules for both rules; as shares, all 8 per-moment and 6 of 8 weighted, with Smooth 4 and Step 10 named as left out, as the caption names them",
+    abs.pm === "Per-moment, all 8 schedules" && abs.wb === "Weighted, all 8 schedules" && rel.pm === "Per-moment, all 8 schedules" && rel.wb === "Weighted, 6 of 8 schedules (Smooth 4 and Step 10 left out)"
+    && cap.includes("leaves out the weighted losses of Smooth 4 (it prints as {{T:tab_grid:2:7}}) and Step 10 ({{T:tab_grid:5:7}})") && table("tab_grid")[1][0] === "Smooth 4" && table("tab_grid")[4][0] === "Step 10",
+    `${rel.pm}; ${rel.wb}`);
 }
