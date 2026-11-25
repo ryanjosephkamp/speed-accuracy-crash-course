@@ -136,9 +136,10 @@ const flatProg = (c) => { const k = c.toPrecision(15); if (!flatMemo.has(k)) fla
   check("band", "the text's “within 0.005”: at the schedules' starting settings, the continuous edges moved in sit within 0.005 of the program's flat bounds", gapStart < 0.005, `largest ${gapStart.toFixed(4)} (${gapStartAt})`);
   check("band", "the text's “up to about 0.02”: over every slider's extremes, the largest distance is between 0.015 and 0.025", gapAll > 0.015 && gapAll < 0.025, `largest ${gapAll.toFixed(4)} (${gapAllAt})`);
   const near = M.program(() => 0.01, 2 * VIEW + 3 * SPARE);
-  const far = Math.max(Math.abs(near.bounds[0] - M.flatOnGrid(0.01)), Math.abs(near.bounds[KV] - M.flatOnGrid(0.01)));
-  check("band", "the text's reason at the lowest costs: at a constant 0.01, a forced choice at time 23 instead of 8.5 brings the program's flat bound to within 0.001 of the moved-in B over the window", far < 0.001 && Math.abs(flatProg(0.01).bounds[KV] - M.flatOnGrid(0.01)) > 0.01,
-    `horizon ${HOR}: ${flatProg(0.01).bounds[KV].toFixed(4)} at 2.5; horizon ${2 * VIEW + 3 * SPARE}: ${near.bounds[KV].toFixed(4)}; moved-in B ${M.flatOnGrid(0.01).toFixed(4)}`);
+  let far = 0, pull = 0;
+  for (let k = 0; k <= KV; k++) { far = Math.max(far, Math.abs(near.bounds[k] - M.flatOnGrid(0.01))); pull = Math.max(pull, M.flatOnGrid(0.01) - flatProg(0.01).bounds[k]); }
+  check("band", "the text's reason at the lowest costs: at a constant 0.01, a forced choice at time 23 instead of 8.5 brings the constant-cost program's bound to within 0.001 of the moved-in B at every check of the window, while at 8.5 it is more than 0.01 below somewhere in it", far < 0.001 && pull > 0.01,
+    `horizon ${HOR}: up to ${pull.toFixed(4)} below; horizon ${2 * VIEW + 3 * SPARE}: within ${far.toFixed(5)}; moved-in B ${M.flatOnGrid(0.01).toFixed(4)}`);
 }
 // ---- Lemma 1(b) at time 0, under one cost and its two constants ------------------------------------------------------
 {
@@ -196,19 +197,27 @@ const flatProg = (c) => { const k = c.toPrecision(15); if (!flatMemo.has(k)) fla
   }
   check("decide", "each kept path stays below the bound until its last check, where it is at or above it", early === 0, `${early} violations on 16 paths`);
 }
-// a deadline, through the page's own worker: decisions forced at the deadline are counted in the chart's last bar
+// a deadline, through the page's own worker: every bar matches an independent count of the seeded decisions, and the
+// decisions forced at the deadline land in the last bar
 {
   const choice = { id: "deadline", params: { at: 0.45, c: 0.1 } };
   const m = await runWorker("../../book/assets/js/ch04-worker.js", { job: "decide", spec: { kind: "choice", choice }, t0: 0.4, y0: 0, n: 2000, seed: 2026, keepPaths: 16 });
-  const moments = Array.from(m.tau, (v) => 0.4 + v), forced = moments.filter((v) => v >= 0.45 - 1e-9).length;
+  const steps = Array.from(m.tau, (v) => 40 + Math.round(v / 0.01));   // each decision's check, as an integer (time × 100)
+  const moments = steps.map((k) => k / 100), forced = steps.filter((k) => k === 45).length;
   const { counts, beyond, before } = M.decisionBins(moments, 0.1, 0.45, 0.01);
-  check("decide", "deadline 0.45 from time 0.4: the worker's bound drops to 0 at the deadline, and every decision is counted, the forced ones in the last bar", m.ok && m.bounds[45] === 0 && m.bounds.length === 46 && counts.reduce((a, b) => a + b, 0) === 2000 && beyond === 0 && before === 0 && counts[counts.length - 1] >= forced && forced > 1000,
-    `${forced} of 2,000 forced at 0.45; last bar ${counts[counts.length - 1]}; ${counts.length} bars`);
+  // independently: the bar for check k is k - 10, and the last bar (0.44 to 0.45) also takes the deadline's check
+  const want = new Array(35).fill(0); for (const k of steps) want[Math.min(34, k - 10)]++;
+  check("decide", "deadline 0.45 from time 0.4 (seed 2026): the worker's bound drops to 0 at the deadline, and every one of the 35 bars matches an independent count, the forced decisions in the last", m.ok && m.bounds[45] === 0 && m.bounds.length === 46 && beyond === 0 && before === 0 && counts.length === 35 && counts.every((c, j) => c === want[j]) && counts[34] === want[34] && forced > 1000,
+    `${forced} of 2,000 forced at 0.45; last bar ${counts[34]} (independent count ${want[34]}); bars sum to ${counts.reduce((x, y) => x + y, 0)}`);
   const low = await runWorker("../../book/assets/js/ch04-worker.js", { job: "decide", spec: { kind: "choice", choice: { id: "constant", params: { c: 0.01 } } }, t0: 2, y0: 0, n: 2000, seed: 2026, keepPaths: 0 });
+  // the chart's edges, as the page sets them
   const b0 = Math.min(low.bounds[low.k0], 5), span = Math.min(5, Math.max(0.8, 2.5 * Math.max(0, b0 * Math.tanh(b0)) + 0.4));
-  const xMax = Math.min(VIEW + SPARE - 0.5, Math.ceil((2 + span) * 10) / 10), tail = M.decisionBins(Array.from(low.tau, (v) => 2 + v), 0, xMax, 0.1).beyond;
-  const say = S.decideSay({ n: 2000, t0: 2, y0: 0, median: 1, mean: 1, se: 0.01, ec: 0.01, c0: 0.01, atOnce: 0, forced: 0, beyond: tail, xMax });
-  check("decide", "a constant 0.01 from time 2: the decisions past the chart's right edge are counted, and the sentence says how many", tail > 0 && say.includes(`${tail.toLocaleString("en-US")} end after time ${xMax.toFixed(2)}`), `${tail} past ${xMax}: “${say.slice(say.lastIndexOf(".", say.length - 2) + 2)}”`);
+  const xMin = Math.max(0, Math.floor((2 - 0.25 * span) * 10) / 10), xMax = Math.min(VIEW + SPARE - 0.5, Math.ceil((2 + span) * 10) / 10);
+  const lm = Array.from(low.tau, (v) => 2 + v), bins = M.decisionBins(lm, xMin, xMax, Math.max(0.01, Math.round((xMax - xMin) / 50 * 100) / 100));
+  const past = lm.filter((v) => v > xMax + 1e-9).length, inside = lm.filter((v) => v >= xMin - 1e-9 && v <= xMax + 1e-9).length;
+  const say = S.decideSay({ n: 2000, t0: 2, y0: 0, median: 1, mean: 1, se: 0.01, ec: 0.01, c0: 0.01, atOnce: 0, forced: 0, beyond: past, xMax });
+  check("decide", "a constant 0.01 from time 2 (seed 2026): the decisions split at the chart's edges as an independent count says, and the sentence gives the number past the right edge", past > 0 && bins.beyond === past && bins.before === 0 && bins.counts.reduce((x, y) => x + y, 0) === inside && inside + past === 2000 && say.includes(`${past.toLocaleString("en-US")} end after time ${xMax.toFixed(2)}`),
+    `chart ${xMin} to ${xMax}: ${inside} inside, ${past} past (bins: ${bins.beyond})`);
 }
 
 // ---- the cap and the martingale (Figure 1(a), from 0 at time 0, as the plate) -----------------------------------------
@@ -273,6 +282,16 @@ const flatProg = (c) => { const k = c.toPrecision(15); if (!flatMemo.has(k)) fla
     const say = S.bandSay(st);
     const good = st.gapUp >= -1e-12 && st.gapDn >= -1e-12 && say.includes(st.shiftGap < 0.0005 ? "less than 0.0005" : st.shiftGap.toFixed(3)) && (want ? say.includes(want) : !/forced choice|first step/.test(say));
     check("words", `the band sentence for ${label} prints the measured distance from the band's edges (${st.shiftGap.toFixed(3)})${want ? ` and names its reason (“${want}”)` : ", with no reason when the edges agree"}`, good, `gaps ${st.gapDn.toFixed(4)} and ${st.gapUp.toFixed(4)}; ${say.slice(say.indexOf("The continuous"), say.indexOf("Of the checks")).trim()}`);
+  }
+  {
+    const tolSay = [S.sketchVerdict(true, 0.1, 0, true), S.sketchVerdict(true, 0.1, 1, true)];
+    check("words", "the sketch verdict states the 0.002 tolerance either way, and the plate applies it to a collapsed band too (Constant has a band)", /to within 0\.002/.test(tolSay[0]) && /more than 0\.002 outside/.test(tolSay[1]), tolSay[1]);
+    const pts = new Array(26).fill(0.1); pts[25] = 0.10001;
+    const cost = costOf({ id: "draw", points: pts }), e = M.extremes(cost), note = S.extremesNote("Draw your own", e.lo, e.tLo, e.hi, e.tHi, VIEW);
+    let first = NaN; for (let i = 0; i <= 100000 && Number.isNaN(first); i++) if (cost(i * 0.001) >= e.hi * 0.995) first = i * 0.001;
+    check("words", "a drawing at 0.1 with 0.10001 at 2.5: the note prints the scanned extremes beside the outward-rounded labels, and its time is the first within 0.5% of the scanned value", note.includes("0.10001") && note.includes("highest 0.101") && /within 0\.5% of those scanned values/.test(note) && first === e.tHi, note);
+    check("words", "the cap plate's fallback note says a deadline's cost is infinite after it, and the decision sentence charges a forced decision the cost at the deadline itself", /infinite cost after its deadline/.test(S.capFallback("Deadline", "deadline")) && /cost at the deadline itself/.test(S.decideSay({ n: 2000, t0: 0.4, y0: 0, median: 0.05, mean: 0.04, se: 0.001, ec: 0.1, c0: 0.1, atOnce: 0, forced: 0.64, beyond: 0, xMax: 0.45 })), S.capFallback("Deadline", "deadline"));
+    check("words", "the constant-cost note calls the band the constant-cost program's bound and says it isn't flat on the grid", /constant-cost program's bound/.test(S.outsideNote("constant")) && /isn't flat/.test(S.outsideNote("constant")) && !/flat bound/.test(S.bandSay({ dn: 1, up: 1, gapDn: 0, atDn: 0, gapUp: 0, atUp: 0, shiftGap: 0.016, horizonPull: true, subStep: false, below: 1, above: 0 })), S.outsideNote("constant"));
   }
   check("words", "a guess after the median reads late, and one before it early", /late/.test(S.decideVerdict(1.2, 0.8)) && /early/.test(S.decideVerdict(0.5, 0.8)) && /within 0.05/.test(S.decideVerdict(0.82, 0.8)), "checked");
   check("words", "the hero names the flat bounds for the highest and the lowest cost", S.heroLabel("Cost jumps", costOf(M.FIG1A)(0), 1.6) === "Cost jumps: the bound stays between B(1.6) and B(0.1)", S.heroLabel("Cost jumps", costOf(M.FIG1A)(0), 1.6));
