@@ -2,7 +2,7 @@
 // ch05-model.js, run in this chapter's worker (ch05-worker.js), or from closed forms; the frozen rule of the envelope
 // identity is worked out here, on the worker's bound, in about 10 ms. The words under each plate come from the
 // functions in say-ch05.js, which take numbers and return sentences.
-import { frozenRule, belief, gPrime, B, testStep } from "./ch05-model.js";
+import { frozenRule, belief, B, testStep, areaTo, wAt, chords, halfCrossed, bandStats, worstResidual } from "./ch05-model.js";
 import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, VIEW, defaultDrawing } from "./schedules-book.js";
 import { getChoice, setChoice, onVisible, watchVisible, liftReady, calm, seedParam } from "./book.js";
 import { rng, meanLookAhead, meanDecisionTime } from "./kernel.js";
@@ -57,7 +57,7 @@ function cachedWork(key, job, progress) {
   return solved.get(key).p;
 }
 
-// ---- the paper's test schedule on the plates' grid, with what the plates read from it
+// ---- the test schedule from the paper's code on the plates' grid, with what the plates read from it
 let FIX = null;
 function fixed(progress) {
   return cachedWork("fixed", { job: "fixed" }, progress).then((m) => {
@@ -68,12 +68,13 @@ function fixed(progress) {
     for (let k = 0; k < n; k++) Cs[k + 1] = Cs[k] + c[k] * m.dt;
     const snap = (t) => m.snaps[Math.max(0, Math.min(m.snaps.length - 1, Math.round(t / 0.05)))];
     const rules = new Map();
+    const waits = (K, y) => m.stop[K * (m.M + 1) + Math.round(y / m.h)] === 0;
     const rule = (K, q) => {
       const key = K + ":" + q;
-      if (!rules.has(key)) rules.set(key, frozenRule(m.bounds, m.dt, m.h, m.yGrid[q], K, 0.1));
+      if (!rules.has(key)) rules.set(key, frozenRule(m.stop, m.M, m.dt, m.h, m.yGrid[q], K));
       return rules.get(key);
     };
-    FIX = { ...m, c, Cs, snap, rule };
+    FIX = { ...m, c, Cs, snap, rule, waits };
     return FIX;
   });
 }
@@ -120,11 +121,11 @@ function hero() {
   const label = fig.querySelector(".proof-label");
   const at = (i) => {
     const t = times[i], c = testStep(t), Bc = B(c);
-    if (!D) return { t, c, Bc, bc: NaN, top: NaN };
-    const s = D.snap(t), bc = s.b + D.shift;
+    if (!D) return { t, c, Bc, bc: NaN, top: NaN, L: NaN };
+    const s = D.snap(t), bc = s.b + D.shift, L = D.lhs[Math.round(s.t / D.dt)];
     let top = 0;
     for (let j = 0; j < s.x.length && s.x[j] < bc; j++) top = Math.max(top, s.u[j] / c);
-    return { t, c, Bc, bc, top, s };
+    return { t, c, Bc, bc, top, s, L };
   };
   // the lower chart's height: the tallest curve over all six moments
   let vCache = null;
@@ -136,7 +137,7 @@ function hero() {
     if (D) vCache = out;
     return out;
   };
-  const labelOf = (i) => { const a = at(i); return S.heroLabel(a.t, a.bc, a.Bc, a.top); };
+  const labelOf = (i) => { const a = at(i); return S.heroLabel(a.t, a.bc, a.Bc, a.top, a.L); };
   const draw = (i) => {
     cur = i;
     const a = at(i);
@@ -146,14 +147,14 @@ function hero() {
     const fT = { W, H: split, l: 12, r: 10, t: 18, b: 6 };
     const ftx = (v) => fT.l + (v / T) * (W - fT.l - fT.r), fty = (v) => fT.t + (1 - (v - 0.05) / 0.4) * (fT.H - fT.t - fT.b);
     const ts = range(0, T, 151);
-    let s = `<text class="lab" x="${fT.l}" y="12">the cost, rising from 0.1 to 0.4; marked: time ${a.t.toFixed(1)}</text>`;
+    let s = `<text class="lab" x="${fT.l}" y="12">the cost, rising from 0.1 toward 0.4; marked: time ${a.t.toFixed(1)}</text>`;
     s += `<path class="cost" d="${ts.map((t, k) => (k ? "L" : "M") + ftx(t).toFixed(1) + " " + fty(testStep(t)).toFixed(1)).join("")}"/>`;
     s += `<path class="dim" stroke-dasharray="2 3" d="M${ftx(a.t).toFixed(1)} ${fT.t - 2}V${fT.H}"/><circle class="acc-dot" cx="${ftx(a.t).toFixed(1)}" cy="${fty(a.c).toFixed(1)}" r="4"/>`;
     // the two integrands, against the evidence y
     const fB = { W, H, l: 12, r: 10, t: split + 30, b: 22 };
     const yMax = 1.45, vMax = vTop();
     const bx = (v) => fB.l + (v / yMax) * (W - fB.l - fB.r), by = (v) => fB.t + (1 - Math.min(v, vMax) / vMax) * (H - fB.t - fB.b);
-    s += `<text class="lab" x="${fB.l}" y="${fB.t - 12}">at that time: cosh² y × cost, from 0 to the bound; both areas are ¼</text>`;
+    s += `<text class="lab" x="${fB.l}" y="${fB.t - 12}">at that time: cosh² y × cost, from 0 to the bound; areas of ¼</text>`;
     s += `<path class="ax" d="M${fB.l} ${H - fB.b}H${W - fB.r}"/>`;
     const ys = range(0, a.Bc, 80);
     s += `<path class="pm" d="${ys.map((y, k) => (k ? "L" : "M") + bx(y).toFixed(1) + " " + by(a.c * Math.cosh(y) ** 2).toFixed(1)).join("")}L${bx(a.Bc).toFixed(1)} ${by(0).toFixed(1)}"/>`;
@@ -206,7 +207,7 @@ function frozenPlate() {
   const fig = plate("frozen"), el = rootOf("frozen");
   if (!el) return;
   let step = +(fig.dataset.step || 0), t = 1.2, q = 1, guess = null, shown = false, D = null;
-  el.innerHTML = `<div class="predict"><p>The cost rises from 0.1 to 0.4 around time 1.5 and then stays at 0.4. From evidence y at the time on the slider, is starting a little later better or worse?</p>
+  el.innerHTML = `<div class="predict"><p>The cost rises from 0.1 around time 1.5 and then levels off just under 0.4. From evidence y at the time on the slider, is starting a little later better or worse?</p>
       ${segHTML("fz-guess", [["better", "Better"], ["worse", "Worse"], ["same", "No difference"]], "", "Your guess")}
       <div class="actions" style="margin-top:8px"><button class="btn btn-go" type="button" id="fz-show">Show me</button></div>
       <p class="verdict" id="fz-verdict" aria-live="polite"></p></div>
@@ -222,7 +223,7 @@ function frozenPlate() {
   const legend = $("#fz-legend", el), verdict = $("#fz-verdict", el), out = $("#fz-out", el), inp = $("#fz-t", el), state = $("#fz-state", el);
   const numbers = () => {
     const K = Math.round(t / D.dt), y = D.yGrid[q], b = D.bounds[K];
-    if (!(y < b)) return { K, y, b, inside: false };
+    if (!D.waits(K, y)) return { K, y, b, inside: false };
     const R = D.rule(K, q);
     const V = D.Vy[q];
     const Vt = (V[K + 1] - V[K - 1]) / (2 * D.dt);
@@ -270,7 +271,7 @@ function frozenPlate() {
       const js = Ks.map((k) => Jat(D, K, N.R, k - K));
       // the rule frozen at other times, faint: the value is the upper envelope of all of them
       const others = step === 1 ? [-1, -0.5, 0.5, 1].map((d) => Math.round((t + d) / 0.05) * 0.05).filter((u) => u >= 0.3 && u <= 2.4 && u >= lo && u <= hi) : [];
-      const curves = others.map((u) => { const K2 = Math.round(u / D.dt); if (!(D.yGrid[q] < D.bounds[K2])) return null; const R2 = D.rule(K2, q); return Ks.map((k) => Jat(D, K2, R2, k - K2)); }).filter(Boolean);
+      const curves = others.map((u) => { const K2 = Math.round(u / D.dt); if (!D.waits(K2, D.yGrid[q])) return null; const R2 = D.rule(K2, q); return Ks.map((k) => Jat(D, K2, R2, k - K2)); }).filter(Boolean);
       const all = [...vs, ...js, ...curves.flat()];
       let ylo = Math.min(...vs, ...js), yhi = Math.max(...vs, ...js);
       if (step === 1) { ylo = Math.min(ylo, ...all.filter((v) => v > ylo - 0.4 * (yhi - ylo + 0.01))); }
@@ -302,7 +303,7 @@ function frozenPlate() {
       lab = step === 1 ? "The value against the start time at a fixed evidence level, with the frozen rule's reward touching it from below"
         : "A close view of the value and the frozen rule's reward at the touching point, with the common slope";
     } else if (step === 2) {
-      head.textContent = "Step 3: moving the start moves only the cost paid at the start and at the moment of decision.";
+      head.textContent = "Step 3: moving the start changes the cost paid over the whole decision, but its rate of change involves only the costs at the start and at the moment of decision.";
       const X1 = Math.min(4.5, t + 3);
       const ts = range(0, X1, 226);
       f = frame(ca, { x: [0, X1], y: [0, 0.45], aspect: 0.32, minH: 120, maxH: 170, b: 22 });
@@ -354,7 +355,7 @@ function frozenPlate() {
   const judge = () => {
     if (!D || (!guess && !shown)) { verdict.textContent = ""; return; }
     const N = numbers();
-    verdict.textContent = N.inside ? S.frozenVerdict(guess, N.Vt, t, N.y) : S.frozenOutside(t, N.y, N.b + D.shift);
+    verdict.textContent = N.inside ? S.frozenVerdict(guess, N.Vt, t, N.y, N.c, N.Ec) : S.frozenOutside(t, N.y, N.b + D.shift);
   };
   inp.addEventListener("input", () => { t = +inp.value; draw(); judge(); });
   onSeg(el, "fz-y", (v) => { q = +v; draw(); judge(); });
@@ -363,7 +364,7 @@ function frozenPlate() {
   fig.addEventListener("strip-step", (e) => { step = e.detail; draw(); });
   fixed((p) => { state.textContent = `Solving the dynamic program… ${Math.round(p * 100)}%`; }).then((m) => {
     D = m;
-    state.textContent = `The paper's test schedule; time step ${D.dt}, evidence step ${D.h}, a forced choice at time ${D.horizon}.`;
+    state.textContent = `The test schedule from the paper's code; time step ${D.dt}, evidence step ${D.h}, a forced choice at time ${D.horizon}.`;
     keepDrawn(ca, draw); judge();
   }).catch((e) => fail("frozen", e));
   draw();
@@ -407,7 +408,7 @@ function regularPlate() {
       if (keep) out.push(keep);
     }
     const done = hits.filter(Number.isFinite).sort((a, b) => a - b);
-    const res = { paths: out, b0, bAt, share: done.length / hits.length, median: done.length >= hits.length / 2 ? done[Math.floor(hits.length / 2)] : NaN, Smax };
+    const res = { paths: out, b0, bAt, share: done.length / hits.length, median: halfCrossed(hits, hits.length), Smax };
     paths.set(key, res);
     return res;
   };
@@ -449,8 +450,7 @@ function regularPlate() {
       const t2 = t + GAP <= 3 ? t + GAP : t - GAP;
       const s2 = D.snap(t2), W2 = Wof(s2);
       const [lowS, lowW, highS, highW, tl, th] = s2.b < b ? [s2, W2, s, W, t2, t] : [s, W, s2, W2, t, t2];
-      const y = lowS.b, j = Math.round(y / D.h);
-      const Wy = highW[j] + (highW[j + 1] - highW[j]) * (y / D.h - j);
+      const y = lowS.b, Wy = wAt(highS.V, D.h, y);
       const lower = cmin * (highS.b - lowS.b) ** 2, upper = (cmax - cmin) * GAP;
       head.textContent = "Step 3: at the lower bound's level, one time's W is 0 and the other's is pinned between two bounds.";
       const x0 = Math.max(0, y - 0.45), x1 = highS.b + 0.08;
@@ -474,24 +474,25 @@ function regularPlate() {
       say.textContent = S.regularSay(2, { tl, th, Wy, lower, upper, db, allowed: C * Math.sqrt(GAP) });
       lab = "The value of waiting at two times near the lower of their two bounds, with the floor and the cap that pin it";
     } else if (step === 3) {
-      head.textContent = "Step 4: the bound can't rise faster than K√s, so a path that starts just below it crosses it almost at once.";
+      head.textContent = "Step 4: by (b), the bound rises by at most C√s in time s, so a path that starts just below it crosses it almost at once.";
       const P = sample(t, eps);
       const all = [0.1, 0.03, 0.01].map((e) => ({ e, ...sample(t, e) }));
       const ss = range(0, P.Smax, 81);
-      const ylo = P.b0 - 0.2, yhi = P.b0 + 0.3, sOut = (0.3 / Kc) ** 2;
+      const ylo = P.b0 - 0.2, yhi = P.b0 + 0.3, sOut = (0.3 / Kc) ** 2, sOutC = Math.min(P.Smax, (0.3 / C) ** 2);
       f = frame(chart, { x: [0, P.Smax], y: [ylo, yhi], aspect: 0.55, minH: 190, maxH: 280, l: 46 });
       g = axes(f, { yl: "evidence Y", xl: "time after t, s", grid: true });
       P.paths.forEach((pth) => { g += line(f, pth.map((p) => p[0]), pth.map((p) => p[1]), "path-dim"); const last = pth[pth.length - 1]; if (last[1] >= P.bAt(last[0]) - 1e-9) g += dot(f, last[0], last[1], "acc-dot", 2.6); });
-      const sd = range(0, sOut, 60);
-      g += line(f, sd, sd.map((u) => P.b0 + Kc * Math.sqrt(u)), "ex-thin", 'stroke-dasharray="5 4"');
+      const sd = range(0, sOut, 60), sc = range(0, sOutC, 60);
+      g += line(f, sd, sd.map((u) => P.b0 + Kc * Math.sqrt(u)), "path-dim", 'stroke-dasharray="3 3"');
+      g += line(f, sc, sc.map((u) => P.b0 + C * Math.sqrt(u)), "ex-thin", 'stroke-dasharray="6 4"');
       g += line(f, ss, ss.map(P.bAt), "ex");
-      g += text(f.sx(sOut) + 6, f.t + 10, "b + K√s, K = 1 + √3", "tag-ex");
-      legend.innerHTML = `<li><span class="key key-ex">The bound b(t + s), from the program</span></li><li><span class="key key-ex-thin">b + K√s, the most (b) allows it to rise</span></li><li><span class="key key-dim">Sampled paths from b − ε</span></li>`;
-      reads.innerHTML = all.map((a) => `<div class="${a.e === eps ? "k-acc" : ""}"><dt>ε = ${a.e}</dt><dd>${S.sig(a.median)}<small>median time to cross; ${Math.round(a.share * 100)}% cross by s = ${P.Smax}</small></dd></div>`).join("");
+      g += text(f.sx(sOut) - 4, f.t + 10, "K√s", "tk", "end") + text(f.sx(sOutC) + 4, f.t + 10, "C√s", "tag-ex");
+      legend.innerHTML = `<li><span class="key key-ex">The bound b(t + s), from the program</span></li><li><span class="key key-ex-dash">b + C√s, C = √3: the most (b) allows it to rise</span></li><li><span class="key key-dim-dash">b + K√s, K = 1 + C: the proof's looser envelope</span></li><li><span class="key key-dim">Sampled paths from b − ε</span></li>`;
+      reads.innerHTML = all.map((a) => `<div class="${a.e === eps ? "k-acc" : ""}"><dt>ε = ${a.e}</dt><dd>${S.sig(a.median)}<small>by when half of 200 paths have crossed; ${Math.round(a.share * 100)}% cross by s = ${P.Smax}</small></dd></div>`).join("");
       say.textContent = S.regularSay(3, { all });
-      lab = "Sampled paths of the evidence from just below the bound, crossing it, with the fastest rise the Hölder bound allows";
+      lab = "Sampled paths of the evidence from just below the bound, crossing it, with the fastest rise the Hölder bound allows and the proof's looser envelope";
     } else {
-      head.textContent = "Step 5: so W(t, b − ε)/ε → 0: the value meets the reward for deciding with the same slope.";
+      head.textContent = "Step 5: in the model, W(t, b − ε)/ε → 0, so the value meets the reward for deciding with the same slope. On the grid:";
       const x0 = Math.max(0, b - 0.45);
       const xs = s.x.filter((x) => x >= x0 && x <= b + 0.05);
       const Wv = xs.map((x) => W[Math.round(x / D.h)]);
@@ -499,14 +500,15 @@ function regularPlate() {
       g = axes(f, { yl: "value of waiting W", xl: "evidence y", grid: true });
       g += line(f, xs, Wv, "ex");
       const E = [0.4, 0.2, 0.1, 0.05].filter((e) => b - e >= x0 - 1e-9);
-      const ratios = E.map((e) => { const j = Math.round((b - e) / D.h); const y = j * D.h; const w = W[j]; g += `<path class="acc" d="M${f.sx(b).toFixed(1)} ${f.sy(0).toFixed(1)}L${f.sx(y).toFixed(1)} ${f.sy(w).toFixed(1)}"/>` + dot(f, y, w, "acc-dot", 3); return { e, r: w / (b - y) }; });
+      const ratios = chords(s.V, D.h, b, E);
+      ratios.forEach(({ y, w }) => { g += `<path class="acc" d="M${f.sx(b).toFixed(1)} ${f.sy(0).toFixed(1)}L${f.sx(y).toFixed(1)} ${f.sy(w).toFixed(1)}"/>` + dot(f, y, w, "acc-dot", 3); });
       g += vline(f, b, "bound-line", 'stroke-dasharray="3 3"') + text(f.sx(b) - 4, f.t + 10, "grid bound", "tag-ex", "end");
       const ib = Math.floor(b / D.h);
-      const slope = (s.V[ib] - s.V[ib - 1]) / D.h;
-      legend.innerHTML = `<li><span class="key key-ex">W(t, y)</span></li><li><span class="key key-acc">Chords from the bound: slope W(t, b − ε)/ε</span></li>`;
-      reads.innerHTML = ratios.map((r) => `<div class="k-acc"><dt>ε = ${r.e}</dt><dd>${fmt(r.r, 4)}<small>W(t, b − ε)/ε</small></dd></div>`).join("") +
-        `<div><dt>V_y and g′ at the bound</dt><dd>${fmt(slope, 3)}<small>V's last cell; g′(b) = ${fmt(gPrime(b + D.shift), 3)}</small></dd></div>`;
-      say.textContent = S.regularSay(4, { ratios, slope, gp: gPrime(b + D.shift), h: D.h });
+      const slopeV = (s.V[ib] - s.V[ib - 1]) / D.h, slopeG = (belief(ib * D.h) - belief((ib - 1) * D.h)) / D.h;
+      legend.innerHTML = `<li><span class="key key-ex">W(t, y)</span></li><li><span class="key key-acc">Chords to the grid's bound: size of slope W(t, b − ε)/ε</span></li>`;
+      reads.innerHTML = ratios.map((r) => `<div class="k-acc"><dt>ε = ${fmt(r.e, 3)}</dt><dd>${fmt(r.r, 4)}<small>W(t, b − ε)/ε, ε from a grid point to the grid's bound</small></dd></div>`).join("") +
+        `<div><dt>Slopes in the last cell</dt><dd>${fmt(slopeV, 3)}<small>V's; g's over the same cell is ${fmt(slopeG, 3)}</small></dd></div>`;
+      say.textContent = S.regularSay(4, { ratios, slope: slopeV, gp: slopeG, h: D.h });
       lab = "The value of waiting near the bound, with chords from the bound whose slopes shrink toward zero";
     }
     chart.innerHTML = svg(f, g, lab);
@@ -517,7 +519,7 @@ function regularPlate() {
   fig.addEventListener("strip-step", (e) => { step = e.detail; draw(); });
   fixed((p) => { state.textContent = `Solving the dynamic program… ${Math.round(p * 100)}%`; }).then((m) => {
     D = m;
-    state.textContent = `The paper's test schedule, c_min = 0.1 and c_max = 0.4; time step ${D.dt}, evidence step ${D.h}.`;
+    state.textContent = `The test schedule from the paper's code, c_min = 0.1 and c_max = 0.4; time step ${D.dt}, evidence step ${D.h}.`;
     keepDrawn(chart, draw);
   }).catch((e) => fail("regular", e));
 }
@@ -542,21 +544,9 @@ function bandPlate() {
   const costEl = $("#bd-cost", el), chart = $("#bd-chart", el), reads = $("#bd-reads", el), say = $("#bd-say", el), note = $("#bd-note", el);
   const state = $("#bd-state", el), verdict = $("#bd-verdict", el), inp = $("#bd-t0", el), out = $("#bd-out", el);
   const stats = () => {
-    const { ts, bounds, shift, cMin, cMax } = data;
-    const C = Math.sqrt((cMax - cMin) / cMin);
-    const idx = ts.map((t, i) => (t <= VIEW + 1e-9 ? i : -1)).filter((i) => i >= 0);
-    let ratio = 0, at = [0, 0];
-    for (let a = 0; a < idx.length; a++) for (let b2 = a + 1; b2 < idx.length; b2++) {
-      const i = idx[a], j = idx[b2], r = Math.abs(bounds[j] - bounds[i]) / Math.sqrt(ts[j] - ts[i]);
-      if (r > ratio) { ratio = r; at = [ts[i], ts[j]]; }
-    }
-    let fall = 0, fallAt = 0;
-    const w = Math.round(0.05 / (ts[1] - ts[0]));
-    for (let a = 0; a + w < idx.length; a++) { const d = Math.abs(bounds[idx[a + w]] - bounds[idx[a]]); if (d > fall) { fall = d; fallAt = ts[idx[a]]; } }
-    const cost = costOf(choice);
-    let cfac = 1, cAt = 0;
-    for (let t = 0; t <= VIEW - 0.05 + 1e-9; t += 0.005) { const f = Math.max(cost(t + 0.05) / cost(t), cost(t) / cost(t + 0.05)); if (f > cfac) { cfac = f; cAt = t; } }
-    return { C, ratio, at, fall, fallAt, cfac, cAt, shift, cMin, cMax };
+    const { ts, bounds, shift, gLo, gHi } = data;
+    const C = Math.sqrt((gHi - gLo) / gLo);
+    return { C, ...bandStats(ts, bounds, costOf(choice), VIEW), shift, cMin: gLo, cMax: gHi };
   };
   const drawCost = () => {
     const cost = costOf(choice), dl = deadlineOf(choice);
@@ -590,9 +580,9 @@ function bandPlate() {
     g += line(f, T, pm, "pm") + line(f, T, bc, "ex");
     g += dot(f, t0, b0, "acc-dot", 4.5);
     chart.innerHTML = svg(f, g, `The best bound for ${mode === "fig" ? "Figure 1(a)" : labelOf(choice)}, with the band the Hölder bound allows around the anchor at time ${t0.toFixed(2)}`);
-    reads.innerHTML = `<div class="k-acc"><dt>Hölder constant C</dt><dd>${fmt(st.C, 2)}<small>√((c_max − c_min)/c_min), c from ${fmt(st.cMin, 3)} to ${fmt(st.cMax, 3)}</small></dd></div>
-      <div><dt>Bound's largest |Δb|/√|Δt|</dt><dd>${fmt(st.ratio, 2)}<small>over 0 to 2.5, every 0.01</small></dd></div>
-      <div><dt>Bound's largest move in 0.05</dt><dd>${fmt(st.fall, 3)}<small>from time ${fmt(st.fallAt, 2)}; the band allows ${fmt(st.C * Math.sqrt(0.05), 2)}</small></dd></div>
+    reads.innerHTML = `<div class="k-acc"><dt>Hölder constant C</dt><dd>${fmt(st.C, 2)}<small>√((c_max − c_min)/c_min), with the cost between ${fmt(st.cMin, 3)} and ${fmt(st.cMax, 3)} for all time, from its formula</small></dd></div>
+      <div><dt>Bound's largest |Δb|/√|Δt|</dt><dd>${fmt(st.ratio, 2)}<small>on the grid, over 0 to 2.5, every 0.01</small></dd></div>
+      <div><dt>Bound's largest move in 0.05</dt><dd>${fmt(st.fall, 3)}<small>on the grid, from time ${fmt(st.fallAt, 2)}; the band allows ${fmt(st.C * Math.sqrt(0.05), 2)}</small></dd></div>
       <div class="k-acc"><dt>Cost's largest change in 0.05</dt><dd>${S.fold(st.cfac)}-fold<small>from time ${fmt(st.cAt, 2)}</small></dd></div>`;
     say.textContent = S.bandSay(st.ratio, st.C, st.fall, st.cfac);
     if (guess || shown) verdict.textContent = mode === "fig" ? S.bandVerdict(guess, st.fall, st.cfac, st.C) : S.bandVerdictElse();
@@ -652,7 +642,7 @@ function areaPlate() {
     for (let j = 1; j + 1 < s.x.length && s.x[j + 1] < s.b; j += 3) { vz.push(s.x[j]); vv.push(Math.cosh(s.x[j]) ** 2 * (s.V[j + 1] - s.V[j - 1]) / (2 * D.h)); }
     return { s, bc, c, xs, f2, R, vz, vv };
   };
-  const Rat = (cv, zz) => { let j = 1; while (j < cv.xs.length && cv.xs[j] < zz) j++; if (j >= cv.xs.length) return cv.R[cv.R.length - 1]; const w = (zz - cv.xs[j - 1]) / (cv.xs[j] - cv.xs[j - 1]); return cv.R[j - 1] + w * (cv.R[j] - cv.R[j - 1]); };
+  const Rat = (cv, zz) => areaTo(cv.xs, cv.f2, zz);
   const draw = () => {
     if (!D) return;
     const cv = curves();
@@ -697,11 +687,11 @@ function areaPlate() {
     if (step === 1) {
       head.textContent = "Step 2: integrate from 0 to z: the area is cosh² z V_y(t, z), the slope of the value scaled by cosh².";
       const gap = Math.max(...cv.vz.map((x, i) => Math.abs(cv.vv[i] - Rat(cv, x))));
-      reads.innerHTML = `<div class="k-wb"><dt>Area to z, doubled</dt><dd>${fmt(Rz, 4)}</dd></div><div><dt>Largest gap to the dots</dt><dd>${S.sci(gap)}</dd></div>`;
+      reads.innerHTML = `<div class="k-wb"><dt>Shaded area to z</dt><dd>${fmt(Rz, 4)}</dd></div><div><dt>Largest gap to the dots</dt><dd>${S.sci(gap)}</dd></div>`;
       say.textContent = S.areaSay(1, { z, Rz, gap });
     } else if (step === 2) {
       head.textContent = "Step 3: at the bound, smooth fit turns the boundary term into cosh² b g′(b) = ½.";
-      reads.innerHTML = `<div class="k-wb"><dt>Area to b(t), doubled</dt><dd>${fmt(2 * L, 4)}</dd></div><div><dt>Bound b(t)</dt><dd>${fmt(cv.bc, 3)}</dd></div>`;
+      reads.innerHTML = `<div class="k-wb"><dt>Shaded area to b(t)</dt><dd>${fmt(2 * L, 4)}</dd></div><div><dt>Bound b(t)</dt><dd>${fmt(cv.bc, 3)}</dd></div>`;
       say.textContent = S.areaSay(2, { R: 2 * L, bc: cv.bc });
     } else {
       head.textContent = "Step 4: divide by 2: the area under cosh² y E_y[c(t + τ*)] from 0 to the bound is ¼.";
@@ -717,7 +707,7 @@ function areaPlate() {
   fig.addEventListener("strip-step", (e) => { step = e.detail; if (step === 1 && zAuto) z = 0.5; draw(); });
   fixed((p) => { state.textContent = `Solving the dynamic program… ${Math.round(p * 100)}%`; }).then((m) => {
     D = m;
-    state.textContent = `The paper's test schedule; time step ${D.dt}, evidence step ${D.h}; the integral runs to the grid's bound moved out by 0.5826√Δt.`;
+    state.textContent = `The test schedule from the paper's code; time step ${D.dt}, evidence step ${D.h}; the integral runs to the grid's bound moved out by 0.5826√Δt.`;
     keepDrawn(ca, draw);
   }).catch((e) => fail("area", e));
 }
@@ -742,7 +732,6 @@ function livePlate() {
   const pick = $("#lv-pick", el), note = $("#lv-note", el), costEl = $("#lv-cost", el), mainEl = $("#lv-main", el), resEl = $("#lv-res", el), areaEl = $("#lv-area", el);
   const reads = $("#lv-reads", el), say = $("#lv-say", el), state = $("#lv-state", el), tin = $("#lv-t", el), tout = $("#lv-out", el), play = $("#lv-play", el);
   const cur = () => res[grid] || res[grid === "fine" ? "coarse" : "fine"];
-  const worst = (m, upto) => { let w = 0, at = 0; m.ts.forEach((t, i) => { if (t <= upto + 1e-9 && Number.isFinite(m.lhs[i]) && Math.abs(m.lhs[i] - 0.25) > w) { w = Math.abs(m.lhs[i] - 0.25); at = t; } }); return { w, at }; };
   const drawCost = () => {
     const cost = costOf(choice), dl = deadlineOf(choice), X = far ? (res.fine || res.coarse)?.horizon ?? 10 : VIEW;
     const ts = range(0, X, 301), cs = ts.map((t) => Math.min(cost(t), 50));
@@ -797,12 +786,14 @@ function livePlate() {
     g += vline(f, bc, "bound-line", 'stroke-dasharray="3 3"') + text(f.sx(bc) - 4, f.t + 10, "b(t)", "tag-ex", "end");
     areaEl.innerHTML = svg(f, g, `At time ${s.t.toFixed(2)}, cosh squared times the expected cost at decision from 0 to the bound, shaded, beside cosh squared times the cost now`);
     const i = m.ts.findIndex((t) => Math.abs(t - s.t) < 1e-9);
-    const w = worst(m, VIEW), wo = (() => { const o = res[grid === "fine" ? "coarse" : "fine"]; return o && o !== m ? worst(o, VIEW) : null; })();
+    const w = worstResidual(m, 0, VIEW), wo = (() => { const o = res[grid === "fine" ? "coarse" : "fine"]; return o && o !== m ? worstResidual(o, 0, VIEW) : null; })();
+    const zeros = m.ts.filter((t, k) => t <= VIEW + 1e-9 && m.bounds[k] === 0).length;
     let pmw = 0; m.ts.forEach((t, k) => { if (t <= VIEW + 1e-9 && Number.isFinite(m.pm[k])) pmw = Math.max(pmw, Math.abs(m.pm[k] - 0.25)); });
     reads.innerHTML = `<div class="k-wb"><dt>Area at time ${s.t.toFixed(2)}</dt><dd>${fmt(m.lhs[i], 4)}<small>bound ${fmt(bc, 3)}</small></dd></div>
       <div><dt>Largest residual, 0 to 2.5</dt><dd>${S.sci(w.w)}<small>at time ${fmt(w.at, 2)}, on Δt ${m.dt}${wo ? `; ${S.sci(wo.w)} on Δt ${grid === "fine" ? 0.01 : 0.002}` : ""}</small></dd></div>
       <div class="k-pm"><dt>Cost now in its place</dt><dd>${fmt(pmw, 3)}<small>its largest miss of ¼</small></dd></div>`;
-    say.textContent = S.liveSay({ label: labelOf(choice), dt: m.dt, w: w.w, at: w.at, wo: wo ? wo.w : NaN, dtOther: grid === "fine" ? 0.01 : 0.002, pm: pmw, far, tail: far ? tailMiss(m) : NaN, horizon: m.horizon, constant: choice.id === "constant" });
+    say.textContent = S.liveSay({ label: labelOf(choice), dt: m.dt, w: w.w, wf: res.fine ? worstResidual(res.fine, 0, VIEW).w : NaN, wc: res.coarse ? worstResidual(res.coarse, 0, VIEW).w : NaN,
+      pm: pmw, far, tail: far ? tailMiss(m) : NaN, horizon: m.horizon, constant: choice.id === "constant", zeros, fold: m.gHi / m.gLo });
     liftReady(fig);
   };
   const tailMiss = (m) => { let w = 0; m.ts.forEach((t, i) => { if (t >= m.horizon - 1 && Number.isFinite(m.lhs[i])) w = Math.max(w, Math.abs(m.lhs[i] - 0.25)); }); return w; };
