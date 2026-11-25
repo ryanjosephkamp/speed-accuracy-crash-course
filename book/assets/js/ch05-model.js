@@ -9,9 +9,11 @@
 // (Lemma 1(c) caps the bound at B(c_min)), so the value there is the value of deciding and u is the cost now.
 //
 // The sweep for u stops exactly where the program's own Bellman step stops (deciding is worth at least waiting), node
-// by node. The bound the program reports is read off those choices as model.js and the paper's backward_induction_x
-// read it, and when it lies below the grid's first step it reads as 0, even if the center still waits; the stop mask
-// keeps the sweep right in that case.
+// by node. The bound the program reports is read off those choices as model.js reads it: between the last node that
+// waits and the first that stops. When the first node past the center stops, the bound is below the grid's first step
+// h: model.js, and so this file, places it between the center and that node if the center still waits, and at 0 if the
+// center stops too (the paper's backward_induction_x reports 0 in both cases). A bound below h is a value the grid can't
+// resolve, so the live plate leaves those times out (isResolved below).
 // tools/checks/ch05.mjs compares the bounds with model.js's exactPolicy and the left side with the paper's own test,
 // tests/test_exact_equation.py, on its grid, cases, and tolerances.
 
@@ -142,7 +144,7 @@ export function solveSchedule(cost, horizon, { dt = 0.002, h = 0.005, cMin = nul
     for (let i = 1; i <= M; i++) {
       const d = decide[i] - wait[i];
       if (d > 0) {
-        if (i === 1) { b = 0; break; }
+        if (i === 1) { const dc = decide[0] - wait[0]; b = dc < 0 ? x[0] - (dc * h) / (d - dc) : 0; break; }
         const dp = decide[i - 1] - wait[i - 1];
         b = x[i - 1] - (dp * h) / (d - dp);
         break;
@@ -305,8 +307,11 @@ export function bandStats(ts, bounds, cost, view, span = 0.05) {
   return { ratio, fall, fallAt, cfac, cAt };
 }
 
+/** Whether the bound at kept time i is at least the grid's first step h, where the grid can place it. */
+export const isResolved = (out, i) => out.bounds[i] >= out.h;
+
 /** The largest |left side - 1/4| over the kept times in [from, to], or over the times listed in `on`; with
- * resolvedOnly, times whose bound reads 0 (below the grid's first step) are left out and counted in `skipped`. n counts
+ * resolvedOnly, times whose bound is below the grid's first step are left out and counted in `skipped`. n counts
  * the pairs compared, and missing the asked-for times with no finite left side, so a caller can tell that nothing was
  * silently dropped. */
 export function worstResidual(out, from, to, on = null, resolvedOnly = false) {
@@ -318,7 +323,7 @@ export function worstResidual(out, from, to, on = null, resolvedOnly = false) {
     if (t < from - 1e-9 || t > to + 1e-9) continue;
     const i = at0.get(Math.round(t * 1e6));
     if (i === undefined || !Number.isFinite(out.lhs[i])) { missing++; continue; }
-    if (resolvedOnly && out.bounds[i] === 0) { skipped++; continue; }
+    if (resolvedOnly && !isResolved(out, i)) { skipped++; continue; }
     n++;
     const e = Math.abs(out.lhs[i] - 0.25);
     if (n === 1 || e > w) { w = e; at = t; }
@@ -326,28 +331,37 @@ export function worstResidual(out, from, to, on = null, resolvedOnly = false) {
   return { w, at, n, missing, skipped };
 }
 
-/** What the live plate reports for the grid on show (m), with the two grids' runs (either may be null): the window
- * shown (0 to `view`, or to the forced choice when `far`), how many of its times have a bound that reads 0, the largest
- * residual over the times whose bound is resolved, the two grids' largest residuals over the times both resolve, the
- * per-moment version's largest miss over resolved times, the largest miss in the last time unit before the forced
- * choice, and the cost's range over its run, as a ratio. */
+/** What the live plate reports for the grid on show (m), with the two grids' runs (either may be null), using one
+ * mask throughout, isResolved, the same one the plate's charts use for their gaps: the window shown (0 to `view`, or to
+ * the forced choice when `far`) and how many of its times are unresolved; the largest residual over the resolved times
+ * from 0 to `view`; the two grids' largest residuals over the times both resolve; the per-moment version's largest miss
+ * over resolved times; the largest miss over the resolved times in the last time unit before the forced choice (NaN if
+ * there are none) and how many there it left out; and the cost's range over its run, as a ratio. */
 export function liveSummary(m, fine, coarse, far, view) {
   const X = far ? m.horizon : view;
-  let zeros = 0, nWin = 0;
-  m.ts.forEach((t, k) => { if (far ? t < X - 1e-9 : t <= X + 1e-9) { nWin++; if (m.bounds[k] === 0) zeros++; } });
+  let unresolved = 0, nWin = 0;
+  m.ts.forEach((t, k) => { if (far ? t < X - 1e-9 : t <= X + 1e-9) { nWin++; if (!isResolved(m, k)) unresolved++; } });
   const w = worstResidual(m, 0, view, null, true);
   let wf = NaN, wc = NaN, nBoth = 0;
   const nView = m.ts.filter((t) => t <= view + 1e-9).length;
   if (fine && coarse) {
-    const key = (t) => Math.round(t * 1e6), fb = new Map();
-    fine.ts.forEach((t, i) => fb.set(key(t), fine.bounds[i]));
-    const on = coarse.ts.filter((t, i) => t <= view + 1e-9 && coarse.bounds[i] !== 0 && fb.has(key(t)) && fb.get(key(t)) !== 0);
+    const key = (t) => Math.round(t * 1e6), fi = new Map();
+    fine.ts.forEach((t, i) => fi.set(key(t), i));
+    const on = coarse.ts.filter((t, i) => t <= view + 1e-9 && isResolved(coarse, i) && fi.has(key(t)) && isResolved(fine, fi.get(key(t))));
     nBoth = on.length;
     if (nBoth) { wf = worstResidual(fine, 0, view, on).w; wc = worstResidual(coarse, 0, view, on).w; }
   }
   let pm = 0;
-  m.ts.forEach((t, k) => { if (t <= view + 1e-9 && Number.isFinite(m.pm[k]) && m.bounds[k] !== 0) pm = Math.max(pm, Math.abs(m.pm[k] - 0.25)); });
-  let tail = 0;
-  m.ts.forEach((t, i) => { if (t >= m.horizon - 1 && Number.isFinite(m.lhs[i])) tail = Math.max(tail, Math.abs(m.lhs[i] - 0.25)); });
-  return { X, zeros, nWin, nView, w: w.w, at: w.at, skipped: w.skipped, wf, wc, nBoth, pm, tail, fold: m.cMax / m.cMin };
+  m.ts.forEach((t, k) => { if (t <= view + 1e-9 && Number.isFinite(m.pm[k]) && isResolved(m, k)) pm = Math.max(pm, Math.abs(m.pm[k] - 0.25)); });
+  const tw = worstResidual(m, m.horizon - 1, m.horizon - 1e-6, null, true);
+  return { X, unresolved, nWin, nView, w: w.n ? w.w : NaN, at: w.at, nRes: w.n, skipped: w.skipped, wf, wc, nBoth, pm,
+    tail: tw.n ? tw.w : NaN, tailSkipped: tw.skipped, fold: m.cMax / m.cMin, h: m.h };
+}
+
+/** The live plate's reading at the time on show, from that time's snapshot: unresolved where the bound is below the
+ * grid's first step (the same mask as the charts), otherwise the left side and the bound moved out by the shift. */
+export function areaReading(m, snap) {
+  const i = m.ts.findIndex((t) => Math.abs(t - snap.t) < 1e-9);
+  const resolved = i >= 0 && isResolved(m, i) && snap.b >= m.h;
+  return { resolved, i, area: resolved ? m.lhs[i] : NaN, bc: resolved ? snap.b + m.shift : NaN };
 }

@@ -139,18 +139,30 @@ export function areaSay(step, o) {
 }
 
 // ---- the live check
-/** wf and wc: the largest |left side - 1/4| from 0 to 2.5 on the finer and the coarser grid (NaN until solved); zeros:
- * how many of the times shown have a bound below the grid's first step, read as 0; fold: the cost's highest level over
- * its lowest. */
+/** The live plate's sentence, from liveSummary's numbers (one mask throughout: a time whose bound is below the grid's
+ * first step h is unresolved and left out of every residual): w over the resolved times from 0 to 2.5 (NaN if none);
+ * wf and wc, the two grids' largest residuals at the times both resolve; unresolved of nWin times in the window shown,
+ * 0 to X; tail over the resolved times in the last time unit (NaN if none) and tailSkipped; fold, the cost's range. */
 export function liveSay(o) {
-  const tail = o.far && Number.isFinite(o.tail) ? ` In the last time unit before the forced choice at ${o.horizon}, the left side moves away from ¼, by up to ${f3(o.tail)}: there the bound is the finite-horizon problem's, which the equation is not about.` : "";
+  const res = o.skipped > 0 ? " at the resolved times" : "";
+  const window = Number.isFinite(o.nWin) && Number.isFinite(o.X) ? ` of the ${o.nWin} times from 0 to ${o.X}${o.far ? " before the forced choice" : ""} (every 0.01)` : " of the times shown";
+  const h = Number.isFinite(o.h) ? `, ${o.h}` : "";
+  const unres = o.unresolved > 0 ? ` At ${o.unresolved}${window}, the bound on this grid is below its first step${h}, which the grid can't resolve: the program puts it between 0 and that step where the center still waits, and at 0 where the center stops too. Those times are gaps in the charts and are left out of every residual given here.` : "";
+  let tail = "";
+  if (o.far) tail = Number.isFinite(o.tail)
+    ? ` In the last time unit before the forced choice at ${o.horizon}, ${o.tailSkipped > 0 ? "at the resolved times, " : ""}the left side moves away from ¼, by up to ${f3(o.tail)}: there the bound is the finite-horizon problem's, which the equation is not about.`
+    : ` In the last time unit before the forced choice at ${o.horizon}, the bound on this grid is below its first step at every time, so the left side isn't resolved there.`;
   const grids = Number.isFinite(o.wf) && Number.isFinite(o.wc)
-    ? ` Going from Δt 0.01 with h 0.02 to Δt 0.002 with h 0.005, with the same horizon, ${o.wf < o.wc ? "lowers" : "doesn't lower"} the largest residual${o.restricted ? " at the times both grids resolve" : ""}, from ${sci(o.wc)} to ${sci(o.wf)}.` : "";
+    ? ` Going from Δt 0.01 with h 0.02 to Δt 0.002 with h 0.005, with the same horizon, ${o.wf < o.wc ? "lowers" : "doesn't lower"} the largest residual${o.restricted ? " at the times both grids resolve" : ""}, from ${sci(o.wc)} on the first to ${sci(o.wf)} on the second.` : "";
   const steep = Number.isFinite(o.wf) && o.wf > 1.5e-3
     ? ` On the finer grid, the residual is more than the 1.5 × 10⁻³ that the paper's test allows for its three schedules${Number.isFinite(o.fold) && o.fold > 4 ? `, which change by at most 4-fold; this one's cost changes ${fold(o.fold)}-fold up to time ${o.horizon}` : ""}.` : "";
-  const zeros = o.zeros > 0 ? ` At ${o.zeros}${Number.isFinite(o.nWin) && Number.isFinite(o.X) ? ` of the ${o.nWin} times from 0 to ${o.X}${o.far ? ", before the forced choice," : ""} (every 0.01)` : " of the times shown"}, the bound on this grid is closer to 0 than the grid's first step and reads as 0. Those times are gaps in the charts and are left out of the residuals above; there the left side shows the grid's limit, not the equation.` : "";
-  if (o.constant) return `For a constant cost, the left side is c(b/2 + sinh 2b/4); on the grid with Δt ${o.dt}, it is within ${sci(o.w)} of ¼ at every time shown from 0 to 2.5.${grids}${tail}`;
-  return `For “${o.label}”, the left side stays within ${sci(o.w)} of ¼ from time 0 to 2.5 on the grid with Δt ${o.dt}.${grids}${steep}${zeros} With the cost now in place of the cost at decision, the left side misses ¼ by up to ${f3(o.pm)}.${tail}`;
+  const first = Number.isFinite(o.w)
+    ? (o.constant ? `For a constant cost, the left side is c(b/2 + sinh 2b/4); on the grid with Δt ${o.dt}, it is within ${sci(o.w)} of ¼ at every ${o.skipped > 0 ? "resolved " : ""}time shown from 0 to 2.5.`
+      : `For “${o.label}”, the left side stays within ${sci(o.w)} of ¼ from time 0 to 2.5${res} on the grid with Δt ${o.dt}.`)
+    : `For “${o.label}”, the bound on the grid with Δt ${o.dt} is below its first step at every time from 0 to 2.5, so the left side isn't resolved there.`;
+  if (o.constant) return `${first}${grids}${unres}${tail}`;
+  const pm = Number.isFinite(o.w) ? ` With the cost now in place of the cost at decision, the left side misses ¼ by up to ${f3(o.pm)}${res}.` : "";
+  return `${first}${grids}${steep}${unres}${pm}${tail}`;
 }
 
 // ---- the remark on scale and speed
