@@ -5,7 +5,7 @@ TITLE = "Waiting, weighted"
 SUBTITLE = "A crash course in the paper"
 SHORT = "Waiting, weighted · Crash Course"
 
-LEDE = r"""How the best moment to decide moves when time gets more expensive, worked through one result at a time on a cost schedule of your own. The figures are computed in the page from the paper's equations, and a check script holds the numbers to the paper's."""
+LEDE = r"""How the best moment to decide moves when the cost of time changes, worked through one result at a time on a cost schedule of your own. The figures are computed in the page from the paper's equations, and a check script holds the numbers to the paper's."""
 
 DRAFT = r"""**Working draft.** Built so far: {built}. The rest are listed as coming."""
 

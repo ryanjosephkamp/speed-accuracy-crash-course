@@ -59,7 +59,7 @@ export function twoSay(label, loss, deadline, added, stretches = []) {
   let s = `On ${label}, the weighted rule loses ${L(loss.wb)} points per 100 trials, the per-moment rule ${L(loss.pm)}, and the averaged-cost rule ${L(loss.avg)}. `;
   if (Math.max(Math.abs(loss.pm), Math.abs(loss.avg), Math.abs(loss.wb)) < 0.001) s += "All three are within a thousandth of a point of the program here.";
   else if (loss.avg > loss.pm) s += "Here averaging the costs does worse than not looking ahead at all.";
-  else if (loss.avg < loss.wb) s += "Here averaging the costs loses a little less than averaging the bounds.";
+  else if (loss.avg < loss.wb) s += "Here averaging the costs loses less than averaging the bounds.";
   else s += "Here averaging the bounds loses the least of the three.";
   return s + gridNote(loss);
 }

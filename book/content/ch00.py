@@ -70,7 +70,7 @@ PLATES = {
         "title": "Where is the bound?",
         "state": "computed",
         "state_text": "Computed in the page: the best bound by dynamic programming on a grid",
-        "caption": r"""Your schedule's cost (top) and the per-moment rule's bound (dashed). Drag the orange marker to where you think the best bound sits at the marked moment, then press Show me: the best bound (ink) is drawn from the same dynamic program as the schedule's plate, with your miss beside it.""",
+        "caption": r"""Your schedule's cost (top, on a log scale) and the per-moment rule's bound, moved in by $0.5826\sqrt{0.01}$ for the program's check every 0.01 (dashed). Drag the orange marker to where you think the best bound sits at the marked moment, then press Show me: the best bound (ink) is drawn from the same dynamic program as the schedule's plate, with your miss beside it.""",
         "wide": False,
     },
     "flat": {
@@ -106,7 +106,7 @@ The paper asks what the best decision rule does when the cost of time changes. A
 
 Pick one of the book's ten schedules, or choose Draw your own and drag across the top chart. Your browser keeps the choice for every page of the book, and each chapter works on it.
 
-Under the schedule is the best bound for it, solved in this page: a dynamic program steps back from a choice forced six time units past the window (or at a deadline), on an evidence grid, the way the paper computes its reference policy (chapter 9). At the ten schedules' starting settings, its bound agrees with the paper's own code to within $10^{-6}$, the check's tolerance. Without a deadline, it approximates the paper's bound, which watches the evidence continuously on an infinite horizon; a deadline is a different model, outside the standing assumption, and the program solves it up to the deadline as it stands: checking only every $\Delta t = 0.01$ moves a constant-cost bound in by about $0.5826\sqrt{\Delta t}$, to leading order, and chapter 9 covers the grid and the horizon. When the grid's first step past the center, 0.02, already decides, the bound is below that step: the page places it between the center and the step if the program still waits at the center, and at 0 if it decides at the center too; the paper's code reports 0 in both cases. The dashed curve is the per-moment rule's bound, the shortcut chapter 1 starts from, moved in by the same $0.5826\sqrt{\Delta t}$.
+Under the schedule is the best bound for it, solved in this page: a dynamic program steps back from a choice forced six time units past the window (or at a deadline), on an evidence grid, the way the paper computes its reference policy (chapter 9). At the ten schedules' starting settings, its bound agrees with the paper's code run on the same grid to within $10^{-6}$, the check's tolerance. Without a deadline, it approximates the paper's bound, which watches the evidence continuously on an infinite horizon; a deadline is a different model, outside the standing assumption, and the program solves it up to the deadline as it stands: checking only every $\Delta t = 0.01$ moves a constant-cost bound in by about $0.5826\sqrt{\Delta t}$, to leading order, and chapter 9 covers the grid and the horizon. When the grid's first step past the center, 0.02, already decides, the bound is below that step: the page places it between the center and the step if the program still waits at the center, and at 0 if it decides at the center too; the paper's code reports 0 in both cases. The dashed curve is the per-moment rule's bound, the shortcut chapter 1 starts from, moved in by the same $0.5826\sqrt{\Delta t}$.
 """),
             ("plate", "schedule"),
         ],
@@ -133,7 +133,7 @@ Each chapter asks for a guess before it shows an answer, because an answer means
 """),
             ("plate", "guess"),
             ("plain", r"""
-Whether you guessed above or below the dashed curve depends on what your cost does after the marked moment. A decision still open when the cost changes pays the new cost, so the best bound can start moving before the cost does. One case follows from the paper's results, as an exercise in chapter 5 (the paper doesn't state it): when the cost never falls after a moment, the best bound at that moment sits at or below the per-moment one. Chapter 6 says how far ahead the bound looks.
+Whether you guessed above or below the dashed curve depends on what your cost does after the marked moment. A decision still open when the cost changes pays the new cost, so the best bound can start moving before the cost does. One case follows from the paper's results, as an exercise in chapter 5 (the paper doesn't state it): for a cost the standing assumption allows (continuous, between two positive levels) that never falls after a moment, the best bound at that moment sits at or below the per-moment one. Chapter 6 says how far ahead the bound looks.
 """),
         ],
     },

@@ -169,7 +169,7 @@ The paper states that for large and fast changes, 30 updates need not reach a so
         "title": "Why it is first-order exact",
         "blocks": [
             ("plain", r"""
-{{ref:prop:rule}} is the rule's one guarantee. Let the cost be $c_0 + \varepsilon\gamma(t)$ with $\gamma$ continuous and $|\gamma| \le M$. For small $|\varepsilon|$, the rule's equation has exactly one solution at each time in the interval $I = [B(c_0 + |\varepsilon|M), B(c_0 - |\varepsilon|M)]$, and
+{{ref:prop:rule}} is the rule's one guarantee about its bound; {{ref:prop:loss}} (chapter 7) bounds its reward loss at second order. Both are for small changes around a constant cost. Let the cost be $c_0 + \varepsilon\gamma(t)$ with $\gamma$ continuous and $|\gamma| \le M$. For small $|\varepsilon|$, the rule's equation has exactly one solution at each time in the interval $I = [B(c_0 + |\varepsilon|M), B(c_0 - |\varepsilon|M)]$, and
 
 $$b_{\mathrm{w}}(t) = b_0 + \varepsilon\beta(t) + O(\varepsilon^2)$$
 
@@ -181,7 +181,7 @@ The key step is that every kernel integrates to one. Swapping one kernel for a n
             ("exact", "610-626||a contraction in $b_{\\mathrm{w}}(t)$.", "The paper's proposition and its key step"),
             ("exact", "1476-1513", "The full proof, from Appendix A"),
             ("limits", r"""
-**What the proposition covers, and what it doesn't.** Small changes of a continuous cost, bounded between two positive constants, around a constant, on an infinite horizon. It is the only guarantee the rule has. It says nothing about large steps, deadlines, or the forced choice at $t = 10$ in the experiments: there the rule is a heuristic motivated by the theorem, and chapters 9 and 10 measure it. The same argument shows that the averaged-cost rule is exact to first order too, so first-order exactness doesn't separate the two rules; large changes do.
+**What the proposition covers, and what it doesn't.** Small changes of a continuous cost, bounded between two positive constants, around a constant, on an infinite horizon. It says nothing about large steps, deadlines, or the forced choice at $t = 10$ in the experiments: there the rule is a heuristic motivated by the theorem, and chapters 9 and 10 measure it. The same argument shows that the averaged-cost rule is exact to first order too, so first-order exactness doesn't separate the two rules; large changes do.
 """),
         ],
     },
