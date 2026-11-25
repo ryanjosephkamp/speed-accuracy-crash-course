@@ -1,0 +1,17 @@
+/* Chapter 9: what the shared classes can't give. The evidence density is ink cells, darker where more trials are still
+   deciding; what waiting adds is a faint ink wash; decided mass is ink (correct) and slate (wrong); a sampling band is
+   gray; this page's own program is an ink ring beside the paper's ink dots, and its sweep runs an orange ring. */
+.chart .dens { fill: var(--ex); stroke: none; }
+.chart .wait-fill { fill: var(--ex); opacity: 0.12; stroke: none; }
+.chart .ex-fill { fill: var(--ex); opacity: 0.32; stroke: none; }
+.chart .pm-fill { fill: var(--pm); opacity: 0.38; stroke: none; }
+.chart .se-band { fill: var(--print-dim); opacity: 0.22; stroke: none; }
+.chart .ring-ex { fill: var(--print); stroke: var(--ex); stroke-width: 1.6; }
+.chart .ring-acc { fill: none; stroke: var(--accent-print); stroke-width: 2; }
+.chart .pm-dot { fill: var(--pm); }
+.key-ring::before { width: 0.62em; height: 0.62em; border: 1.6px solid var(--ex); border-radius: 50%; vertical-align: -0.05em; }
+.dial.grow { flex: 1 1 14rem; }
+.key-ring-acc::before { width: 0.62em; height: 0.62em; border: 2px solid var(--accent-print); border-radius: 50%; vertical-align: -0.05em; }
+.key-fill::before { height: 0.7em; border: 0; background: var(--ex); opacity: 0.32; vertical-align: -0.05em; }
+.key-pm-fill::before { height: 0.7em; border: 0; background: var(--pm); opacity: 0.45; vertical-align: -0.05em; }
+.key-wait::before { height: 0.7em; border: 0; background: var(--ex); opacity: 0.15; vertical-align: -0.05em; }
