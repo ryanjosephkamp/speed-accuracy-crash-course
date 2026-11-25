@@ -182,7 +182,7 @@ FIG1.forEach((p, k) => {
   for (let i = 1; i <= Math.round(T / DT); i++) if (!(r.exact[i] < r.exact[i - 1])) falling = false;
   const k2 = Math.round(0.2 / DT), dBest = r.exact[0] - r.exact[k2], dPm = r.pm[0] - r.pm[k2], c2 = costOf(fig1Choice("jump"))(0.2);
   check("rise", "by t = 0.2, with the cost within 4% of 0.1, the best bound has come down about eight times as far as the per-moment bound (the text's claim: between 7.5 and 8.5 times), and it falls at every step to 0.4",
-    falling && c2 < 0.104 && dBest > 7.5 * dPm && dBest < 8.5 * dPm, `cost ${c2.toFixed(4)}; best down ${dBest.toFixed(3)}, per-moment down ${dPm.toFixed(3)}`);
+    falling && c2 >= 0.096 && c2 <= 0.104 && dBest > 7.5 * dPm && dBest < 8.5 * dPm, `cost ${c2.toFixed(4)}; best down ${dBest.toFixed(3)}, per-moment down ${dPm.toFixed(3)}`);
   check("rise", "t = 0.4 comes before the center of the rise at 0.5", T < fig1Choice("jump").params.at, `center ${fig1Choice("jump").params.at}`);
 }
 {

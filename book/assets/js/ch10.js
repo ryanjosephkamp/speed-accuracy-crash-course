@@ -412,7 +412,7 @@ function yoursPlate() {
     run = null; draw(); table.innerHTML = ""; say.textContent = "";
     pick.value = choice.id;
     const dl = deadlineOf(choice);
-    note.textContent = isFlat(choice) ? "This cost doesn't change: every rule but the tuned constant gives the per-moment bound, and the losses show what the grid and the forced choice at t = 10 cost on their own."
+    note.textContent = isFlat(choice) ? "This cost doesn't change: every rule but the tuned constant gives the per-moment bound."
       : dl !== null ? `A forced choice at time ${dl.toFixed(2)}: the program and the scorer end there, as the paper's do. The averaged-cost rule is drawn as the paper's code computes it.`
         : choice.id === "rising" ? "The rising cost grows without bound; the paper's held-out families don't include one, and the page scores it the same way." : "";
     state.textContent = "Solving the program and seven rules on the page's grid…";

@@ -287,17 +287,20 @@ for (const c of [0.05, 0.1, 0.3]) {
   // the value plate's sentence: on the grid, W = V - g never rises with the evidence at any kept row, for every preset
   // at its defaults and the default drawing, with either last moment (a deadline sets its own)
   {
-    let worst = 0, at = "", n = 0;
+    let worst = 0, at = "", n = 0, finite = true, horizons = true;
     const choices = [...PRESETS.map(defaults), { id: "draw", points: defaultDrawing() }];
-    for (const choice of choices) for (const last of ["far", "window"]) {
+    for (const choice of choices) for (const last of choice.id === "deadline" ? ["own"] : ["far", "window"]) {
       const m = valueJob({ choice, last }); n++;
+      const want = choice.id === "deadline" ? choice.params.at : last === "window" ? VIEW : VIEW + SPARE;
+      if (Math.abs(m.horizon - want) > 1e-9) horizons = false;
       m.V.forEach((row, i) => row.forEach((v, j) => {
+        if (!Number.isFinite(v)) finite = false;
         if (!j) return;
         const rise = (v - m.gy[j]) - (row[j - 1] - m.gy[j - 1]);
-        if (rise > worst) { worst = rise; at = `${choice.id}, last ${last}, time ${m.times[i].toFixed(2)}, y ${m.ys[j].toFixed(2)}`; }
+        if (!(rise <= worst)) { if (Number.isFinite(rise)) worst = rise; else finite = false; at = `${choice.id}, last ${last}, time ${m.times[i].toFixed(2)}, y ${m.ys[j].toFixed(2)}`; }
       }));
     }
-    check("value", "on the plate's grid, W = V - g never rises with y by more than 1e-9 at any kept row, for all ten presets at their defaults and the default drawing, with the last moment 6 past the window or at time 2.5", worst < 1e-9, at ? `largest rise ${worst.toExponential(1)} at ${at}` : `${n} runs, no rise`);
+    check("value", "on the plate's grid, over its kept times and evidence samples, W = V - g is finite and never rises with y by more than 1e-9, for the nine presets other than Deadline and the default drawing with the last moment 6 past the window and at time 2.5, and for Deadline once at its own forced choice (each run at the horizon asked for)", finite && horizons && worst < 1e-9, `${n} runs; ${finite ? "all finite" : "a nonfinite value"}; ${horizons ? "horizons as asked" : "a horizon not as asked"}; ${at ? `largest rise ${worst.toExponential(1)} at ${at}` : "no rise"}`);
   }
   {
     const m = valueJob({ choice: { id: "jump", params: { at: 0.2, factor: 32 } }, last: "far" }), i = m.times.findIndex((t) => Math.abs(t - 1) < 1e-9);

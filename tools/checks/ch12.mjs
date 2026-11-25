@@ -114,7 +114,8 @@ for (const c of COSTS) {
   check("wave", "step 5's scan: at c0 = 1 the lead passes 45 degrees (about 46, near omega = 66); at 0.1 and 0.03 it stays below", p1.lead > 45.5 && p1.lead < 46.5 && p1.omega > 40 && p1.omega < 100 && p01.lead < 45 && p003.lead < 45, `${p1.lead.toFixed(3)} at ${p1.omega.toFixed(1)}; ${p01.lead.toFixed(3)}; ${p003.lead.toFixed(3)}`);
   const after = (c, pk) => { let lo45 = null; for (let lo = Math.log10(pk.omega); lo <= Math.log10(3000); lo += 0.005) { const d = K.transfer(c, 10 ** lo).lead; if (d < 45) { lo45 = 10 ** lo; break; } } return lo45; };
   const back = after(1, p1);
-  check("wave", "the plate's sentence: at c0 = 1, after its peak above 45 degrees, the lead falls back below 45 within step 5's scan (omega up to 3000)", back !== null, back === null ? "never below 45 after the peak" : `below 45 from omega ≈ ${back.toFixed(0)}`);
+  const say5 = S.phaseSay(1, p1, K.meanLookAhead(1));
+  check("wave", "at c0 = 1, on a scan in log steps of 0.005, the lead is below 45 degrees again after its peak and before omega = 3000, the end of step 5's chart, and step 5's sentence says it falls back below 45°", back !== null && /, and then falls back below 45°\./.test(say5), back === null ? "never below 45 after the peak" : `below 45 from omega ≈ ${back.toFixed(0)}; ${say5.slice(-90)}`);
   const far = COSTS.map((c) => K.transfer(c, 1e6).lead);
   check("wave", "the lead tends to 45 degrees: within 0.05 at omega = 1e6 for every plate cost", far.every((l) => Math.abs(l - 45) < 0.05), far.map((l) => l.toFixed(3)).join(", "));
 }

@@ -451,6 +451,11 @@ check("bins", "levels below 0.01 use the kernel for 0.01", kernelForBound(0.004)
   const text = readFileSync(join(ROOT, "book/content/ch08.py"), "utf8");
   check("words", "chapter 8 calls Proposition 13 the rule's one guarantee about its bound, names Proposition 10 for its reward loss, and doesn't call Proposition 13 the only guarantee the rule has",
     JSON.parse(readFileSync(join(ROOT, "paper/labels.json"), "utf8")).labels["prop:loss"].num === "10" && /\{\{ref:prop:rule\}\} is the rule's one guarantee about its bound; \{\{ref:prop:loss\}\} \(chapter 7\) bounds its reward loss at second order\./.test(text) && !/only guarantee the rule has|is the rule's one guarantee\./.test(text), "ch08.py");
+  const run = (choice) => S.twoSay("X", R.compareRules(costOf(choice), null).loss, null, false);
+  const flats = [{ id: "constant", params: { c: 0.01 } }, { id: "smooth", params: { c0: 0.02, size: 0 } }, { id: "draw", points: DRAW_TIMES.map(() => 0.01) }].map(run);
+  const wave = run({ id: "wave", params: { omega: 8, size: 0.6 } });
+  check("words", "through the plate's own comparison: on Constant at 0.01, Smooth at 0.02 and size 0, and a drawing flat at 0.01, the sentence ranks no rule (the three print the same, or all are within a thousandth); on Wave at frequency 8 and size 0.6 it says averaging the costs loses less",
+    flats.every((t) => /The three losses are the same to the precision shown\.|All three are within a thousandth/.test(t) && !/loses less|does worse|loses the least/.test(t)) && /Here averaging the costs loses less than averaging the bounds\./.test(wave), [...flats, wave].map((t) => t.replace(/^On X, /, "").slice(-70)).join(" | "));
   const less = S.twoSay("Cost jumps", { pm: 1, avg: 0.5, wb: 2, avgCode: 0.5 }, null, false);
   check("words", "when the averaged-cost rule loses less than the weighted rule, the sentence says it loses less, with no size word", /Here averaging the costs loses less than averaging the bounds\./.test(less) && !/a little/.test(less), less);
 }

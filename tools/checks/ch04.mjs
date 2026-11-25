@@ -166,7 +166,7 @@ const flatProg = (c) => { const k = c.toPrecision(15); if (!flatMemo.has(k)) fla
     ex = Math.max(ex, Math.abs(M.valueAt(P, 45, y) - M.valueAt(P, 40, y)));
   }
   check("later", "on a hard step from 0.1 to 1.6, the program's value at evidence 0, 0.3, 0.6, and 1 moves by at most 1.5 per unit of start time", worst <= 1.5 + 2e-4, `steepest ${worst.toFixed(7)} at time ${at.toFixed(2)}, evidence ${atY}`);
-  check("later", "and reaches that rate to the precision shown (two decimals) just before the jump, from evidence 0, with the program's bound above 0 at both start times, 0.49 and 0.50 (the text says so)", worst.toFixed(2) === "1.50" && Math.abs(at - 0.49) < 1e-9 && atY === 0 && P.bounds[49] > 0 && P.bounds[50] > 0, `${worst.toFixed(7)} at ${at.toFixed(2)}, evidence ${atY}; the bounds at 0.49 and 0.50 are ${P.bounds[49].toFixed(3)} and ${P.bounds[50].toFixed(3)}`);
+  check("later", "and reaches that rate to the precision shown (two decimals) just before the jump, from evidence 0, with the program's bound above 0 at both start times, 0.49 and 0.50, and the value falling from 0.49 to 0.50 (the text says so)", worst.toFixed(2) === "1.50" && Math.abs(at - 0.49) < 1e-9 && atY === 0 && P.bounds[49] > 0 && P.bounds[50] > 0 && M.valueAt(P, 49, 0) - M.valueAt(P, 50, 0) > 0, `${worst.toFixed(7)} at ${at.toFixed(2)}, evidence ${atY}; the bounds at 0.49 and 0.50 are ${P.bounds[49].toFixed(3)} and ${P.bounds[50].toFixed(3)}`);
   check("later", "the exercise: |V(0.45, y) − V(0.4, y)| ≤ 0.075 at y = 0, 0.3, 0.6, 1", ex <= 0.075, `largest ${ex.toFixed(4)}`);
   let id = 0;
   for (const [t, D, tau] of [[0.4, 0.05, 0.5], [0.1, 0.25, 0.3], [0.45, 0.1, 1], [0.7, 0.05, 0.3]]) {

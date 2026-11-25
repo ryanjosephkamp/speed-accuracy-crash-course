@@ -133,7 +133,7 @@ Each chapter asks for a guess before it shows an answer, because an answer means
 """),
             ("plate", "guess"),
             ("plain", r"""
-Whether you guessed above or below the dashed curve depends on what your cost does after the marked moment. A decision still open when the cost changes pays the new cost, so the best bound can start moving before the cost does. One case follows from the paper's results, as an exercise in chapter 5 (the paper doesn't state it): for a cost the standing assumption allows (continuous, between two positive levels) that never falls after a moment, the best bound at that moment sits at or below the per-moment one. Chapter 6 says how far ahead the bound looks.
+Whether you guessed above or below the dashed curve depends on what your cost does after the marked moment. A decision still open when the cost changes pays the new cost, so the best bound can start moving before the cost does. One case follows from the paper's results, as an exercise in chapter 5 (the paper doesn't state it): in the paper's continuous model, for a cost the standing assumption allows (continuous, between two positive levels) that never falls after a moment, the best bound at that moment sits at or below the per-moment bound $B(c(t))$. The plotted curves are the grid's, not that model's. Chapter 6 says how far ahead the bound looks.
 """),
         ],
     },
