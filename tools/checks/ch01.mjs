@@ -5,13 +5,14 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { B } from "../../book/assets/js/kernel.js";
-import { boundForCost, toDiscrete, exactPolicy } from "../../book/assets/js/model.js";
+import { boundForCost, toDiscrete, grid } from "../../book/assets/js/model.js";
 import { dropAt } from "../../book/assets/js/chart.js";
 import { costOf, deadlineOf, PRESETS, VIEW, SPARE, drawnCost } from "../../book/assets/js/schedules-book.js";
-import { FIG1, fig1Choice, fig1Of, threeRules, at, ahead, costStrip, DT, H, SHIFT } from "../../book/assets/js/ch01-model.js";
+import { FIG1, fig1Choice, fig1Of, threeRules, at, ahead, costStrip, isFlat, DT, H, SHIFT } from "../../book/assets/js/ch01-model.js";
+import { panel, nowMarks, points } from "../../book/assets/js/ch01-draw.js";
 import { CHOICES, spec, costFromSpec, HORIZON } from "../validity/schedules.mjs";
 import * as S from "../../book/assets/js/say-ch01.js";
-import { check, table, ROOT } from "./lib.mjs";
+import { check, table, ROOT, runWorker } from "./lib.mjs";
 
 const REF = JSON.parse(readFileSync(join(ROOT, "tools/validity/paper-code.json"), "utf8"));
 const FIG = JSON.parse(readFileSync(join(ROOT, "tools/validity/ch01.json"), "utf8"));
@@ -51,10 +52,56 @@ for (const choice of CHOICES) {
   // the plate's function, unthinned, with the reference's horizon (a deadline's program stops at the deadline, in both)
   const r = threeRules(costFromSpec(s), s.kind === "deadline" ? s.at : null, { every: 1, horizon: s.kind === "deadline" ? s.at : HORIZON });
   const n = r.t.length;
-  const times = r.t.every((x, i) => Math.abs(x - i * REF.dt) < 1e-9) && ref.exact.length >= n;
+  // the whole expected timeline: every 0.01 from 0 to the window's end or the deadline, in order, nothing skipped
+  const end = s.kind === "deadline" ? s.at : VIEW, N = Math.round(end / REF.dt) + 1;
+  const times = n === N && r.t.every((x, i) => Math.abs(x - i * REF.dt) < 1e-9) && Math.abs(r.t[n - 1] - end) < 1e-9
+    && ref.exact.length === n && ref.perMoment.length === n && ref.weighted.length === n;
   const dEx = worst(r.exact, ref.exact.slice(0, n)), dPm = worst(r.pm, ref.perMoment.slice(0, n)), dWb = worst(r.wb, ref.weighted.slice(0, n));
   check("code", `${s.id}: the plate's best bound, per-moment bound, and weighted look-ahead match the paper's code at the same ${n} times, with the same missing points (within 1e-6, 1e-10, 1e-10)`,
-    times && dEx < 1e-6 && dPm < 1e-10 && dWb < 1e-10, `largest differences ${dEx.toExponential(1)}, ${dPm.toExponential(1)}, ${dWb.toExponential(1)}; reference has ${ref.exact.length} times`);
+    times && dEx < 1e-6 && dPm < 1e-10 && dWb < 1e-10, `largest differences ${dEx.toExponential(1)}, ${dPm.toExponential(1)}, ${dWb.toExponential(1)}; ${n} times to ${end}, reference has ${ref.exact.length}`);
+}
+// the one place the page departs from the paper's code on purpose: below the grid's first step. On two schedules the
+// tag's code (run on the page's grid, tools/validity/ch01.py) reports 0 late in the window; there the page's bound must
+// lie between the center and the first step exactly where a Bellman step, recomputed here, waits at the center and
+// stops at the first step, and equal the tag's value everywhere else
+function bellman(cost, horizon, k0, dt = DT, h = H, cap = 5) {
+  const { x, m, n, r, kUp, kDown } = grid(dt, h, cap), steps = Math.round(horizon / dt);
+  const g = Float64Array.from(x, (v) => 1 / (1 + Math.exp(-2 * v))), decide = Float64Array.from(g, (v) => Math.max(v, 1 - v));
+  let v = Float64Array.from(decide);
+  const wait = new Float64Array(n), out = new Map();
+  for (let k = steps - 1; k >= 0; k--) {
+    const ck = Math.min(cost(k * dt), 1e9) * dt;
+    for (let i = 0; i < n; i++) {
+      let up = 0, dn = 0;
+      for (let j = -r; j <= r; j++) { const q = i + j, vj = q < 0 || q >= n ? decide[q < 0 ? 0 : n - 1] : v[q]; up += kUp[j + r] * vj; dn += kDown[j + r] * vj; }
+      wait[i] = g[i] * up + (1 - g[i]) * dn - ck;
+    }
+    if (k <= k0) out.set(k, { center: decide[m] - wait[m], first: decide[m + 1] - wait[m + 1] });
+    for (let i = 0; i < n; i++) v[i] = Math.max(decide[i], wait[i]);
+  }
+  return out;
+}
+{
+  const sub = FIG.subStep, rows = [];
+  check("code", "the sub-step reference was run on the page's grid", sub.grid.dt === DT && sub.grid.h === H && sub.grid.horizon === VIEW + SPARE && sub.grid.view === VIEW,
+    `dt ${sub.grid.dt}, h ${sub.grid.h}, horizon ${sub.grid.horizon}`);
+  for (const [name, cs] of Object.entries(sub.cases)) {
+    const cost = costOf(cs.choice), r = threeRules(cost, null), tag = cs.exact;
+    const act = bellman(cost, VIEW + SPARE, r.t.length - 1);
+    let cells = 0, wrong = 0, other = 0, worst = 0;
+    for (let i = 0; i < r.t.length; i++) {
+      const page = r.exact[i], a = act.get(i), firstStops = a.first > 0;
+      if (tag[i] === 0 && page > 0) {
+        cells++;
+        if (!(page < H && a.center < 0 && firstStops)) wrong++;
+      } else {
+        other++; worst = Math.max(worst, Math.abs(page - tag[i]));
+        if (tag[i] === 0 && !(page === 0 && a.center >= 0)) wrong++;   // both 0: the center stops too
+      }
+    }
+    rows.push({ ok: tag.length === r.t.length && cells > 0 && wrong === 0 && worst < 1e-6, text: `${name}: ${cells} cells where the tag reads 0 and the center waits (page between 0 and ${H}), ${other} others within ${worst.toExponential(1)}` });
+  }
+  check("code", "below the grid's first step, the page departs from the tag's 0 exactly where the center waits, and matches the tag everywhere else (within 1e-6)", rows.every((x) => x.ok), rows.map((x) => x.text).join("; "));
 }
 
 // ---- Figure 1 and Table 4 ---------------------------------------------------------------------------------------
@@ -88,11 +135,31 @@ FIG1.forEach((p, k) => {
     raw = Math.max(raw, Math.abs(v - pv), Math.abs(r.pmShift[i] - ps.per_moment[j]), Math.abs(r.wbShift[i] - ps.weighted[j]));
     if (pv > 0.15) res = Math.max(res, Math.abs(v + dShift - pv));
   }
-  check("fig1", `(${p.letter}): the page's schedule is the paper's, at every 0.01 time units (within 1e-4, the printed rounding)`, n > 90 && dC < 1e-4, `largest difference ${dC.toExponential(1)} at ${n} times`);
+  check("fig1", `(${p.letter}): the page's schedule is the paper's at each of its times, every one matched to a printed time (within 1e-4, the printed rounding)`, n === r.t.length && n === ps.t.length && dC < 1e-4, `largest difference ${dC.toExponential(1)} at ${n} of ${r.t.length} times; ${ps.t.length} printed`);
   check("fig1", `(${p.letter}): moved in for the paper's time step, the page's per-moment and weighted bounds are the printed curves (within 1e-4)`, dPm < 1e-4 && dWb < 1e-4, `largest differences ${dPm.toExponential(1)}, ${dWb.toExponential(1)}`);
   check("fig1", `(${p.letter}): every curve the page draws is within 0.04 of the printed figure's`, raw < 0.04, `largest difference ${raw.toFixed(4)}`);
   check("fig1", `(${p.letter}): the page's best bound, raised by the shift difference, is within 0.007 of the printed one wherever that is above 0.15`, res < 0.007, `largest difference ${res.toFixed(4)}`);
 });
+
+{
+  // the caption's comparison, as it states it: for the four paper schedules, the two rule curves sit 0.032 below the
+  // printed ones wherever neither is held at 0, and where one is held at 0 (the weighted rule at the deadline) both are
+  let worst = 0, held = 0, n = 0, mixed = 0;
+  FIG1.forEach((p, k) => {
+    const r = PAGE[p.id], ps = FIG.schedules[k];
+    r.t.forEach((t, i) => {
+      const j = ps.t.findIndex((x) => Math.abs(x - t) < 1e-9);
+      for (const [mine, theirs] of [[r.pmShift[i], ps.per_moment[j]], [r.wbShift[i], ps.weighted[j]]]) {
+        if (theirs >= 4) continue;   // the printed data cap bounds at 4; none of the four reaches it
+        if (mine > 0 && theirs > 0) { n++; worst = Math.max(worst, Math.abs(theirs - mine - dShift)); }
+        else if (mine === 0 && theirs === 0) held++;
+        else mixed++;
+      }
+    });
+  });
+  check("fig1", "for the four paper schedules, the page's rule curves sit 0.032 below the printed ones wherever neither is held at 0 (within 1e-4), and where one is held at 0, both are",
+    n > 1500 && worst < 1e-4 && held > 0 && mixed === 0, `${n} points within ${worst.toExponential(1)} of the shift difference; ${held} points 0 in both; ${mixed} mixed`);
+}
 
 // ---- the guess: t = 0.4 on the 16-fold rise --------------------------------------------------------------------
 {
@@ -138,34 +205,62 @@ FIG1.forEach((p, k) => {
     page > 0.55 && page < 0.67 && paper > 0.55 && paper < 0.67 && r.exact[r.exact.length - 1] - r.exact[0] > 0.5, `page ${page.toFixed(3)}, printed ${paper.toFixed(3)}`);
 }
 
-// ---- edge cases, run through the plates' own computation ----------------------------------------------------------
+// ---- edge cases, run through the chapter's worker and the panels' own drawing code ------------------------------------
+const ask = (choice) => runWorker("../../book/assets/js/ch01-worker.js", { job: "three", choice });
+const KEYS = ["t", "cost", "exact", "pm", "wb", "pmShift", "wbShift"];
 {
-  // a deadline at an odd hundredth keeps its forced choice: the last time is the deadline, and the program's bound there is 0
-  const ok = [0.45, 0.95, 1, 3].map((dl) => {
-    const r = threeRules(costOf({ id: "deadline", params: { at: dl, c: 0.1 } }), dl);
-    const n = r.t.length, last = r.t[n - 1];
-    const lens = ["cost", "exact", "pm", "wb", "pmShift", "wbShift"].every((k) => r[k].length === n);
-    const before = at(r, "exact", +(dl - 0.01).toFixed(2)), atDl = at(r, "exact", dl);
-    return { dl, ok: Math.abs(last - dl) < 1e-9 && n === Math.round(dl / DT) + 1 && lens && atDl === 0 && before === r.exact[n - 2] && before > 0, text: `T = ${dl}: ${n} times to ${last}, ${before.toFixed(4)} just before, ${atDl} at T` };
-  });
-  check("fig1", "for deadlines at 0.45, 0.95, 1, and 3, the worker's curves end at the forced choice, every curve the same length, and the read-out gives the grid's own value just before it and 0 at it",
-    ok.every((x) => x.ok), ok.map((x) => x.text).join("; "));
+  // a deadline at an odd hundredth keeps its forced choice: the worker's reply ends at the deadline, every curve the
+  // same length, and the program's bound there is 0
+  const rows = [];
+  for (const dl of [0.45, 0.95, 1, 3]) {
+    const m = await ask({ id: "deadline", params: { at: dl, c: 0.1 } }), n = m.t.length, N = Math.round(dl / DT) + 1;
+    const ok = m.ok && n === N && m.t.every((x, i) => Math.abs(x - i * DT) < 1e-9) && KEYS.every((k) => m[k].length === n)
+      && m.exact[n - 1] === 0 && at(m, "exact", dl) === 0 && at(m, "exact", +(dl - 0.01).toFixed(2)) === m.exact[n - 2] && m.exact[n - 2] > 0;
+    rows.push({ ok, text: `T = ${dl}: ${n} of ${N} times, last ${m.t[n - 1].toFixed(2)}, ${m.exact[n - 2].toFixed(4)} just before, ${m.exact[n - 1]} at T` });
+  }
+  // and without a deadline, every curve runs the whole window
+  const j = await ask(fig1Choice("jump")), nj = j.t.length;
+  const whole = j.ok && nj === Math.round(VIEW / DT) + 1 && KEYS.every((k) => j[k].length === nj) && ["exact", "wbShift", "pmShift"].every((k) => j[k].every(Number.isFinite));
+  check("fig1", "the chapter's worker replies to deadlines at 0.45, 0.95, 1, and 3 with every time to the forced choice, each curve the same length, the grid's own value just before it and 0 at it; and to the 16-fold rise with every curve over the whole window",
+    rows.every((x) => x.ok) && whole, rows.map((x) => x.text).join("; ") + `; rise: ${nj} times, all finite: ${whole}`);
   // the read-out at t = 0.99 on panel (d) is the program's value there, not a line drawn across to the 0 at t = 1
-  const d = threeRules(costOf(fig1Choice("deadline")), 1);
-  check("fig1", "panel (d) read out at t = 0.99 is the program's own value at 0.99", at(d, "exact", 0.99) === d.exact[99] && at(d, "wbShift", 0.99) === d.wbShift[99],
+  const d = await ask(fig1Choice("deadline"));
+  check("fig1", "panel (d), read from the worker's reply at t = 0.99, gives the program's own values at 0.99", at(d, "exact", 0.99) === d.exact[99] && at(d, "wbShift", 0.99) === d.wbShift[99],
     `${at(d, "exact", 0.99).toFixed(4)} and ${at(d, "wbShift", 0.99).toFixed(4)}`);
-  // the panel draws the program's and the weighted rule's bounds flat to the deadline and straight down there
-  const [xs, ys] = dropAt(d.t, d.exact, 1), m = xs.length;
-  check("fig1", "panel (d)'s best bound is drawn flat to t = 1, then straight down to 0", xs[m - 1] === 1 && xs[m - 2] === 1 && ys[m - 2] === d.exact[99] && ys[m - 1] === 0, `last points (${xs.slice(-3).join(", ")}) at (${ys.slice(-3).map((v) => v.toFixed(3)).join(", ")})`);
-  // the cost strips have their own scale: a constant cost of 1 and a 32-fold rise to 3.2 stay inside their strips
-  const strips = [[{ id: "constant", params: { c: 1 } }, 1], [{ id: "jump", params: { at: 0.2, factor: 32 } }, 3.2], [{ id: "draw", points: Array.from({ length: 26 }, (_, i) => (i % 2 ? 2 : 0.5)) }, 2]].map(([ch, top]) => {
-    const cost = costOf(ch), st = costStrip(cost, VIEW), ys = Array.from({ length: 251 }, (_, i) => st.y(cost(i / 100)));
-    return { ok: Math.min(...ys) > 0 && Math.max(...ys) < 1 && st.hi > top && Math.abs(st.y(cost(1.3)) - ys[130]) < 1e-12, text: `${ch.id}: strip from ${st.lo.toPrecision(3)} to ${st.hi.toPrecision(3)}, line within (${Math.min(...ys).toFixed(3)}, ${Math.max(...ys).toFixed(3)})` };
+  // the panel as drawn: both of panel (d)'s solved curves run flat to t = 1, then straight down to the axis's 0
+  const p = { cost: costOf(fig1Choice("deadline")), dl: 1, data: d };
+  const g = panel(p, { x0: 0, y0: 0, w: 170, bh: 104, yTop: 1.86, selected: false, title: "(d)" });
+  const drops = ["ex", "wb"].map((k) => {
+    const pts = points(g.paths[k]), q = pts.length, X = +g.sx(1).toFixed(1);
+    const key = k === "ex" ? "exact" : "wbShift";
+    return { ok: pts[q - 1][0] === X && pts[q - 2][0] === X && pts[q - 1][1] === +g.syB(0).toFixed(1) && pts[q - 2][1] === +g.syB(d[key][99]).toFixed(1),
+      text: `${k}: last points ${JSON.stringify(pts.slice(-3))}` };
   });
-  check("fig1", "the cost strip's scale holds the whole cost (a constant 1, a rise to 3.2, a drawing up to 2), and the line and the dot at a time use the same scale", strips.every((x) => x.ok), strips.map((x) => x.text).join("; "));
-  // the grid's zero bound (shared rule in model.js): where the program waits at the center, the bound is above it
-  const z = threeRules(costOf({ id: "jump", params: { at: 0.2, factor: 32 } }), null), zb = z.exact[z.t.length - 1];
-  check("fig1", "on a 32-fold rise centered at 0.2, the program's bound at t = 2.5 sits between the center and the grid's first step, not at 0", zb > 0 && zb < H, `bound ${zb.toFixed(4)}, first step ${H}`);
+  check("fig1", "panel (d) as drawn: the best bound and the weighted rule both run flat to t = 1 and drop straight down to 0 there", drops.every((x) => x.ok), drops.map((x) => x.text).join("; "));
+  // the panels as drawn: the cost line holds the whole cost inside its strip, and the dot at a time sits on the line
+  const strips = [];
+  for (const ch of [{ id: "constant", params: { c: 1 } }, { id: "jump", params: { at: 0.2, factor: 32 } }, { id: "draw", points: Array.from({ length: 26 }, (_, i) => (i % 2 ? 2 : 0.5)) }]) {
+    const q = { cost: costOf(ch), dl: null, data: await ask(ch) };
+    const gg = panel(q, { x0: 0, y0: 0, w: 340, bh: 130, yTop: 2, selected: false, title: "x" });
+    const line = points(gg.paths.cost), T = 1.25, k = Math.round((T / VIEW) * 180);
+    const dot = +nowMarks(q, gg, T).match(/acc-dot" cx="[\d.]+" cy="([\d.]+)"/)[1];
+    const inside = line.every(([, y]) => y >= gg.cT - 1e-9 && y <= gg.cB + 1e-9), spread = Math.max(...line.map((v) => v[1])) - Math.min(...line.map((v) => v[1]));
+    strips.push({ ok: line.length === 181 && inside && Math.abs(line[k][1] - dot) < 0.11 && (ch.id === "constant" ? spread === 0 : spread > 0.5 * (gg.cB - gg.cT)),
+      text: `${ch.id}: line from ${Math.min(...line.map((v) => v[1]))} to ${Math.max(...line.map((v) => v[1]))} inside ${gg.cT}–${gg.cB}; at t = ${T} line ${line[k][1]}, dot ${dot}` });
+  }
+  check("fig1", "the panels as drawn keep the cost line inside its strip on its own scale (a constant 1, a rise to 3.2, a drawing up to 2), with the dot at t = 1.25 on the line", strips.every((x) => x.ok), strips.map((x) => x.text).join("; "));
+  // a positive bound below the grid's first step shows as positive, in the tile and in the sentence
+  const ramp = { id: "rising", params: { at: 0, rate: 2 } }, rm = await ask(ramp), b193 = at(rm, "exact", 1.93), cost = costOf(ramp);
+  const say = S.panelSay({ name: "Yours", t: 1.93, c: cost(1.93), best: b193, pm: toDiscrete(boundForCost(cost(1.93)), DT), wb: at(rm, "wbShift", 1.93), next: ahead(cost, 1.93, null), dl: null });
+  check("words", "on a ramp from 0 at rate 2, the worker's bound at t = 1.93 is positive but below 0.001; the tile reads \"< 0.001\" and the sentence says the program still waits at the center",
+    b193 > 0 && b193 < 0.0005 && S.bf(b193) === "< 0.001" && /best bound is below 0\.001 but above 0 \(the program still waits at the center\)/.test(say) && S.bf(0) === "0.000", `${b193.toExponential(3)}: ${say}`);
+}
+{
+  const flat = [{ id: "constant", params: { c: 0.01 } }, { id: "smooth", params: { c0: 0.1, size: 0 } }, { id: "draw", points: Array(26).fill(0.01) }]
+    .map((ch) => isFlat(costOf(ch), VIEW + SPARE));
+  const varies = [{ id: "draw", points: Array.from({ length: 26 }, (_, i) => 0.01 + i * 0.000001) }, fig1Choice("jump")].map((ch) => isFlat(costOf(ch), VIEW + SPARE));
+  check("fig1", "the fifth panel calls a schedule flat by its cost, not its name: a constant, a smooth schedule of size 0, and a drawing of equal knots are flat; a drawing from 0.010000 to 0.010025 is not",
+    flat.every(Boolean) && varies.every((x) => !x), `flat ${flat.join(", ")}; varying ${varies.join(", ")}`);
 }
 
 // ---- the reader's schedule: which panel it is ------------------------------------------------------------------
@@ -214,7 +309,7 @@ const BAD = /NaN|undefined|Infinity|null|infinite and infinite|between infinite|
     const rule = S.ruleSay(dl, cost(dl), boundForCost(cost(dl)), next, dl);
     const after = S.ruleSay(dl + 0.2, cost(dl), boundForCost(cost(dl)), ahead(costAt, dl + 0.2, dl), dl);
     const good = next.kind === "forced" && /choice is forced/.test(panel) && /program's bound there is 0\.000/.test(panel) && !/may still be open/.test(panel)
-      && /choice is forced now/.test(rule) && /= 1\.344\./.test(rule) && /B\(∞\) = 0/.test(after) && ![panel, rule, after].some((x) => BAD.test(x));
+      && /choice is forced now/.test(rule) && /B\(c\(\d[\d.]*\)\) ≈ 1\.344\./.test(rule) && /B\(∞\) = 0/.test(after) && ![panel, rule, after].some((x) => BAD.test(x));
     return { good, text: `${panel} | ${rule} | ${after}` };
   });
   check("words", "at a deadline's instant (T = 1 and 0.45), the read-out and the rule plate say the choice is forced, with the program's bound 0 and the per-moment B(0.1); just past it, B(∞) = 0",
@@ -227,16 +322,38 @@ const BAD = /NaN|undefined|Infinity|null|infinite and infinite|between infinite|
   const say = S.riseSay(0.9, best, pm, 0.4, cost(0.4), cost(-5), cost(10)), lo = S.riseSay(0.2, best, pm, 0.4, cost(0.4), cost(-5), cost(10));
   check("words", "the guess's sentence takes every gap from the full-precision values and prints them to three decimals, as the bounds are",
     /best bound is 0\.384, so your guess was 0\.516 too high/.test(say) && /0\.184 too low/.test(lo) && /The per-moment bound is 0\.685, 0\.301 above the best bound/.test(say), say);
-  const up = S.panelSay({ name: "x", t: 0.3, c: 0.13, best: 0.6, pm: 1.1, wb: 0.58, next: { kind: "cost", mean: 1.2, lo: 0.13, hi: 1.6 }, dl: null });
-  const dn = S.panelSay({ name: "x", t: 0.1, c: 0.39, best: 0.99, pm: 0.51, wb: 1.08, next: { kind: "cost", mean: 0.1, lo: 0.05, hi: 0.39 }, dl: null });
-  const odd = S.panelSay({ name: "x", t: 0.1, c: 0.39, best: 0.4, pm: 0.51, wb: 0.4, next: { kind: "cost", mean: 0.1, lo: 0.05, hi: 0.39 }, dl: null });
-  check("words", "the read-out gives a reason only when the cost ahead lies on one side and the gap points the same way", /0\.500 lower: a decision open now may still be open when the cost is higher/.test(up)
-    && /0\.480 higher: a decision open now may still be open when the cost is lower/.test(dn) && /0\.110 lower than the per-moment bound\.$/.test(odd), `${up} | ${dn} | ${odd}`);
+  // a gap where rounding the operands first would print 0.302: the sentence prints the full-precision 0.301
+  const pre = S.riseSay(null, 0.3844, 0.6856, 0.4, 0.28, 0.1, 1.6);
+  check("words", "a gap is the difference of the full-precision values (0.6856 - 0.3844 = 0.3012 prints 0.301; rounding first would give 0.302)", /0\.301 below the per-moment bound's 0\.686/.test(pre), pre);
+  const one = { kind: "cost", mean: 1.2, lo: 0.13, hi: 1.6, up: true, down: false }, two = { kind: "cost", mean: 0.1, lo: 0.05, hi: 0.39, up: false, down: true };
+  const up = S.panelSay({ name: "x", t: 0.3, c: 0.13, best: 0.6, pm: 1.1, wb: 0.58, next: one, dl: null, explain: true });
+  const dn = S.panelSay({ name: "x", t: 0.1, c: 0.39, best: 0.99, pm: 0.51, wb: 1.08, next: two, dl: null, explain: true });
+  const odd = S.panelSay({ name: "x", t: 0.1, c: 0.39, best: 0.4, pm: 0.51, wb: 0.4, next: two, dl: null, explain: true });
+  const off = S.panelSay({ name: "x", t: 0.3, c: 0.13, best: 0.6, pm: 1.1, wb: 0.58, next: one, dl: null, explain: false });
+  check("words", "the read-out gives a reason only on the paper's schedules, and only when every sampled cost ahead is on the side the gap points to",
+    /sampled over the next half time unit it rises, to a mean of 1\.2\..*0\.500 lower: a decision open now may still be open when the cost is higher/.test(up)
+    && /it falls, to a mean of 0\.10\..*0\.480 higher: a decision open now may still be open when the cost is lower/.test(dn) && /0\.110 lower than the per-moment bound\.$/.test(odd)
+    && /0\.500 lower than the per-moment bound\.$/.test(off), `${up} | ${dn} | ${odd} | ${off}`);
+  // a drawing that crosses its starting level: down to 0.099, up to 0.25, then back and forth (the auditor's case), and
+  // one that dips less than 2% before rising: neither is called a rise, and no reason is given even where one may be
+  const knots = (head) => Array.from({ length: 26 }, (_, i) => head[Math.min(i, head.length - 1)]);
+  const cross = drawnCost(knots([0.10, 0.099, 0.25, 0.12, 0.22, 0.15])), dip = drawnCost(knots([0.10, 0.0995, 0.2, 0.3, 0.3, 0.3]));
+  const cx = ahead(cross, 0, null), dx = ahead(dip, 0, null);
+  const sc = S.panelSay({ name: "Yours", t: 0, c: cross(0), best: 0.9, pm: 1.08, wb: 0.9, next: cx, dl: null, explain: true });
+  const sd = S.panelSay({ name: "Yours", t: 0, c: dip(0), best: 0.9, pm: 1.08, wb: 0.9, next: dx, dl: null, explain: true });
+  check("words", "a sampled cost that crosses its starting level, even by less than 2%, is reported by its range and mean, not as a rise, and gets no reason",
+    !cx.up && !dx.up && /ranges from 0\.099 to 0\.25, with a mean of/.test(sc) && /ranges from 0\.10 to 0\.30, with a mean of/.test(sd) && ![sc, sd].some((x) => /rises|may still be open/.test(x)), `${sc} | ${sd}`);
+  // the sampled mean is the trapezoid rule's: exact on a straight ramp
+  const ramp = costOf({ id: "rising", params: { at: 0, rate: 2 } }), rmn = ahead(ramp, 0, null).mean;
+  check("words", "the half-unit mean of a straight ramp from 0.1 at rate 2 is its exact mean, 0.6", Math.abs(rmn - 0.6) < 1e-12, `${rmn}`);
   // a drawing that swings between 0.01 and 2 from 0.32: its half-unit mean is near the cost now, but the cost isn't steady
   const pts = Array.from({ length: 26 }, (_, i) => (i === 0 ? 0.32 : i % 2 ? 0.01 : 2)), wild = drawnCost(pts), nx = ahead(wild, 0, null);
   const w = S.panelSay({ name: "Yours", t: 0, c: wild(0), best: 0.5, pm: 0.9, wb: 0.5, next: nx, dl: null });
   check("words", "on a drawing that swings from 0.01 to 2, the read-out reports the range, says nothing is steady, and gives no reason", /ranges from 0\.010 to 2\.0/.test(w) && !/within 10%|may still be open/.test(w), w);
   const r = S.ruleSay(0.3, cost(0.3), boundForCost(cost(0.3)), ahead(cost, 0.3, null), null);
-  check("words", "the rule plate's sentence names the cost at the time it reads, B(c(t)), and the cost ahead it leaves out", /B\(c\(0\.3\)\) = 1\.201\./.test(r) && /between 0\.13 and 1\.6, and the rule uses none of it/.test(r), r);
+  const past = S.ruleSay(1.2, 0.17, boundForCost(0.17), { kind: "past" }, 1), rounded = S.ruleSay(0.3, 0.1234, boundForCost(0.1234), { kind: "cost", lo: 0.12, hi: 0.13, mean: 0.125 }, null);
+  check("words", "the rule plate's sentence names the cost symbolically, marks rounded decimals with ≈ and exact ones with =, and reports the cost ahead it leaves out",
+    /c\(0\.3\) ≈ 0\.13, so the per-moment bound is B\(c\(0\.3\)\) ≈ 1\.201\./.test(r) && /between 0\.13 and 1\.6, and the rule uses none of it/.test(r)
+    && /B\(c\(1\)\) ≈ 1\.026, with c\(1\) = 0\.17/.test(past) && /c\(0\.3\) ≈ 0\.12/.test(rounded), `${r} | ${past}`);
   check("words", "costs print to two significant figures", S.cf(0.1001) === "0.10" && S.cf(0.0917) === "0.092" && S.cf(1.4212) === "1.4" && S.cf(16) === "16", [0.1001, 0.0917, 1.4212, 16].map(S.cf).join(", "));
 }

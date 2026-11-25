@@ -5,8 +5,9 @@
 import { boundForCost, toDiscrete } from "./model.js";
 import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, defaultDrawing, VIEW, SPARE } from "./schedules-book.js";
 import { getChoice, setChoice, solve, onVisible, watchVisible, liftReady, calm } from "./book.js";
-import { frame, line, axes, svg, fmt, keepDrawn, ticks, dropAt } from "./chart.js";
-import { FIG1, fig1Choice, fig1Of, at, ahead, costStrip, DT, SHIFT } from "./ch01-model.js";
+import { frame, line, axes, svg, fmt, keepDrawn } from "./chart.js";
+import { FIG1, fig1Choice, fig1Of, at, ahead, isFlat, DT, SHIFT } from "./ch01-model.js";
+import { panel, nowMarks, ROWS } from "./ch01-draw.js";
 import * as S from "./say-ch01.js";
 
 const $ = (sel, el = document) => el.querySelector(sel);
@@ -290,54 +291,6 @@ function figurePlate() {
     <dl class="reads" id="f1-reads"></dl><p class="say" id="f1-say"></p><p class="fine" id="f1-state" aria-live="polite"></p>`;
   const four = $("#f1-four", el), mine = $("#f1-yours", el), inp = $("#f1-t", el), out = $("#f1-out", el), play = $("#f1-play", el);
   const pick = $("#f1-pick", el), note = $("#f1-note", el), reads = $("#f1-reads", el), say = $("#f1-say", el), state = $("#f1-state", el);
-  const ROWS = { title: 15, gap: 5 };
-
-  /** One panel at (x0, y0) of width w: a title, the cost strip on a log scale, and the three bounds. Returns the
-   * static marks and the scales the time line needs. */
-  const panel = (p, x0, y0, w, bh, yTop, selected, title) => {
-    const view = p.dl ?? VIEW, l = 28, r = 6, cH = Math.round(Math.min(40, Math.max(28, bh * 0.26)));
-    const sx = (u) => x0 + l + (u / view) * (w - l - r);
-    const cT = y0 + ROWS.title + 4, cB = cT + cH, bT = cB + ROWS.gap + 4, bB = bT + bh;
-    // the cost and the bounds have their own scales: the cost strip is log c over the schedule's own range, and only
-    // the bounds are held to the panel's bound scale
-    const tsC = range(0, view, 181), strip = costStrip(p.cost, view);
-    const syC = (c) => cB - strip.y(c) * (cB - cT);
-    const syB = (b) => bB - (Math.min(b, yTop * 1.02) / yTop) * (bB - bT);
-    const path = (xs, ys, sy) => { let d = "", pen = false; xs.forEach((x, k) => { const v = ys[k]; if (v === null || !Number.isFinite(v)) { pen = false; return; } d += (pen ? "L" : "M") + sx(x).toFixed(1) + " " + sy(v).toFixed(1); pen = true; }); return d; };
-    let s = "";
-    if (selected) s += `<rect class="panel-sel" x="${x0}" y="${y0}" width="${w}" height="${bB + 20 - y0}"/>`;
-    s += `<text class="lab${selected ? " sel" : ""}" x="${x0 + 4}" y="${y0 + 11}">${title}</text>`;
-    s += `<path class="ax" d="M${x0 + l} ${cB}H${x0 + w - r}M${x0 + l} ${bB}H${x0 + w - r}M${x0 + l} ${bT}V${bB}"/>`;
-    s += `<path class="cost" d="${path(tsC, tsC.map(p.cost), syC)}"/>`;
-    for (const v of ticks(0, yTop / 1.02, 4)) {
-      s += `<path class="grid" d="M${x0 + l} ${syB(v).toFixed(1)}H${x0 + w - r}"/>`;
-      s += `<text class="tk" x="${x0 + l - 5}" y="${(syB(v) + 3.5).toFixed(1)}" text-anchor="end">${v}</text>`;
-    }
-    const xt = ticks(0, view, 3);
-    for (const v of xt) s += `<path class="ax" d="M${sx(v).toFixed(1)} ${bB}v4"/><text class="tk" x="${sx(v).toFixed(1)}" y="${bB + 15}" text-anchor="middle">${v}</text>`;
-    if (p.dl !== null) s += `<path class="acc" stroke-dasharray="3 3" d="M${sx(p.dl).toFixed(1)} ${cT}V${bB}"/>`;
-    const tsP = range(0, view, 251);
-    s += `<path class="pm" d="${path(tsP, tsP.map((u) => pmShifted(p.cost, u)), syB)}"/>`;
-    if (p.data) {
-      // at a deadline the program's bound and the weighted rule's are 0: flat up to it, then straight down
-      s += `<path class="wb" d="${path(...dropAt(p.data.t, p.data.wbShift, p.dl), syB)}"/>`;
-      s += `<path class="ex" d="${path(...dropAt(p.data.t, p.data.exact, p.dl), syB)}"/>`;
-    } else s += `<text class="tk" x="${(x0 + l + (w - l - r) / 2).toFixed(1)}" y="${((bT + bB) / 2).toFixed(1)}" text-anchor="middle">solving…</text>`;
-    return { s, sx, syC, syB, cT, bB, view, hit: { x: x0, y: y0, w, h: bB + 20 - y0 } };
-  };
-  /** The time line and the dots at time t, for one panel. */
-  const now = (p, g) => {
-    if (t > g.view + 1e-9) return `<text class="tk" x="${(g.sx(g.view) - 3).toFixed(1)}" y="${(g.cT + 9).toFixed(1)}" text-anchor="end">${p.dl !== null ? "past the deadline" : "past the window"}</text>`;
-    const X = g.sx(t).toFixed(1), c = p.cost(t);
-    let s = `<path class="dim" stroke-dasharray="2 3" d="M${X} ${g.cT}V${g.bB}"/>`;
-    if (Number.isFinite(c)) s += `<circle class="acc-dot" cx="${X}" cy="${g.syC(c).toFixed(1)}" r="3.2"/>`;
-    s += `<circle class="pm-dot" cx="${X}" cy="${g.syB(pmShifted(p.cost, t)).toFixed(1)}" r="3.4"/>`;
-    if (p.data) {
-      s += `<circle class="wb-dot" cx="${X}" cy="${g.syB(at(p.data, "wbShift", t)).toFixed(1)}" r="3.4"/>`;
-      s += `<circle class="ink-dot" cx="${X}" cy="${g.syB(at(p.data, "exact", t)).toFixed(1)}" r="3.4"/>`;
-    }
-    return s;
-  };
   let geo4 = [], geoY = null;
   const drawFour = () => {
     const W = Math.max(280, Math.round(four.clientWidth || 340)), gap = 14, w = (W - gap) / 2;
@@ -346,7 +299,7 @@ function figurePlate() {
     const narrow = w < 240;
     let s = "", hits = "";
     geo4 = panels.map((p, k) => {
-      const g = panel(p, (k % 2) * (w + gap), Math.floor(k / 2) * (ph + 12), w, bh, yTop4, sel === k, `(${p.letter}) ${narrow ? p.short : p.title}`);
+      const g = panel(p, { x0: (k % 2) * (w + gap), y0: Math.floor(k / 2) * (ph + 12), w, bh, yTop: yTop4, selected: sel === k, title: `(${p.letter}) ${narrow ? p.short : p.title}` });
       s += g.s;
       hits += `<rect class="panel-hit" data-k="${k}" x="${g.hit.x}" y="${g.hit.y}" width="${g.hit.w}" height="${g.hit.h}"/>`;
       return g;
@@ -362,7 +315,7 @@ function figurePlate() {
     const vals = [...tsP.map((u) => pmShifted(y.cost, u)), ...(y.data ? [...finite(y.data.exact), ...y.data.wbShift] : [])];
     const yTop = Math.max(0.4, Math.max(...vals) * 1.1);
     const bh = Math.round(Math.min(200, Math.max(130, W * 0.36)));
-    const g = panel(y, 0, 0, W, bh, yTop, sel === 4, `Yours: ${labelOf(choice)}`);
+    const g = panel(y, { x0: 0, y0: 0, w: W, bh, yTop, selected: sel === 4, title: `Yours: ${labelOf(choice)}` });
     geoY = g;
     mine.innerHTML = `<svg class="chart" viewBox="0 0 ${W} ${g.hit.h}" width="${W}" height="${g.hit.h}" role="img" aria-label="Your schedule: the cost of time, the best bound, the per-moment rule, and the weighted look-ahead">${g.s}<g id="f1-nowY"></g><rect class="panel-hit" x="0" y="0" width="${W}" height="${g.hit.h}"/></svg>`;
     mine.querySelector(".panel-hit").addEventListener("click", () => choose(4));
@@ -370,8 +323,8 @@ function figurePlate() {
   };
   const moveNow = () => {
     out.textContent = t.toFixed(2);
-    const g4 = four.querySelector("#f1-now4"); if (g4 && geo4.length) g4.innerHTML = panels.map((p, k) => now(p, geo4[k])).join("");
-    const gy = mine.querySelector("#f1-nowY"); if (gy && geoY) gy.innerHTML = now(yours, geoY);
+    const g4 = four.querySelector("#f1-now4"); if (g4 && geo4.length) g4.innerHTML = panels.map((p, k) => nowMarks(p, geo4[k], t)).join("");
+    const gy = mine.querySelector("#f1-nowY"); if (gy && geoY) gy.innerHTML = nowMarks(yours, geoY, t);
     readOut();
   };
   const readOut = () => {
@@ -381,8 +334,8 @@ function figurePlate() {
     const view = p.dl ?? VIEW, past = t > view + 1e-9;
     const c = past ? NaN : p.cost(t), best = past ? NaN : at(p.data, "exact", t), pm = past ? NaN : pmShifted(p.cost, t), wb = past ? NaN : at(p.data, "wbShift", t);
     reads.innerHTML = `<div class="k-acc"><dt>Cost at ${t.toFixed(2)}</dt><dd>${past ? "–" : S.cf(c)}</dd></div>
-      <div><dt>Best bound</dt><dd>${fmt(best, 3)}</dd></div><div class="k-pm"><dt>Per-moment</dt><dd>${fmt(pm, 3)}</dd></div><div class="k-wb"><dt>Weighted</dt><dd>${fmt(wb, 3)}</dd></div>`;
-    say.textContent = past && p.dl === null ? S.beyondSay(name, t, view) : S.panelSay({ name, t, c, best, pm, wb, next: ahead(p.cost, t, p.dl), dl: p.dl });
+      <div><dt>Best bound</dt><dd>${past ? "–" : S.bf(best)}</dd></div><div class="k-pm"><dt>Per-moment</dt><dd>${past ? "–" : S.bf(pm)}</dd></div><div class="k-wb"><dt>Weighted</dt><dd>${past ? "–" : S.bf(wb)}</dd></div>`;
+    say.textContent = past && p.dl === null ? S.beyondSay(name, t, view) : S.panelSay({ name, t, c, best, pm, wb, next: ahead(p.cost, t, p.dl), dl: p.dl, explain: sel < 4 || !!fig1Of(choice)?.same });
   };
   const choose = (k) => { sel = k; setSeg(el, "f1-sel", k); drawFour(); drawYours(); };
   const setupYours = () => {
@@ -391,7 +344,10 @@ function figurePlate() {
     // the time line reaches the end of every panel, a late deadline included
     inp.max = String(Math.max(VIEW, yours.dl ?? 0)); if (t > +inp.max) { t = +inp.max; inp.value = t; }
     const f = fig1Of(choice);
-    note.textContent = S.yoursNote({ label: labelOf(choice), kind: yours.dl !== null ? "deadline" : choice.id === "constant" ? "constant" : "other", letter: f?.letter, same: f?.same, dl: yours.dl });
+    // a schedule is flat when its cost doesn't change at all (a constant, a smooth one of size 0, a drawing of equal
+    // knots), whatever its preset is called; a drawing that changes in its fifth digit is not flat
+    const flat = yours.dl === null && isFlat(yours.cost, VIEW + SPARE);
+    note.textContent = S.yoursNote({ label: labelOf(choice), kind: yours.dl !== null ? "deadline" : flat ? "constant" : "other", letter: f?.letter, same: f?.same, dl: yours.dl });
     drawYours();
     const c = choice;
     three(c).then((r) => { if (c !== choice) return; yours.data = r; drawYours(); liftReady(fig); }).catch((e) => { state.textContent = "The solver stopped: " + e.message; });

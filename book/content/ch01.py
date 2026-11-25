@@ -20,19 +20,19 @@ CHAPTER = {
     "title": "The question, from the 2025 capstone",
     "full": "The question, from the 2025 capstone: the per-moment rule and Figure 1",
     "leaf": 2,
-    "finding": "The per-moment rule moves the bound only when the cost moves, and the best bound moves earlier. How far ahead should the bound look, and with what weights?",
+    "finding": "The per-moment rule moves the bound with the cost; the best bound moves well before most of a change. How far ahead should the bound look, and with what weights?",
     "readings": [
         ("HeldPerMomentMedian", "the per-moment rule's median loss on the paper's held-out schedules, in points per 100 trials"),
         ("HeldShareMedian", "the same loss as a share of the reward, in percent"),
         ("HeldPerMomentMax", "its largest loss there, in points per 100 trials"),
     ],
     "hero": {
-        "aria": "Figure 1(b): the cost of time falls from 0.4 to 0.05 around time 0.3. Below, the best bound rises before the fall, while the per-moment rule's bound rises only as the cost falls.",
-        "caption": r"""Figure 1(b): the cost of time falls from 0.4 to 0.05 around $t = 0.3$ (orange, log scale). Below, the best bound from a dynamic program solved in this page (ink) rises before the fall; the per-moment rule's bound (dashed) rises only as the cost falls. Both are for checking the evidence every 0.01 time units.""",
+        "aria": "Figure 1(b): the cost of time falls from 0.4 to 0.05 around time 0.3. Below, the best bound makes most of its rise before the center of the fall, while the per-moment rule's bound rises with the cost.",
+        "caption": r"""Figure 1(b): the cost of time falls from 0.4 to 0.05 around $t = 0.3$ (orange, log scale). Below, the best bound from a dynamic program solved in this page (ink) makes most of its rise before the center of the fall; the per-moment rule's bound (dashed) rises with the cost. Both are for checking the evidence every 0.01 time units.""",
         "still": 1,
     },
     "intro": r"""
-Where the paper starts: a shortcut for a cost of time that changes, the one the author's 2025 capstone used, and a picture of what it misses. The per-moment rule moves the bound only when the cost moves, and the best bound moves earlier. How far ahead should the bound look, and with what weights?
+Where the paper starts: a shortcut for a cost of time that changes, the one the author's 2025 capstone used, and a picture of what it misses. The per-moment rule moves the bound with the cost; the best bound moves well before most of a change. How far ahead should the bound look, and with what weights?
 
 Nothing in this chapter is proved. It defines the shortcut, asks for a guess, and rebuilds the paper's first measurement, Figure 1, in the page. In reward, the shortcut is already close: on the paper's {{HeldCount}} held-out schedules, it gives up a median of {{HeldShareMedian}}% of the reward (chapter 10). What it gets wrong is where the bound sits and when it moves. The formal setup comes in chapters 2 and 3; this chapter needs only the idea that a higher cost of time means deciding sooner, on less evidence.
 """,
@@ -67,7 +67,7 @@ PLATES = {
         "title": "Four schedules, three rules",
         "state": "computed",
         "state_text": "Computed in the page: a dynamic program on a grid, and the two rules from their equations",
-        "caption": r"""Figure 1's four schedules, in the paper's order, and your own below them. Above each panel is the cost of time, on a log scale over the schedule's own range; in it are the best bound from the dynamic program (ink), the per-moment rule (dashed), and the weighted look-ahead from {{ref:alg:weighted}}'s 30 damped updates (green). The time line moves across every panel; pick a panel to read it out, at the program's own times, every 0.01. The page checks the evidence every 0.01 time units on an evidence grid of 0.02, and runs the program to $t = 8.5$ with the evidence capped at 5, or to the deadline. The paper's grid for its Figure 1 is finer ($\Delta t = 0.002$, $h = 0.005$, run to $t = 10$ with the evidence capped at 8). So the two rules are moved in by $0.5826\sqrt{0.01}$ instead of $0.5826\sqrt{0.002}$ and sit 0.032 below the printed curves, the difference of the two shifts; the best bound, solved on the page's own grid, sits within 0.04 of the printed one, and both come down to 0 at the deadline. The losses are the paper's, in {{ref:tab:showcase}}; the page doesn't score the rules.""",
+        "caption": r"""Figure 1's four schedules, in the paper's order, and your own below them. Above each panel is the cost of time, on a log scale over the schedule's own range; in it are the best bound from the dynamic program (ink), the per-moment rule (dashed), and the weighted look-ahead from {{ref:alg:weighted}}'s 30 damped updates (green). The time line moves across every panel; pick a panel to read it out, at the program's own times, every 0.01. The page checks the evidence every 0.01 time units on an evidence grid of 0.02, and runs the program to $t = 8.5$ with the evidence capped at 5, or to the deadline. Where the program's bound falls below the grid's first step of 0.02 while its Bellman step still waits at the center, the page places the bound between the center and that step (the paper's code reports 0 there; chapter 9); such a bound below 0.001 reads "< 0.001". For the four paper schedules, the printed Figure 1 is on a finer grid ($\Delta t = 0.002$, $h = 0.005$, run to $t = 10$ with the evidence capped at 8). The rules are moved in by $0.5826\sqrt{0.01}$ instead of $0.5826\sqrt{0.002}$, so the page's two rule curves sit 0.032 below the printed ones wherever neither is held at 0 (the weighted rule is 0 at the deadline in both). The two programs' best bounds, each solved on its own grid, are within 0.04 of each other at every printed time, and both are 0 at the deadline. Your own schedule has no printed curve to compare. The losses are the paper's, in {{ref:tab:showcase}}; the page doesn't score the rules.""",
         "wide": True,
     },
 }
@@ -173,7 +173,7 @@ $B(0.1)$, the same flat bound it uses at $t = 0$. At $t = 0.9$, the current cost
 """),
                 (r"When, if ever, is the per-moment rule exactly optimal?",
                  r"""
-When the cost is constant: then $b_{\mathrm{pm}} = B(c)$ is the optimal flat bound. To first order, it is also right in the limit of very slow changes. For a small, bounded, continuous change around a constant cost on an infinite horizon, the first-order term weights the coming change by the kernel, and $\tilde w(0) = 1$, so in the low-frequency limit that weighted average is the present value of the change ({{ref:cor:limits}}(a)). For any such change that isn't constant, the per-moment bound's error divided by $\varepsilon$ tends, locally uniformly in time, to a limit that isn't identically zero, so the error doesn't shrink faster than the change ({{ref:prop:rule}}).
+When the cost is constant, on an infinite horizon: then $b_{\mathrm{pm}} = B(c)$ is the optimal flat bound. To first order, it is also right in the limit of very slow changes. For a small, bounded, continuous change around a constant cost on an infinite horizon, the first-order term weights the coming change by the kernel, and $\tilde w(0) = 1$, so in the low-frequency limit that weighted average is the present value of the change ({{ref:cor:limits}}(a)). For any such change that isn't constant, the per-moment bound's error divided by $\varepsilon$ tends, locally uniformly in time, to a limit that isn't identically zero, so the error doesn't shrink faster than the change ({{ref:prop:rule}}).
 """),
                 (r"The paper says frozen-cost bounds are “the leading term in large-time asymptotics” for related problems. Does that contradict the claim that the per-moment rule is wrong?",
                  r"""
@@ -185,7 +185,7 @@ It rises. That the per-moment bound rises follows from $B$ being decreasing ({{r
 """),
                 (r"Read {{ref:tab:showcase}}. On which schedule does the per-moment rule lose the most, and does the weighted rule's ranking follow it?",
                  r"""
-The per-moment rule loses the most on the falling cost ({{T:tab_showcase:2:2}} points per 100 trials), then the rise ({{T:tab_showcase:1:2}}), the deadline ({{T:tab_showcase:4:2}}), and the ramp ({{T:tab_showcase:3:2}}). The weighted rule loses the most on the deadline ({{T:tab_showcase:4:3}}) and between {{T:tab_showcase:2:3}} and {{T:tab_showcase:3:3}} on the other three, so its ranking does not follow the per-moment rule's. No theorem covers any of the four: on all of them the weighted rule is a heuristic, and {{ref:tab:showcase}} measures it.
+The per-moment rule loses the most on the falling cost ({{T:tab_showcase:2:2}} points per 100 trials), then the rise ({{T:tab_showcase:1:2}}), the deadline ({{T:tab_showcase:4:2}}), and the ramp ({{T:tab_showcase:3:2}}). The weighted rule loses the most on the deadline ({{T:tab_showcase:4:3}}) and between {{T:tab_showcase:2:3}} and {{T:tab_showcase:3:3}} on the other three, so its ranking does not follow the per-moment rule's. The paper's small-change results ({{ref:thm:main}} and {{ref:prop:rule}}) don't justify the weighted rule on any of the four: on all of them it is a heuristic, and {{ref:tab:showcase}} measures it.
 """),
                 (r"Does {{ref:thm:main}} cover the 16-fold rise?",
                  r"""
