@@ -47,6 +47,12 @@ const wsUrl = await new Promise((ok, no) => {
   const t = setTimeout(() => no(new Error("Chrome did not start")), 20000);
   chrome.stderr.on("data", (d) => { buf += d; const m = buf.match(/DevTools listening on (ws:\/\/\S+)/); if (m) { clearTimeout(t); ok(m[1]); } });
 });
+// never leave Chrome running: end it on any exit, including a thrown error or Ctrl-C
+const endChrome = () => { try { chrome.kill(); } catch (e) { /* already gone */ } };
+process.on("exit", endChrome);
+for (const sig of ["SIGINT", "SIGTERM"]) process.on(sig, () => { endChrome(); process.exit(130); });
+process.on("uncaughtException", (e) => { console.error(e); endChrome(); process.exit(1); });
+process.on("unhandledRejection", (e) => { console.error(e); endChrome(); process.exit(1); });
 const ws = new WebSocket(wsUrl);
 await new Promise((ok) => ws.addEventListener("open", ok));
 let nextId = 1;

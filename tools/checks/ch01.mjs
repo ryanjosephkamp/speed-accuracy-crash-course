@@ -40,8 +40,8 @@ const worst = (a, b) => a.reduce((m, v, i) => (v === null || b[i] === null || b[
 for (const choice of CHOICES) {
   const s = spec(choice), ref = REF.schedules[s.id];
   if (!ref) { check("code", `${s.id}: in the reference`, false, "missing; rerun tools/validity/paper_code.py"); continue; }
-  // the plate's function, unthinned, with the reference's horizon (a deadline's program otherwise stops at the deadline)
-  const r = threeRules(costFromSpec(s), s.kind === "deadline" ? s.at : null, { every: 1, horizon: HORIZON });
+  // the plate's function, unthinned, with the reference's horizon (a deadline's program stops at the deadline, in both)
+  const r = threeRules(costFromSpec(s), s.kind === "deadline" ? s.at : null, { every: 1, horizon: s.kind === "deadline" ? s.at : HORIZON });
   const n = r.t.length;
   const dEx = worst(r.exact, ref.exact.slice(0, n)), dPm = worst(r.pm, ref.perMoment.slice(0, n)), dWb = worst(r.wb, ref.weighted.slice(0, n));
   check("code", `${s.id}: the plate's best bound, per-moment bound, and weighted look-ahead match the paper's code (within 1e-6, 1e-10, 1e-10)`,
