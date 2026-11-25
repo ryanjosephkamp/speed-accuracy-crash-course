@@ -258,7 +258,9 @@ function heldPlate() {
     let s = axes(f, { xt: tk, yt: tk, fx: powLabel, fy: powLabel, xl: "per-moment loss", yl: "weighted loss", grid: true });
     s += ratioLine(f, 1, "guide-solid") + ratioLine(f, 0.1, "guide") + ratioLine(f, 0.01, "guide");
     s += ratioTags(f);
-    if (guess !== null) s += ratioLine(f, Math.max(1 - guess, 1e-4), "guess-line");
+    const k = guess === null ? null : M.guessSlope(guess);
+    if (k !== null) s += ratioLine(f, k, "guess-line");
+    else if (guess !== null) s += txt(f.W - f.r - 4, f.H - f.b - 8, "a guess of 100% has no line on log axes", "tag-acc", "end");
     pts = [];
     if (shown) {
       s += ratioLine(f, 1 - sum.med, "med-line");
@@ -365,7 +367,8 @@ function yoursPlate() {
   const fig = plate("yours"), el = rootOf("yours");
   if (!el) return;
   const PICK = [["weighted_one_pass", "One pass"], ["averaged_cost", "Averaged cost"], ["shift_mean", "Shift by mean"], ["shift_half", "Shift by 0.5"], ["best_constant", "Tuned constant"]];
-  let choice = getChoice(), run = null, alt = "averaged_cost", gen = 0;
+  let choice = getChoice(), run = null, alt = "averaged_cost", gen = 0, nTable = null;
+  data().then((D) => { nTable = D.held.filter((r) => r.f !== "deadline").length; if (run) fill(); }).catch(() => {});
   el.innerHTML = `<div class="controls">${pickerHTML("yr-pick")}${segHTML("yr-alt", PICK, alt, "Also draw")}</div>
     <p class="fine" id="yr-note"></p>
     <div class="chart-wrap" id="yr-cost"></div><div class="chart-wrap" id="yr-bounds"></div>
@@ -402,7 +405,7 @@ function yoursPlate() {
     }).join("");
     table.innerHTML = `<div class="tbl-scroll" tabindex="0" role="region" aria-label="Seven rules on your schedule"><table><thead><tr><th scope="col">Rule</th><th scope="col">Loss</th><th scope="col">Bound gap</th><th scope="col">Accuracy</th><th scope="col">Time</th></tr></thead><tbody>${rows}</tbody></table></div>
       <p class="fine">Loss in points per 100 trials; bound gap: the largest before ${until === "4" ? "t = 4" : "the deadline"}, in evidence units; accuracy in percentage points and mean decision time in units of σ²/μ², each against the program. The tuned constant's bound is in parentheses.</p>`;
-    say.textContent = S.yoursSay(labelOf(choice), run, M.SAY_NAMES, isFlat(choice));
+    say.textContent = S.yoursSay(labelOf(choice), run, M.SAY_NAMES, isFlat(choice), nTable);
   };
   const go = () => {
     const my = ++gen;
@@ -454,7 +457,7 @@ function sharePlate() {
     let s = axes(f, { yt, fy: (v) => YL[v], xl: "largest bound gap, evidence units", yl: "share of the reward given up", grid: true });
     if (guess !== null) s += `<path class="guess-line" d="M${f.l} ${P(f.sy(guess))}H${f.W - f.r}"/>`;
     if (shown) {
-      s += `<path class="med-line" d="M${f.l} ${P(f.sy(med))}H${f.W - f.r}"/>` + txt(f.W - f.r - 2, f.sy(med) - 5, "median", "tag-wb", "end");
+      s += `<path class="med-line" d="M${f.l} ${P(f.sy(med))}H${f.W - f.r}"/>` + txt(f.W - f.r - 2, f.sy(med) + 14, "median", "tag-wb", "end");
       s += D.held.map((r) => `<circle class="pm-dot" cx="${P(f.sx(Math.min(r.r[0][3], xmax)))}" cy="${P(f.sy(Math.max(share(r), FLOOR)))}" r="2.6"/>`).join("");
     } else s += txt((f.l + f.W - f.r) / 2, f.sy(3e-5), "Points appear on Show me", "tk", "middle");
     if (run) s += ring(f.sx(Math.min(run.rules.per_moment.maxDx, xmax)), f.sy(Math.max(run.rules.per_moment.loss / (100 * run.exact.reward), FLOOR)));
@@ -463,13 +466,12 @@ function sharePlate() {
   };
   const drawBot = () => {
     if (!run) { bot.innerHTML = ""; return; }
-    const end = run.t[run.t.length - 1];
-    const d = (a) => a.map((v, i) => (v === null || run.exactBound[i] === null ? NaN : Math.min(v, 4) - Math.min(run.exactBound[i], 4)));
-    const dp = d(run.rules.per_moment.curve), dw = d(run.rules.weighted.curve);
-    const all = [...dp, ...dw].filter(Number.isFinite), lim = Math.max(0.05, ...all.map(Math.abs)) * 1.15;
+    const g = M.gapCurves(run), end = g.forced ?? g.end;
+    const all = [...g.pm, ...g.wb].filter(Number.isFinite), lim = Math.max(0.05, ...all.map(Math.abs)) * 1.15;
     const f = frame(bot, { x: [0, end], y: [-lim, lim], aspect: 0.4, minH: 160, maxH: 230 });
-    let s = axes(f, { yl: "bound minus the best bound", xl: "time", grid: true, zero: true });
-    s += line(f, run.t, dp, "pm") + line(f, run.t, dw, "wb");
+    let s = axes(f, { yl: "bound minus the best bound (both capped at 4)", xl: "time", grid: true, zero: true });
+    s += line(f, g.t, g.pm, "pm") + line(f, g.t, g.wb, "wb");
+    if (g.forced !== null) s += `<path class="dim" stroke-dasharray="2 3" d="M${P(f.sx(g.forced))} ${f.t}V${f.H - f.b}"/>` + txt(f.sx(g.forced) - 4, f.H - f.b - 6, "forced choice, not drawn", "tk", "end");
     bot.innerHTML = svg(f, s, `On ${labelOf(choice)}: how far the per-moment and weighted bounds sit from the best bound over time`);
   };
   const readOut = () => {
@@ -481,7 +483,7 @@ function sharePlate() {
     }
     if (run) {
       const sh = run.rules.per_moment.loss / (100 * run.exact.reward);
-      parts.push(`<div class="k-acc"><dt>Your schedule</dt><dd>${sh >= 0.0001 ? S.pct(sh, 2) : sh > 0 ? "under 0.01%" : "0%"}<small>of the reward, page's grid; largest gap ${run.rules.per_moment.maxDx.toFixed(2)}</small></dd></div>`);
+      parts.push(`<div class="k-acc"><dt>Your schedule</dt><dd>${S.sharePct(sh)}<small>of the reward, page's grid${sh < 0 ? " (a negative grid-level difference)" : ""}; largest gap ${run.rules.per_moment.maxDx.toFixed(3)}</small></dd></div>`);
     }
     reads.innerHTML = parts.join("");
     say.textContent = run ? S.shareYours(labelOf(choice), run.rules.per_moment.maxDx, run.rules.per_moment.loss, run.exact.reward, untilOf(run) === "4" ? "t = 4" : "the deadline") : "";
@@ -599,7 +601,7 @@ function scalingPlate() {
     } else s += txt((f.l + f.W - f.r) / 2, f.sy(1e-5), "Points appear on Show me", "tk", "middle");
     if (page) {
       const fl = Math.abs(page.find((r) => r.a === 0).pm);
-      s += `<path class="dim" stroke-dasharray="1 3" d="M${f.l} ${P(f.sy(fl))}H${f.W - f.r}"/>` + txt(f.l + 4, f.sy(fl) + 13, "this grid, constant cost", "tk");
+      s += `<path class="dim" stroke-dasharray="1 3" d="M${f.l} ${P(f.sy(fl))}H${f.W - f.r}"/>` + txt(f.l + 4, f.sy(fl) + 13, "size of this grid's loss at the constant cost", "tk");
       const cross = (a, v, cls) => { if (!(v > 0)) return foot(f.sx(a) + 8, cls); const x = f.sx(a) + 8, y = f.sy(v); return `<path class="${cls}" d="M${P(x - 4)} ${P(y - 4)}l8 8M${P(x + 4)} ${P(y - 4)}l-8 8"/>`; };
       page.filter((r) => r.a > 0).forEach((r) => { s += cross(r.a, r.pm, "cross-pm") + cross(r.a, r.wb, "cross-wb"); });
     }

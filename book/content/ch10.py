@@ -30,9 +30,9 @@ CHAPTER = {
         "still": 0,
     },
     "intro": r"""
-On schedules fixed in advance and run once, the per-moment rule gives up little reward, and the weighted look-ahead avoids most of that loss. This chapter reads the paper's measurements of the two rules where its theorems don't reach: large changes, steps, pulses, and deadlines. First come the 90 development schedules the rule was designed on, then {{HeldCount}} held-out schedules, specified in advance and run once, with five more rules for comparison and a table of how far each rule's bound strays from the optimal one. Then what all this says about reward, and the paper's two tests of its conjectured loss formula.
+On schedules fixed in advance and run once, the per-moment rule gives up little reward, and the weighted look-ahead avoids most of that loss. This chapter reads the paper's measurements of the two rules where its theorems don't reach: large changes, steps, pulses, and deadlines. First come the 90 development schedules the rule was designed on, then {{HeldCount}} held-out schedules, specified in advance and run once, with five more rules for comparison and a table of how far each rule's bound is from the optimal one. Then how much reward the per-moment rule gives up, and the paper's two tests of its conjectured loss formula.
 
-Every number here is a measurement. Each loss is scored on a grid by moving the chance of each decision time forward, with no sampling, in points per 100 trials against the dynamic program's best policy on the same grid (chapter 9). The plates draw the paper's own results, schedule by schedule, from its results files at the tag. The page also scores your schedule, and any development schedule you tap, with the same rules on a coarser grid, and labels those numbers as its own.
+Every number here is a measurement. Each loss is scored by pushing the evidence density forward on a grid, which gives the distribution of decision times, with no sampling; it is in points per 100 trials, against the dynamic program's best policy on the same grid (chapter 9). The plates draw the paper's own results, schedule by schedule, from its results files at the tag. The page also scores your schedule, and any development schedule you tap, with the same rules on a coarser grid, and labels those numbers as its own.
 """,
 }
 
@@ -56,14 +56,14 @@ PLATES = {
         "title": "The development schedules, one by one",
         "state": "measured",
         "state_text": "From the paper's results at the tag; a schedule you tap is solved in the page",
-        "caption": r"""Each development schedule's loss under the per-moment rule (slate, left in each family) and the weighted look-ahead (green, right), in points per 100 trials on a log scale, from the paper's results file at the tag (seed 2026). Losses below $10^{-4}$, including a few slightly negative ones where a rule scored a little above the program on the grid, are drawn at $10^{-4}$, as in the paper's Figure 4; within a family, points are spread sideways by a fixed jitter. Tap a point to draw its schedule: its cost (top, log scale) and, over $0 \le t \le 4$ or to the deadline, the best bound from a dynamic program (ink), the per-moment rule (dashed), and the weighted rule (green). These are solved in the page on a grid that checks the evidence every 0.01 time units with an evidence step of 0.02 and forces the choice at $t = 10$ or at the deadline, as the paper's experiments do, and scored on that grid without sampling. The paper's losses come from a grid five times finer in time and four times finer in evidence. Your schedule, scored the same way on the page's grid, is the orange ring in its own column; it is not one of the 90.""",
+        "caption": r"""Each development schedule's loss under the per-moment rule (slate, left in each family) and the weighted look-ahead (green, right), in points per 100 trials on a log scale, from the paper's results file at the tag (seed 2026). Losses below $10^{-4}$ are drawn at $10^{-4}$, as in the paper's Figure 4; they include a few slightly negative ones, possible because a loss is measured against the program's bound as the scorer applies it, which earns slightly less than the program's own value; within a family, points are spread sideways by a fixed jitter. Tap a point to draw its schedule: its cost (top, log scale) and, over $0 \le t \le 4$ or to the deadline, the best bound from a dynamic program (ink), the per-moment rule (dashed), and the weighted rule (green). These are solved in the page on a grid that checks the evidence every 0.01 time units with an evidence step of 0.02 and forces the choice at $t = 10$ or at the deadline, as the paper's experiments do, and scored on that grid without sampling. The paper's losses come from a grid five times finer in time and four times finer in evidence. Your schedule, scored the same way on the page's grid, is the orange ring in its own column; it is not one of the 90.""",
         "wide": True,
     },
     "held": {
         "title": "Two losses per schedule",
         "state": "measured",
         "state_text": "From the paper's results at the tag; your schedule is computed in the page",
-        "caption": r"""Each of the {{HeldCount}} held-out schedules (seed 20261111) as a point: the per-moment rule's loss across and the weighted look-ahead's up, in points per 100 trials on log scales, from the paper's results file at the tag. Losses below $10^{-5}$, including a few slightly negative ones, are drawn at $10^{-5}$, as in the paper's Figure 5. The solid gray line is equal loss; the dashed ones are losses of 10% and 1% of the per-moment rule's. Circles are smooth, pulse, and ramp schedules; triangles are steps, multi-steps, and piecewise schedules; squares are deadlines, the paper's grouping. Your guess is the orange line, and the median share avoided, over the schedules where the per-moment rule loses at least 0.01, is the green one. The orange ring is your schedule, scored in the page on its coarser grid (every 0.01 time units, evidence step 0.02, forced choice at $t = 10$ or the deadline); it is not one of the held-out schedules.""",
+        "caption": r"""Each of the {{HeldCount}} held-out schedules (seed 20261111) as a point: the per-moment rule's loss across and the weighted look-ahead's up, in points per 100 trials on log scales, from the paper's results file at the tag. Losses below $10^{-5}$, including a few slightly negative ones, are drawn at $10^{-5}$, as in the paper's Figure 5, so a schedule with both losses below it sits at the corner, on the diagonal, whatever their ratio. The solid gray line is equal loss; the dashed ones are losses of 10% and 1% of the per-moment rule's, read as shares avoided only for points above the floor. Circles are smooth, pulse, and ramp schedules; triangles are steps, multi-steps, and piecewise schedules; squares are deadlines, the paper's grouping. Your guess is the orange line (a guess of 100% has no line on log axes), and the median share avoided, over the schedules where the per-moment rule loses at least 0.01, is the green one. The orange ring is your schedule, scored in the page on its coarser grid (every 0.01 time units, evidence step 0.02, forced choice at $t = 10$ or the deadline); it is not one of the held-out schedules.""",
         "wide": False,
     },
     "seven": {
@@ -84,13 +84,13 @@ PLATES = {
         "title": "Close in reward, wrong in timing",
         "state": "measured",
         "state_text": "From the paper's results at the tag; your schedule is computed in the page",
-        "caption": r"""Top: each held-out schedule's per-moment loss as a share of the best policy's reward (up, log scale) against the largest gap between the per-moment bound and the optimal one before $t = 4$ or the deadline (across, in evidence units), from the paper's results file at the tag. The few shares below 0.0001%, one of them slightly negative, are drawn at 0.0001%. Your guess is the orange line, and the median share the green one. Bottom: on your schedule, the per-moment bound minus the best bound (dashed) and the weighted rule's bound minus the best bound (green), over $0 \le t \le 4$ or to the deadline, from the same run as the plate before, on the page's grid; the readings give that schedule's per-moment loss and its share of the reward.""",
+        "caption": r"""Top: each held-out schedule's per-moment loss as a share of the best policy's reward (up, log scale) against the largest gap between the per-moment bound and the optimal one before $t = 4$ or the deadline (across, in evidence units), from the paper's results file at the tag. The few shares below 0.0001%, one of them slightly negative, are drawn at 0.0001%. Your guess is the orange line, and the median share the green one. Bottom: on your schedule, the per-moment bound minus the best bound (dashed) and the weighted rule's bound minus the best bound (green), each bound capped at 4 as the paper's gap statistic caps them, at the drawn times before $t = 4$ or the deadline, the times that statistic covers; from the same run as the plate before, on the page's grid. A deadline's forced choice is marked but not drawn: there every undecided trial chooses, whatever the thresholds are. The readings give that schedule's per-moment loss and its share of the reward, with their sign.""",
         "wide": False,
     },
     "formula": {
         "title": "The loss formula, tested",
         "state": "conjecture",
-        "state_text": "Conjecture 11, not proved: the paper's test of it, from its results at the tag",
+        "state_text": "{{ref:conj:loss}}, not proved: the paper's test of it, from its results at the tag",
         "caption": r"""Table 8's six rows. Top: for each row, the formula's prediction divided by the scored loss, both summed over the row's six schedules (seed 7), for the per-moment rule (slate) and the weighted look-ahead (green), from the paper's results file at the tag; the dashed gray line at 1 is agreement. Bottom: the share of the weighted rule's prediction that comes from grid times after $t = 8$, from the same file. All of it is computed on the paper's grid, with the choice forced at $t = 10$ and that last grid time left out of the sum.""",
         "wide": False,
     },
@@ -98,7 +98,7 @@ PLATES = {
         "title": "How the loss grows",
         "state": "measured",
         "state_text": "From the paper's results at the tag; the page's own grid when you run it",
-        "caption": r"""Table 9's shape, $c(t) = {{ScalingCost}}\,e^{a f(t)}$, at five amplitudes: each rule's loss in points per 100 trials against $a$, on log axes, from the paper's results file at the tag. Slate: the per-moment rule on the paper's grid. Green: the weighted look-ahead on the paper's grid (filled) and on the grid twice as fine (hollow). A loss at or below 0 can't sit on a log axis; it is marked at the foot of the chart with its sign. The dashed guides have slopes 2 and 4. The effective orders are computed from the file's unrounded losses, between the amplitudes the paper uses. Run on this page's grid (every 0.01 time units, evidence step 0.02, forced choice at $t = 10$), the same losses are drawn as crosses, with the per-moment loss this grid scores at the constant cost {{ScalingCost}} (dotted), where the rule is optimal on an infinite horizon with continuous checking.""",
+        "caption": r"""Table 9's shape, $c(t) = {{ScalingCost}}\,e^{a f(t)}$, at five amplitudes: each rule's loss in points per 100 trials against $a$, on log axes, from the paper's results file at the tag. Slate: the per-moment rule on the paper's grid. Green: the weighted look-ahead on the paper's grid (filled) and on the grid twice as fine (hollow). A loss at or below 0 can't sit on a log axis; it is marked at the foot of the chart with its sign. The dashed guides have slopes 2 and 4. The effective orders are computed from the file's unrounded losses over the paper's ranges: the per-moment rule's from $a = 0.05$ to 0.4 on the paper's grid, and the weighted rule's from $a = 0.2$ to 0.8 on each grid. Run on this page's grid (every 0.01 time units, evidence step 0.02, forced choice at $t = 10$), the same losses are drawn as crosses. The dotted line is the size of the per-moment rule's loss this grid scores at the constant cost {{ScalingCost}}, which is negative there (the sentence below gives it): one signed difference at one cost, not an error bound for the other amplitudes.""",
         "wide": False,
     },
 }
@@ -146,7 +146,7 @@ To test the rule on schedules it wasn't shaped by, the paper specified a held-ou
 
 Multi-step and piecewise schedules have their joins smoothed in $\log c$ by the same logistic as the steps. The per-moment rule loses a median of {{HeldPerMomentMedian}} points per 100 trials ({{HeldShareMedian}}% of the reward) and at most {{HeldPerMomentMax}}; the weighted look-ahead loses at most {{HeldWeightedMax}}.
 
-The plate plots each schedule's two losses against each other. A point on the diagonal is a schedule where the two rules lose the same. A point on the line marked 10% is one where the weighted rule loses a tenth of what the per-moment rule loses, so it avoids 90% of that loss. Before the points appear, guess: on a typical held-out schedule, what share of the per-moment rule's loss does the weighted rule avoid?
+The plate plots each schedule's two losses against each other. A point on the diagonal is a schedule where the two rules lose the same. A point on the line marked 10% is one where the weighted rule loses a tenth of what the per-moment rule loses, so it avoids 90% of that loss; that reading holds for points above the chart's floor, where losses are drawn as they are. Before the points appear, guess: on a typical held-out schedule, what share of the per-moment rule's loss does the weighted rule avoid?
 """),
             ("plate", "held"),
             ("plain", r"""
@@ -159,7 +159,7 @@ Table 5 gives both kinds of share: the median and 10th percentile schedule by sc
             ("exact", "832-845|The 90 schedules|by the same logistic.", "The paper's held-out set"),
             ("exact", "851-856||piecewise schedules are the hardest.", "What it finds"),
             ("limits", r"""
-**What the held-out test shows, and what it doesn't.** It is a measurement on seven families of random schedules, specified before the set was run, on the paper's grid with the choice forced at $t = 10$ or at the deadline. It is the paper's test of whether the rule's results on the development set depended on choices made while looking at those schedules. It proves nothing about large changes, which stay outside the theorems, and it says nothing about families it didn't draw.
+**What the held-out test shows, and what it doesn't.** It is a measurement on seven families of random schedules, specified before the set was run, on the paper's grid with the choice forced at $t = 10$ or at the deadline. It is the paper's test of whether the rule's results on the development set depended on choices made while looking at those schedules. It proves nothing about large changes, which stay outside the theorems, and families it didn't draw are untested.
 """),
         ],
     },
@@ -168,7 +168,7 @@ Table 5 gives both kinds of share: the median and 10th percentile schedule by sc
         "title": "Five more rules",
         "blocks": [
             ("plain", r"""
-The paper also scored five more rules on the held-out schedules, each a shortcut that the theory of chapters 6 to 8 might suggest instead:
+The paper also scored five more rules on the held-out schedules: four shortcuts that the theory of chapters 6 to 8 might suggest, and an oracle to compare them with:
 
 - *Weighted, one pass:* the weighted look-ahead's average of the per-moment bounds ahead, taken once, with the kernel for the per-moment bound and no iteration.
 - *Averaged cost:* $b_{\mathrm{avg}}(t) = B\bigl((w_{c(t)} \star c)(t)\bigr)$, the bound for the kernel-weighted average of the coming cost (chapter 8).
@@ -199,7 +199,7 @@ Reading the panels with Table 6:
             ("plain", r"""
 Loss is one summary. Table 7 gives three others, as medians over each family of held-out schedules: the largest gap between the rule's bound and the optimal one before $t = 4$ (or the deadline), in evidence units; the change in accuracy, in percentage points; and the change in mean decision time, in units of $\sigma^2/\mu^2$, each relative to the optimal policy.
 
-The per-moment rule's bound strays far: its median largest gap runs from {{T:tab_behavior:5:2}} on ramps to {{T:tab_behavior:3:2}} on deadlines, against {{T:tab_behavior:5:3}} to {{T:tab_behavior:7:3}} for the weighted rule. The largest median change in its accuracy is {{T:tab_behavior:7:4}} percentage points, on piecewise schedules. On deadlines, the median changes are {{T:tab_behavior:3:4}} percentage points in accuracy and {{T:tab_behavior:3:6}} in mean decision time: the per-moment bound stays at $B(c_0)$ right up to the forced choice while the optimal bound comes down toward it, so the rule decides later and a little more accurately, and pays for the extra time.
+The per-moment rule's median largest gap runs from {{T:tab_behavior:5:2}} evidence units on ramps to {{T:tab_behavior:3:2}} on deadlines, against {{T:tab_behavior:5:3}} to {{T:tab_behavior:7:3}} for the weighted rule. The largest median change in its accuracy is {{T:tab_behavior:7:4}} percentage points, on piecewise schedules. On deadlines, the family's median changes are {{T:tab_behavior:3:4}} percentage points in accuracy and {{T:tab_behavior:3:6}} in mean decision time. There the per-moment rule's threshold as scored, $\max\bigl(B(c_0) - 0.5826\sqrt{\Delta t}, 0\bigr)$, stays flat until the forced choice, while the optimal bound comes down toward it, and in the median the rule decides later and a little more accurately, and pays for the extra time.
 """),
             ("table", "tab:behavior"),
             ("plain", r"""
@@ -217,7 +217,7 @@ The page's grid checks the evidence every 0.01 time units on an evidence grid of
         "title": "Close in reward, wrong in timing",
         "blocks": [
             ("plain", r"""
-The per-moment rule's bound is wrong at first order: divided by the size of a small change, its error doesn't shrink to 0 (chapter 6). In reward, though, it is already close to optimal. That is consistent with {{ref:prop:loss}}, which covers small changes: an error of order $\varepsilon$ in the bound costs reward only of order $\varepsilon^2$, because the reward is flat at its peak (chapter 7).
+The per-moment rule's bound is wrong at first order. For a small change $\varepsilon\gamma$ around a constant cost, its error divided by $\varepsilon$ tends to $B'(c_0)\,(\gamma - w \star \gamma)$, which isn't the zero function unless $\gamma$ is constant, though it can be zero at single moments (chapter 6). In reward, though, it is already close to optimal. That is consistent with {{ref:prop:loss}}, a statement about small changes in the continuous model: a policy that stops when the evidence first reaches a continuous bound within a constant times $\varepsilon$ of $b_0$ loses reward only of order $\varepsilon^2$, because the reward is flat at its peak (chapter 7).
 
 The held-out schedules measure it for changes that aren't small. The per-moment rule gives up a median of {{HeldShareMedian}}% of the reward. It loses under 0.1 point per 100 trials on {{HeldPerMomentUnderTenth}} of the {{HeldCount}} schedules, and 1 or more on only {{HeldPerMomentOverOne}}, up to {{HeldPerMomentMax}} on the worst.
 
@@ -225,13 +225,13 @@ Guess before the plate draws them: on a typical held-out schedule, what share of
 """),
             ("plate", "share"),
             ("plain", r"""
-The two charts make the claim. Across the held-out schedules, the per-moment rule's largest bound gap before $t = 4$ has family medians from {{T:tab_behavior:5:2}} to {{T:tab_behavior:3:2}} evidence units (Table 7), while the share of the reward it gives up has a median of {{HeldShareMedian}}%. On your schedule, the bottom chart draws that gap over time.
+Across the held-out schedules, the per-moment rule's largest bound gap before $t = 4$ has family medians from {{T:tab_behavior:5:2}} to {{T:tab_behavior:3:2}} evidence units (Table 7), while the share of the reward it gives up has a median of {{HeldShareMedian}}%. On your schedule, the bottom chart draws that gap over time.
 
 What the look-ahead changes is where the bound sits and when it moves. So, in the words that end the first paragraph of the paper's Section 9, the look-ahead's “clearest test is not accuracy or reward, but the timing of an urgency signal” (chapter 12).
 """),
             ("exact", "144-147|In reward|moves.,1207-1212", "The paper's words: its introduction, and the start of Section 9"),
             ("limits", r"""
-**What is measured, and what is proved.** Measured: the losses and shares on the held-out schedules. Proved: {{ref:prop:loss}}, for small changes around a constant cost, a fixed start, and bounds within a constant times $\varepsilon$ of $b_0$. The held-out schedules have large changes and deadlines, outside the proposition; the measurement is consistent with it, not a consequence of it.
+**What is measured, and what is proved.** Measured: the losses and shares on the held-out schedules. Proved: {{ref:prop:loss}}, in the continuous model, for small changes around a constant cost, a fixed start, and policies that stop when the evidence first reaches a continuous bound within a constant times $\varepsilon$ of $b_0$. The held-out schedules have large changes and deadlines, outside the proposition; the measurement is consistent with it, not a consequence of it.
 """),
         ],
     },
@@ -243,7 +243,7 @@ What the look-ahead changes is where the bound sits and when it moves. So, in th
 **This section tests a conjecture.** The paper states {{ref:conj:loss}} without proof (chapter 7). The two tables here are measurements that test it, not proofs of it.
 """),
             ("plain", r"""
-{{ref:conj:loss}} says that a policy whose bound misses the best bound by a small $\eta(t)$ should lose about $\mathbb{E}\bigl[c(\hat\tau)\,\eta(\hat\tau)^2\bigr]$ of reward, where $\hat\tau$ is its decision time. On a grid, that is a sum over the grid times $t_j$:
+{{ref:conj:loss}} is about a miss of fixed shape. For a bounded, Lipschitz $f$, a policy whose bound misses the best bound by $\eta = \varepsilon f$ should lose $\mathbb{E}\bigl[c(\hat\tau)\,\eta(\hat\tau)^2\bigr]$ of reward, up to $o(\varepsilon^2)$, where $\hat\tau$ is its decision time. The rules' misses change shape with $\varepsilon$, so the conjecture gives no order for their losses. The paper's test applies the formula to each rule's actual miss on a grid, as a sum over the grid times $t_j$:
 
 $$\text{predicted loss} = 100\sum_j f_j\,c(t_j)\,\eta(t_j)^2,$$
 
@@ -253,7 +253,7 @@ The paper tests it on 36 schedules from seed 7: six smooth schedules at each of 
 """),
             ("plate", "formula"),
             ("plain", r"""
-For the per-moment rule, the formula overestimates the loss by {{LossPmLow}} to {{LossPmHigh}}% for smooth schedules and for steps up to threefold, and by {{LossPmSixteen}}% for the 16-fold steps. For the weighted rule, whose total loss is about {{LossTotalRatio}} times smaller, it overestimates by a factor of {{LossWbLow}} to {{LossWbHigh}}. At the smallest size of each family, most of the weighted rule's prediction comes from $t > 8$, where the optimal bound collapses toward the forced choice at $t = 10$ and the rules, which ignore it, don't. There the gap isn't small, so the formula need not hold, and that part of the prediction compares rules that ignore the horizon with the finite-horizon optimum. So Table 8 tests the formula for the per-moment rule and says little about the weighted rule.
+For the per-moment rule, the formula overestimates the loss by {{LossPmLow}} to {{LossPmHigh}}% for smooth schedules and for steps up to threefold, and by {{LossPmSixteen}}% for the 16-fold steps. For the weighted rule, whose total loss is about {{LossTotalRatio}} times smaller, it overestimates by a factor of {{LossWbLow}} to {{LossWbHigh}}. At the smallest size of each family, most of the weighted rule's prediction comes from $t > 8$, where the optimal bound collapses toward the forced choice at $t = 10$ and the rules, which ignore it, don't. There, the gap isn't small, so the formula need not hold, and that part of the prediction compares rules that ignore the horizon with the finite-horizon optimum. So Table 8 tests the formula for the per-moment rule and is weak evidence about the weighted rule.
 """),
             ("table", "tab:loss"),
             ("exact", "938-955", "The paper's test of the formula"),
@@ -272,14 +272,14 @@ Each amplitude is scored on the paper's grid and again on one twice as fine in t
 """),
             ("plate", "scaling"),
             ("plain", r"""
-Up to $a = 0.4$, each doubling multiplies the per-moment rule's loss by {{ScalingPmGrowthLow}} to {{ScalingPmGrowthHigh}}, close to the 4 of a second-order loss; its effective order there, the slope of log loss against log amplitude, is {{ScalingPmOrder}}. The weighted rule's loss is far smaller, and only from $a = 0.2$ up is it large enough for the two grids to agree on it, to within {{ScalingGridChangeTwo}}% at $a = 0.2$ and better above; at the smallest amplitude, its sign differs between them. From $a = 0.2$ to 0.8, its effective order is {{ScalingWbOrderLow}} on one grid and {{ScalingWbOrderHigh}} on the other. That is consistent with the heuristic fourth order of chapter 7, but it is a measurement over a short range, not an asymptotic result.
+From $a = 0.05$ to 0.4, each doubling multiplies the per-moment rule's loss by {{ScalingPmGrowthLow}} to {{ScalingPmGrowthHigh}}, close to the 4 of a second-order loss; its effective order over that range, the slope of log loss against log amplitude, is {{ScalingPmOrder}}. The weighted rule's loss is far smaller. The paper reads its order only from $a = 0.2$ up, where the two grids agree to within {{ScalingGridChangeTwo}}% at $a = 0.2$ and better above. At $a = 0.1$, they happen to agree more closely, on a loss under $10^{-6}$ points per 100 trials, and at the smallest amplitude they differ even in sign. A loss of $10^{-6}$ points per 100 trials is a difference of $10^{-8}$ in the reward per trial, so a small change in the grid can move such a loss by as much as its size. From $a = 0.2$ to 0.8, its effective order is {{ScalingWbOrderLow}} on one grid and {{ScalingWbOrderHigh}} on the other. That is consistent with the heuristic fourth order of chapter 7, but it is a measurement over a short range, not an asymptotic result.
 
-The page's own grid is coarser than both. Run the shape on it, and the weighted rule's losses at the small amplitudes come out no larger in size than what the grid scores for the per-moment rule at the constant cost, where that rule is optimal: a grid can't measure a loss below its own error.
+The page's own grid is coarser than both. Run the shape on it, and at the three smallest amplitudes its weighted losses differ from the paper's grid in sign or by more than half: below what this grid resolves. At the constant cost, where the per-moment rule would be optimal on an infinite horizon with continuous checking, this grid scores it a small negative loss; that is one signed difference at one cost, not an error bound for the other amplitudes.
 """),
             ("table", "tab:scaling"),
             ("exact", "957-969", "The paper's scaling test"),
             ("limits", r"""
-**What these two tests show, and what they don't.** Table 8 supports {{ref:conj:loss}} for the per-moment rule at moderate sizes, on 36 schedules; it doesn't prove it, and it says little about the weighted rule. Table 9 measures effective orders on one shape over short ranges of amplitude: {{ScalingPmOrder}} for the per-moment rule from $a = 0.05$ to 0.4, consistent with the second-order bound of {{ref:prop:loss}}, and {{ScalingWbOrderLow}} to {{ScalingWbOrderHigh}} for the weighted rule from $a = 0.2$ to 0.8, consistent with the fourth order a heuristic suggests. Neither is an asymptotic statement.
+**What these two tests show, and what they don't.** Table 8 supports {{ref:conj:loss}} for the per-moment rule at moderate sizes, on 36 schedules, with the formula applied to misses that change shape, outside the conjecture's fixed-shape statement; it doesn't prove it, and it is weak evidence about the weighted rule. Table 9 measures effective orders on one shape over short ranges of amplitude: {{ScalingPmOrder}} for the per-moment rule from $a = 0.05$ to 0.4, consistent with the second-order bound of {{ref:prop:loss}}, and {{ScalingWbOrderLow}} to {{ScalingWbOrderHigh}} for the weighted rule from $a = 0.2$ to 0.8, consistent with the fourth order a heuristic suggests. Neither is an asymptotic statement.
 """),
         ],
     },
@@ -303,23 +303,23 @@ The development and held-out schedules use the per-moment rule (chapter 1), the 
             ("qs", [
                 (r"What does “recovers {{RecoveredSmooth}}% … measured as total loss” mean, and how could it differ from a per-schedule average?",
                  r"""
-It is one minus the ratio of totals over the family: $1 - \sum(\text{weighted losses})/\sum(\text{per-moment losses})$. Schedules where the per-moment rule loses a lot dominate the totals. A per-schedule figure (the median of $1 - \text{weighted}/\text{per-moment}$, as the held-out set reports it) weights every schedule equally, and can be lower or higher.
+It is one minus the ratio of totals over the family: $1 - \sum(\text{weighted losses})/\sum(\text{per-moment losses})$. Schedules where the per-moment rule loses a lot dominate the totals. A per-schedule figure (the median of $1 - \text{weighted}/\text{per-moment}$, as the held-out set reports it, over the schedules where the per-moment rule loses at least 0.01) weights each of those schedules equally, and can be lower or higher.
 """),
                 (r"Why does it matter that the 90 are development schedules?",
                  r"""
-The paper says they come from the seed used while the rule was designed, so good results on them could partly reflect choices made while looking at these schedules. The held-out set exists to test the rule on schedules it wasn't shaped by ({{claim:exp:heldout}}).
+The paper says they come from the seed used while the rule was designed, so good results on them could partly reflect choices made while looking at these schedules. The held-out set exists to test the rule on schedules it wasn't shaped by ({{claim:exp:heldout|the held-out set}}).
 """),
-                (r"The held-out paragraph mentions 180 schedules twice. Are they the same 180?",
+                (r"The held-out paragraph mentions {{HeldRecoveredCount}} schedules twice. Are they the same schedules?",
                  r"""
 No. The first is the schedules where the per-moment rule loses at least 0.01 point per 100 trials ({{HeldRecoveredCount}}). The second is the schedules without a deadline ({{HeldNoDeadlineCount}}: six families of 30). The paper says they are different sets of the same size by coincidence.
 """),
                 (r"Read Table 6. Which rules beat the per-moment rule on every schedule without a deadline, and which on fewer than half?",
                  r"""
-The weighted look-ahead and its single-pass version both have {{T:tab_baselines:2:5}} and {{T:tab_baselines:3:5}} wins and losses. Averaging costs has {{T:tab_baselines:4:5}}. Shifting by the mean look-ahead ({{T:tab_baselines:5:5}}) wins on just over half; shifting by half a time unit ({{T:tab_baselines:6:5}}) and the tuned constant ({{T:tab_baselines:7:5}}) beat it on fewer than half.
+The weighted look-ahead and its single-pass version: their wins and losses are {{T:tab_baselines:2:5}} and {{T:tab_baselines:3:5}}, so each loses less than the per-moment rule on all {{HeldNoDeadlineCount}}. Averaging costs has {{T:tab_baselines:4:5}}. Shifting by the mean look-ahead ({{T:tab_baselines:5:5}}) wins on just over half; shifting by half a time unit ({{T:tab_baselines:6:5}}) and the tuned constant ({{T:tab_baselines:7:5}}) beat it on fewer than half.
 """),
                 (r"Why is the tuned constant called an oracle?",
                  r"""
-For each schedule, its single flat bound is tuned separately, by searching with the scorer itself on that schedule. The schedule is known, so a decision maker with the model and the scorer could compute it; the paper calls it an oracle because it is the best flat bound found by scoring that very schedule, a benchmark rather than a rule built from the theory. It shows that the per-moment rule's changes over time are worth having: even the best flat bound the search found beats it on only {{HeldBestConstantBeats}} of the {{HeldNoDeadlineCount}} schedules without a deadline.
+For each schedule, its single flat bound is tuned separately, by searching with the scorer itself on that schedule. The paper calls it an oracle because it is the best flat bound found by scoring that very schedule, a benchmark rather than a rule built from the theory. It shows that the per-moment rule's changes over time are worth having: even the best flat bound the search found beats it on only {{HeldBestConstantBeats}} of the {{HeldNoDeadlineCount}} schedules without a deadline.
 """),
                 (r"Read Table 7's deadline row. How far does each rule's bound stray, and what happens to accuracy and decision time?",
                  r"""
@@ -327,7 +327,7 @@ On deadlines, the per-moment bound's largest gap from the optimal bound has a me
 """),
                 (r"If the per-moment rule loses so little, why does the paper matter?",
                  r"""
-Three reasons. The look-ahead changes where the bound sits and when it moves, which the paper names as its clearest test: the timing of an urgency signal ({{claim:claim:urgency}}). It explains what the dynamic program computes: how far ahead the best bound looks, and with what weights (chapters 6 and 7). And the worst cases are not small: up to {{HeldPerMomentMax}} points per 100 trials on the held-out set.
+Three reasons. The look-ahead changes where the bound sits and when it moves, which the paper names as its clearest test: the timing of an urgency signal ({{claim:claim:urgency|chapter 12}}). It explains what the dynamic program computes: how far ahead the best bound looks, and with what weights (chapters 6 and 7). And the worst cases are not small: up to {{HeldPerMomentMax}} points per 100 trials on the held-out set.
 """),
                 (r"Why does the formula's prediction leave out $t = 10$?",
                  r"""
@@ -349,17 +349,17 @@ At $a = 0.05$, the two grids disagree even in sign ({{T:tab_scaling:1:4}} agains
             ("md", "**Common misreadings.**"),
             ("miss", [
                 (r"“The weighted rule recovers nearly all of the loss on every schedule.”",
-                 r"The development figures are shares of each family's total loss. Schedule by schedule, the share varies: on the held-out set, its 10th percentile is {{HeldRecoveredPTen}}% and its minimum {{HeldRecoveredMin}}%."),
+                 r"The development figures are shares of each family's total loss. Schedule by schedule, the share varies: on the {{HeldRecoveredCount}} held-out schedules where the per-moment rule loses at least 0.01, its 10th percentile is {{HeldRecoveredPTen}}% and its minimum {{HeldRecoveredMin}}%."),
                 (r"“The weighted rule always recovers at least nine-tenths of the loss.”",
-                 r"{{HeldRecoveredPTen}}% is the 10th percentile; the minimum is {{HeldRecoveredMin}}%, and piecewise schedules are the hardest."),
-                (r"“Shifting the 2025 rule by the mean look-ahead captures the result.”",
+                 r"Over the {{HeldRecoveredCount}} held-out schedules where the per-moment rule loses at least 0.01, {{HeldRecoveredPTen}}% is the 10th percentile; the minimum is {{HeldRecoveredMin}}%, and piecewise schedules are the hardest."),
+                (r"“Shifting the per-moment rule by the mean look-ahead captures the result.”",
                  r"On {{HeldShiftMeanWorse}} of the {{HeldNoDeadlineCount}} schedules without a deadline, it is worse than no shift; the kernel's shape matters."),
                 (r"“The held-out test makes the rule proved for large changes.”",
                  r"It is a measurement on seven families. Large changes stay outside the theorems."),
                 (r"“The look-ahead barely matters.”",
                  r"It barely matters in reward on typical schedules. It matters for the bound's timing, which is what the paper's prediction is about."),
                 (r"“Table 8 confirms the conjecture.”",
-                 r"It supports it for the per-moment rule at moderate sizes. It doesn't prove it, and it says little about the weighted rule."),
+                 r"It supports it for the per-moment rule at moderate sizes. It doesn't prove it, and it is weak evidence about the weighted rule."),
                 (r"“The weighted rule's loss is fourth order.”",
                  r"Effective orders of {{ScalingWbOrderLow}} and {{ScalingWbOrderHigh}} over $a$ from 0.2 to 0.8 are consistent with four; the paper calls it a measurement over a short range."),
             ]),

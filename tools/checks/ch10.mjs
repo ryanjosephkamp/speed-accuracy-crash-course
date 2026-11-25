@@ -8,7 +8,8 @@ import { join } from "node:path";
 import DATA from "../../book/assets/js/ch10-data.js";
 import * as M from "../../book/assets/js/ch10-model.js";
 import * as S from "../../book/assets/js/say-ch10.js";
-import { meanLookAhead } from "../../book/assets/js/kernel.js";
+import { meanLookAhead, firstOrder, perMomentResponse } from "../../book/assets/js/kernel.js";
+import { grid, belief, boundForCost, toDiscrete } from "../../book/assets/js/model.js";
 import { costOf, deadlineOf, PRESETS } from "../../book/assets/js/schedules-book.js";
 import { CHOICES, spec, costFromSpec } from "../validity/schedules.mjs";
 import { check, N, table, ROOT, asPrinted } from "./lib.mjs";
@@ -162,42 +163,69 @@ check("data", "90 development and 210 held-out schedules, 30 per family, and 36 
   let worst = 0;
   page.forEach((r) => { const q = r.a === 0 ? ref.floor : ref.rows.find((x) => x.amplitude === r.a); worst = Math.max(worst, Math.abs(r.pm - q.per_moment), Math.abs(r.wb - q.weighted)); });
   check("scaling", "the page's grid run of Table 9's shape matches the paper's code on the same grid (within 1e-5 points per 100 trials)", worst < 1e-5, `largest difference ${worst.toExponential(1)}`);
-  const floor = Math.abs(page[0].pm), small = page.filter((r) => r.a > 0 && r.a <= 0.2);
-  check("scaling", "the text: on the page's grid, the weighted rule's losses at the small amplitudes (0.05 to 0.2) are no larger than the grid's loss at the constant cost", small.every((r) => Math.abs(r.wb) <= floor), `constant cost ${floor.toExponential(2)}; weighted ${small.map((r) => r.wb.toExponential(1)).join(", ")}`);
+  const paperWb = (a) => sc.rows.find((r) => r.amplitude === a).paper.weighted;
+  const apart = (r) => !(r.wb > 0 && paperWb(r.a) > 0 && Math.abs(r.wb / paperWb(r.a) - 1) <= 0.5);
+  const off = page.filter((r) => r.a > 0 && apart(r)).map((r) => r.a), on = page.filter((r) => r.a > 0 && !apart(r)).map((r) => r.a);
+  check("scaling", "the text, run on the page's grid: at the three smallest amplitudes its weighted losses differ from the paper's grid in sign or by more than half, at 0.4 and 0.8 they don't, and the per-moment loss at the constant cost is negative",
+    off.join() === "0.05,0.1,0.2" && on.join() === "0.4,0.8" && page[0].pm < 0, `apart at ${off.join(", ")}; within half at ${on.join(", ")}; constant cost ${page[0].pm.toExponential(2)}`);
   const sp = S.scalingPage(page, sc.rows.map((r) => ({ a: r.amplitude, pm: r.paper.per_moment, wb: r.paper.weighted })));
-  check("words", "the scaling plate's page-grid sentence names the amplitudes the grid can't measure", /a = 0\.05, 0\.1, 0\.2/.test(sp) && !/NaN|undefined/.test(sp), sp);
+  check("words", "the scaling plate's page-grid sentence gives the constant-cost loss with its sign as one difference, not an error bound, and names the amplitudes this grid can't resolve",
+    /−1\.8 × 10⁻⁴/.test(sp) && /not an error bound/.test(sp) && /at a = 0\.05, 0\.1, and 0\.2, this grid and the paper's differ/.test(sp) && !/NaN|undefined/.test(sp), sp);
+  const r1 = sc.rows.find((r) => r.amplitude === 0.1), rel = (r) => Math.abs(r.fine.weighted / r.paper.weighted - 1);
+  check("scaling", "the text: at a = 0.1 the paper's two grids agree on the weighted loss more closely than at 0.2, on a loss under 1e-6 points, and at 0.05 they differ in sign",
+    rel(r1) < rel(two) && Math.max(r1.paper.weighted, r1.fine.weighted) < 1e-6 && Math.sign(sc.rows[0].paper.weighted) !== Math.sign(sc.rows[0].fine.weighted),
+    `${(100 * rel(r1)).toFixed(1)}% at 0.1 against ${(100 * rel(two)).toFixed(1)}% at 0.2`);
 }
 
 // ---- the page's rules against the paper's code on the page's grid ------------------------------------------------------------
+// The program's bound is compared time by time with the paper's (tools/validity/ch10.json keeps it at every grid time before
+// min(4, deadline), where the gap statistic is measured). The two may differ in one kind of cell only: where the page
+// places a bound below the grid's first step (between 0 and h) because its program still waits at the center, and the
+// paper's code reports 0 (model.js; chapter 9). Each rule's gap statistic is then recomputed against the paper's own
+// program bound and must match the paper's to 1e-6; the page's displayed statistic may differ from the paper's only when
+// such cells exist, and by at most h.
 {
   const cmp = (name, r, ref, rules) => {
-    let worst = 0, dx = 0;
+    const ts = r.raw.ts, early = Math.min(4, r.horizon), h = r.h;
+    const nEarly = ts.filter((t) => t < early).length;
+    const paperEx = ref.early.map((v) => (v === null ? Infinity : v));
+    let dEx = 0, sub = 0;
+    for (let k = 0; k < paperEx.length; k++) {
+      const a = r.raw.exact[k], b = paperEx[k];
+      if (a > 0 && a < h && b === 0) { sub++; continue; }
+      if (!Number.isFinite(a) && !Number.isFinite(b)) continue;
+      dEx = Math.max(dEx, Math.abs(a - b));
+    }
+    let worst = 0, dxPaper = 0, dxShown = 0;
     for (const k of rules) {
       const a = r.rules[k], b = ref[k];
       worst = Math.max(worst, Math.abs(a.loss - b.loss), 100 * Math.abs(a.p - b.p), 100 * Math.abs(a.rt - b.rt));
-      dx = Math.max(dx, Math.abs(a.maxDx - b.max_dx));
+      dxPaper = Math.max(dxPaper, Math.abs(M.maxGap(ts, r.raw.rules[k], paperEx, r.horizon) - b.max_dx));
+      dxShown = Math.max(dxShown, Math.abs(a.maxDx - b.max_dx));
     }
     const ex = Math.max(Math.abs(r.exact.reward - ref.exact.reward), Math.abs(r.exact.p - ref.exact.p), Math.abs(r.exact.rt - ref.exact.rt));
     const x = rules.includes("best_constant") ? Math.abs(r.x - ref.best_constant.x) : 0;
-    // the largest bound gap can differ by less than one grid step (0.02) where the page places the best bound below the
-    // grid's first step and the paper's code reports 0 (chapter 0, and tools/checks/paper-code.mjs); everything else
-    // must match to 1e-6
-    check("rules", `${name}: the page's program and ${rules.length} rules match the paper's code on the same grid (loss, accuracy, and decision time within 1e-5 points, bound gap within 1e-6 or, below the grid's first step, within 0.02, tuned bound within 1e-6)`,
-      worst < 1e-5 && (dx < 1e-6 || dx < 0.02) && ex < 1e-7 && x < 1e-6, `loss etc. ${worst.toExponential(1)}, gap ${dx.toExponential(1)}${dx >= 1e-6 ? " (a sub-step cell)" : ""}, program ${ex.toExponential(1)}, tuned bound ${x.toExponential(1)}`);
+    const shownOk = dxShown < 1e-6 || (sub > 0 && dxShown <= h);
+    check("rules", `${name}: the page's program matches the paper's code at every grid time before min(4, deadline) within 1e-6, except cells below the grid's first step where the paper's reports 0; its ${rules.length} rules' losses, accuracy, and decision time within 1e-5 points; their gap statistic within 1e-6 against the paper's program bound; tuned bound within 1e-6`,
+      paperEx.length === nEarly && dEx < 1e-6 && worst < 1e-5 && dxPaper < 1e-6 && shownOk && ex < 1e-7 && x < 1e-6,
+      `program bound ${dEx.toExponential(1)} (${sub} sub-step cells of ${nEarly}), loss etc. ${worst.toExponential(1)}, gap statistic ${dxPaper.toExponential(1)} (as shown ${dxShown.toExponential(1)}), program value ${ex.toExponential(1)}, tuned bound ${x.toExponential(1)}`);
+    return sub;
   };
+  let subTotal = 0;
   for (const ch of CHOICES) {
-    const s = spec(ch), r = M.runRules(costFromSpec(s), s.kind === "deadline" ? s.at : null);
-    cmp(`preset ${s.id}`, r, REF.pageGrid.presets[s.id], M.RULES);
+    const s = spec(ch), r = M.runRules(costFromSpec(s), s.kind === "deadline" ? s.at : null, { raw: true });
+    subTotal += cmp(`preset ${s.id}`, r, REF.pageGrid.presets[s.id], M.RULES);
   }
   const grid = [];
   for (const [set, rows] of [["dev", DATA.dev], ["held", DATA.held]]) {
     for (const [i, ref] of Object.entries(REF.pageGrid[set])) {
-      const row = rows[+i], r = M.runRules(M.familyCost(row.f, row.p), M.familyDeadline(row.f, row.p));
-      cmp(`${set === "dev" ? "development" : "held-out"} schedule ${i} (${row.f})`, r, ref, M.RULES);
+      const row = rows[+i], r = M.runRules(M.familyCost(row.f, row.p), M.familyDeadline(row.f, row.p), { raw: true });
+      subTotal += cmp(`${set === "dev" ? "development" : "held-out"} schedule ${i} (${row.f})`, r, ref, M.RULES);
       const paper = set === "dev" ? { pm: row.pm, wb: row.wb } : { pm: M.lossOf(row, 0), wb: M.lossOf(row, 1) };
       grid.push({ name: `${set} ${i}`, pm: [r.rules.per_moment.loss, paper.pm], wb: [r.rules.weighted.loss, paper.wb] });
     }
   }
+  check("rules", "the exception above is used: some compared schedule reaches a bound below the grid's first step (held-out schedule 150 does), so the time-by-time rule is tested", subTotal > 0, `${subTotal} such cells in all`);
   const pmRel = Math.max(...grid.map((g) => Math.abs(g.pm[0] / g.pm[1] - 1)));
   check("grid", "the text: on the paper's schedules the checks run, the page's per-moment losses are within 5% of the paper's", pmRel <= 0.05, `largest relative difference ${(100 * pmRel).toFixed(1)}% over ${grid.length} schedules`);
   const big = grid.filter((g) => g.wb[1] >= 0.001), wbRel = Math.max(...big.map((g) => Math.abs(g.wb[0] / g.wb[1] - 1)));
@@ -279,8 +307,75 @@ check("data", "90 development and 210 held-out schedules, 30 per family, and 36 
   check("words", "small losses print in powers of ten, with the minus sign", S.num(-2.5e-5) === "−2.5 × 10⁻⁵" && S.num(9.96e-5) === "1.0 × 10⁻⁴" && S.num(0.0123) === "0.012" && S.num(42.64) === "42.6", `${S.num(-2.5e-5)}, ${S.num(9.96e-5)}, ${S.num(0.0123)}, ${S.num(42.64)}`);
   const sy = [S.shareYours("Deadline", 1.09, 0.845, 0.66, "the deadline"), S.shareYours("Cost jumps", 0.53, 0.907, 0.71, "t = 4")];
   check("words", "the reader's gap is said before the deadline, or before t = 4", /before the deadline,/.test(sy[0]) && /before t = 4,/.test(sy[1]), sy.join(" | "));
-  const neg = S.yoursSay("Constant", { rules: { per_moment: { loss: 8.6e-5 }, weighted: { loss: 8.6e-5 }, best_constant: { loss: -3.9e-4 } } }, M.SAY_NAMES, true);
-  check("words", "a negative loss on the reader's schedule is explained", /negative loss means a rule scored a little above the program/.test(neg), neg);
   const fv = S.formulaVerdict("over", 1.3623, 1.014, 1.054);
   check("words", "the formula verdict prints the 16-fold ratio as Table 8 does", /1\.36 times/.test(fv) && /^Right/.test(fv), fv);
+}
+
+// ---- what the audits' fixes say, run on the page's real computation -------------------------------------------------------
+{
+  /** The program's own value at the start, V(0, 0): exactPolicy's backward pass on the same grid, kept to the end. */
+  function programValue(cost, horizon, dt = 0.01, h = 0.02, cap = 5) {
+    const steps = Math.round(horizon / dt), { x, m, n, r, kUp, kDown } = grid(dt, h, cap);
+    const g = Float64Array.from(x, belief), decide = Float64Array.from(g, (gi) => Math.max(gi, 1 - gi));
+    let v = Float64Array.from(decide);
+    const wait = new Float64Array(n);
+    for (let k = steps - 1; k >= 0; k--) {
+      const ck = Math.min(cost(k * dt), 1e9) * dt;
+      for (let i = 0; i < n; i++) {
+        let up = 0, down = 0;
+        for (let j = -r; j <= r; j++) { const idx = i + j, vj = idx < 0 || idx >= n ? decide[idx < 0 ? 0 : n - 1] : v[idx]; up += kUp[j + r] * vj; down += kDown[j + r] * vj; }
+        wait[i] = g[i] * up + (1 - g[i]) * down - ck;
+      }
+      for (let i = 0; i < n; i++) v[i] = Math.max(decide[i], wait[i]);
+    }
+    return v[m];
+  }
+  // a constant cost of 0.2 and the Constant preset: the program's bound as scored earns less than the program's value,
+  // some rules score above the former, and none above the latter
+  for (const [name, c] of [["a constant cost of 0.2", 0.2], ["the Constant preset (0.1)", 0.1]]) {
+    const cost = () => c, run = M.runRules(cost, null), v0 = programValue(cost, M.HORIZON);
+    const rewards = M.RULES.map((k) => run.exact.reward - run.rules[k].loss / 100);
+    const negs = M.RULES.filter((k) => run.rules[k].loss < 0);
+    check("words", `${name}, on the page's grid: the sentence on negative losses holds (the program's bound as scored earns less than the program's own value, ${negs.length} rules score above the former, and none above the latter)`,
+      run.exact.reward < v0 && negs.length > 0 && rewards.every((x) => x <= v0 + 1e-12), `value ${v0.toFixed(8)}, bound as scored ${run.exact.reward.toFixed(8)}, best rule ${Math.max(...rewards).toFixed(8)}; negative: ${negs.join(", ")}`);
+    const say = S.yoursSay(name, run, M.SAY_NAMES, true, DATA.held.filter((r) => r.f !== "deadline").length);
+    check("words", `${name}: the reader's sentence explains a negative loss by the scored reference`, /measured against the program's bound as the scorer applies it/.test(say), say.slice(-200));
+  }
+  // the share plate on a flat drawing at 0.2: a negative loss is reported with its sign, not as 0%
+  {
+    const choice = { id: "draw", points: Array(26).fill(0.2) }, run = M.runRules(costOf(choice), null);
+    const loss = run.rules.per_moment.loss, sh = loss / (100 * run.exact.reward), say = S.shareYours("a flat drawing at 0.2", run.rules.per_moment.maxDx, loss, run.exact.reward, "t = 4");
+    check("share", "a flat drawing at 0.2: the per-moment loss is negative on this grid, and the readout and sentence give it with its sign", loss < 0 && S.sharePct(sh).startsWith("−") && /negative difference at the level of the grid/.test(say) && !/0%/.test(S.sharePct(sh)), `${S.num(loss)} points, ${S.sharePct(sh)}; ${say.slice(0, 160)}…`);
+  }
+  // the share plate's gap curves: the times the paper's statistic covers, with a deadline's forced choice left out
+  {
+    const dl = M.runRules(costOf({ id: "deadline", params: { at: 1, c: 0.1 } }), 1), g = M.gapCurves(dl);
+    const top = Math.max(...g.pm.map(Math.abs).filter(Number.isFinite));
+    check("share", "on the Deadline preset, the gap curves stop before the forced choice, which is marked, and never exceed the per-moment gap statistic",
+      g.t[g.t.length - 1] < 1 && g.forced !== null && Math.abs(g.forced - 1) < 1e-9 && top <= dl.rules.per_moment.maxDx + 1e-12, `last time ${g.t[g.t.length - 1].toFixed(2)}, forced choice at ${g.forced}, largest drawn gap ${top.toFixed(4)} against ${dl.rules.per_moment.maxDx.toFixed(4)}`);
+    const jp = M.runRules(costOf({ id: "jump", params: { at: 0.5, factor: 16 } }), null), gj = M.gapCurves(jp);
+    check("share", "on Cost jumps, the gap curves run to just before t = 4 with no forced choice, and their largest per-moment gap is the statistic (up to the thinning to every 0.02)",
+      gj.forced === null && gj.t[gj.t.length - 1] < 4 && Math.abs(Math.max(...gj.pm.map(Math.abs)) - jp.rules.per_moment.maxDx) < 0.01, `${Math.max(...gj.pm.map(Math.abs)).toFixed(4)} against ${jp.rules.per_moment.maxDx.toFixed(4)}`);
+  }
+  // the held-out plate's guess: 100% has no line; the hero's family readouts carry the eligibility condition
+  check("held", "a guess of 100% has no line on log axes, and 90% draws the 10% line", M.guessSlope(1) === null && Math.abs(M.guessSlope(0.9) - 0.1) < 1e-12, `${M.guessSlope(1)}, ${M.guessSlope(0.9)}`);
+  {
+    const sum = M.heldSummary(DATA), lab = S.heroLabel("Piecewise", sum.byFam.piecewise.med, sum.byFam.piecewise.n);
+    check("held", "the hero's family readout states the schedules its median covers", /over the 29 schedules where that loss is at least 0\.01/.test(lab) && /95\.3%/.test(lab), lab);
+    const corner = DATA.held.filter((r) => M.lossOf(r, 0) < 1e-5 && M.lossOf(r, 1) < 1e-5);
+    check("held", "the caption's corner: some schedule has both losses below the floor, so it is drawn on the diagonal whatever their ratio", corner.length >= 1, `${corner.length}: ${corner.map((r) => `${S.num(M.lossOf(r, 0))} and ${S.num(M.lossOf(r, 1))}`).join("; ")}`);
+  }
+  // #close: the per-moment rule's scaled error tends to B'(c0)(gamma - w * gamma), not the zero function, but zero at moments
+  {
+    const c0 = 0.1, gamma = (t) => 0.03 * Math.sin(2 * t), ts = Array.from({ length: 251 }, (_, i) => i / 100);
+    const pm = perMomentResponse(gamma, ts, c0), fo = firstOrder(gamma, ts, c0), d = Array.from(pm, (v, i) => v - fo[i]);
+    const crosses = d.slice(1).filter((v, i) => Math.sign(v) !== Math.sign(d[i])).length, size = Math.max(...d.map(Math.abs));
+    check("words", "the text on the per-moment limit: for the Wave preset's change, B'(c0)(gamma - w * gamma) is not the zero function but crosses zero", crosses >= 1 && size > 0.1 * Math.max(...Array.from(pm, Math.abs)), `${crosses} sign changes on [0, 2.5], largest size ${size.toFixed(4)}`);
+  }
+  // #behavior: on a deadline, the per-moment threshold as scored is max(B(c0) - 0.5826 sqrt(dt), 0), flat to the forced choice
+  {
+    const run = M.runRules(costOf({ id: "deadline", params: { at: 1, c: 0.1 } }), 1), want = toDiscrete(boundForCost(0.1), 0.01);
+    const curve = run.rules.per_moment.curve, flat = curve.every((v) => Math.abs(v - want) < 1e-12);
+    check("words", "the text on deadlines: the per-moment threshold as scored is max(B(c0) - 0.5826 sqrt(dt), 0) at every drawn time up to the forced choice", flat && Math.abs(want - Math.max(boundForCost(0.1) - 0.5826 * 0.1, 0)) < 1e-12, `${want.toFixed(4)} at ${curve.length} times`);
+  }
 }
