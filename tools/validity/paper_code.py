@@ -12,9 +12,13 @@ scipy), runs, for each schedule, on the page's grid:
   choice is forced;
 - shortcuts.bound_for_cost: the per-moment evidence bound over the window;
 - shortcuts.weighted_bound: the weighted look-ahead (belief bounds, turned back into evidence);
+- shortcuts.discrete: the per-moment bound moved in for monitoring every dt, as the page's worker plots it;
 - evaluate.known_reward: what the exact policy, moved in by the discrete-monitoring shift where the page does,
   earns, and what the per-moment and weighted bounds earn (a deadline scored up to the deadline);
-and writes tools/validity/paper-code.json.
+and, for the comparator's edge cases (tools/checks/paper-code.mjs), the same program on the same grid at constant
+costs of 3.2 and 4.2 with a forced choice at time 2 (its bound at every step and its value at the center at time 0,
+which says whether the center waits), and on a cost that falls 40,000-fold at time 1 (to 1e-5, below the presets'
+range), whose bound passes the cap late in the window. It writes tools/validity/paper-code.json.
 """
 import argparse
 import io
@@ -38,12 +42,16 @@ def main():
     a = ap.parse_args()
     commit = subprocess.run(["git", "-C", a.repo, "rev-list", "-n", "1", a.tag], check=True,
                             capture_output=True, text=True).stdout.strip()
-    tmp = Path(tempfile.mkdtemp(prefix="paper-code-"))
     tar = subprocess.run(["git", "-C", a.repo, "archive", a.tag, "src"], check=True, capture_output=True).stdout
-    tarfile.open(fileobj=io.BytesIO(tar)).extractall(tmp)
-    sys.path.insert(0, str(tmp / "src"))
-    from speed_accuracy import known, shortcuts, evaluate  # noqa: E402
+    with tempfile.TemporaryDirectory(prefix="paper-code-") as d:   # removed on success or failure
+        tmp = Path(d)
+        tarfile.open(fileobj=io.BytesIO(tar)).extractall(tmp)
+        sys.path.insert(0, str(tmp / "src"))
+        from speed_accuracy import known, shortcuts, evaluate  # noqa: E402
+        run(a, commit, known, shortcuts, evaluate)
 
+
+def run(a, commit, known, shortcuts, evaluate):
     data = json.loads(Path(a.schedules).read_text())
     dt, h, cap, horizon, view = data["dt"], data["h"], data["cap"], data["horizon"], data["view"]
     out = {"tag": a.tag, "commit": commit, "dt": dt, "h": h, "cap": cap, "horizon": horizon, "view": view,
@@ -84,10 +92,31 @@ def main():
         out["schedules"][s["id"]] = {
             "exact": [None if not np.isfinite(v) else float(v) for v in xb[: k_view + 1]],
             "perMoment": [float(v) for v in pm],
+            "perMomentDiscrete": [float(v) for v in shortcuts.discrete(pm, dt)],
             "weighted": [float(v) for v in wb],
             "scores": {k: {"p": o.p_correct, "rt": o.mean_rt, "paid": o.mean_cost, "reward": o.reward} for k, o in sc.items()},
         }
         print(f"{s['id']}: done", file=sys.stderr)
+    # the edge cases: below the grid's first step (constant costs, forced choice at 2), and off the cap
+    edge = {}
+    for c0 in data["edge"]["constant"]:
+        ts, xb, v0 = known.backward_induction_x(lambda t, c0=c0: np.full(np.shape(t), c0), data["edge"]["horizon"],
+                                                dt=dt, h=h, cap=cap)
+        edge[f"constant {c0}"] = {"c": c0, "horizon": data["edge"]["horizon"], "v0": v0,
+                                  "exact": [None if not np.isfinite(v) else float(v) for v in xb]}
+    for s in data["edge"]["schedules"]:
+        L = np.asarray(s["logc"], float)
+        grid = np.arange(len(L)) * s["step"]
+
+        def cost(t, L=L, grid=grid):
+            t = np.clip(np.asarray(t, float), 0.0, grid[-1])
+            return np.exp(np.interp(t, grid, L))
+        ts, xb, _ = known.backward_induction_x(cost, horizon, dt=dt, h=h, cap=cap)
+        k_view = min(int(round(view / dt)), len(ts) - 1)
+        pm = shortcuts.bound_for_cost(cost(ts[: k_view + 1]))
+        edge[s["name"]] = {"choice": s["choice"], "exact": [None if not np.isfinite(v) else float(v) for v in xb[: k_view + 1]],
+                           "perMomentDiscrete": [float(v) for v in shortcuts.discrete(pm, dt)]}
+    out["edge"] = edge
     (ROOT / "tools/validity/paper-code.json").write_text(json.dumps(out, indent=0) + "\n")
     print(f"wrote tools/validity/paper-code.json from {a.tag} ({commit[:7]})", file=sys.stderr)
 

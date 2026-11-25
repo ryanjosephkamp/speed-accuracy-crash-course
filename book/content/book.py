@@ -9,7 +9,7 @@ LEDE = r"""How the best moment to decide moves when time gets more expensive, wo
 
 DRAFT = r"""**Working draft.** Built so far: {built}. The rest are listed as coming."""
 
-SCHEDULE_INTRO = r"""Pick a schedule for the cost of time, or draw one. The book keeps it and uses it in every chapter. Under it is the best bound for your schedule, solved in this page by dynamic programming, beside the per-moment rule's bound."""
+SCHEDULE_INTRO = r"""Pick a schedule for the cost of time, or draw one. The book keeps it and uses it in every chapter. Under it is the best bound for your schedule, solved in this page by dynamic programming, beside the per-moment rule's bound. When the grid's first step past the center already decides, the bound is below that step: the page places it between the center and the step if the program still waits at the center, and at 0 if it decides at the center too (the paper's code reports 0 in both cases)."""
 
 MAP_SLOT = (
     "The claim map",

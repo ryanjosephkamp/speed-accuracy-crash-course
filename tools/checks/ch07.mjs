@@ -7,7 +7,7 @@ import { exactPolicy, score, boundForCost, toDiscrete } from "../../book/assets/
 import { costOf, defaultDrawing, VIEW, SPARE } from "../../book/assets/js/schedules-book.js";
 import * as S from "../../book/assets/js/say-ch07.js";
 import { frame } from "../../book/assets/js/chart.js";
-import { check, N, table, tableNumbers, asPrinted } from "./lib.mjs";
+import { check, N, table, tableNumbers, asPrinted, runWorker } from "./lib.mjs";
 
 // ---- Table 1 ------------------------------------------------------------------------------------------------
 {
@@ -275,23 +275,38 @@ for (const c of [0.02, 0.1, 0.5]) {
   const res = M.lossRun(costOf({ id: "draw", points: [0.01, 0.01, 0.01, ...Array(23).fill(0.012)] }), [1, 1 / 2, 1 / 4, 1 / 8, 1 / 16, 1 / 32, 1 / 64]);
   const lp = res.runs.map((r) => r.loss.pm), lf = res.runs.map((r) => r.loss.fo), cut = 10 * res.floor;
   const [lo, hi] = M.lossAxis([...lp, ...lf].filter((v) => v > 0), cut);
-  const nPm = lp.filter((v) => M.resolved(v, res.floor)).length, nFo = lf.filter((v) => M.resolved(v, res.floor)).length;
-  const say = S.lossSay(1, lp[0], lf[0], NaN, NaN, nPm > 0, nFo > 0, false, nPm, nFo, 7);
-  check("loss", "on a drawing whose losses all sit below the display cutoff, the loss chart's range still holds the cutoff, and the reading counts the losses above it", cut >= lo && cut <= hi && nFo === 0 && /None of the first-order bound's 7 losses are above the display cutoff/.test(say) && !/falls below/.test(say), `cutoff ${cut.toExponential(2)}, axis ${lo.toExponential(2)} to ${hi.toExponential(2)}; ${nPm} and ${nFo} above the cutoff; ${say}`);
+  // the reading as the plate builds it (readOut in ch07.js), at the largest size
+  const EPSL = [1, 1 / 2, 1 / 4, 1 / 8, 1 / 16, 1 / 32, 1 / 64], rp = lp.map((v) => M.resolved(v, res.floor)), rf = lf.map((v) => M.resolved(v, res.floor));
+  const say = S.lossSay(1, lp[0], lf[0], M.lastSlope(EPSL, lp, rp), M.lastSlope(EPSL, lf, rf), rp[0], rf[0], res.runs[0].foZero, rp.filter(Boolean).length, rf.filter(Boolean).length, EPSL.length);
+  // each rule's count from its raw losses against the cutoff, and the count the sentence prints for it
+  const above = (arr) => arr.filter((v) => Number.isFinite(v) && v >= cut).length, nPm = above(lp), nFo = above(lf);
+  const printed = (who) => { const m = say.match(new RegExp(`(None|Only (\\w+)) of the ${who}'s 7 losses (?:is|are) above the display cutoff`)); return m ? (m[1] === "None" ? 0 : ["none", "one", "two"].indexOf(m[2])) : null; };
+  check("loss", "on a drawing whose losses all sit below the display cutoff, the loss chart's range still holds the cutoff, and the reading prints each rule's count of losses above it, both 0, as counted from the raw losses",
+    cut >= lo && cut <= hi && lp.length === 7 && lf.length === 7 && nPm === 0 && nFo === 0 && printed("per-moment rule") === nPm && printed("first-order bound") === nFo && !/falls below/.test(say),
+    `cutoff ${cut.toExponential(2)}, axis ${lo.toExponential(2)} to ${hi.toExponential(2)}; ${nPm} and ${nFo} above the cutoff, printed ${printed("per-moment rule")} and ${printed("first-order bound")}; ${say}`);
 }
 {
-  // the shift plate's curves on an odd deadline (cost 0.5, deadline 0.95, the shared worker's thinning: every 0.02 and
-  // the last time): each drops straight down at the forced choice
-  const dl = 0.95, cost = costOf({ id: "deadline", params: { at: dl, c: 0.5 } }), P = exactPolicy(cost, dl);
-  const t = [], ex = [], pm = [], sh = [];
-  let last = 0; for (let k = 0; k < P.ts.length && P.ts[k] <= dl + 1e-9; k++) last = k;
-  const keep = []; for (let k = 0; k <= last; k += 2) keep.push(k); if (keep[keep.length - 1] !== last) keep.push(last);
-  for (const k of keep) { const x = P.ts[k]; t.push(x); ex.push(P.bounds[k]); pm.push(x >= dl - 1e-9 ? 0 : toDiscrete(boundForCost(cost(x)), 0.01)); sh.push(x >= dl - 1e-9 ? 0 : M.shiftedBound(cost, x)); }
-  const f = frame({ clientWidth: 330 }, { x: [0, dl], y: [0, 1], aspect: 0.48, minH: 190, maxH: 280 });
-  const paths = [...M.shiftLines(f, t, ex, pm, sh, dl).matchAll(/class="(\w[\w-]*)" d="([^"]+)"/g)].map((m) => [m[1], m[2].match(/[ML][^ML]+/g).map((p) => p.slice(1).split(" ").map(Number))]);
-  const pmPath = paths.find((p) => p[0] === "pm")[1], n = pmPath.length;
-  const X = f.sx(dl), drop = Math.abs(pmPath[n - 1][0] - X) < 0.06 && Math.abs(pmPath[n - 2][0] - X) < 0.06 && Math.abs(pmPath[n - 2][1] - f.sy(pm[pm.length - 2])) < 0.06 && Math.abs(pmPath[n - 1][1] - f.sy(0)) < 0.06;
-  check("shift", "on a deadline at 0.95 (an odd step), the shift plate's per-moment curve holds its level to the forced choice and drops straight down there, as do the other two curves", drop && paths.length === 3 && paths.every(([, pts]) => Math.abs(pts[pts.length - 1][0] - X) < 0.06 && Math.abs(pts[pts.length - 2][0] - X) < 0.06), `last two per-moment points ${pmPath.slice(-2).map((p) => p.join(",")).join(" and ")}; held level ${pm[pm.length - 2].toFixed(4)}`);
+  // the shift plate's curves on a deadline, from the shared worker's reply as the plate gets it (every 0.02 and the
+  // forced choice), at 1 (an even step) and 0.95 (an odd one), with a cost of 0.5: the per-moment curve holds its value
+  // to the deadline and drops straight down there; the program's bound and the dotted rule join their values, so their
+  // last segment runs from the last plotted time before the deadline to 0 at it
+  const rows = [];
+  for (const dl of [1, 0.95]) {
+    const choice = { id: "deadline", params: { at: dl, c: 0.5 } }, cost = costOf(choice);
+    const m = await runWorker("../../book/assets/js/dp-worker.js", { job: "bounds", choice });
+    const t = m.t, n = t.length, sh = M.shiftSeries(cost, t, dl);
+    const f = frame({ clientWidth: 330 }, { x: [0, dl], y: [0, 1], aspect: 0.48, minH: 190, maxH: 280 });
+    const paths = Object.fromEntries([...M.shiftLines(f, t, m.exact, m.pm, sh, dl).matchAll(/class="(\w[\w-]*)" d="([^"]+)"/g)].map((q) => [q[1], q[2].match(/[ML][^ML]+/g).map((p) => p.slice(1).split(" ").map(Number))]));
+    const near = (a, b) => Math.abs(a - b) < 0.051, X = f.sx(dl), x0 = f.sx(t[n - 2]), y0 = f.sy(0);
+    const ends = (pts, x1, y1) => pts.length >= 2 && near(pts[pts.length - 2][0], x1) && near(pts[pts.length - 2][1], y1) && near(pts[pts.length - 1][0], X) && near(pts[pts.length - 1][1], y0);
+    const ok = Math.abs(t[n - 1] - dl) < 1e-9 && m.exact[n - 1] === 0 && m.pm[n - 1] === 0 && sh[n - 1] === 0 && m.exact[n - 2] > 0 && m.pm[n - 2] > 0
+      && paths.pm.length === n + 1 && ends(paths.pm, X, f.sy(m.pm[n - 2]))
+      && paths.ex.length === n && ends(paths.ex, x0, f.sy(m.exact[n - 2]))
+      && paths["wb-dots"].length === n && ends(paths["wb-dots"], x0, f.sy(sh[n - 2]));
+    rows.push({ ok, text: `deadline ${dl}: last plotted time before it ${t[n - 2]}, program ${m.exact[n - 2].toFixed(6)} there, per-moment held at ${m.pm[n - 2].toFixed(4)}; ink ends ${paths.ex.slice(-2).map((p) => p.join(",")).join(" to ")}` });
+  }
+  check("shift", "on a deadline at 1 and at 0.95 (an odd step), from the worker's reply: the per-moment curve holds its value to the forced choice and drops straight down there; the program's bound and the dotted rule end on a straight segment from their values at the last plotted time before the deadline to 0 at it",
+    rows.every((r) => r.ok), rows.map((r) => r.text).join("; "));
 }
 
 // ---- the sentences ----------------------------------------------------------------------------------------

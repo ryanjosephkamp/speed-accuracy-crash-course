@@ -3,7 +3,7 @@
 // identity and the regularity facts on the plates' grid, the band's Hölder constant, the remark's closed forms, the
 // numbers the text quotes, and the sentences under the plates.
 import * as K from "../../book/assets/js/kernel.js";
-import { exactPolicy } from "../../book/assets/js/model.js";
+import { exactPolicy, OVERSHOOT } from "../../book/assets/js/model.js";
 import { costOf, PRESETS, defaultDrawing, paramsOf, VIEW } from "../../book/assets/js/schedules-book.js";
 import { solveSchedule, frozenRule, costRange, leftSide, belief, gPrime, B, F, testStep, FIXED, areaTo, wAt, chords, halfCrossed, costBounds, bandStats, worstResidual, liveSummary, isResolved, areaReading } from "../../book/assets/js/ch05-model.js";
 import * as S from "../../book/assets/js/say-ch05.js";
@@ -109,17 +109,21 @@ for (const [name, cost] of Object.entries(TEST)) {
     `early ${S.sci(near.w)}, per-moment ${near.pm.toFixed(4)}, last unit ${Number.isFinite(far.tail) ? far.tail.toFixed(4) : "none resolved"} (with the unresolved times: ${tailAll.toFixed(4)})`);
   const sayNear = S.liveSay({ ...near, label: "Cost jumps", dt: 0.01, far: false, constant: false, horizon: 10 });
   const sayFar = S.liveSay({ ...far, label: "Cost jumps", dt: 0.01, far: true, constant: false, horizon: 10 });
-  check("words", "the sentence names the window of its count, says the early maximum is over the resolved times, and reports an unresolved last unit as unresolved",
-    sayNear.includes(`At ${near.unresolved} of the 251 times from 0 to 2.5 (every 0.01)`) && sayFar.includes(`At ${far.unresolved} of the 1000 times from 0 to 10 before the forced choice`) && /at the resolved times on the grid/.test(sayNear)
+  check("words", "the sentence names the window of its count, calls the unresolved times gaps for this grid, says the early maximum is over the resolved times, and reports an unresolved last unit as unresolved",
+    sayNear.includes(`At ${near.unresolved} of the 251 times from 0 to 2.5 (every 0.01)`) && /Those times are gaps for this grid/.test(sayNear) && sayFar.includes(`At ${far.unresolved} of the 1000 times from 0 to 10 before the forced choice`) && /at the resolved times on the grid/.test(sayNear)
       && (Number.isFinite(far.tail) ? /at the resolved times, the left side moves away/.test(sayFar) : /isn't resolved there/.test(sayFar)) && !/moves away from ¼, by up to/.test(Number.isFinite(far.tail) ? "" : sayFar),
     sayFar);
   // the plate's reading at the time on show: areaReading, the function drawArea calls
-  const r07 = areaReading(out, out.snaps[0]), r15 = areaReading(out, out.snaps[1]);
-  check("grid", "the plate's reading at time 0.70 is unresolved, with no area or bound printed; where the bound is resolved, it prints both",
-    !r07.resolved && Number.isNaN(r07.area) && Number.isNaN(r07.bc) && (r15.resolved ? Number.isFinite(r15.area) && Number.isFinite(r15.bc) : true),
-    `0.70: resolved ${r07.resolved}; 1.50: resolved ${r15.resolved}, bound ${out.snaps[1].b.toFixed(4)}`);
+  const r07 = areaReading(out, out.snaps[0]);
+  check("grid", "the plate's reading at time 0.70 is unresolved, with no area or bound printed",
+    !r07.resolved && Number.isNaN(r07.area) && Number.isNaN(r07.bc) && out.snaps[0].b < out.h, `0.70: resolved ${r07.resolved}, grid bound ${out.snaps[0].b.toFixed(4)}`);
+  // a resolved reading: the test schedule at time 1.2 prints the left side there and the program's bound at 1.2 moved out
+  // by the shift (each read from the program's own arrays here, not from the snapshot the reading uses)
   const ok = solveSchedule(testStep, 4, { dt: 0.01, h: 0.02, cMin: 0.1, every: 1, lhsUpto: 3, snaps: [1.2], snapTo: 2 }), rok = areaReading(ok, ok.snaps[0]);
-  check("grid", "on the test schedule at time 1.2, the reading is resolved and is the left side at that time", rok.resolved && rok.area === ok.lhs[rok.i], `${rok.area.toFixed(4)}`);
+  const k12 = ok.ts.findIndex((t) => Math.abs(t - 1.2) < 1e-9), shifted = ok.bounds[k12] + OVERSHOOT * Math.sqrt(0.01);
+  check("grid", "on the test schedule at time 1.2, the reading is resolved: its area is the left side at 1.2 and its bound is the program's bound at 1.2 moved out by 0.5826 sqrt(0.01)",
+    rok.resolved && rok.i === k12 && Number.isFinite(rok.area) && rok.area === ok.lhs[k12] && Number.isFinite(rok.bc) && Math.abs(rok.bc - shifted) < 1e-12 && ok.bounds[k12] >= ok.h,
+    `area ${rok.area.toFixed(4)}, bound ${rok.bc.toFixed(4)} vs ${shifted.toFixed(4)}`);
 }
 
 // ---- the book's schedules on the live plate -----------------------------------------------------------------------
