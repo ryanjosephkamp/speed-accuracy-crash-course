@@ -3,16 +3,16 @@
 // choice ({ id, params } or { id: "draw", points }) and is rebuilt here from the module the page uses. Jobs:
 //   { job: "backward", choice }  -> the bound at every step to the horizon, and what waiting adds at every other step
 //   { job: "floor" }             -> the forced choice's cost at a constant cost of 0.02, with the choice forced at 10
-//   { job: "density", choice, only } -> the best bound, the per-moment and weighted rules (moved in for checking every
-//                                   0.01; only some, if asked), and for each, the density pushed forward with the
-//                                   mass decided at each step
+//   { job: "density", choice, only, fine } -> the best bound, the per-moment and weighted rules (moved in for checking
+//                                   every 0.01; only some, if asked), and for each, the density pushed forward with the
+//                                   mass decided at each step; with fine, the best bound's score on a finer grid too
 //   { job: "coef", choice }      -> the program checked every 0.01 and every 0.0025, and the coefficient between them
 //   { job: "shift", choice }     -> the two rules' losses with and without the shift
 //   { job: "fit" }               -> the sinusoid test at Table 1's five frequencies, with progress
 //   { job: "sweep", c0, om }     -> the sweep's four sizes at one cost and frequency, with progress
 //   { job: "refine", choice }    -> the two rules' losses on this page's three grids, with progress
 import { costOf, deadlineOf } from "./schedules-book.js";
-import { exactPolicy, perMoment, weightedBound, toDiscrete } from "./model.js";
+import { exactPolicy, perMoment, weightedBound, toDiscrete, score } from "./model.js";
 import * as M from "./ch09-model.js";
 
 const horizonOf = (choice) => deadlineOf(choice) ?? M.WINDOW + M.SPARE;
@@ -45,6 +45,8 @@ self.onmessage = (e) => {
         out[k] = { bound: b, p: f.p, rt: f.rt, paid: f.paid, reward: f.reward, upAt: f.upAt, loAt: f.loAt, aliveAt: f.aliveAt,
           endUp: f.endUp, endLo: f.endLo, snapK: f.snapK, snaps: f.snaps, M: f.M, h: f.h, atOnce: f.atOnce };
       }
+      // the best bound scored again on a finer evidence grid, for the trials, whose evidence is continuous
+      if (m.fine) out.best.fineReward = score(pol.best, T, cost, M.FINE_H, M.CAP).reward;
       say({ ts: T, view, horizon, deadline: dl, policies: out });
       return;
     }
