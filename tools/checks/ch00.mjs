@@ -2,11 +2,11 @@
 // below the grid's first step, and the sentences.
 import { B } from "../../book/assets/js/kernel.js";
 import { belief, reward, boundForCost, toDiscrete } from "../../book/assets/js/model.js";
-import { PRESETS, costOf, deadlineOf, VIEW } from "../../book/assets/js/schedules-book.js";
+import { PRESETS, costOf, deadlineOf, VIEW, SPARE } from "../../book/assets/js/schedules-book.js";
 import * as S from "../../book/assets/js/say-ch00.js";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { check, ROOT, runWorker } from "./lib.mjs";
+import { check, ROOT, runWorker, centerActions, belowStepClass, fitsClass } from "./lib.mjs";
 
 // ---- the flat bound: V(y) = g(b) - c (b tanh b - y tanh y) below b ------------------------------------------------
 const V = (y, b, c) => belief(b) - c * (b * Math.tanh(b) - y * Math.tanh(y));
@@ -65,12 +65,18 @@ for (const p of PRESETS) {
 
 // ---- below the grid's first step: the schedule plate's two cases, on the page's worker, and the words for both -------
 {
-  // Rising at its largest rate, from time 0: late in the window the worker's bound falls below the first step, 0.02,
-  // and is placed between the center and the step at some times and is a genuine center stop (0) at others
-  const m = await runWorker("../../book/assets/js/dp-worker.js", { job: "bounds", choice: { id: "rising", params: { at: 0, rate: 2 } } });
-  const between = m.t.filter((t, i) => m.exact[i] > 0 && m.exact[i] < 0.02), stops = m.t.filter((t, i) => m.exact[i] === 0);
+  // Rising at its largest rate, from time 0: late in the window the worker's bound falls below the first step, 0.02.
+  // Each plotted bound is held to the program's own Bellman step at that time, recomputed here: between the center and
+  // the first step where the first step stops and the center waits, 0 where the center stops too, at least 0.02 where
+  // the first step waits
+  const choice = { id: "rising", params: { at: 0, rate: 2 } };
+  const m = await runWorker("../../book/assets/js/dp-worker.js", { job: "bounds", choice });
+  const act = await centerActions(costOf(choice), VIEW + SPARE);
+  const cls = m.t.map((t) => belowStepClass(act[Math.round(t / 0.01)])), wrong = m.t.filter((t, i) => !fitsClass(cls[i], m.exact[i]));
+  const between = m.t.filter((t, i) => cls[i] === "between"), stops = m.t.filter((t, i) => cls[i] === "stop");
   const words = ["ch00.py", "book.py"].map((f) => readFileSync(join(ROOT, "book/content", f), "utf8"));
   const both = words.every((w) => /places it between the center and the step if the program still waits at the center, and at 0 if it decides at the center too/.test(w) && /reports 0 in both cases/.test(w));
-  check("schedule", "Rising from 0 at rate 2, on the page's worker: some plotted bounds lie between the center and the first step (0.02) and some are a center stop at 0; chapter 0's text and the contents page each state both cases",
-    between.length > 0 && stops.length > 0 && both, `between at ${between.length} times (first ${between[0]}), 0 at ${stops.length} (first ${stops[0]}); both cases stated: ${both}`);
+  check("schedule", "Rising from 0 at rate 2, on the page's worker: every plotted bound has the class the program's Bellman step gives at its time (between the center and the first step where the center waits, 0 where it stops too, at least 0.02 otherwise), with both below-step classes present; chapter 0's text and the contents page each state both cases",
+    m.t.length === 126 && wrong.length === 0 && between.length > 0 && stops.length > 0 && both,
+    `${between.length} times between (first ${between[0]}), ${stops.length} center stops (first ${stops[0]}), ${wrong.length} mismatched${wrong.length ? ` (first at ${wrong[0]})` : ""}; both cases stated: ${both}`);
 }

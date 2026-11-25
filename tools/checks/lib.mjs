@@ -43,3 +43,29 @@ export async function runWorker(rel, msg) {
   handlers.get(rel)({ data: { ...msg, id: 1 } });
   return replies.find((m) => m.ok !== undefined) || null;
 }
+
+/** The program's Bellman step at the center and at the grid's first step past it, recomputed here from model.js's grid
+ * and kernels (as exactPolicy steps back from a forced choice at the horizon): for each time step k, center and first
+ * are deciding's value minus waiting's there, so a value above 0 means that node stops. */
+export async function centerActions(cost, horizon, dt = 0.01, h = 0.02, cap = 5) {
+  const { grid } = await import("../../book/assets/js/model.js");
+  const { x, m, n, r, kUp, kDown } = grid(dt, h, cap), steps = Math.round(horizon / dt);
+  const g = Float64Array.from(x, (v) => 1 / (1 + Math.exp(-2 * v))), decide = Float64Array.from(g, (v) => Math.max(v, 1 - v));
+  let v = Float64Array.from(decide);
+  const wait = new Float64Array(n), out = new Array(steps);
+  for (let k = steps - 1; k >= 0; k--) {
+    const ck = Math.min(cost(k * dt), 1e9) * dt;
+    for (let i = 0; i < n; i++) {
+      let up = 0, dn = 0;
+      for (let j = -r; j <= r; j++) { const q = i + j, vj = q < 0 || q >= n ? decide[q < 0 ? 0 : n - 1] : v[q]; up += kUp[j + r] * vj; dn += kDown[j + r] * vj; }
+      wait[i] = g[i] * up + (1 - g[i]) * dn - ck;
+    }
+    out[k] = { center: decide[m] - wait[m], first: decide[m + 1] - wait[m + 1] };
+    for (let i = 0; i < n; i++) v[i] = Math.max(decide[i], wait[i]);
+  }
+  return out;
+}
+/** What the exported bound must be, from that step: "between" 0 and h when the first step stops and the center waits,
+ * "stop" (exactly 0) when both stop, and "above" (at least h) when the first step waits. */
+export const belowStepClass = (a) => (a.first > 0 ? (a.center < 0 ? "between" : "stop") : "above");
+export const fitsClass = (cls, b, h = 0.02) => (cls === "between" ? b > 0 && b < h : cls === "stop" ? b === 0 : b >= h);

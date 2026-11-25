@@ -130,10 +130,15 @@ for (const c of [0.02, 0.1, 0.5]) {
   const choice = { id: "draw", points: Array(26).fill(0.01) }, cost = costOf(choice);
   const P = exactPolicy(cost, VIEW + SPARE), ts = [], ex = [], pm = [], sh = [];
   for (let k = 0; k < P.ts.length && P.ts[k] <= VIEW + 1e-9; k += 2) { ts.push(P.ts[k]); ex.push(P.bounds[k]); pm.push(toDiscrete(boundForCost(cost(P.ts[k])), 0.01)); sh.push(M.shiftedBound(cost, P.ts[k])); }
-  const G = M.shiftGaps(ex, pm, sh), say = S.shiftSay("Draw your own", G, M.isFlat(cost));
-  check("shift", "a flat drawing counts as flat; its two rules coincide while the program's bound sits apart, and the sentence names only the two rules", M.isFlat(cost) && G.apart < 1e-12 && G.maxPm > 1e-3 && /per-moment and shifted bounds coincide/.test(say) && !/three/.test(say), `${say}`);
-  const smooth0 = costOf({ id: "smooth", params: { c0: 0.1, size: 0 } }), flat98 = costOf({ id: "draw", points: Array(26).fill(0.98) });
-  check("shift", "a Smooth of size 0 and a flat drawing at 0.98 count as flat; the default jump and Smooth don't", M.isFlat(smooth0) && M.isFlat(flat98) && !M.isFlat(costOf({ id: "jump" })) && !M.isFlat(costOf({ id: "smooth" })), "by the schedule's values every 0.01 to time 14");
+  const G = M.shiftGaps(ex, pm, sh), say = S.shiftSay("Draw your own", G, M.isFlat(choice));
+  check("shift", "a flat drawing counts as flat; its two rules coincide while the program's bound sits apart, and the sentence names only the two rules", M.isFlat(choice) && G.apart < 1e-12 && G.maxPm > 1e-3 && /per-moment and shifted bounds coincide/.test(say) && !/three/.test(say), `${say}`);
+  const smooth0 = { id: "smooth", params: { c0: 0.1, size: 0 } }, flat98 = { id: "draw", points: Array(26).fill(0.98) }, flat2 = { id: "draw", points: Array(26).fill(2) };
+  // a drawing from 2 to 1.999999999 moves (by 5e-10 of its cost): it isn't flat, and its Shift sentence doesn't say the
+  // cost doesn't move
+  const tinyC = { id: "draw", points: Array.from({ length: 26 }, (_, i) => 2 - (1e-9 * i) / 25) }, tiny = costOf(tinyC);
+  const tts = Array.from({ length: 126 }, (_, i) => 0.02 * i), tinySay = S.shiftSay("Draw your own", M.shiftGaps(tts.map(() => 0.1), tts.map((t) => toDiscrete(boundForCost(tiny(t)), 0.01)), M.shiftSeries(tiny, tts)), M.isFlat(tinyC));
+  check("shift", "a Smooth of size 0 and flat drawings at 0.98, 0.01, and 2 count as flat (a drawing by its knots, a preset by its values every 0.01 to time 14); the default jump and Smooth don't, and neither does a drawing that moves only from 2 to 1.999999999, whose sentence doesn't say the cost doesn't move",
+    M.isFlat(smooth0) && M.isFlat(flat98) && M.isFlat(choice) && M.isFlat(flat2) && !M.isFlat({ id: "jump" }) && !M.isFlat({ id: "smooth" }) && !M.isFlat(tinyC) && !/doesn't move/.test(tinySay), tinySay);
 }
 
 // ---- half-integration ---------------------------------------------------------------------------------------

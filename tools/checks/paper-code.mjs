@@ -11,9 +11,9 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { exactPolicy, perMoment, weightedBound, toDiscrete, score } from "../../book/assets/js/model.js";
-import { deadlineOf } from "../../book/assets/js/schedules-book.js";
+import { deadlineOf, costOf } from "../../book/assets/js/schedules-book.js";
 import { CHOICES, spec, costFromSpec, HORIZON, EDGE_CONSTANT, EDGE_HORIZON, EDGE_CHOICES } from "../validity/schedules.mjs";
-import { check, ROOT, runWorker } from "./lib.mjs";
+import { check, ROOT, runWorker, centerActions, belowStepClass, fitsClass } from "./lib.mjs";
 
 const REF = JSON.parse(readFileSync(join(ROOT, "tools/validity/paper-code.json"), "utf8"));
 const STRESS = JSON.parse(readFileSync(join(ROOT, "tools/validity/ch01.json"), "utf8")).subStep;
@@ -93,7 +93,7 @@ for (const choice of CHOICES) {
       `reward ${o.reward.toFixed(6)} vs ${r.reward.toFixed(6)}; ${said(c)}`);
   }
 }
-check("schedule", "the eleven schedules at their starting settings never reach a bound below the grid's first step, so every cell above was compared to 1e-6 (the edge cases below exercise that branch)", defaultsBelow === 0, `${defaultsBelow} below-step pairs`);
+check("schedule", "the eleven schedules at their starting settings give no below-step pairs (a page bound between 0 and the first step where the tag reports 0), so every cell above, the deadline's terminal 0 on both sides included, was compared to 1e-6 (the edge cases below exercise that branch)", defaultsBelow === 0, `${defaultsBelow} below-step pairs`);
 
 // ---- below the grid's first step, on the tag's own output: a center that waits and a genuine center stop ----------
 // At a constant cost of 3.2 or 4.2, with the choice forced at time 2, the tag's code reports 0 at time 0. Its value at
@@ -133,17 +133,25 @@ check("schedule", "the eleven schedules at their starting settings never reach a
     check("schedule", `${s.id}: the page's worker returns the expected ${r.n} times, and the reference's exact bound (within 1e-6) and per-moment bound moved in (within 1e-10, 0 at a forced choice) at each`,
       r.m?.ok && r.t.ok && r.ex.ok && r.pm.ok, `exact: ${said(r.ex)}; per-moment: ${said(r.pm)}`);
   }
-  // chapter 1's stress schedules (the tag's code on the page's grid): many times below the first step
+  // chapter 1's stress schedules (the tag's code on the page's grid): many times below the first step, where the tag
+  // reports 0 in both cases. Each plotted time's class comes from the program's Bellman step there, recomputed here
+  // (lib.mjs): the below-step pairs must be exactly the times where the center waits, and the times where the center
+  // stops must be 0 on both sides
   for (const [name, cs] of Object.entries(STRESS.cases)) {
-    const r = await viaWorker(cs.choice, cs.exact, null);
-    check("schedule", `chapter 1's stress schedule ${name} (tools/validity/ch01.json): the worker's ${r.n} times and exact bounds match the tag's, with the times below the first step counted as below-step pairs and every other time within 1e-6`,
-      STRESS.grid.dt === REF.dt && STRESS.grid.h === REF.h && STRESS.grid.cap === REF.cap && r.m?.ok && r.t.ok && r.ex.ok && r.ex.belowStep > 0, said(r.ex));
+    const r = await viaWorker(cs.choice, cs.exact, null), act = await centerActions(costOf(cs.choice), STRESS.grid.horizon, REF.dt, REF.h, REF.cap);
+    const cls = (r.m?.t ?? []).map((t) => belowStepClass(act[Math.round(t / REF.dt)]));
+    const nBetween = cls.filter((c) => c === "between").length, nStop = cls.filter((c) => c === "stop").length;
+    const fits = cls.length === r.n && cls.every((c, i) => fitsClass(c, r.m.exact[i], REF.h) && (c === "above" || cs.exact[Math.round(r.m.t[i] / REF.dt)] === 0));
+    check("schedule", `chapter 1's stress schedule ${name} (tools/validity/ch01.json): the worker's ${r.n} times and exact bounds match the tag's; the below-step pairs are exactly the times where the program's Bellman step waits at the center and stops at the first step, the center stops are 0 on both sides, and every other time is within 1e-6`,
+      STRESS.grid.dt === REF.dt && STRESS.grid.h === REF.h && STRESS.grid.cap === REF.cap && r.m?.ok && r.t.ok && r.ex.ok && fits && nBetween > 0 && r.ex.belowStep === nBetween,
+      `${said(r.ex)}; by the Bellman step ${nBetween} between and ${nStop} center stops`);
   }
-  // off the cap: a cost falling to 1e-5, where the worker writes Infinity and the fixture null
+  // off the cap: a cost falling to 1e-5, where the worker writes Infinity and the tag's code returns infinity, which the
+  // fixture stores as null
   for (const [name, choice] of Object.entries(EDGE_CHOICES)) {
     const ref = REF.edge[name], r = await viaWorker(choice, ref.exact, ref.perMomentDiscrete);
     const inf = (r.m?.exact ?? []).filter((v) => v === Infinity).length;
-    check("schedule", `a cost that ${name.replace("fall", "falls")} at time 1: the worker writes Infinity where the tag writes null, past the cap, and the comparator pairs them; the finite times and the per-moment bound match (within 1e-6 and 1e-10)`,
+    check("schedule", `a cost that ${name.replace("fall", "falls")} at time 1: the worker writes Infinity where the tag's code returns infinity (stored as null in the fixture), past the cap, and the comparator pairs them; the finite times and the per-moment bound match (within 1e-6 and 1e-10)`,
       r.m?.ok && r.t.ok && r.ex.ok && r.ex.offCap > 0 && inf === r.ex.offCap && r.ex.offCap < r.n && r.pm.ok, `exact: ${said(r.ex)}; per-moment: ${said(r.pm)}`);
   }
   for (const at of [0.45, 1, 0.8]) {

@@ -65,7 +65,16 @@ export function errorsVerdict(guess, ePm, eFo, EPS, outside = false) {
   return (right === 2 ? "Both guesses match the theory. " : right === 1 ? "One guess matches the theory. " : "Neither guess matches the theory. ") + s;
 }
 
-export const tooSmallSay = (largest) => `Every error here is below 10⁻⁷: the largest is ${Number(largest).toExponential(1)}. The log chart opens only when at least one error reaches 10⁻⁷, so it stays hidden. Pick a schedule that moves more.`;
+/** A positive number to three significant figures, rounded down, as 9.96e-8 (so a value below 10⁻⁷ never prints as
+ * 1.00e-7); 0 as "0". */
+export function sciDown(x) {
+  if (!(x > 0)) return "0";
+  let e = Math.floor(Math.log10(x));
+  if (x / 10 ** e < 1) e -= 1; else if (x / 10 ** e >= 10) e += 1;
+  return `${(Math.floor((x / 10 ** e) * 100) / 100).toFixed(2)}e${e}`;
+}
+
+export const tooSmallSay = (largest) => `Every error here is below 10⁻⁷: the largest is ${sciDown(largest)}, rounded down. The log chart opens only when at least one error reaches 10⁻⁷, so it stays hidden. Pick a schedule that moves more.`;
 
 /** A guide y = ya (x / xa)^p on log axes, clipped to x in [xLo, xHi] and y in [yLo, yHi] so its slope stays true;
  * null when no part of it is inside. */

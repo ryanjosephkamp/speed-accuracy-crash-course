@@ -7,7 +7,7 @@ import { boundForCost, kernelForBound, toDiscrete } from "./model.js";
 import { PRESETS, DRAW, paramsOf, labelOf, defaultDrawing, deadlineOf, VIEW } from "./schedules-book.js";
 import { getChoice, setChoice, onVisible, watchVisible, liftReady, calm } from "./book.js";
 import { frame, line, area, axes, svg, fmt, keepDrawn } from "./chart.js";
-import { weightedHistory, mapExact, scheduleFor, spikeCost, shareExact, codeStretches, pmPlot, P13, levelDerivative } from "./ch08-rule.js";
+import { weightedHistory, mapExact, scheduleFor, spikeCost, shareExact, codeStretches, P13, levelDerivative, comparisonLines, startSeries, startLine, shiftLines } from "./ch08-rule.js";
 import * as S from "./say-ch08.js";
 
 const $ = (sel, el = document) => el.querySelector(sel);
@@ -175,8 +175,7 @@ function twoPlate() {
     const f = frame(boundEl, { x: [0, r.view], y: [0, Math.max(0.4, top)], aspect: 0.46, minH: 170, maxH: 280 });
     let g = axes(f, { yl: "bound (evidence)", xl: "time", grid: true });
     const st = codeStretches(r);
-    if (st.length) g += line(f, r.t, shift(r.avgCode), "avg-code");
-    g += line(f, r.t, avg, "avg") + line(f, ...pmPlot(r.t, pm, dl), "pm") + line(f, r.t, wb, "wb") + line(f, r.t, ex, "ex");
+    g += comparisonLines(f, r, st.length > 0);
     codeKey.hidden = !st.length;
     if (dl !== null) g += deadlineMark(f, dl);
     boundEl.innerHTML = svg(f, g, `For ${labelOf(choice)}: the program's bound, the per-moment rule, the averaged-cost rule, and the weighted rule`);
@@ -572,9 +571,9 @@ function algorithmPlate() {
     const view = deadline ?? VIEW;
     let f, g = "", label = "", items = [];
     if (step === 0) {
-      const ts = range(0, view, 251), pm = ts.map((t) => (deadline !== null && t >= deadline - 1e-9 ? 0 : boundForCost(cost(t))));
+      const { ts, pm } = startSeries(cost, deadline, view);
       f = frame(chart, { x: [0, view], y: [0, Math.max(0.4, finiteMax(pm) * 1.12)], aspect: 0.44, minH: 170, maxH: 260 });
-      g = axes(f, { yl: "per-moment bound B(c(t))", xl: "time", grid: true }) + line(f, ...pmPlot(ts, pm, deadline), "pm");
+      g = axes(f, { yl: "per-moment bound B(c(t))", xl: "time", grid: true }) + startLine(f, ts, pm, deadline);
       g += `<path class="dim" stroke-dasharray="2 3" d="M${f.sx(tk).toFixed(1)} ${f.t}V${f.H - f.b}"/><circle class="acc-dot" cx="${f.sx(tk).toFixed(1)}" cy="${f.sy(b).toFixed(1)}" r="4.5"/>`;
       label = "The per-moment bound over the window, with the chosen time marked"; items = [["key-pm", "Per-moment bound"]];
       reads.innerHTML = `<div class="k-acc"><dt>Cost at tₖ</dt><dd>${S.num(c)}</dd></div><div class="k-pm"><dt>Start b(tₖ)</dt><dd>${fmt(b, 3)}</dd></div>`;
@@ -614,7 +613,7 @@ function algorithmPlate() {
       const r = data, ex = r.exact, wb = shift(r.wb), pm = shift(r.pm);
       f = frame(chart, { x: [0, r.view], y: [0, Math.max(0.4, finiteMax(ex, r.wb, pm) * 1.12)], aspect: 0.44, minH: 170, maxH: 260 });
       g = axes(f, { yl: "bound (evidence)", xl: "time", grid: true });
-      g += line(f, ...pmPlot(r.t, pm, r.deadline), "pm") + line(f, r.t, r.wb, "wb-thin") + line(f, r.t, wb, "wb") + line(f, r.t, ex, "ex");
+      g += shiftLines(f, r);
       const k = nearest(r.t, tk);
       g += `<path class="dim" stroke-dasharray="2 3" d="M${f.sx(tk).toFixed(1)} ${f.t}V${f.H - f.b}"/><circle class="wb-dot" cx="${f.sx(r.t[k]).toFixed(1)}" cy="${f.sy(wb[k]).toFixed(1)}" r="4.5"/>`;
       label = "The rule over the window before and after the shift for checking every 0.01, beside the program's bound"; items = [["key-ex", "Program's bound"], ["key-wb", "Weighted, moved in"], ["key-faint", "Before the shift"], ["key-pm", "Per-moment, moved in"]];
