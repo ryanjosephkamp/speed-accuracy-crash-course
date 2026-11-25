@@ -417,7 +417,8 @@ LINKS_NOW = {}   # the map's links for the page being built, for {{claim:id}}
 
 def map_html(depth, chapter=None, focus="thm:main"):
     links = html.escape(json.dumps(map_links(depth)), quote=True)
-    ch = "" if chapter is None else f" data-chapter='{chapter}'"
+    # the map lights a numbered chapter's claims; an appendix has none of its own
+    ch = "" if chapter is None or not str(chapter).isdigit() else f" data-chapter='{chapter}'"
     return (f"<div class='cmap is-wide' data-claim-map{ch} data-focus='{focus}' data-links=\"{links}\">"
             f"<p class='cm-how'>The claim map needs JavaScript.</p></div>")
 
@@ -625,9 +626,9 @@ def chapter_page(i):
     if len(C["finding"]) > 170:
         fail(f"{module}: the hero's finding is longer than 170 characters")
     H = C.get("hero") or fail(f"{module}: CHAPTER has no hero (aria and caption)")
-    of = "of the appendices" if str(num) in ("A", "B") else "of 12"
+    of = "" if str(num) in ("A", "B") else " of 12"
     hero = f"""<header class="hero">
-<div class="hero-head"><div class="kicker"><span class="sp-numeral">{C['num']}</span><span class="of">{chapter_word(num)} {of}</span></div>
+<div class="hero-head"><div class="kicker"><span class="sp-numeral">{C['num']}</span><span class="of">{chapter_word(num)}{of}</span></div>
 <h1 class="sp-headline">{html.escape(C['title'])}</h1>
 <p class="finding">{html.escape(C['finding'])}</p></div>
 <figure class="proof" data-kind="live" data-still="{H.get('still', 2)}" id="hero-proof">
@@ -636,7 +637,7 @@ def chapter_page(i):
 <figcaption>{inline(H['caption'])}</figcaption>
 </figure>
 <dl class="readings">{readings}</dl>
-<div class="hero-foot"><nav class="chips" aria-label="The live plates in this chapter"><span class="chips-h" aria-hidden="true">Live plates</span>{chip_html}</nav></div>
+{f'<div class="hero-foot"><nav class="chips" aria-label="The live plates in this chapter"><span class="chips-h" aria-hidden="true">Live plates</span>{chip_html}</nav></div>' if chips else ""}
 </header>"""
     intro = f"<div class='intro'>{md(C['intro'])}</div>"
     page_body = (f"<div class='col chapter-top'>{hero}{intro}\n" + "\n".join(body) + "</div>" + map_data())
