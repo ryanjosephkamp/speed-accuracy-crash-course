@@ -182,8 +182,8 @@ for (const c of COSTS) {
   // the control plate's window (END = 4, so the chart ends at 4.6): the reading and the arrow come from controlWindow,
   // which the plate calls for both
   const w1 = M.controlWindow(4, 0.03, 4.6), w2 = M.controlWindow(4, 1, 4.6);
-  check("control", "controlWindow, which the plate's reading and arrow use: at c0 = 0.03 and t = 4 it gives the reading “29%” and puts the mean, 0.618 ahead, past the chart's edge (so the plate draws the arrow); at c0 = 1 it gives no reading, with under 0.5% past the edge",
-    w1.reading === "29%" && !w1.meanInside && w1.meanAt > 4.6 && /the average uses all of it/.test(S.PAST_EDGE) && w2.reading === null && w2.past > 0 && w2.past < M.PAST_SHOWN,
+  check("control", "controlWindow, which the plate's reading and arrow use: at c0 = 0.03 and t = 4 it gives the reading “29%” and puts the mean, 0.618 ahead (as the plate prints it), past the chart's edge, the branch where the plate draws the arrow (the drawing itself isn't inspected); at c0 = 1 it gives no reading, with under 0.5% past the edge",
+    w1.reading === "29%" && !w1.meanInside && w1.meanAt > 4.6 && (w1.meanAt - 4).toFixed(3) === "0.618" && /the average uses all of it/.test(S.PAST_EDGE) && w2.reading === null && w2.past > 0 && w2.past < M.PAST_SHOWN,
     `${(w1.past * 100).toFixed(2)}% past, mean at ${w1.meanAt.toFixed(3)}; at c0 = 1, ${(w2.past * 100).toExponential(2)}% past, no reading`);
   const cap = readFileSync(join(ROOT, "book/content/ch12.py"), "utf8");
   check("control", "the control caption states the reading's threshold, the plate's own (PAST_SHOWN = 0.005)", cap.includes(`when at least ${M.PAST_SHOWN * 100}% of the weight lies past the right edge`), `PAST_SHOWN ${M.PAST_SHOWN}`);
@@ -255,6 +255,33 @@ function scaleJob(cost, c0) {
     check("yours", "a nearly flat drawing (one point raised by 10⁻⁶): the smallest size's gaps are positive and under 10⁻⁶, and the plate prints both to two significant digits (not 0.00%) in the readings and the sentence before naming the closer",
       tiny && !/^0\.00%$/.test(T.fo) && !/^0\.00%$/.test(T.pm) && /× 10⁻/.test(T.fo) && /× 10⁻/.test(T.pm) && T.say.includes(T.fo) && T.say.includes(T.pm) && /× 10⁻[⁰¹²³⁴⁵⁶⁷⁸⁹]+%/.test(T.say) && !/less than 0\.1%/.test(T.say) && /the closer of the two/.test(T.say),
       `gaps ${gFo[L].toExponential(2)} and ${gPm[L].toExponential(2)}; readings ${T.fo} and ${T.pm}; ${T.say}`);
+  }
+  // a drawing whose first-order bound is at or below 0 at every time drawn at full size (0.02 at 0, 0.05 at 0.1, 0.01 to
+  // 2.4, 2 at 2.5), run through the worker as the page runs it: at full size no time has all three curves, so the gaps
+  // are unavailable, not 0, and the sentence says they can't be computed; the smaller sizes still have gaps
+  {
+    const choice = { id: "draw", points: DRAW_TIMES.map((t, i) => (i === 0 ? 0.02 : i === 1 ? 0.05 : i === 25 ? 2 : 0.01)) }, cost = costOf(choice), c0 = avg(cost);
+    const m = await runWorker("../../book/assets/js/dp-worker.js", { job: "scale", choice, c0, eps: EPS, view: VIEW });
+    const { u, gFo, gPm } = M.urgencies(m.t, m.b0, m.runs, cost, c0, EPS), d = { kind: "scale", t: m.t, c0, outside: false, u, gFo, gPm };
+    const T0 = S.yoursText(d, EPS, 0), T2 = S.yoursText(d, EPS, 2);
+    const none = S.yoursSay(EPS, 0, [NaN, 0.2, NaN], [NaN, 0.1, NaN], [126, 40, 126], false, 126);
+    check("yours", "a drawing with no time at full size where all three curves are defined (the worker's run): the full-size gaps are unavailable, not 0, in both readings and the sentence, with no count of 0 times; the smaller sizes keep their gaps and the ranking; and with the smallest size unavailable too, neither urgency is ranked",
+      u.map((x) => x.used).join() === "0,80,124" && Number.isNaN(gFo[0]) && Number.isNaN(gPm[0]) && T0.fo === "unavailable" && T0.pm === "unavailable" && T0.note === "no time drawn has all three curves defined"
+      && /so the gaps can't be computed at that size/.test(T0.say) && !/by 0|0%|over the 0 of/.test(T0.say) && /not the closer of the two/.test(T0.say) && Number.isFinite(gFo[2]) && /× the constant|of the constant cost's urgency/.test(T2.note)
+      && /ranks neither urgency/.test(none) && !/closer/.test(none),
+      `${u.map((x) => x.used).join(", ")} of 126 times; ${T0.fo}; ${T0.say} | ${none}`);
+  }
+  // a drawing at 0.01 to 2.4 with its last point at 0.244631958: at the smallest size the two gaps print alike at the
+  // usual digits (13.03%), so the plate gives them the digits that tell them apart and says by how much one is closer
+  {
+    const choice = { id: "draw", points: DRAW_TIMES.map((t, i) => (i === 25 ? 0.244631958 : 0.01)) }, cost = costOf(choice), c0 = avg(cost);
+    const m = await runWorker("../../book/assets/js/dp-worker.js", { job: "scale", choice, c0, eps: EPS, view: VIEW });
+    const { u, gFo, gPm } = M.urgencies(m.t, m.b0, m.runs, cost, c0, EPS), L = EPS.length - 1, d = { kind: "scale", t: m.t, c0, outside: false, u, gFo, gPm };
+    const TL = S.yoursText(d, EPS, L), T0 = S.yoursText(d, EPS, 0);
+    check("yours", "two gaps that print alike at the usual digits (13.03% at the smallest size, on a drawing ending at 0.244631958): the readings and both sentences give them to the digits that tell them apart, and the ranking says by how much and that it shows only at that precision",
+      S.gapShown(gFo[L]) === S.gapShown(gPm[L]) && TL.fo !== TL.pm && TL.say.includes(`by up to ${TL.fo} of the constant cost's urgency, and the per-moment urgency by up to ${TL.pm}`) && T0.say.includes(`${TL.fo} and ${TL.pm}`)
+      && /not the closer of the two to the best bound's, by [^,]+ of the constant cost's urgency, a margin that shows only at this precision/.test(TL.say) && !/the gaps are 13% and 13%/.test(T0.say),
+      `${gFo[L].toFixed(9)} and ${gPm[L].toFixed(9)}: readings ${TL.fo} and ${TL.pm}; ${TL.say}`);
   }
   {
     const tie = S.yoursSay(EPS, 2, [0.1, 0.01, 3e-9], [0.1, 0.01, 3e-9 + 1e-13]), apart = S.yoursSay(EPS, 2, [0.1, 0.01, 7.1e-9], [0.1, 0.01, 2.1e-7]);

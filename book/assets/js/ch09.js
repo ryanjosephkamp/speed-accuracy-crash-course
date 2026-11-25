@@ -35,12 +35,7 @@ function wirePick(sel) {
   });
   window.addEventListener("cc-schedule", () => { sel.value = getChoice().id; });
 }
-/** Whether a schedule's cost never moves (a flat drawing, Smooth at size 0, Constant): checked every 0.01 to 8.5. */
-function isFlat(cost) {
-  const c0 = cost(0);
-  for (let t = 0.01; t <= M.WINDOW + M.SPARE + 1e-9; t += 0.01) if (!(Math.abs(cost(t) - c0) <= 1e-9 * c0)) return false;
-  return Number.isFinite(c0);
-}
+const isFlat = M.isFlat;
 const keyOf = (c) => JSON.stringify(c);
 /** One cell of a density map, from (x0, y0) to (x1, y1) in pixels, rounded so neighboring cells tile exactly. */
 const cell = (x0, x1, y0, y1, op) => {
@@ -576,20 +571,13 @@ function coefPlate() {
     state.textContent = "Solving the program twice, checking every 0.01 and every 0.0025…";
     run({ job: "coef", choice }, { key: "ch09-coef" }).then((m) => {
       if (my !== gen) return;
-      const cost = costOf(choice), dl = deadlineOf(choice), view = dl ?? M.WINDOW, flat = isFlat(cost);
-      // steady: the cost within 2% (in log) over 0.3 time units either side, and not in the last 0.1 before a deadline
-      const steadyAt = (x) => { const c = cost(x); for (let u = Math.max(0, x - 0.3); u <= x + 0.3 + 1e-9; u += 0.01) { if (dl !== null && u > dl - 0.1) return false; if (!(Math.abs(Math.log(cost(u) / c)) < 0.02)) return false; } return true; };
-      const inView = m.t.map((x, i) => i).filter((i) => m.t[i] <= view + 1e-9 && Number.isFinite(m.k[i]));
-      const st = inView.filter((i) => steadyAt(m.t[i])).map((i) => m.k[i]);
-      const steady = st.length >= 5 ? [Math.min(...st), Math.max(...st)] : null;
-      let lo = Infinity, hi = -Infinity, tLo = 0, tHi = 0;
-      for (const i of inView) { if (m.k[i] < lo) { lo = m.k[i]; tLo = m.t[i]; } if (m.k[i] > hi) { hi = m.k[i]; tHi = m.t[i]; } }
-      const lastK = dl !== null && inView.length ? m.k[inView[inView.length - 1]] : null;
+      const cost = costOf(choice), dl = deadlineOf(choice);
+      const C = M.coefSummary(m, cost, dl), { view, steady, all, lastK } = C;
       data = { ...m, view, cost };
       reads.innerHTML = `${steady ? `<div><dt>Where the cost is steady</dt><dd>${fmt(steady[0], 3) === fmt(steady[1], 3) ? fmt(steady[0], 3) : `${fmt(steady[0], 3)} to ${fmt(steady[1], 3)}`}</dd></div>` : ""}
-        <div class="k-ex"><dt>Over the ${dl !== null ? "trial" : "window"}</dt><dd>${fmt(lo, 3)} to ${fmt(hi, 3)}</dd></div>
+        ${all ? `<div class="k-ex"><dt>Over the ${dl !== null ? "trial" : "window"}</dt><dd>${fmt(all.lo, 3)} to ${fmt(all.hi, 3)}</dd></div>` : ""}
         ${lastK !== null ? `<div><dt>Last check before the deadline</dt><dd>${fmt(lastK, 3)}</dd></div>` : ""}`;
-      say.textContent = S.coefSay(steady, { lo, hi, tLo, tHi }, lastK, flat);
+      say.textContent = S.coefSay(steady, all, lastK, C.flat);
       state.textContent = `Two programs on an evidence grid of ${m.h}, ${dl !== null ? "to the deadline" : "to a forced choice at " + (M.WINDOW + M.SPARE)}, compared every ${2 * m.dtC} time units${dl !== null ? " up to the last check before it" : ""}.`;
       keepDrawn(chart, draw);
     }).catch((e) => { if (my === gen) fail(state, e); });
@@ -766,11 +754,11 @@ function sweepPlate() {
     if (mine) for (const r of mine.rows) { const e = Math.max(0.03, Math.abs(r.ratio - 1) * 100); s += `<circle class="ring-acc" cx="${(f.sx(r.rel) + 12).toFixed(1)}" cy="${f.sy(e).toFixed(1)}" r="4.5"/>`; }
     chart.innerHTML = svg(f, s, "The fitted swing's error against the size of the change, on log axes, from Table 2 and this page's program, with a slope-2 guide");
     const fp = frame(phase, { x: [0.04, 0.8], y: [0.05, 3], xlog: true, ylog: true, aspect: 0.32, minH: 140, maxH: 190 });
-    let p = axes(fp, { yl: "phase error (°)", xl: "ε/c₀", grid: true, xt: M.SWEEP.rels, fx: (v) => String(v) });
+    let p = axes(fp, { yl: "phase residual, absolute (°)", xl: "ε/c₀", grid: true, xt: M.SWEEP.rels, fx: (v) => String(v) });
     p += line(fp, M.TABLE2.map((r) => r[0]), M.TABLE2.map((r) => r[4]), "ex-thin");
     for (const r of M.TABLE2) p += `<circle class="ink-dot" cx="${fp.sx(r[0]).toFixed(1)}" cy="${fp.sy(r[4]).toFixed(1)}" r="3.4"/>`;
     if (mine) for (const r of mine.rows) p += `<circle class="ring-acc" cx="${(fp.sx(r.rel) + 8).toFixed(1)}" cy="${fp.sy(Math.max(0.05, Math.min(3, Math.abs(r.phase)))).toFixed(1)}" r="4.5"/>`;
-    phase.innerHTML = svg(fp, p, `The phase error against the size of the change: Table 2's largest at each size over its six costs and frequencies (dots)${mine ? `, and this page's program at c₀ = ${mine.c0} and ω = ${mine.om} (rings)` : ""}`);
+    phase.innerHTML = svg(fp, p, `The absolute phase residual, fitted phase minus predicted phase, against the size of the change: Table 2's largest at each size over its six costs and frequencies (dots)${mine ? `, and this page's program at c₀ = ${mine.c0} and ω = ${mine.om} (rings)` : ""}`);
     liftReady(fig);
   };
   const reveal = () => { shown = true; verdict.textContent = S.sweepVerdict(guess, at03, at06); draw(); };
@@ -784,11 +772,11 @@ function sweepPlate() {
     run({ job: "sweep", c0, om }, { key: "ch09-sweep", progress: (q) => { if (my === gen) state.textContent = `Solving the program at four sizes… ${Math.round(q * 4)} of 4`; } }).then((m) => {
       if (my !== gen) return;
       mine = m;
-      reads.innerHTML = m.rows.map((r) => `<div><dt>ε/c₀ = ${r.rel}</dt><dd>${(Math.abs(r.ratio - 1) * 100).toFixed(2)}%<small>phase ${r.phase.toFixed(2).replace("-", "−")}°</small></dd></div>`).join("");
+      reads.innerHTML = m.rows.map((r) => `<div><dt>ε/c₀ = ${r.rel}</dt><dd>${(Math.abs(r.ratio - 1) * 100).toFixed(2)}%<small>phase residual ${r.phase.toFixed(2).replace("-", "−")}°</small></dd></div>`).join("");
       const ci = M.SWEEP.costs.indexOf(m.c0) + 1;
       const paperSmall = Math.max(...M.TABLE2.filter((r) => r[0] < 0.3).flatMap((r) => r[ci].map((v) => Math.abs(v - 1) * 100)));
       say.textContent = S.sweepSay(m.rows, m.c0, m.om, paperSmall);
-      state.textContent = `This page's program at c₀ = ${m.c0}, ω = ${m.om}: checks every ${M.DT}, an evidence grid of ${M.H}, the choice forced at ${M.SWEEP.horizon}, fitted on 2 < t < 2 + 2π, against ε|B′(c₀)||w̃(−iω)|.`;
+      state.textContent = `This page's program at c₀ = ${m.c0}, ω = ${m.om}: checks every ${M.DT}, an evidence grid of ${M.H}, the choice forced at ${M.SWEEP.horizon}, fitted on 2 < t < 2 + 2π; the swing against ε|B′(c₀)||w̃(−iω)|, the phase against the angle of εB′(c₀)w̃(−iω).`;
       draw();
     }).catch((e) => { if (my === gen) fail(state, e); });
   });
