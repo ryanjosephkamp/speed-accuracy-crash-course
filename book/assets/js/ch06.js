@@ -6,7 +6,7 @@ import { labelOf, PRESETS, DRAW, paramsOf, VIEW, defaultDrawing } from "./schedu
 import { getChoice, setChoice, solve, onVisible, watchVisible, liftReady, calm, seedParam } from "./book.js";
 import { frame, line, area, axes, svg, tags, fmt, keepDrawn } from "./chart.js";
 import * as S from "./say-ch06.js";
-import { SCALE, scaleJob, scaleGaps, YOURS_EPS, yoursPlateState, errorMarks } from "./ch06-model.js";
+import { SCALE, scaleJob, scaleGaps, YOURS_EPS, yoursPlateState, errorMarks, yoursVerdict, predictView, responseChart } from "./ch06-model.js";
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const plate = (id) => document.getElementById("plate-" + id);
@@ -504,19 +504,13 @@ function yoursPlate() {
   const drawTop = () => {
     const data = P.state.data;
     if (!data) { top.innerHTML = ""; return; }
-    const { t, dev, beta, pmr } = data;
-    const all = [...beta, ...pmr, ...dev[sel]].filter(Number.isFinite);
-    const lo = Math.min(...all), hi = Math.max(...all), pad = (hi - lo) * 0.12 + 1e-6;
-    const f = frame(top, { x: [0, VIEW], y: [lo - pad, hi + pad], aspect: 0.5, minH: 190, maxH: 300 });
-    // ticks below a thousandth (a drawing that barely moves) print in powers of ten, not as three 0s
-    let g = axes(f, { yl: "(b − b₀) ÷ ε", xl: "time", grid: true, zero: true, fy: (v) => (v === 0 ? "0" : Math.abs(v) < 1e-3 ? v.toExponential(1) : String(+v.toFixed(3))) });
-    g += line(f, t, pmr, "pm") + line(f, t, beta, "wb") + line(f, t, dev[sel], "ex");
+    const { f, g } = responseChart(top, data, sel);
     top.innerHTML = svg(f, g, `For ${labelOf(choice)} at ${EPS[sel] * 100}% of its change: the program's bound move divided by epsilon, the first-order response, and the per-moment response`);
     liftReady(fig);
   };
   const drawBot = () => {
     const data = P.state.data, b = P.bottom();
-    if (b.hidden) { bot.hidden = true; if (data && P.state.reveal) { reads.innerHTML = ""; verdict.textContent = S.tooSmallSay(b.largest); } return; }
+    if (b.hidden) { bot.hidden = true; if (data && P.state.reveal) { reads.innerHTML = ""; verdict.textContent = yoursVerdict(b, data, guess); } return; }
     bot.hidden = false;
     const { ePm, eFo } = data, [yLo, yHi] = b.range;
     const f = frame(bot, { x: [EPS[EPS.length - 1] / 1.3, 1.3], y: [yLo, yHi], xlog: true, ylog: true, aspect: 0.5, minH: 180, maxH: 280 });
@@ -527,22 +521,22 @@ function yoursPlate() {
     reads.innerHTML = `<div class="k-pm"><dt>Per-moment error</dt><dd>${ePm[ePm.length - 1].toExponential(1)}<small>at the smallest ε; ${ePm[0].toExponential(1)} at the largest</small></dd></div>
       <div class="k-wb"><dt>First-order error</dt><dd>${eFo[eFo.length - 1].toExponential(1)}<small>at the smallest ε; ${eFo[0].toExponential(1)} at the largest</small></dd></div>
       <div><dt>Per-moment ÷ first-order</dt><dd>${ratios.lo === null ? "–" : fmt(ratios.lo, 1) + " to " + fmt(ratios.hi, 1)}<small>over the sizes shown</small></dd></div>`;
-    verdict.textContent = S.errorsVerdict(guess, ePm, eFo, EPS, data.outside);
+    verdict.textContent = yoursVerdict(b, data, guess);
     liftReady(fig);
   };
   // what the prediction box offers: the theory's question, the measured errors only (outside the theorem), or nothing
   const setPredict = (mode) => {
-    const box = $("#yo-predict", el);
-    box.hidden = mode === "none";
-    box.querySelectorAll("fieldset").forEach((fs) => { fs.hidden = mode !== "theory"; });
-    box.querySelector("p").textContent = mode === "measure" ? "The rising cost is outside the theorem: show how the two errors compare." : "As ε shrinks, how fast does the theory say each shortcut's error shrinks?";
+    const box = $("#yo-predict", el), v = predictView(mode);
+    box.hidden = !v.box;
+    box.querySelectorAll("fieldset").forEach((fs) => { fs.hidden = !v.questions; });
+    box.querySelector("p").textContent = v.prompt;
   };
   const run = () => {
     // a newer selection makes an earlier selection's reply stale (yoursPlateState drops it)
     const { my, job } = P.select(choice), mode = P.state.mode;
     verdict.textContent = ""; reads.innerHTML = ""; drawTop(); drawBot();
     pick.value = choice.id;
-    setPredict(mode === "deadline" || mode === "constant" ? "none" : mode);
+    setPredict(mode);
     note.textContent = mode === "theory" ? S.insideNote(labelOf(choice)) : S.outsideNote(mode === "measure" ? "rising" : mode);
     if (!job) { state.textContent = ""; return; }
     state.textContent = "Solving seven dynamic programs…";

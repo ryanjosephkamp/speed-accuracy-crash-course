@@ -5,7 +5,7 @@ import { exactPolicy, boundForCost, OVERSHOOT } from "../../book/assets/js/model
 import { VIEW, SPARE } from "../../book/assets/js/schedules-book.js";
 import { costOf, PRESETS, defaultDrawing } from "../../book/assets/js/schedules-book.js";
 import * as S from "../../book/assets/js/say-ch06.js";
-import { SCALE, scaleJob, scaleGaps, YOURS_EPS, yoursPlateState, yoursMode, errorRange, errorMarks } from "../../book/assets/js/ch06-model.js";
+import { SCALE, scaleJob, scaleGaps, YOURS_EPS, yoursPlateState, yoursMode, errorRange, errorMarks, yoursVerdict, predictView, responseChart } from "../../book/assets/js/ch06-model.js";
 import { frame } from "../../book/assets/js/chart.js";
 import { check, N, SIN, asPrinted, runWorker } from "./lib.mjs";
 
@@ -199,13 +199,37 @@ for (const row of SIN) {
   check("yours", "the plate's state on a revealed drawing from 2 to 1.9999: one error reaches 1e-7, so it reports the chart shown, with a range that holds the errors below 1e-7 too (the threshold is on the largest, not on each error)",
     complete(n4.m) && !b4.hidden && b4.largest >= 1e-7 && small4 > 0 && b4.range[0] < Math.min(...d4.ePm, ...d4.eFo),
     `largest ${b4.largest.toExponential(2)}, ${small4} errors below 1e-7, range from ${b4.range?.[0].toExponential(2)}`);
-  // a drawing that moves only from 2 to 1.999999999 moves all the same: the plate solves it and asks the theory question,
-  // and only a cost constant by value (Constant, a flat drawing, Smooth at size 0) is skipped as one that doesn't change
+  // a drawing that moves only from 2 to 1.999999999 moves all the same: the plate's state solves it in theory mode, and
+  // only a cost constant by value (Constant, a flat drawing, Smooth at size 0) is skipped as one that doesn't change
   const tiny = await solveOn(flat(1e-9)), bt = (tiny.P.show(), tiny.P.bottom());
   const skipped = [{ id: "constant", params: { c: 0.1 } }, flat(0), { id: "smooth", params: { c0: 0.1, size: 0 } }].map((c) => yoursMode(c).mode);
-  check("yours", "a drawing from 2 to 1.999999999 is solved as a moving schedule with the theory question, and its revealed chart stays hidden below 1e-7; Constant, a flat drawing, and Smooth at size 0 are the ones skipped as not changing",
+  check("yours", "a drawing from 2 to 1.999999999: the plate's state enters theory mode, the worker's reply is complete, and the revealed chart is reported hidden below 1e-7; Constant, a flat drawing, and Smooth at size 0 are the ones skipped as not changing",
     tiny.P.state.mode === "theory" && tiny.job && complete(tiny.m) && bt.hidden && bt.largest < 1e-7 && skipped.every((x) => x === "constant") && /doesn't change/.test(S.outsideNote("constant")),
     `mode ${tiny.P.state.mode}, largest error ${bt.largest.toExponential(2)}; skipped as ${skipped.join(", ")}`);
+  // the prediction box the page shows for each mode (predictView, which the page's setPredict applies): the two theory
+  // questions for the tiny drawing, the prompt without questions for Rising, and no box for skipped selections
+  const views = Object.fromEntries([["tiny", tiny.P.state.mode], ["rising", yoursMode({ id: "rising" }).mode], ["constant", yoursMode({ id: "constant" }).mode], ["flat", yoursMode(flat(0)).mode], ["deadline", yoursMode({ id: "deadline" }).mode]].map(([k, mode]) => [k, predictView(mode)]));
+  check("yours", "the prediction box's contents by mode (predictView, which the page applies): the tiny drawing gets the box with both theory questions, Rising the box with its measurement prompt and no questions, and Constant, a flat drawing, and a deadline no box",
+    views.tiny.box && views.tiny.questions && /how fast does the theory say/.test(views.tiny.prompt) && views.rising.box && !views.rising.questions && /outside the theorem/.test(views.rising.prompt)
+      && ["constant", "flat", "deadline"].every((k) => !views[k].box && !views[k].questions),
+    Object.entries(views).map(([k, v]) => `${k}: box ${v.box}, questions ${v.questions}`).join("; "));
+  // on reveal below the chart's threshold, the verdict still answers the theory question and grades the guesses
+  const td = tiny.P.state.data, vRight = yoursVerdict(bt, td, { pm: 1, fo: 2 }), vWrong = yoursVerdict(bt, td, { pm: 0, fo: 1 }), vNone = yoursVerdict(bt, td, { pm: null, fo: null });
+  const theory = /the per-moment error tends to a function of time that is not identically zero .* so over all times it is of order ε; the corrected one is at most of order ε²/;
+  check("yours", "the verdict the page prints on reveal (yoursVerdict), for the tiny drawing below the chart's threshold: it grades the guesses (both right, both wrong) and gives the theory's answer, then the largest error and why there is no chart; with no guess, the theory's answer without a grade",
+    /^Both guesses match the theory\. /.test(vRight) && /^Neither guess matches the theory\. /.test(vWrong) && [vRight, vWrong, vNone].every((v) => theory.test(v) && /Every error here is below 10⁻⁷: the largest is/.test(v)) && !/guess/.test(vNone),
+    vRight);
+  // the top chart for the tiny drawing at each size (responseChart, 360 pixels): its range follows the response, so the
+  // three curves don't collapse onto one line, and its tick labels are all different
+  const tops = YOURS_EPS.map((_, k) => {
+    const { f, g } = responseChart({ clientWidth: 360 }, td, k);
+    const ys = (cls) => ((g.match(new RegExp(`class="${cls}" d="([^"]+)"`)) || [])[1] || "").match(/[ML][^ML]+/g).map((q) => +q.slice(1).split(" ")[1]);
+    const [pm, wb, ex] = ["pm", "wb", "ex"].map(ys), labels = [...g.matchAll(/class="tk"[^>]*text-anchor="end">([^<]+)<\/text>/g)].map((q) => q[1]);
+    const spread = (a) => Math.max(...a) - Math.min(...a);
+    return { ok: [pm, wb, ex].every((a) => a.length === td.t.length && spread(a) > 50) && labels.length >= 3 && new Set(labels).size === labels.length, text: `ticks ${labels.join(" | ")}; the curves span ${[pm, wb, ex].map(spread).map((v) => v.toFixed(0)).join(", ")} px` };
+  });
+  check("yours", "the top chart as responseChart builds it for the plate (360 pixels), on the tiny drawing at each of the six sizes: each of the three curves spans more than 50 pixels of the chart's height, and the vertical axis has at least three ticks, no two labeled the same",
+    tops.every((x) => x.ok), tops[YOURS_EPS.length - 1].text);
   // a stale reply: a selection that solves, then a switch to one the plate skips before the reply arrives; the state is
   // read right after the reply is delivered
   const P = yoursPlateState();
@@ -240,8 +264,12 @@ for (const row of SIN) {
   const d = P.state.data, b = P.bottom(), real = marks(d.ePm, d.eFo, b.range);
   const at = (L, gd) => gd && Math.abs(L.x - Math.min(gd[0][0] + 4, real.f.W - real.f.r - 44)) < 0.06 && Math.abs(L.y - Math.max(real.f.t + 10, Math.min(real.f.H - real.f.b - 4, gd[0][1] + (L.p === 2 ? 14 : -6)))) < 0.11;
   const placed = real.labels.length === real.guides.length && real.labels.every((L, i) => at(L, real.guides[i]));
+  // each guide's exponent, from its two drawn endpoints read back through the chart's log scales; the SVG rounds to
+  // 0.1 pixel, so it must match the label to 0.01
+  const exponent = (gd) => { const [a, b] = [gd[0], gd[gd.length - 1]].map(([x, y]) => [real.f.ix(x), real.f.iy(y)]); return Math.log(b[1] / a[1]) / Math.log(b[0] / a[0]); };
+  const slopes = real.guides.map(exponent);
   const none = marks([1e-2, 5e-3, 2.5e-3, 1.2e-3, 6e-4, 3e-4], [1e-9, 1e-9, 1e-9, 1e-9, 1e-9, 1e-9], [3e-10, 3e-8]);
-  check("yours", "the error chart's marks from errorMarks, the function the plate draws them with (420 pixels, the drawing from 2 to 1.9999): both guides are drawn, slope 1 then slope 2, each labeled at the left end of its own clipped segment; guides entirely outside the plot are drawn with no label",
-    real.guides.length === 2 && real.labels.length === 2 && real.labels[0].p === 1 && real.labels[1].p === 2 && placed && none.guides.length === 0 && none.labels.length === 0,
-    `${real.guides.length} guides, labels ${real.labels.map((L) => `slope ${L.p} at (${L.x}, ${L.y})`).join(", ")}; guide starts ${real.guides.map((gd) => `(${gd[0].join(", ")})`).join(", ")}`);
+  check("yours", "the error chart's marks from errorMarks, the function the plate draws them with (420 pixels, the drawing from 2 to 1.9999): both guides are drawn, their exponents read from their endpoints are 1 and 2 (within 0.01), each labeled with its own slope at the left end of its clipped segment; guides wholly outside the plot are omitted, path and label",
+    real.guides.length === 2 && real.labels.length === 2 && real.labels.every((L, i) => Math.abs(slopes[i] - L.p) < 0.01) && real.labels[0].p === 1 && real.labels[1].p === 2 && placed && none.guides.length === 0 && none.labels.length === 0,
+    `${real.guides.length} guides, exponents ${slopes.map((v) => v.toFixed(5)).join(" and ")}, labels ${real.labels.map((L) => `slope ${L.p} at (${L.x}, ${L.y})`).join(", ")}`);
 }

@@ -59,11 +59,21 @@ export function errorsVerdict(guess, ePm, eFo, EPS, outside = false) {
     : `The first-order error is the smaller of the two at ${r.smaller} of the ${EPS.length} sizes. `;
   s += "Both also carry numerical error from the grid, the finite horizon, and the kernel's series; subtracting the constant-cost run cancels only the part the two runs share, and what remains can change with ε, so the slopes on this chart aren't a test of the theory's rates. ";
   if (outside) return s + "The rising cost grows without bound, so the theorem says nothing about it: these are measurements on this grid only.";
-  s += "The theory, for a bounded Lipschitz change like this one: divided by ε, the per-moment error tends to a function of time that is not identically zero over all times t ≥ 0 (unless γ is constant), so over all times it is of order ε; the corrected one is at most of order ε². This chart measures both only at the times from 0 to 2.5, every 0.02.";
-  if (guess.pm === null && guess.fo === null) return s;
-  const right = (guess.pm === 1) + (guess.fo === 2);
-  return (right === 2 ? "Both guesses match the theory. " : right === 1 ? "One guess matches the theory. " : "Neither guess matches the theory. ") + s;
+  return gradeOf(guess) + s + THEORY;
 }
+
+const THEORY = "The theory, for a bounded Lipschitz change like this one: divided by ε, the per-moment error tends to a function of time that is not identically zero over all times t ≥ 0 (unless γ is constant), so over all times it is of order ε; the corrected one is at most of order ε². This chart measures both only at the times from 0 to 2.5, every 0.02.";
+/** The grade of the reader's two guesses against the theory (Order ε for the per-moment rule, at most order ε² for the
+ * correction), or nothing when neither was made. */
+function gradeOf(guess) {
+  if (guess.pm === null && guess.fo === null) return "";
+  const right = (guess.pm === 1) + (guess.fo === 2);
+  return right === 2 ? "Both guesses match the theory. " : right === 1 ? "One guess matches the theory. " : "Neither guess matches the theory. ";
+}
+
+/** The verdict when every error is below the chart's threshold: inside the theorem, the grade of the guesses and the
+ * theory's answer still come first, whatever the measurements show; then the largest error and why there is no chart. */
+export const tooSmallVerdict = (largest, guess, outside = false) => (outside ? "" : gradeOf(guess) + THEORY + " ") + tooSmallSay(largest);
 
 /** A positive number to three significant figures, rounded down, as 9.96e-8 (so a value below 10⁻⁷ never prints as
  * 1.00e-7); 0 as "0". */
