@@ -260,8 +260,8 @@ for (const c of [0.05, 0.1, 0.3]) {
   const tiny = S.earnVerdict({ b: 1.2, mine: { net: 0.77, reward: 0.9, bill: 0.13 }, best: { b: 1.2, net: 0.77 }, dp: 0.7682, flat: { grid: 0.768, gridX: 1.14, horizon: 8.5 }, deadline: null });
   const cap = readFileSync(join(ROOT, "book/content/ch03.py"), "utf8");
   // the caption's description of the search, word for word (the search itself is checked below, through flatJob)
-  const SCAN = "The search scores each odd multiple of 0.01 up to 0.31, then every 0.05 up to 3.5 and every 0.1 below the evidence cap of 5, and refines up to the three highest sampled peaks by golden section; it doesn't score every level, so a level it skipped can score slightly higher.";
-  check("words", "the earn caption describes the search as odd multiples of 0.01 to 0.31, every 0.05 to 3.5, and every 0.1 below the cap of 5, with up to the three highest sampled peaks refined, says it doesn't score every level, and calls the comparison the best time-dependent policy's gain over the level found",
+  const SCAN = "The search scores each odd multiple of 0.01 up to 0.31, then every 0.05 up to 3.5 and every 0.1 below the evidence cap of 5, then scores more levels around its highest sampled peaks, each between that peak's neighbors; it doesn't score every level, so a level it skipped can score slightly higher.";
+  check("words", "the earn caption describes the search as odd multiples of 0.01 to 0.31, every 0.05 to 3.5, and every 0.1 below the cap of 5, then more levels around its highest sampled peaks, says it doesn't score every level, and calls the comparison the best time-dependent policy's gain over the level found",
     cap.includes(SCAN) && cap.includes("the sentence compares it with the best level held flat on the same grid that a numerical search found, and states the time-dependent policy's gain over that level")
     && /what the best time-dependent policy earns, \$V\(0, 0\)\$/.test(cap) && /best level held flat that a numerical search finds with the best time-dependent policy/.test(cap) && !/scoring every level the grid can hold|bound that moves|gain from moving/.test(cap), `caption: ${cap.includes(SCAN)}`);
   check("words", "the earn verdict calls the grid's flat level the best the page's numerical search found, and the other the best time-dependent policy on the grid, with its gain over that level, either way; never a bound that moves with the cost, and never every level",
@@ -318,7 +318,7 @@ for (const c of [0.05, 0.1, 0.3]) {
   // about 2e-8 short of the level 0.43, below the displayed precision)
   const twoPeaks = { id: "draw", points: Array.from({ length: 26 }, (_, i) => (i <= 2 ? 2 : 0.01)) };
   const halfThenLow = { id: "draw", points: Array.from({ length: 26 }, (_, i) => (i <= 8 ? 0.5 : 0.01)) };
-  const nameOf = (choice) => (choice === twoPeaks ? "a drawing at 2 to time 0.2, then 0.01" : choice === halfThenLow ? "a drawing at 0.5 to time 0.8, then 0.01" : choice.id);
+  const nameOf = (choice) => (choice === twoPeaks ? "a drawing at 2 through time 0.2, falling log-linearly to 0.01 at time 0.3, and 0.01 after" : choice === halfThenLow ? "a drawing at 0.5 through time 0.8, falling log-linearly to 0.01 at time 0.9, and 0.01 after" : choice.id);
   for (const [choice, step] of [[twoPeaks, 0.01], [halfThenLow, 0.01], [{ id: "draw", points: defaultDrawing().map(() => 2) }, 0.05], [{ id: "jump", params: { at: 0.5, factor: 16 } }, 0.05], [{ id: "deadline", params: { at: 1, c: 0.1 } }, 0.05]]) {
     const f = flatJob({ choice }), cost = costOf(choice), H = f.horizon, ts = Float64Array.from({ length: Math.round(H / 0.01) + 1 }, (_, k) => k * 0.01);
     let scan = -Infinity, at = 0;
@@ -337,17 +337,17 @@ for (const c of [0.05, 0.1, 0.3]) {
   // peaks it refined in order, every level it scored inside each refined bracket, and the level it returned
   {
     const want = [...Array.from({ length: 16 }, (_, k) => 0.01 + 0.02 * k), ...Array.from({ length: 64 }, (_, k) => 0.35 + 0.05 * k), ...Array.from({ length: 14 }, (_, k) => 3.6 + 0.1 * k)];
-    const rows = [];
+    const rows = [], drawing = { id: "draw", points: Array.from({ length: 26 }, (_, i) => (i <= 2 ? 2 : 0.01)) };
     let multi = 0;
     for (const [name, choice] of [["Constant 0.1", { id: "constant", params: { c: 0.1 } }], ["Constant 0.01", { id: "constant", params: { c: 0.01 } }], ["a deadline at 1", { id: "deadline", params: { at: 1, c: 0.1 } }],
-      ["a drawing at 2 to time 0.2, then 0.01", { id: "draw", points: Array.from({ length: 26 }, (_, i) => (i <= 2 ? 2 : 0.01)) }]]) {
+      ["a drawing at 2 through time 0.2, falling log-linearly to 0.01 at time 0.3, and 0.01 after", drawing]]) {
       const f = flatJob({ choice }), q = f.search, cost = costOf(choice), ts = Float64Array.from({ length: Math.round(f.horizon / 0.01) + 1 }, (_, k) => k * 0.01);
       const sc = (x) => score(Float64Array.from(ts, () => x), ts, cost, 0.02, 5).reward;
       const levels = q.cap === 5 && q.scan.length === want.length && q.scan.every((x, i) => Math.abs(x - want[i]) < 1e-9);
       const scored = q.scores.length === q.scan.length && q.scan.every((x, i) => Math.abs(q.scores[i] - sc(x)) < 1e-12);
       const local = q.scores.map((v, i) => i).filter((i) => (i === 0 || q.scores[i] >= q.scores[i - 1]) && (i === q.scores.length - 1 || q.scores[i] >= q.scores[i + 1]))
         .sort((i, j) => q.scores[j] - q.scores[i]);
-      const peaks = local.slice(0, 3);
+      const peaks = local;
       if (peaks.length > 1) multi++;
       const refined = q.refined.length === peaks.length && peaks.every((i, j) => {
         const r = q.refined[j];
@@ -358,8 +358,11 @@ for (const c of [0.05, 0.1, 0.3]) {
       const answer = f.grid === top[1] && f.gridX === top[0];
       rows.push({ ok: levels && scored && refined && answer, text: `${name}: ${q.scan.length} levels (${levels}), scores ${scored}; ${local.length} local peaks, ${q.refined.length} refined at ${q.refined.map((r) => r.peak).join(", ")} with ${q.refined.map((r) => r.probes.length).join(", ")} probes (${refined}); returned ${f.gridX.toFixed(7)}, the best of ${all.length} scores (${answer})` });
     }
-    check("bill", "flatJob's flat search, as it reports it, on Constant 0.1, Constant 0.01, a deadline at 1, and a drawing at 2 to time 0.2, then 0.01: its scanned levels are the caption's 94 below the cap of 5, each scored as model.js's scorer scores it; the peaks it refined are the three highest local peaks of those scores, or as many as there are, in order (more than one on at least one of the four); every level it scored inside each refined bracket lies between that peak's neighbors and is scored as the scorer scores it; and the level it returns has the highest of all those scores",
-      rows.every((x) => x.ok) && multi > 0, rows.map((x) => x.text).join("; "));
+    // the drawing is what its name says: 2 at times 0 to 0.2, 0.01 from 0.3, and log-linear between (sqrt(2 x 0.01) at 0.25)
+    const dc = costOf(drawing);
+    const shape = [0, 0.1, 0.2].every((t) => Math.abs(dc(t) - 2) < 1e-12) && [0.3, 1, 2.5, 8].every((t) => Math.abs(dc(t) - 0.01) < 1e-12) && Math.abs(dc(0.25) - Math.sqrt(0.02)) < 1e-12;
+    check("bill", "flatJob's flat search, as it reports it, on Constant 0.1, Constant 0.01, a deadline at 1, and a drawing at 2 through time 0.2, falling log-linearly to 0.01 at time 0.3, and 0.01 after: its scanned levels are the caption's 94 below the cap of 5, each scored as model.js's scorer scores it; it refined every local peak of those scores, highest first (one each on the first three, both of the drawing's two); every level it scored around each refined peak lies between that peak's neighbors and is scored as the scorer scores it; and the level it returns has the highest of all those scores",
+      rows.every((x) => x.ok) && multi > 0 && shape, `drawing as named: ${shape}; ` + rows.map((x) => x.text).join("; "));
   }
   // the bill on steep schedules, against a fine midpoint rule with the same series
   {
@@ -456,9 +459,9 @@ for (const c of [0.05, 0.1, 0.3]) {
     // a bound just below the first step prints below it: Rising from 0.95 at rate 1.95, time 2.50 (bound 0.019920)
     {
       const v = valueJob({ choice: { id: "rising", params: { at: 0.95, rate: 1.95 } }, last: "far" }), k = v.times.findIndex((x) => Math.abs(x - 2.5) < 1e-9), B = S.sliceReads(v, k, most);
-      check("words", "Rising from 0.95 at rate 1.95, time 2.50, the worker's value reply and sliceReads (marker text, tile text, and sentence): the bound is between 0.0195 and 0.02, and all three print it as 0.0199, below the step the sentence compares it with, never 0.020; in boundShown, below 0.02, a bound prints with the fewest decimals from three to six that round below 0.02, and as \"just below 0.02\" when six round to 0.02: 0.0199991 prints 0.019999 and 0.0199996 prints \"just below 0.02\"",
+      check("words", "Rising from 0.95 at rate 1.95, time 2.50, the worker's value reply and sliceReads (marker text, tile text, and sentence): the bound is between 0.0195 and 0.02, and all three print it as 0.0199, below the step the sentence compares it with, never 0.020; in boundShown, a bound from 0.0005 to below 0.02 prints with the fewest decimals from three to six that round below 0.02, and as \"just below 0.02\" when six round to 0.02 (0.0007 prints 0.001, 0.0199991 prints 0.019999, and 0.0199996 prints \"just below 0.02\"), and a positive bound below 0.0005 prints \"< 0.001\" (0.0004)",
         v.rowB[k] > 0.0195 && v.rowB[k] < 0.02 && B.marker === "threshold 0.0199" && B.tiles.bound === "0.0199" && B.say.includes("The bound, 0.0199, is below the grid's first evidence step, 0.02") && !/0\.020\b/.test(B.marker + B.tiles.bound + B.say)
-        && S.boundShown(0.0199991) === "0.019999" && S.boundShown(0.0199996) === "just below 0.02" && S.boundShown(0.0123) === "0.012" && S.boundShown(0.05) === "0.050", `bound ${v.rowB[k].toFixed(7)}: ${B.marker}; tile ${B.tiles.bound}`);
+        && S.boundShown(0.0004) === "< 0.001" && S.boundShown(0.0007) === "0.001" && S.boundShown(0.0199991) === "0.019999" && S.boundShown(0.0199996) === "just below 0.02" && S.boundShown(0.0123) === "0.012" && S.boundShown(0.05) === "0.050", `bound ${v.rowB[k].toFixed(7)}: ${B.marker}; tile ${B.tiles.bound}`);
     }
     let ok = true, d = "";
     for (const c of [0.03, 0.1, 0.3, 1]) { const B0 = M.B(c), lv = [0.7, 1, 1.3].map((k) => k * B0), top = M.slopeAxisTop(c, lv); for (const b of lv) { const v = c * (b + 0.5 * Math.sinh(2 * b)); if (v > top) { ok = false; d = `c = ${c}: dot at ${v.toFixed(3)} above ${top.toFixed(3)}`; } } }
