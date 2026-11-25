@@ -6,7 +6,7 @@ import { rng, B, decide } from "./kernel.js";
 import * as M from "./ch02-model.js";
 import { costOf, deadlineOf, labelOf, VIEW } from "./schedules-book.js";
 import { getChoice, solve, onVisible, watchVisible, liftReady, calm, seedParam, wireStrips } from "./book.js";
-import { frame, line, axes, svg, fmt, keepDrawn, ticks } from "./chart.js";
+import { frame, line, axes, svg, fmt, keepDrawn, ticks, dropAt } from "./chart.js";
 import * as S from "./say-ch02.js";
 
 const $ = (sel, el = document) => el.querySelector(sel);
@@ -52,19 +52,19 @@ function hero() {
         s += `<path class="grid" d="M${l} ${sy(v).toFixed(1)}H${W - r}"/>`;
         s += `<text class="tag-ex" x="${W - r + 4}" y="${(sy(v) + 4).toFixed(1)}">${M.g(v).toFixed(2)}</text>`;
       }
-      s += `<text class="lab" x="${W - 4}" y="14" text-anchor="end">belief g</text>`;
+      s += `<text class="lab" x="${W - 4}" y="14" text-anchor="end">Belief g</text>`;
     }
     if (i <= 1) {
       s += `<path class="guide" d="M${sx(0)} ${sy(0)}L${sx(T)} ${sy(T)}M${sx(0)} ${sy(0)}L${sx(T)} ${sy(-T)}"/>`;
       s += `<path class="ax" d="M${l} ${sy(0).toFixed(1)}H${W - r}"/>`;
       for (const p of paths) s += `<path class="${p.H > 0 ? "ex" : "path-dim"}" style="stroke-width:${p.H > 0 ? 1.2 : 1.4}" d="${path(ts, p.x)}"/>`;
-      s += `<text class="lab" x="${l}" y="14">evidence X, ${i === 0 ? "H = +1 (ink) and −1 (gray)" : "and the belief it implies"}</text>`;
+      s += `<text class="lab" x="${l}" y="14">Evidence X, ${i === 0 ? "H = +1 (ink) and −1 (gray)" : "and the belief it implies"}</text>`;
     } else if (i === 2) {
       for (const p of paths) s += `<path class="${p.H > 0 ? "ex" : "path-dim"}" style="stroke-width:${p.H > 0 ? 1.2 : 1.4}" d="${path(ts, Array.from(p.x, Math.abs))}"/>`;
-      s += `<text class="lab" x="${l}" y="14">the size of the evidence, Y = |X|</text>`;
+      s += `<text class="lab" x="${l}" y="14">The size of the evidence, Y = |X|</text>`;
     } else {
       s += `<path class="dim" d="${path(ts, lo)}" style="stroke-width:1.8"/><path class="ex" d="${path(ts, hi)}"/>`;
-      if (meet !== null) s += `<path class="guide" d="M${sx(meet).toFixed(1)} ${t}V${H - b}"/><text class="tk" x="${(sx(meet) + 4).toFixed(1)}" y="${t + 10}">one path from here</text>`;
+      if (meet !== null) s += `<path class="guide" d="M${sx(meet).toFixed(1)} ${t}V${H - b}"/><text class="tk" x="${(sx(meet) + 4).toFixed(1)}" y="${t + 10}">One path from here</text>`;
       s += `<text class="lab" x="${l}" y="14">Y from 0.25 and from 1.1, on the same noise</text>`;
     }
     s += `<text class="tk" x="${sx(0)}" y="${H - 8}" text-anchor="middle">0</text><text class="tk" x="${sx(T)}" y="${H - 8}" text-anchor="end">time ${T}</text>`;
@@ -97,11 +97,11 @@ function unitsPlate() {
     <dl class="reads" id="un-reads"></dl><p class="say" id="un-say" aria-live="polite"></p>`;
   const raw = $("#un-raw", el), pap = $("#un-paper", el), reads = $("#un-reads", el), say = $("#un-say", el), verdict = $("#un-verdict", el);
   const inMu = $("#un-mu", el), inSg = $("#un-sg", el);
-  const at = (tp) => xp[Math.min(xp.length - 1, Math.round(tp / DT))];
+  const at = (tp) => M.pathAt(xp, DT, tp);
   const drawRaw = () => {
     const k = (mu * mu) / (sigma * sigma), E = (sigma * sigma) / mu, T1 = 1 / k;
-    const ts = range(0, RAW_T, 401), zs = ts.map((t) => E * at(k * t));
-    const f = frame(raw, { x: [0, RAW_T], y: [-2, 6], aspect: 0.5, minH: 180, maxH: 250 });
+    const ts = range(0, RAW_T, 401), zs = M.rawSamples(xp, DT, mu, sigma, ts);
+    const f = frame(raw, { x: [0, RAW_T], y: M.unitsRange([...zs, mu * RAW_T, sigma * Math.sqrt(RAW_T)]), aspect: 0.5, minH: 180, maxH: 250 });
     let s = axes(f, { yl: "evidence Z, raw units", xl: shown && Math.abs(mu - palmerMu) < 1e-9 && sigma === 1 ? "time, seconds" : "time, raw units", grid: true, zero: true });
     s += line(f, ts, zs, "ex");
     s += line(f, ts, ts.map((t) => mu * t), "acc") + line(f, ts, ts.map((t) => sigma * Math.sqrt(t)), "acc", 'stroke-dasharray="5 4"');
@@ -114,11 +114,11 @@ function unitsPlate() {
   };
   const drawPaper = () => {
     const k = (mu * mu) / (sigma * sigma), reach = RAW_T * k;
-    const ts = range(0, 4, 401);
-    const f = frame(pap, { x: [0, 4], y: [-2, 6], aspect: 0.5, minH: 180, maxH: 250 });
+    const ts = range(0, 4, 401), xs = ts.map(at);
+    const f = frame(pap, { x: [0, 4], y: M.unitsRange([...xs, 4]), aspect: 0.5, minH: 180, maxH: 250 });
     let s = reach < 4 ? `<rect class="band" x="${f.l}" y="${f.t}" width="${(f.sx(reach) - f.l).toFixed(1)}" height="${f.H - f.t - f.b}"/>` : "";
     s += axes(f, { yl: "evidence x, the paper's units", xl: "time, the paper's units", grid: true, zero: true });
-    s += line(f, ts, ts.map(at), "ex") + line(f, ts, ts, "dim") + line(f, ts, ts.map(Math.sqrt), "guide");
+    s += line(f, ts, xs, "ex") + line(f, ts, ts, "dim") + line(f, ts, ts.map(Math.sqrt), "guide");
     s += `<circle class="ink-dot" cx="${f.sx(1).toFixed(1)}" cy="${f.sy(1).toFixed(1)}" r="4"/><text class="tag-ex" x="${(f.sx(1) + 8).toFixed(1)}" y="${(f.sy(1) + 16).toFixed(1)}">one time unit: 1</text>`;
     s += `<text class="tk" x="${f.W - f.r - 4}" y="${f.H - f.b - 6}" text-anchor="end">${reach < 4 ? "shaded: the top chart's window, to " + fmt(reach, 2) : "the top chart's window covers all of this"}</text>`;
     pap.innerHTML = svg(f, s, "The same path in the paper's units, where drift and noise meet at time 1 for every drift and noise");
@@ -171,24 +171,30 @@ function yoursPlate() {
   };
   const drawBound = () => {
     const v = view();
-    const top = res ? Math.max(1.2, ...res.exact.filter(Number.isFinite), ...res.pm.filter(Number.isFinite)) * 1.1 : 2;
+    // with a deadline, leave room above the curves for the forced choice's label
+    const top = res ? Math.max(1.2, ...res.exact.filter(Number.isFinite), ...res.pm.filter(Number.isFinite)) * (deadlineOf(choice) === null ? 1.1 : 1.25) : 2;
     const f = frame(boundEl, { x: [0, toX(v)], y: [0, top], aspect: 0.55, minH: 200, maxH: 290, r: 40 });
     let s = axes(f, { yl: "bound, evidence", xl: unit === "ms" ? "ms" : "time", grid: true });
     for (const p of [0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.99]) {
       const x = M.halfLogOdds(p); if (x > top) continue;
       s += `<path class="ax" d="M${f.W - f.r} ${f.sy(x).toFixed(1)}h-4"/><text class="tk" x="${f.W - f.r + 4}" y="${(f.sy(x) + 3.5).toFixed(1)}">${p}</text>`;
     }
-    s += `<path class="ax" d="M${f.W - f.r} ${f.t}V${f.H - f.b}"/><text class="lab" x="${f.W - 2}" y="${Math.max(11, f.t - 9)}" text-anchor="end">chance right</text>`;
-    if (res) s += line(f, res.t.map(toX), res.pm, "pm") + line(f, res.t.map(toX), res.exact, "ex");
+    s += `<path class="ax" d="M${f.W - f.r} ${f.t}V${f.H - f.b}"/><text class="lab" x="${f.W - 2}" y="${Math.max(11, f.t - 9)}" text-anchor="end">right, deciding at x</text>`;
+    const dl = deadlineOf(choice);
+    if (dl !== null) s += `<path class="acc" stroke-dasharray="3 3" d="M${f.sx(toX(dl)).toFixed(1)} ${f.t}V${f.H - f.b}"/><text class="tag-acc" x="${(f.sx(toX(dl)) - 4).toFixed(1)}" y="${f.t + 10}" text-anchor="end">forced choice</text>`;
+    if (res) {
+      const [tp, pmp] = dropAt(res.t, res.pm, res.deadline);   // the rule's bound holds until the forced choice, then drops
+      s += line(f, tp.map(toX), pmp, "pm") + line(f, res.t.map(toX), res.exact, "ex");
+    }
     else s += `<text class="tk" x="${(f.W / 2).toFixed(0)}" y="${(f.H / 2).toFixed(0)}" text-anchor="middle">solving the best bound…</text>`;
-    boundEl.innerHTML = svg(f, s, `The best bound and the per-moment bound for ${labelOf(choice)}, with the right axis reading the bound as the chance of being right`);
+    boundEl.innerHTML = svg(f, s, `The best bound and the per-moment bound for ${labelOf(choice)}, with the right axis giving the chance that a decision made at that evidence is right`);
   };
   const readings = () => {
     note.textContent = S.costUnitNote(unitMs(), coh);
     if (!res) { reads.innerHTML = ""; say.textContent = ""; return; }
-    const b0 = res.exact[0], b1 = res.exact[res.exact.length - 1], ms = unitMs();
-    reads.innerHTML = `<div class="k-ex"><dt>Bound at the start</dt><dd>${fmt(b0)}<small>right with probability ${fmt(M.g(b0))}</small></dd></div>
-      <div class="k-ex"><dt>Bound at the end</dt><dd>${fmt(b1)}<small>right with probability ${fmt(M.g(b1))}</small></dd></div>
+    const b0 = res.exact[0], b1 = res.exact[res.exact.length - 1], ms = unitMs(), dl = deadlineOf(choice);
+    reads.innerHTML = `<div class="k-ex"><dt>Bound at the start</dt><dd>${S.boundText(b0)}<small>${S.boundNote(b0, M.g)}</small></dd></div>
+      <div class="k-ex"><dt>${dl === null ? "Bound at the end" : "At the deadline"}</dt><dd>${dl === null ? S.boundText(b1) : "0"}<small>${dl === null ? S.boundNote(b1, M.g) : "the choice is forced"}</small></dd></div>
       <div><dt>One time unit</dt><dd>${ms === null ? "1" : Math.round(ms) + " ms"}<small>${ms === null ? "σ²/μ²" : "at " + S.cohText(coh) + " coherence"}</small></dd></div>`;
     say.textContent = S.yoursSay({ label: labelOf(choice), unitMs: ms, view: view(), b0, b1, deadline: deadlineOf(choice), g: M.g });
     liftReady(fig);
@@ -198,7 +204,7 @@ function yoursPlate() {
     choice = getChoice(); res = null; drawAll();
     state.textContent = "Solving the best bound…";
     solve({ job: "bounds", choice }, { key: "ch02-yours" }).then((m) => {
-      res = m; state.textContent = "Time step 0.01, evidence step 0.02, 6 time units past the window."; drawAll();
+      res = m; state.textContent = S.yoursState(m.deadline); drawAll();
     }).catch((e) => { if (e.message !== "superseded") state.textContent = "The solver stopped: " + e.message; });
   };
   onSeg(el, "yo-unit", (v) => { unit = v; setCohEnabled(); drawAll(); });
@@ -231,16 +237,6 @@ function beliefPlate() {
     <p class="fine" id="be-head"></p><div class="chart-wrap" id="be-chart"></div>
     <dl class="reads" id="be-reads"></dl><p class="say" id="be-say" aria-live="polite"></p>`;
   const chart = $("#be-chart", el), reads = $("#be-reads", el), say = $("#be-say", el), head = $("#be-head", el), verdict = $("#be-verdict", el);
-  const zMax = (bs, exact, key, se) => {
-    let z = 0, k = 0;
-    for (const o of bs) {
-      if (o.n < 20) continue;
-      k++;
-      const want = exact(o), sd = se(o, want);
-      if (sd > 0) z = Math.max(z, Math.abs(o[key] - want) / sd);
-    }
-    return { z, k };
-  };
   const draw = () => {
     head.textContent = S.BELIEF_HEADS[step];
     let f, s = "", label = "";
@@ -291,16 +287,16 @@ function beliefPlate() {
         }
         if (guess !== null) s += `<circle class="acc-dot" cx="${f.sx(1).toFixed(1)}" cy="${f.sy(guess).toFixed(1)}" r="5.5"/><text class="tag-acc" x="${(f.sx(1) - 9).toFixed(1)}" y="${(f.sy(guess) - 4).toFixed(1)}" text-anchor="end">your guess</text>`;
         s += `<text class="tag-ex" x="${(f.sx(1) + 8).toFixed(1)}" y="${(f.sy(M.g(1)) + 16).toFixed(1)}">g(1) = ${fmt(M.g(1), 3)}</text>`;
-        const { z, k } = zMax(bs, (o) => M.binShare(o.a, o.b, t), "share", (o, p) => Math.sqrt((p * (1 - p)) / o.n));
+        const { z, k } = M.largestMiss(bs, t, "share");
         reads.innerHTML = `<div class="k-ex"><dt>g(1)</dt><dd>${fmt(M.g(1), 3)}</dd></div>
           <div class="k-acc"><dt>Your guess</dt><dd>${guess === null ? "–" : fmt(guess, 2)}</dd></div>
-          <div><dt>Largest miss</dt><dd>${z.toFixed(1)}<small>standard errors, over ${k} bins</small></dd></div>`;
+          <div><dt>Largest miss</dt><dd>${z.toFixed(1)}<small>binomial standard errors of the exact share, over ${k} bins</small></dd></div>`;
         say.textContent = S.binSay(t, N, k, z, "share");
         label = `The share of trials with H = +1 in each bin of evidence at time ${t}, beside the belief g`;
       } else {
         const xs = range(LO, HI, 241);
         f = frame(chart, { x: [LO, HI], y: [-1.6, 1.6], aspect: 0.55, minH: 200, maxH: 280 });
-        s = axes(f, { yl: "mean of the next unit's evidence", xl: "evidence x at time t", grid: true, zero: true });
+        s = axes(f, { yl: "mean change over the next time unit", xl: "evidence x at time t", grid: true, zero: true });
         s += line(f, xs, xs.map(Math.tanh), "ex");
         for (const o of bs) {
           if (o.n < 20) continue;
@@ -309,9 +305,9 @@ function beliefPlate() {
           s += `<circle class="ink-dot" cx="${xc.toFixed(1)}" cy="${f.sy(o.mean).toFixed(1)}" r="2.8"/>`;
         }
         s += `<text class="tag-ex" x="${(f.W - f.r - 4).toFixed(1)}" y="${(f.sy(Math.tanh(HI)) + 18).toFixed(1)}" text-anchor="end">tanh x</text>`;
-        const { z, k } = zMax(bs, (o) => 2 * M.binShare(o.a, o.b, t) - 1, "mean", (o) => o.meanSE);
+        const { z, k } = M.largestMiss(bs, t, "mean");
         reads.innerHTML = `<div class="k-ex"><dt>tanh 1</dt><dd>${fmt(Math.tanh(1), 3)}<small>2g(1) − 1</small></dd></div>
-          <div><dt>Largest miss</dt><dd>${z.toFixed(1)}<small>standard errors, over ${k} bins</small></dd></div>`;
+          <div><dt>Largest miss</dt><dd>${z.toFixed(1)}<small>sample standard errors, over ${k} bins</small></dd></div>`;
         say.textContent = S.binSay(t, N, k, z, "expected drift");
         label = `The mean change of the evidence over the next time unit, by bin of evidence at time ${t}, beside tanh x`;
       }
@@ -334,7 +330,7 @@ function beliefPlate() {
       reads.innerHTML = `<div><dt>Variance at time ${T}</dt><dd>${fmt(v, 3)}<small>± ${fmt(2 * vSE, 3)}; a Brownian motion: ${T}</small></dd></div>
         <div><dt>Later increment vs tanh X</dt><dd>${fmt(r, 3)}<small>correlation, ± ${fmt(2 * rSE, 3)}</small></dd></div>`;
       say.textContent = S.innovationSay(T, v, vSE, r, rSE);
-      label = "Innovation paths computed from sampled evidence, inside a band of two standard deviations of a Brownian motion";
+      label = "Innovation paths computed from sampled evidence, with dashed guides at plus and minus two standard deviations of a Brownian motion at each time";
     }
     chart.innerHTML = svg(f, s, label);
     liftReady(fig);
@@ -342,25 +338,15 @@ function beliefPlate() {
   /** 4,000 trials from the true model, the innovation computed from the evidence alone (left sums, step 0.01), in
    * slices of about 20 ms so the page never waits long; draws again when they are all in. */
   function innovations() {
-    const T = 2, dt = 0.01, n = Math.round(T / dt), K = 4000, R = rng(seedParam(2026) + 211 + draws);
-    const ts = Array.from({ length: n + 1 }, (_, i) => i * dt), show = [];
-    const acc = { s1: 0, s2: 0, a: 0, b: 0, ab: 0, aa: 0, bb: 0 };
+    const K = 4000, R = rng(seedParam(2026) + 211 + draws), run = M.innovationRun(2, 0.01, 40);
     const me = innov = { done: false, k: 0 };
     const slice = () => {
       if (innov !== me) return;
       const t0 = performance.now();
-      while (me.k < K && performance.now() - t0 < 20) {
-        const H = R.next() < 0.5 ? 1 : -1;
-        const x = M.evidence(H, 0, M.increments(R, n, dt), dt), w = M.innovation(x, dt);
-        if (me.k < 40) show.push(w);
-        const end = w[n], inc = w[n] - w[n / 2], th = Math.tanh(x[n / 2]);
-        acc.s1 += end; acc.s2 += end * end; acc.a += inc; acc.b += th; acc.ab += inc * th; acc.aa += inc * inc; acc.bb += th * th;
-        me.k++;
-      }
+      while (run.acc.k < K && performance.now() - t0 < 20) run.add(R, Math.min(25, K - run.acc.k));
+      me.k = run.acc.k;
       if (me.k < K) { setTimeout(slice, 0); return; }
-      const { s1, s2, a, b, ab, aa, bb } = acc, m = s1 / K, v = s2 / K - m * m;
-      const cov = ab / K - (a / K) * (b / K), sa = Math.sqrt(aa / K - (a / K) ** 2), sb = Math.sqrt(bb / K - (b / K) ** 2);
-      Object.assign(me, { done: true, ts, show, T, v, vSE: v * Math.sqrt(2 / (K - 1)), r: cov / (sa * sb), rSE: 1 / Math.sqrt(K) });
+      Object.assign(me, { done: true, ts: run.ts, show: run.show, T: run.T }, run.summary());
       if (step === 4) draw();
     };
     setTimeout(slice, 0);
@@ -383,8 +369,7 @@ function foldPlate() {
   const make = () => {
     const x = M.filtered(X0, M.increments(rng(seedParam(2026) + 335 + draws), n, dt), dt);
     const l = M.tanaka(x);
-    let touches = 0; for (let i = 0; i < n; i++) if (Math.sign(x[i + 1]) !== Math.sign(x[i])) touches++;
-    path = { x, y: Array.from(x, Math.abs), l, touches };
+    path = { x, y: Array.from(x, Math.abs), l, touches: M.signSteps(x) };
   };
   el.innerHTML = `<div class="predict"><p>Away from 0, which way does Y = |X| drift?</p>
       ${segHTML("fo-guess", [["toward", "Toward 0"], ["away", "Away from 0"], ["none", "Neither"]], "", "Your guess")}
@@ -496,14 +481,16 @@ function factsPlate() {
       s += `<text class="tk" x="${f.sx(2.2).toFixed(1)}" y="${(f.sy(M.g(2.2)) + 16).toFixed(1)}" text-anchor="middle">g</text><text class="tag-ex" x="${(f.sx(-0.9) - 6).toFixed(1)}" y="${(f.sy(M.g1(-0.9)) - 4).toFixed(1)}" text-anchor="end">g′</text>`;
       label = "g, its derivative, and difference quotients of g";
     } else if (step === 2) {
-      const a = ys.map((y) => 0.5 * M.g2(y)), b = ys.map((y) => Math.tanh(y) * M.g1(y)), sum = ys.map((y) => M.Lop(y, M.g1(y), M.g2(y)));
-      f = frame(chart, { x: [-3, 3], y: [-0.25, 0.25], aspect: 0.5, minH: 190, maxH: 260 });
+      // the generator's expression on the state space of Y, y >= 0 (at 0 the reflection, not this expression, acts)
+      const yp = range(0, 3, 301);
+      const a = yp.map((y) => 0.5 * M.g2(y)), b = yp.map((y) => Math.tanh(y) * M.g1(y)), sum = yp.map((y) => M.Lop(y, M.g1(y), M.g2(y)));
+      f = frame(chart, { x: [0, 3], y: [-0.25, 0.25], aspect: 0.5, minH: 190, maxH: 260 });
       s = axes(f, { yl: "value", xl: "y", grid: true, zero: true });
-      s += line(f, ys, a, "dim") + line(f, ys, b, "ex-thin", 'style="opacity:.9;stroke-width:1.6"') + line(f, ys, sum, "ex");
-      s += `<text class="tk" x="${f.sx(0.75).toFixed(1)}" y="${(f.sy(a[375]) + 14).toFixed(1)}" text-anchor="middle">½g″</text><text class="tag-ex" x="${f.sx(0.75).toFixed(1)}" y="${(f.sy(b[375]) - 6).toFixed(1)}" text-anchor="middle">tanh(y)·g′</text>`;
-      s += `<text class="tag-ex" x="${f.sx(-0.95).toFixed(1)}" y="${(f.sy(0) - 6).toFixed(1)}" text-anchor="middle">𝓛g = 0</text>`;
+      s += line(f, yp, a, "dim") + line(f, yp, b, "ex-thin", 'style="opacity:.9;stroke-width:1.6"') + line(f, yp, sum, "ex");
+      s += `<text class="tk" x="${f.sx(1.6).toFixed(1)}" y="${(f.sy(a[160]) + 14).toFixed(1)}">½g″</text><text class="tag-ex" x="${f.sx(1.6).toFixed(1)}" y="${(f.sy(b[160]) - 6).toFixed(1)}">tanh(y)·g′</text>`;
+      s += `<text class="tag-ex" x="${f.sx(0.4).toFixed(1)}" y="${(f.sy(0) - 6).toFixed(1)}" text-anchor="middle">𝓛g = 0</text>`;
       worst = Math.max(...sum.map(Math.abs));
-      label = "The two terms of the generator applied to g, and their sum, zero";
+      label = "The two terms of the generator's expression applied to g for y from 0 to 3, and their sum, zero";
     } else if (step === 3) {
       const q = M.TESTS.find((z) => z.id === test), hh = 1e-4, yy = range(0, 2.5, 251);
       const P = (y) => Math.cosh(y) ** 2 * q.f1(y);
@@ -535,7 +522,7 @@ function factsPlate() {
     }
     if (step < 4) {
       const q = M.TESTS.find((z) => z.id === test);
-      reads.innerHTML = `<div><dt>Largest difference</dt><dd>${worst.toExponential(1)}<small>${step === 3 ? (test === "g" ? "both sides are 0" : "relative to their size") : "over 601 points"}</small></dd></div>`;
+      reads.innerHTML = `<div><dt>Largest difference</dt><dd>${worst.toExponential(1)}<small>${S.factNote(step, test === "g")}</small></dd></div>`;
       say.textContent = S.factSay(step, worst, { label: q.label, zero: test === "g" });
     }
     chart.innerHTML = svg(f, s, label);

@@ -4,7 +4,9 @@
 import { rng, B, decide } from "../../book/assets/js/kernel.js";
 import * as M from "../../book/assets/js/ch02-model.js";
 import * as S from "../../book/assets/js/say-ch02.js";
-import { check, N, asPrinted } from "./lib.mjs";
+import { costOf, deadlineOf, VIEW } from "../../book/assets/js/schedules-book.js";
+import { dropAt } from "../../book/assets/js/chart.js";
+import { check, N, asPrinted, runWorker } from "./lib.mjs";
 
 const meanSE = (xs) => {
   let s = 0, q = 0; for (const x of xs) { s += x; q += x * x; }
@@ -44,15 +46,26 @@ for (const [mu, sigma] of [[0.6, 1.5], [1.8, 0.7]]) {
   // the cost: int c dt in raw time equals int c' dt' in the paper's time
   const c = (t) => 0.1 + 0.05 * Math.sin(3 * t), Traw = 2;
   const raw = simpson(c, 0, Traw), paper = simpson((tp) => c(tp / k) / k, 0, k * Traw);
-  check("units", `mu = ${mu}, sigma = ${sigma}: with c' = c sigma^2/mu^2, the total cost of a decision doesn't change (within 1e-10)`, Math.abs(raw - paper) < 1e-10, `${raw.toFixed(8)} vs ${paper.toFixed(8)}`);
+  check("units", `mu = ${mu}, sigma = ${sigma}: with c'(t') = a c(a t'), a = sigma^2/mu^2, the total cost of a decision doesn't change (within 1e-10)`, Math.abs(raw - paper) < 1e-10, `${raw.toFixed(8)} vs ${paper.toFixed(8)}`);
 }
 {
-  // the plate's rescaling: the raw path read back in the paper's units is the paper path, point for point
-  const DT = 0.0005, xp = M.evidence(1, 0, M.increments(rng(2027), 20000, DT), DT);
-  const mu = 1.3, sigma = 0.8, k = (mu * mu) / (sigma * sigma), E = (sigma * sigma) / mu;
-  let worst = 0;
-  for (let j = 0; j <= 100; j++) { const tp = j * 0.05, z = E * xp[Math.round(tp / DT)], back = (mu * z) / (sigma * sigma); worst = Math.max(worst, Math.abs(back - xp[Math.round(tp / DT)])); }
-  check("units", "the units plate's raw path, read back through x = mu Z / sigma^2, is the paper's path", worst < 1e-12, `largest difference ${worst.toExponential(1)}`);
+  // the plate's own path and drawing functions: its seed, steps, and window, at the slider's corners and Palmer's setting
+  const DT = 0.0005, xp = M.evidence(1, 0, M.increments(rng(2026 + 1), Math.round(64 / DT), DT), DT);
+  const ts = Array.from({ length: 401 }, (_, i) => (4 * i) / 400);
+  const settings = [[0.5, 0.5], [0.5, 2], [2, 0.5], [2, 2], [1, 1], [21 * 0.064, 1]];
+  let back = 0, clipped = 0, mid = 0;
+  for (const [mu, sigma] of settings) {
+    const k = (mu * mu) / (sigma * sigma), zs = M.rawSamples(xp, DT, mu, sigma, ts);
+    zs.forEach((z, i) => { back = Math.max(back, Math.abs((mu * z) / (sigma * sigma) - M.pathAt(xp, DT, k * ts[i]))); });
+    const [lo, hi] = M.unitsRange([...zs, mu * 4, sigma * 2]);
+    if (zs.some((z) => z < lo || z > hi) || mu * 4 > hi) clipped++;
+  }
+  const xs = ts.map((t) => M.pathAt(xp, DT, t)), [plo, phi] = M.unitsRange([...xs, 4]);
+  if (xs.some((x) => x < plo || x > phi)) clipped++;
+  // between two steps the path is read linearly: halfway, it is the mean of the two steps
+  for (const k of [10, 3613, 70000]) mid = Math.max(mid, Math.abs(M.pathAt(xp, DT, (k + 0.5) * DT) - 0.5 * (xp[k] + xp[k + 1])));
+  check("units", "the units plate's raw samples, read back through x = mu Z / sigma^2, are the paper path at t' = mu^2 t / sigma^2, read the same way (six settings, within 1e-12)", back < 1e-12 && mid < 1e-12, `largest difference ${back.toExponential(1)}`);
+  check("units", "both of the units plate's charts widen their range to hold every value drawn, at the slider's corners and Palmer's setting", clipped === 0, `${clipped} charts clipped`);
 }
 {
   const ms = 1000 * M.unitSeconds(0.064);
@@ -119,9 +132,12 @@ for (const t of [0.25, 1, 3]) {
   check("drift", `the innovation computed from sampled evidence has variance T = ${T} at time ${T} within 3 standard errors (40,000 trials, steps of 0.01)`, Math.abs(v - T) < 3 * vSE, `${v.toFixed(4)} ± ${vSE.toFixed(4)}`);
   const cov = ab / K - (a / K) * (b / K), r = cov / (Math.sqrt(aa / K - (a / K) ** 2) * Math.sqrt(bb / K - (b / K) ** 2));
   check("drift", "its increment from time 1 to 2 is uncorrelated with tanh X at time 1, within 3 standard errors", Math.abs(r) < 3 / Math.sqrt(K), `${r.toFixed(4)} ± ${(1 / Math.sqrt(K)).toFixed(4)}`);
-  // the plate's own run (4,000 trials at its seed) gives sentences that say what its numbers say
-  const sv = S.innovationSay(2, 1.98, 0.044, 0.01, 0.0158);
-  check("words", "the innovation sentence states the variance against T and the correlation", /variance 1\.980 ± 0\.088, against 2/.test(sv) && /correlation 0\.010/.test(sv), sv);
+  // the plate's own run: its seed, 4,000 trials, its code; the sentence says what those numbers say
+  const run = M.innovationRun(2, 0.01, 40), R2 = rng(2026 + 211);
+  run.add(R2, 4000);
+  const o = run.summary(), sv = S.innovationSay(run.T, o.v, o.vSE, o.r, o.rSE);
+  check("drift", "the plate's own 4,000 trials: the innovation's variance at time 2 within 3 standard errors of 2, and its later increment's correlation with tanh X_1 within 3 of 0", Math.abs(o.v - 2) < 3 * o.vSE && Math.abs(o.r) < 3 * o.rSE, `${o.v.toFixed(4)} ± ${o.vSE.toFixed(4)}, ${o.r.toFixed(4)} ± ${o.rSE.toFixed(4)}`);
+  check("words", "the innovation sentence prints the plate's own variance, two standard errors, and correlation", sv.includes(`variance ${o.v.toFixed(3)} ± ${(2 * o.vSE).toFixed(3)}, against 2`) && sv.includes(`correlation ${o.r.toFixed(3)} ± ${(2 * o.rSE).toFixed(3)}`) && sv.includes("from time 1 to 2"), sv);
 }
 
 // ---- the fold ---------------------------------------------------------------------------------------------------
@@ -275,13 +291,56 @@ for (const t of [0.25, 1, 3]) {
   const gv = S.gVerdict(+M.g(1).toFixed(3), M.g(1));
   check("words", "the g(1) verdict says right for 0.881, names the factor of 2 for 0.73 and Phi(1) for 0.84, and gives the odds e^2", /^Right/.test(gv) && /0\.881/.test(gv) && /7\.4 times/.test(gv) && /log odds to be x/.test(S.gVerdict(0.731, M.g(1))) && /Φ\(1\)/.test(S.gVerdict(0.841, M.g(1))) && /^Too sure/.test(S.gVerdict(0.982, M.g(1))), gv);
   check("words", "the ratio sentence prints e^2 = 7.39", /7\.39 times/.test(S.ratioSay(1, Math.exp(2))) && /e² = 7\.39/.test(S.ratioSay(1, Math.exp(2))), S.ratioSay(1, Math.exp(2)));
-  const bs = S.binSay(1, 6000, 20, 3.4, "share");
-  check("words", "the bin sentence flags a largest miss over 3 standard errors, and not one under", /larger miss than chance/.test(bs) && /within the spread/.test(S.binSay(1, 6000, 20, 1.9, "share")) && /about 95% of the time/.test(bs), bs);
+  // the belief plate's own trials at t = 1 (its default seed), bins, and largest misses, through its code
+  const tr = M.trials(rng(2026 + 101 + 100), 1, 6000, 1), bns = M.bins(tr, -2.625, 2.625, 0.25);
+  const share = M.largestMiss(bns, 1, "share"), mean = M.largestMiss(bns, 1, "mean");
+  let hand = 0;
+  for (const b of bns) if (b.n >= 20) { const p = M.binShare(b.a, b.b, 1); hand = Math.max(hand, Math.abs(b.share - p) / Math.sqrt((p * (1 - p)) / b.n)); }
+  const bs = S.binSay(1, 6000, share.k, share.z, "share"), bm = S.binSay(1, 6000, mean.k, mean.z, "expected drift");
+  check("belief", "the share's largest miss is measured in the binomial standard error of each bin's exact share, over the bins with at least 20 trials", Math.abs(share.z - hand) < 1e-12 && share.k === bns.filter((b) => b.n >= 20).length, `${share.z.toFixed(3)} over ${share.k} bins`);
+  check("words", "the bin sentences print the plate's own largest misses, name the standard error each uses, and attach no probability to them", bs.includes(`${share.k} bins with at least 20 trials is ${share.z.toFixed(1)} binomial standard errors of the bin's exact share`) && bm.includes(`is ${mean.z.toFixed(1)} standard errors of the bin's sample mean`) && !/%|chance/.test(bs + bm), bs);
   const ys = S.yoursSay({ label: "Deadline", unitMs: 553.6, view: 1, b0: 0.97, b1: 0, deadline: 1, g: M.g });
-  check("words", "the schedule sentence converts the window to ms, reads the bound as a belief, and calls a zero bound a coin flip", /1 time units, 554 ms/.test(ys) && /probability 0\.87/.test(ys) && /a coin flip/.test(ys), ys);
+  check("words", "the schedule sentence: a window of 1 time unit in ms, the bound read as the chance right at that evidence, and at a deadline every open trial stopping at its evidence x, right with probability g(|x|)", /window is 1 time unit, 554 ms/.test(ys) && /made at that evidence is right with probability 0\.87/.test(ys) && /stops with the evidence x it has and is right with probability g\(\|x\|\)/.test(ys) && !/coin flip/.test(ys), ys);
   check("words", "the cost note converts per time unit to per second at 6.4% coherence", /a cost of c per time unit is 1\.81c per second/.test(S.costUnitNote(1000 * M.unitSeconds(0.064), 0.064)), S.costUnitNote(1000 * M.unitSeconds(0.064), 0.064));
   const fs = S.foldSay(0.01, M.foldDrift(0, 0.01), M.foldDrift(1, 0.01), 0.0002);
-  check("words", "the fold sentence prints the measured drift at 1 beside tanh 1 and the value at 0", /0\.762, against tanh 1 = 0\.762/.test(fs) && /At y = 0 it is 8\.02/.test(fs), fs);
+  check("words", "the fold sentence prints the measured drift at 1 beside tanh 1 and the value at 0", /0\.762, against tanh 1 = 0\.762/.test(fs) && /At y = 0, it is 8\.02/.test(fs), fs);
   check("words", "the exit sentence prints b tanh b at c = 0.1 as the paper does", S.exitSay(0.1, B(0.1), M.meanHit(0, B(0.1)), 1.17, 0.02, 0).includes(`b tanh b = ${M.meanHit(0, B(0.1)).toFixed(3)}`) && M.meanHit(0, B(0.1)).toFixed(2) === N.DecisionTimeTenth, S.exitSay(0.1, B(0.1), M.meanHit(0, B(0.1)), 1.17, 0.02, 0));
   check("words", "the pair sentences: met at the upper path's first zero, none crossed on shared noise", /meet at time 1\.25, when the upper one first reaches 0/.test(S.pairSay(true, 1.25, 0)) && /0 crossed/.test(S.pairsSay(true, 1000, 0, 640)), S.pairSay(true, 1.25, 0));
+}
+
+// ---- the schedule plate, through the page's own worker --------------------------------------------------------------
+{
+  const ask = (choice) => runWorker("../../book/assets/js/dp-worker.js", { job: "bounds", choice });
+  const say = (choice, m) => S.yoursSay({ label: "x", unitMs: null, view: deadlineOf(choice) ?? VIEW, b0: m.exact[0], b1: m.exact[m.exact.length - 1], deadline: deadlineOf(choice), g: M.g });
+  // a 32-fold rise centered at 0.2: the cost at the window's end is 3.2, where the program waits at the center
+  const rise = { id: "jump", params: { at: 0.2, factor: 32 } }, mr = await ask(rise), b1 = mr.exact[mr.exact.length - 1];
+  const sr = say(rise, mr);
+  check("yours", "a 32-fold rise at 0.2: the bound at the window's end is above 0 and below the grid's first step, where the program waits at the center", b1 > 0 && b1 < 0.02 && Math.abs(costOf(rise)(VIEW) - 3.2) < 1e-6, `bound ${b1.toFixed(5)} at cost ${costOf(rise)(VIEW).toFixed(4)}`);
+  check("words", "and the plate prints that bound to three decimals and says it is below the grid's first step", sr.includes(`the bound is ${b1.toFixed(3)}`) && /below the grid's first evidence step, 0\.02/.test(sr) && S.boundText(b1) === b1.toFixed(3) && /below the grid's first step/.test(S.boundNote(b1, M.g)), sr);
+  // a deadline: the worker ends on the forced choice; the rule's curve holds its value to the deadline and drops there
+  const dl = { id: "deadline", params: { at: 1, c: 0.1 } }, md = await ask(dl);
+  const [tp, pmp] = dropAt(md.t, md.pm, md.deadline), n = tp.length;
+  check("yours", "a deadline at 1: the dashed curve holds the per-moment bound up to the forced choice and drops to 0 there", tp[n - 1] === 1 && tp[n - 2] === 1 && pmp[n - 1] === 0 && pmp[n - 2] === md.pm[md.pm.length - 2] && pmp[n - 2] > 1, `holds ${pmp[n - 2].toFixed(3)} to time 1, then 0`);
+  const sd = say(dl, md);
+  check("words", "at a deadline, the sentence says the choice is forced and each open trial is right with probability g(|x|) at its evidence, not a coin flip", /the choice is forced/.test(sd) && /g\(\|x\|\)/.test(sd) && !/coin flip/.test(sd) && /up to the forced choice at time 1/.test(S.yoursState(1)) && /6 time units past the window/.test(S.yoursState(null)), sd);
+  // the default schedule: the readings print the worker's first bound and its belief
+  const jm = await ask({ id: "jump", params: { at: 0.5, factor: 16 } }), sj = say({ id: "jump" }, jm);
+  check("words", "on the default schedule, the sentence prints the worker's starting bound and g of it", sj.includes(`starts at ${jm.exact[0].toFixed(2)}`) && sj.includes(`right with probability ${M.g(jm.exact[0]).toFixed(2)}`), sj);
+}
+
+// ---- the fold plate's grid rule, and the facts plate's readings -------------------------------------------------------
+{
+  const dt = 0.001, x = M.filtered(0, M.increments(rng(2026 + 335), 2000, dt), dt), l = M.tanaka(x);
+  let grew = 0; for (let i = 0; i < x.length - 1; i++) if (l[i + 1] - l[i] > 1e-15) grew++;
+  check("fold", "from X_0 = 0, the grid's first step adds |X_1| to the local time, and the sign count includes that step", Math.abs(l[1] - Math.abs(x[1])) < 1e-15 && M.signSteps(x) >= grew && Math.sign(x[0]) === 0, `${M.signSteps(x)} sign steps, ℓ grew on ${grew}`);
+  check("words", "the path sentence names the grid rule: sign changes on the grid, counting a step away from 0", /counting a step away from 0/.test(S.pathSay(2, M.signSteps(x), l[l.length - 1], 2000)) && S.pathSay(2, M.signSteps(x), l[l.length - 1], 2000).includes(`${M.signSteps(x)} of the 2,000 steps`), S.pathSay(2, M.signSteps(x), l[l.length - 1], 2000));
+  const f3 = S.factSay(3, 7.9e-9, { label: "sin 2y" }), fg = S.factSay(3, 2.8e-13, { label: "g(y)", zero: true });
+  check("words", "the identity's reading is named as one normalized maximum, and absolute for f = g; step 3 reads over y from 0 to 3", /divided by the largest size of the right side, is 7\.9e-9/.test(f3) && /in absolute terms/.test(fg) && S.factNote(3, false).includes("largest |2 cosh² y·𝓛f|") && /from 0 to 3/.test(S.factSay(2, 1e-17)) && S.factNote(2) === "over 301 points", f3);
+  const ys = Array.from({ length: 301 }, (_, i) => i * 0.01);
+  check("facts", "the generator's expression applied to g vanishes at the 301 points from 0 to 3 the plate draws (within 1e-16)", Math.max(...ys.map((y) => Math.abs(M.Lop(y, M.g1(y), M.g2(y))))) < 1e-16, "closed forms");
+  const words = [S.heroLabel(2), S.unitsSay(1, 1), S.palmerVerdict(null, 553.6), S.foldVerdict(null), S.coupleVerdict(null), S.pairSay(true, null, 0), S.pairSay(false, null, 2)];
+  check("words", "introductory phrases take their commas, and the fold's drift tanh Y is said to hold in the decision maker's view", /in the decision maker's view drifts away from 0 at rate tanh Y/.test(words[0]) && /In those units, the path/.test(words[1]) && /At 6\.4% coherence, the drift/.test(words[2]) && /In the decision maker's view, away from 0/.test(words[3]) && /On the same noise, they/.test(words[4]) && /On this noise path, the two/.test(words[5]) && /With independent noise, they/.test(words[6]), words[0]);
+  let bad = 0;
+  for (const b of [0, 0.005, 0.0199, 0.02, 0.5, 1.9]) for (const d of [null, 1]) for (const s of [S.boundText(b), S.boundNote(b, M.g), S.yoursState(d), S.factNote(b > 1 ? 3 : 2, b === 0), S.yoursSay({ label: "Pulse", unitMs: d ? 553.6 : null, view: d ?? 2.5, b0: 1, b1: b, deadline: d, g: M.g })]) if (/NaN|undefined|Infinity|null/.test(s)) bad++;
+  check("words", "the new readings and notes never print NaN, undefined, Infinity, or null", bad === 0, `${bad} bad`);
 }
