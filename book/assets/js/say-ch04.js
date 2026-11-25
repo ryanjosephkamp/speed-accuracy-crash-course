@@ -7,11 +7,18 @@ const tt = (x) => String(+x.toFixed(2));
 const pct = (x) => `${Math.round(x * 100)}%`;
 /** A cost of time, to two significant figures (0.1, 1.6, 0.034). */
 export const c2 = (x) => String(+x.toPrecision(2));
-/** A distance that may be below the grid's resolution. */
-const gap = (x) => (x < 0.001 ? "less than 0.001" : f3(x));
+/** A lowest or highest cost to three significant figures, rounded outward (down for the lowest, up for the highest)
+ * unless it is within 1e-9 of the rounded value, so a printed level never sits inside the true one. */
+const outward = (x, dir) => {
+  const r = +x.toPrecision(3);
+  if (Math.abs(r - x) <= 1e-9 * Math.abs(x) || (dir < 0 ? r <= x : r >= x)) return String(r);
+  const e = 10 ** (Math.floor(Math.log10(Math.abs(x))) - 2);
+  return String(+((dir < 0 ? Math.floor(x / e) : Math.ceil(x / e)) * e).toPrecision(3));
+};
+export const cLo = (x) => outward(x, -1), cHi = (x) => outward(x, 1);
 
 export function heroLabel(name, lo, hi) {
-  return `${name}: the bound stays between B(${c2(hi)}) and B(${c2(lo)})`;
+  return `${name}: the bound stays between B(${cHi(hi)}) and B(${cLo(lo)})`;
 }
 
 // ---- one level at each moment
@@ -34,19 +41,25 @@ export function raySay(t, b) {
 
 // ---- the band
 export function extremesNote(name, lo, tLo, hi, tHi, view) {
-  const at = (t) => (t > view ? `near time ${f1(t)}, after the window` : t < 0.005 ? "at time 0" : `near time ${f2(t)}`);
-  return `${name}: lowest cost ${c2(lo)} (${at(tLo)}), highest ${c2(hi)} (${at(tHi)}).`;
+  const at = (t) => (t > view ? `${f1(t)}, after the window` : tt(t));
+  return `${name}: lowest cost ${cLo(lo)}, highest ${cHi(hi)} (rounded outward), found by a scan to time 100; the cost first comes within 0.5% of them at times ${at(tLo)} and ${at(tHi)}.`;
 }
 
 export function outsideNote(kind) {
-  if (kind === "deadline") return "A deadline makes the cost infinite at the deadline, so the schedule has no highest cost and part (c) doesn't apply. The program's bound is drawn without a band; it falls to 0 at the deadline.";
+  if (kind === "deadline") return "A deadline makes the cost infinite after the deadline, so the schedule has no highest cost and part (c) doesn't apply. The program's bound is drawn without a band; the choice is forced at the deadline, where it drops to 0.";
   if (kind === "rising") return "The rising cost grows without bound, so the schedule has no highest cost and part (c) doesn't apply. The program's bound is drawn without a band.";
-  return "A constant cost has its lowest and highest values equal, so the band is a single line, and the best bound is the flat bound.";
+  return "A constant cost has its lowest and highest values equal, so the band is a single line: the program's own flat bound, which is its best bound.";
 }
 
+/** st: from bandStats in ch04-model.js. */
 export function bandSay(st) {
-  let s = `The best bound stays in the band, from ${f2(st.dn)} to ${f2(st.up)}: its closest approach to the lower edge is ${gap(st.gapDn)}, at time ${f2(st.atDn)}, and to the upper edge ${gap(st.gapUp)}, at time ${f2(st.atUp)}. `;
-  s += `It is below the per-moment bound for ${pct(st.below)} of the window and above it for ${pct(st.above)}.`;
+  let s = `The best bound stays between the program's own flat bounds for the lowest and the highest cost, as part (b) requires on the grid too: its closest approach to the lower edge is ${f3(st.gapDn)}, at time ${tt(st.atDn)}, and to the upper edge ${f3(st.gapUp)}, at time ${tt(st.atUp)}. `;
+  s += `The continuous edges, B(c) moved in by 0.5826√0.01, differ from those by ${st.shiftGap < 0.0005 ? "less than 0.0005" : `up to ${f3(st.shiftGap)}`} here`;
+  const why = [];
+  if (st.horizonPull) why.push("the forced choice 6 time units past the window pulls the program's flat bound for the lowest cost down");
+  if (st.subStep) why.push("the flat bound for the highest cost is below the grid's first step, 0.02, where the page places it between the center and that step (the paper's code reports 0)");
+  s += why.length ? `; ${why.join(", and ")}. ` : ". ";
+  s += `Of the checks in the window, the best bound is below the per-moment bound by more than 0.002 at ${pct(st.below)} and above it at ${pct(st.above)}.`;
   return s;
 }
 
@@ -63,10 +76,10 @@ export function sketchVerdict(drew, miss, outside, hasBand) {
 
 // ---- a higher cost, a lower bound
 export function compareSay(step, d) {
-  if (step === 0) return `On this path the decision lasts ${f2(d.tau)} time units. The same decision is charged ${f3(d.paid[0])} under the lowest cost, ${f3(d.paid[1])} under the schedule, and ${f3(d.paid[2])} under the highest.`;
+  if (step === 0) return `On this path, the decision lasts ${f2(d.tau)} time units. The same decision is charged ${f3(d.paid[0])} under the lowest cost, ${f3(d.paid[1])} under the schedule, and ${f3(d.paid[2])} under the highest.`;
   if (step === 1) return `At evidence 0, the values are ${f3(d.v[0])} under the lowest cost, ${f3(d.v[1])} under the schedule, and ${f3(d.v[2])} under the highest: the higher cost has the lower value.`;
   if (step === 2) return `The value of waiting reaches 0 at ${f2(d.b[0])} under the lowest cost, ${f2(d.b[1])} under the schedule at time 0, and ${f2(d.b[2])} under the highest.`;
-  return `Over the window, the program's bound runs from ${f2(d.min)} to ${f2(d.max)}, inside the band from ${f2(d.dn)} to ${f2(d.up)}.`;
+  return `Over the window, the program's bound runs from ${f3(d.min)} to ${f3(d.max)}, inside the band of its own flat bounds, ${f3(d.dn)} to ${f3(d.up)}.`;
 }
 
 // ---- starting later
@@ -75,14 +88,16 @@ export function laterSay(step, d) {
   if (step === 0) return `Started at ${f2(d.t)}, the decision pays ${f3(d.A)}; started at ${f2(t2)}, it pays ${f3(d.B)}.`;
   if (step === 1) return `The shared middle cancels. The ends are ${f3(d.e1)}, paid only from ${f2(d.t)}, and ${f3(d.e2)}, paid only from ${f2(t2)}, so the costs differ by ${f3(d.e2 - d.e1)}.`;
   if (step === 2) return `Each end lies between ${f3(d.lo * d.D)} and ${f3(d.hi * d.D)}, so the two costs differ by at most ${f3((d.hi - d.lo) * d.D)}; here they differ by ${f3(Math.abs(d.e2 - d.e1))}.`;
-  return `From ${f2(d.t)} to ${f2(t2)}, the program's value at evidence 0 moves by ${f3(d.dv)}, against the cap of ${f3((d.hi - d.lo) * d.D)}. Its steepest slope in the window is ${f2(d.slope)}, at time ${f2(d.at)}, against c_max − c_min = ${f2(d.hi - d.lo)}.`;
+  return `From ${f2(d.t)} to ${f2(t2)}, the program's value at evidence 0 moves by ${f3(d.dv)}, against the bound of ${f3((d.hi - d.lo) * d.D)}. Its steepest slope in the window is ${f2(d.slope)}, at time ${f2(d.at)}, which matches c_max − c_min = ${f2(d.hi - d.lo)} to the precision shown.`;
 }
 
 // ---- decisions on your schedule
 export function decideSay(d) {
   if (d.atOnce >= 1) return `A start at or above the bound stops at once: τ* = 0 on every path, and the cost at the moment of decision is the cost now, ${c2(d.c0)}.`;
   let s = `From evidence ${f2(d.y0)} at time ${f2(d.t0)}, half of the ${d.n.toLocaleString("en-US")} decisions have ended by time ${f2(d.t0 + d.median)}. `;
-  s += `They take ${f3(d.mean)} time units on average (± ${f3(2 * d.se)}, two standard errors), and the cost at the moment of decision averages ${c2(d.ec)}, against ${c2(d.c0)} at the start.`;
+  s += `They take ${f3(d.mean)} time units on average (± ${f3(2 * d.se)}, two standard errors), and the cost at the moment of decision averages ${c2(d.ec)}, against ${c2(d.c0)} at the start`;
+  s += d.forced > 0 ? `; ${pct(d.forced)} are forced at the deadline, and those are charged the cost just before it.` : ".";
+  if (d.beyond > 0) s += ` ${d.beyond.toLocaleString("en-US")} end after time ${f2(d.xMax)}, past the right edge of the chart.`;
   return s;
 }
 
@@ -95,8 +110,8 @@ export function decideVerdict(guess, at) {
 
 // ---- cap the gain
 export function capSay(step, d) {
-  if (step === 0) return `Never stopped, every gain stays under 1 − c_min s, which is ${f2(1 - d.lo * d.T)} by time ${f1(d.T)}; the highest of these eight is ${f2(d.maxG)} there, and each keeps falling.`;
-  if (step === 1) return `On ${d.ok.toLocaleString("en-US")} of ${d.n.toLocaleString("en-US")} paths, the decision comes no later than the cap: τ* ≤ σ. On average τ* is ${f3(d.mTau)} and σ is ${f3(d.mSig)}.`;
-  if (step === 2) return `The sampled σ averages ${f3(d.mSig)} (± ${f3(2 * d.seSig)}), against ${f3(d.exact)} from b̄ tanh b̄ − y tanh y, so the bound 1 + c_max σ on the capped gain has a finite mean, ${f2(1 + d.hi * d.exact)}.`;
-  return `The value process starts at V = ${f3(d.V0)}, and its mean stays within ${f3(d.drift)} of it through time ${f1(d.T)} (two standard errors there: ${f3(2 * d.seEnd)}). The mean gain starts at ${f3(d.G0)} and rises to ${f3(d.Gend)} as decisions end.`;
+  if (step === 0) return `Never stopped, every gain stays under the line 1 − c_min s, which is ${f2(1 - d.lo * d.T)} by time ${f1(d.T)} and falls without bound, so every gain does too; the highest of these eight is ${f2(d.maxG)} there.`;
+  if (step === 1) return `On ${d.ok.toLocaleString("en-US")} of ${d.n.toLocaleString("en-US")} paths, the decision comes no later than the cap on the grid: τ* ≤ σ. On average, τ* is ${f3(d.mTau)} and σ is ${f3(d.mSig)}.`;
+  if (step === 2) return `On the grid, σ averages ${f3(d.mSig)} (± ${f3(2 * d.seSig)}). The paper's formula, b̄ tanh b̄ − y tanh y, is for the continuous model on an infinite horizon and gives ${f3(d.exact)}, so there the bound 1 + c_max σ on the capped gain has the finite mean ${f2(1 + d.hi * d.exact)}.`;
+  return `The value process starts at V = ${f3(d.V0)}, and its sampled mean stays within ${f3(d.drift)} of it through time ${f1(d.T)} (two standard errors there: ${f3(2 * d.seEnd)}), which is agreement to sampling and grid error. The mean gain starts at ${f3(d.G0)} and rises to ${f3(d.Gend)} as decisions end.`;
 }

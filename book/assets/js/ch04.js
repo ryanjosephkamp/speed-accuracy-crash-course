@@ -4,7 +4,7 @@
 import { B, rng } from "./kernel.js";
 import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, VIEW, SPARE, defaultDrawing } from "./schedules-book.js";
 import { getChoice, setChoice, solve, onVisible, liftReady, seedParam, wireStrips } from "./book.js";
-import { frame, line, area, axes, svg, tags, fmt, keepDrawn } from "./chart.js";
+import { frame, line, area, axes, svg, tags, fmt, keepDrawn, dropAt } from "./chart.js";
 import * as M from "./ch04-model.js";
 import * as S from "./say-ch04.js";
 
@@ -74,8 +74,8 @@ function costStrip(el, cost, view, { ext = null, mark = null, label = "cost, log
   const f = frame(el, { x: [x0, view], y: [Math.max(0.003, lo / 2.8), Math.max(hi * 2.2, lo * 4)], ylog: true, aspect: 0.26, minH, maxH: 150, b: 22, t: 18 });
   let s = axes(f, { yl: label, grid: true });
   if (ext) {
-    s += hline(f, ext.lo, "acc", 'stroke-dasharray="2 3"') + text(f.W - f.r - 2, f.sy(ext.lo) + 13, `lowest ${S.c2(ext.lo)}`, "tag-acc", "end");
-    if (Number.isFinite(ext.hi) && ext.hi < 60) s += hline(f, ext.hi, "acc", 'stroke-dasharray="2 3"') + text(f.W - f.r - 2, f.sy(ext.hi) - 5, `highest ${S.c2(ext.hi)}`, "tag-acc", "end");
+    s += hline(f, ext.lo, "acc", 'stroke-dasharray="2 3"') + text(f.W - f.r - 2, f.sy(ext.lo) + 13, `lowest ${S.cLo(ext.lo)}`, "tag-acc", "end");
+    if (Number.isFinite(ext.hi) && ext.hi < 60) s += hline(f, ext.hi, "acc", 'stroke-dasharray="2 3"') + text(f.W - f.r - 2, f.sy(ext.hi) - 5, `highest ${S.cHi(ext.hi)}`, "tag-acc", "end");
   }
   s += line(f, ts, cs, "cost");
   if (mark !== null) s += vline(f, mark, "dim", 'stroke-dasharray="2 3"');
@@ -89,7 +89,7 @@ function hero() {
   if (!fig || !el) return;
   const four = ["jump", "fall", "pulse", "multistep"].map((id) => {
     const p = PRESETS.find((q) => q.id === id), choice = { id, params: paramsOf({ id }) }, cost = costOf(choice);
-    return { p, choice, cost, ext: M.extremes(cost, 100, 0.002) };
+    return { p, choice, cost, ext: M.extremes(cost) };
   });
   const solved = new Array(four.length).fill(null);
   let cur = 0;
@@ -111,15 +111,20 @@ function hero() {
     s += `<path class="acc" stroke-dasharray="2 3" d="M${l} ${syC(ext.lo).toFixed(1)}H${W - r}M${l} ${syC(ext.hi).toFixed(1)}H${W - r}"/>`;
     s += `<path class="cost" d="${path(ts, ts.map(cost), syC)}"/>`;
     s += `<text class="lab" x="${l}" y="11">cost of time: ${p.label.toLowerCase()}</text>`;
-    s += `<rect class="band-gray" x="${l}" y="${syB(up).toFixed(1)}" width="${W - l - r}" height="${(syB(dn) - syB(up)).toFixed(1)}"/>`;
-    s += `<path class="guide" d="M${l} ${syB(up).toFixed(1)}H${W - r}M${l} ${syB(dn).toFixed(1)}H${W - r}"/>`;
-    s += `<text class="tk-halo" x="${W - r - 4}" y="${(syB(up) - 5).toFixed(1)}" text-anchor="end">B(${S.c2(ext.lo)})</text>`;
-    s += `<text class="tk-halo" x="${W - r - 4}" y="${(syB(dn) - 5).toFixed(1)}" text-anchor="end">B(${S.c2(ext.hi)})</text>`;
-    s += `<path class="pm" d="${path(ts, ts.map((t) => M.flatOnGrid(cost(t))), syB)}"/>`;
     const ex = solved[i];
-    if (ex) { const k = Math.round(view / ex.dt), xs = Array.from({ length: k + 1 }, (_, j) => j * ex.dt); s += `<path class="ex" d="${path(xs, Array.from(ex.bounds.subarray(0, k + 1)), syB)}"/>`; }
+    if (ex) { // the band on the grid: the program's own flat bounds for the lowest and the highest cost
+      const k = Math.round(view / ex.b.dt), xs = Array.from({ length: k + 1 }, (_, j) => j * ex.b.dt);
+      let d = ""; xs.forEach((x, j) => { d += (j ? "L" : "M") + sx(x).toFixed(1) + " " + syB(ex.lo.bounds[j]).toFixed(1); });
+      for (let j = k; j >= 0; j--) d += "L" + sx(xs[j]).toFixed(1) + " " + syB(ex.hi.bounds[j]).toFixed(1);
+      s += `<path class="band-gray" d="${d}Z"/>`;
+    }
+    s += `<path class="guide" d="M${l} ${syB(up).toFixed(1)}H${W - r}M${l} ${syB(dn).toFixed(1)}H${W - r}"/>`;
+    s += `<text class="tk-halo" x="${W - r - 4}" y="${(syB(up) - 5).toFixed(1)}" text-anchor="end">B(${S.cLo(ext.lo)})</text>`;
+    s += `<text class="tk-halo" x="${W - r - 4}" y="${(syB(dn) - 5).toFixed(1)}" text-anchor="end">B(${S.cHi(ext.hi)})</text>`;
+    s += `<path class="pm" d="${path(ts, ts.map((t) => M.flatOnGrid(cost(t))), syB)}"/>`;
+    if (ex) { const k = Math.round(view / ex.b.dt), xs = Array.from({ length: k + 1 }, (_, j) => j * ex.b.dt); s += `<path class="ex" d="${path(xs, Array.from(ex.b.bounds.subarray(0, k + 1)), syB)}"/>`; }
     else s += `<text class="tk" x="${(W / 2).toFixed(0)}" y="${((yb0 + yb1) / 2).toFixed(0)}" text-anchor="middle">solving the best bound…</text>`;
-    s += `<text class="lab" x="${l}" y="${yb0 - 4}">the best bound (ink), inside the band (gray)</text>`;
+    s += `<text class="lab" x="${l}" y="${yb0 - 4}">the best bound (ink), inside the band on the grid (gray)</text>`;
     s += `<text class="tk" x="${sx(0)}" y="${H - 6}" text-anchor="start">0</text><text class="tk" x="${sx(view)}" y="${H - 6}" text-anchor="end">time ${view}</text>`;
     el.innerHTML = s;
   };
@@ -128,7 +133,10 @@ function hero() {
   if (window.ChapterHero) window.ChapterHero.live(fig, { steps: four.length, draw, label: (i) => S.heroLabel(four[i].p.label, four[i].ext.lo, four[i].ext.hi) });
   onVisible(fig, async () => {
     for (let i = 0; i < four.length; i++) {
-      try { solved[i] = await bounds(specOf(four[i].choice)); if (i === cur) draw(cur); } catch (e) { /* the hero keeps the band and the per-moment curve */ }
+      try {
+        const [b, lo, hi] = await Promise.all([bounds(specOf(four[i].choice)), bounds({ kind: "const", c: four[i].ext.lo }), bounds({ kind: "const", c: four[i].ext.hi })]);
+        solved[i] = { b, lo, hi }; if (i === cur) draw(cur);
+      } catch (e) { /* the hero keeps the continuous edges and the per-moment curve */ }
     }
   }, "200px");
 }
@@ -224,7 +232,7 @@ function bandPlate() {
   const fig = plate("band"), el = rootOf("band");
   if (!el) return;
   const N = 51;
-  let choice = getChoice(), cost, view, ext, kind, sketch, drew, shown = false, data = null, yTop = 1;
+  let choice = getChoice(), cost, view, dl, ext, kind, sketch, drew, shown = false, data = null, flats = null, yTop = 1;
   el.innerHTML = `<div class="controls">${pickerHTML("bd-pick")}
       <div class="actions"><button class="btn btn-go" type="button" id="bd-show">Show me</button><button class="btn" type="button" id="bd-clear">Clear</button></div></div>
     <p class="fine" id="bd-note"></p>
@@ -234,66 +242,80 @@ function bandPlate() {
   const pick = $("#bd-pick", el), note = $("#bd-note", el), costEl = $("#bd-cost", el), chart = $("#bd-chart", el);
   const key = $("#bd-key", el), reads = $("#bd-reads", el), say = $("#bd-say", el), state = $("#bd-state", el);
   const xs = range(0, 1, N);
+  const hasBand = () => kind === "ok" || kind === "constant";
+  const pmAt = (t) => (dl !== null && t >= dl - 1e-9 ? 0 : M.flatOnGrid(cost(t)));
+  const series = () => {
+    const k = Math.round(view / data.dt), ts = Array.from({ length: k + 1 }, (_, j) => j * data.dt);
+    const cut = (P) => (P ? Array.from(P.bounds.subarray(0, k + 1)) : null);
+    return { ts, bs: cut(data), pm: ts.map(pmAt), up: cut(flats?.lo), dn: cut(flats?.hi) };
+  };
+  const stateLine = () => {
+    const sub = data && (Array.from(data.bounds).some((v) => v > 0 && v < M.H) || (flats && flats.hi.bounds[0] < M.H));
+    const base = dl !== null ? "Time step 0.01, evidence step 0.02, a forced choice at the deadline; the dashed curve is B(c(t)) moved in by 0.5826√0.01, the leading term of the monitoring shift."
+      : `Time step 0.01, evidence step 0.02, 6 time units past the window. ${hasBand() ? "The gray band is the program's own flat bounds for the lowest and the highest cost, on the same grid and horizon; the dashed lines are B(c_min) and B(c_max), and the" : "The"} dashed curve is B(c(t)), moved in by 0.5826√0.01, the leading term of the monitoring shift.`;
+    return base + (sub ? " Below the grid's first step, 0.02, the page places a bound between the center and that step, where its program still waits at the center; the paper's code reports 0 there." : "");
+  };
   const reset = () => {
-    cost = costOf(choice); kind = kindOf(choice); view = deadlineOf(choice) ?? VIEW;
+    cost = costOf(choice); kind = kindOf(choice); dl = deadlineOf(choice); view = dl ?? VIEW;
     ext = M.extremes(cost);
     pick.value = choice.id;
     yTop = M.flatOnGrid(ext.lo) * 1.12 + 0.05;
-    sketch = new Array(N).fill(NaN); drew = false; shown = false; data = null; reads.innerHTML = "";
+    sketch = new Array(N).fill(NaN); drew = false; shown = false; data = null; flats = null; reads.innerHTML = "";
     note.textContent = kind === "ok" ? S.extremesNote(labelOf(choice), ext.lo, ext.tLo, ext.hi, ext.tHi, view) : S.outsideNote(kind);
     say.textContent = "Drag across the lower chart to draw where you think the best bound runs, then press Show me.";
     state.textContent = "Solving the dynamic program…";
-    const mine = choice;
-    const where = kind === "deadline" ? "a forced choice at the deadline" : "6 time units past the window";
-    const moved = hasBand() ? "the band's edges and the dashed curve are moved in by 0.5826√0.01, the leading term of the monitoring shift, so the program's bound can sit up to 0.001 outside them" : "the dashed curve is moved in by 0.5826√0.01, the leading term of the monitoring shift";
-    bounds(specOf(choice)).then((m) => { if (mine !== choice) return; data = m; state.textContent = `Time step 0.01, evidence step 0.02, ${where}; ${moved}.`; if (shown) reveal(); })
-      .catch((e) => { if (mine === choice) state.textContent = "The solver stopped: " + e.message; });
+    const mine = choice, jobs = [bounds(specOf(choice))];
+    if (hasBand()) jobs.push(bounds({ kind: "const", c: ext.lo }), bounds({ kind: "const", c: ext.hi }));
+    Promise.all(jobs).then(([m, lo, hi]) => {
+      if (mine !== choice) return;
+      data = m; flats = hasBand() ? { lo, hi } : null; state.textContent = stateLine();
+      if (shown) reveal();
+    }).catch((e) => { if (mine === choice) state.textContent = "The solver stopped: " + e.message; });
     drawAll();
-  };
-  const hasBand = () => kind === "ok" || kind === "constant";
-  const series = () => {
-    const k = Math.round(view / data.dt), ts = Array.from({ length: k + 1 }, (_, j) => j * data.dt);
-    return { ts, bs: Array.from(data.bounds.subarray(0, k + 1)), pm: ts.map((t) => (deadlineOf(choice) !== null && t >= view - 1e-9 ? 0 : M.flatOnGrid(cost(t)))) };
   };
   const drawCost = () => costStrip(costEl, cost, view, { ext: hasBand() ? ext : null });
   const drawBound = () => {
     const f = frame(chart, { x: [0, view], y: [0, yTop], aspect: 0.5, minH: 200, maxH: 300 });
     let s = axes(f, { yl: "bound (evidence)", xl: "time", grid: true });
     const ts = range(0, view, 251);
-    const up = M.flatOnGrid(ext.lo), dn = M.flatOnGrid(ext.hi);
+    const upC = M.flatOnGrid(ext.lo), dnC = M.flatOnGrid(ext.hi);
     if (shown && hasBand()) {
-      s += `<rect class="band-gray" x="${f.l}" y="${f.sy(up).toFixed(1)}" width="${f.W - f.l - f.r}" height="${Math.max(1.5, f.sy(dn) - f.sy(up)).toFixed(1)}"/>`;
-      s += hline(f, up, "guide") + hline(f, dn, "guide");
-      s += kind === "constant" ? text(f.W - f.r - 4, f.sy(up) - 5, `B(c) = B(${S.c2(ext.lo)})`, "tk-halo", "end") : edgeLabels(f, up, dn, `B(c_min) = B(${S.c2(ext.lo)})`, `B(c_max) = B(${S.c2(ext.hi)})`);
+      if (data && flats) { const sr = series(); s += bandPath(f, sr.ts, sr.dn, sr.up.map((v, i) => Math.max(v, sr.dn[i] + f.iy(f.sy(0) - 1.5))), "band-gray"); }
+      s += hline(f, upC, "guide") + hline(f, dnC, "guide");
+      s += kind === "constant" ? text(f.W - f.r - 4, f.sy(upC) - 5, `B(c) = B(${S.c2(ext.lo)})`, "tk-halo", "end") : edgeLabels(f, upC, dnC, `B(c_min) = B(${S.cLo(ext.lo)})`, `B(c_max) = B(${S.cHi(ext.hi)})`);
     }
-    s += line(f, ts, ts.map((t) => (deadlineOf(choice) !== null && t >= view - 1e-9 ? 0 : M.flatOnGrid(cost(t)))), "pm");
+    s += line(f, ...dropAt(ts, ts.map(pmAt), dl), "pm");
     if (drew) s += line(f, xs.map((u) => u * view), sketch, "sketch");
-    if (shown && data) { const { ts: tt, bs } = series(); s += line(f, tt, bs, "ex"); }
+    if (shown && data) { const { ts: tt, bs } = series(); s += line(f, ...dropAt(tt, bs, dl), "ex"); }
     if (!drew && !shown) s += text((f.l + f.W - f.r) / 2, f.sy(yTop * 0.55), "drag here to draw your guess", "tag-acc", "middle");
     s += `<rect class="hit" x="${f.l}" y="${f.t}" width="${f.W - f.l - f.r}" height="${f.H - f.t - f.b}"/>`;
-    chart.innerHTML = svg(f, s, shown ? `The best bound for ${labelOf(choice)}, with the band and the per-moment bound` : `The per-moment bound for ${labelOf(choice)}, and your drawing`);
+    const what = hasBand() ? ", inside the band of the program's own flat bounds, beside the per-moment bound" : ", beside the per-moment bound";
+    chart.innerHTML = svg(f, s, shown ? `The best bound for ${labelOf(choice)}${what}` : `The per-moment bound for ${labelOf(choice)}, and your drawing`);
     chart._f = f;
-    key.innerHTML = `<li><span class="key key-pm">Per-moment B(c(t))</span></li>${drew ? `<li><span class="key key-acc">Your guess</span></li>` : ""}${shown ? `<li><span class="key key-ex">Best bound</span></li>${hasBand() ? `<li><span class="key key-band">Band [B(c_max), B(c_min)]</span></li>` : ""}` : ""}`;
+    key.innerHTML = `<li><span class="key key-pm">Per-moment B(c(t))</span></li>${drew ? `<li><span class="key key-acc">Your guess</span></li>` : ""}${shown ? `<li><span class="key key-ex">Best bound</span></li>${hasBand() ? `<li><span class="key key-band">Band: the program's flat bounds for c_max and c_min</span></li><li><span class="key key-guide">B(c_max), B(c_min) moved in</span></li>` : ""}` : ""}`;
   };
   const drawAll = () => { drawCost(); drawBound(); };
   const reveal = () => {
     shown = true; drawBound();
     if (!data) { say.textContent = "Solving the best bound…"; return; }
-    const { ts, bs, pm } = series();
-    const up = M.flatOnGrid(ext.lo), dn = M.flatOnGrid(ext.hi);
-    // the drawing against the bound, where it was drawn
+    const { ts, bs, pm, up, dn } = series();
+    // the drawing against the bound, and against the band on the grid, where it was drawn
     let miss = 0, cnt = 0, out = 0;
-    xs.forEach((u, i) => { if (!Number.isFinite(sketch[i])) return; const k = Math.min(bs.length - 1, Math.round((u * view) / data.dt)); miss += Math.abs(sketch[i] - bs[k]); cnt++; if (sketch[i] > up + 0.002 || sketch[i] < dn - 0.002) out++; });
+    xs.forEach((u, i) => {
+      if (!Number.isFinite(sketch[i])) return;
+      const k = Math.min(bs.length - 1, Math.round((u * view) / data.dt));
+      miss += Math.abs(sketch[i] - bs[k]); cnt++;
+      if (up && (sketch[i] > up[k] + 0.002 || sketch[i] < dn[k] - 0.002)) out++;
+    });
     const verdict = S.sketchVerdict(drew && cnt > 0, cnt ? miss / cnt : NaN, cnt ? out / cnt : 0, kind === "ok");
     if (hasBand()) {
-      let gapUp = Infinity, atUp = 0, gapDn = Infinity, atDn = 0, below = 0, above = 0;
-      bs.forEach((b, k) => { if (up - b < gapUp) { gapUp = up - b; atUp = ts[k]; } if (b - dn < gapDn) { gapDn = b - dn; atDn = ts[k]; } if (b < pm[k] - 0.002) below++; if (b > pm[k] + 0.002) above++; });
-      const st = { dn, up, gapUp, atUp, gapDn, atDn, below: below / bs.length, above: above / bs.length };
-      reads.innerHTML = `<div><dt>Band</dt><dd>${fmt(dn, 2)} to ${fmt(up, 2)}<small>B(c_max) to B(c_min), moved in</small></dd></div>
-        <div><dt>Closest to the lower edge</dt><dd>${gapDn < 0.001 ? "&lt; 0.001" : fmt(gapDn, 3)}<small>at time ${fmt(atDn, 2)}</small></dd></div>
-        <div><dt>Closest to the upper edge</dt><dd>${gapUp < 0.001 ? "&lt; 0.001" : fmt(gapUp, 3)}<small>at time ${fmt(atUp, 2)}</small></dd></div>
-        <div class="k-pm"><dt>Below the per-moment bound</dt><dd>${Math.round(st.below * 100)}%<small>above it ${Math.round(st.above * 100)}% of the window</small></dd></div>`;
-      say.textContent = (kind === "constant" ? S.outsideNote("constant") + " " : S.bandSay(st) + " ") + verdict;
+      const st = M.bandStats(ts, bs, up, dn, M.flatOnGrid(ext.lo), M.flatOnGrid(ext.hi), pm);
+      reads.innerHTML = `<div><dt>Band on the grid</dt><dd>${fmt(st.dn, 3)} to ${fmt(st.up, 3)}<small>the program's flat bounds at time 0</small></dd></div>
+        <div><dt>Closest to the lower edge</dt><dd>${fmt(st.gapDn, 3)}<small>at time ${fmt(st.atDn, 2)}</small></dd></div>
+        <div><dt>Closest to the upper edge</dt><dd>${fmt(st.gapUp, 3)}<small>at time ${fmt(st.atUp, 2)}</small></dd></div>
+        <div><dt>Continuous edges, moved in</dt><dd>${fmt(st.shiftGap, 3)}<small>largest distance from the band's edges</small></dd></div>
+        <div class="k-pm"><dt>Below the per-moment bound</dt><dd>${Math.round(st.below * 100)}%<small>of the checks, by more than 0.002; above it at ${Math.round(st.above * 100)}%</small></dd></div>`;
+      say.textContent = (kind === "constant" ? S.outsideNote("constant") + " " : "") + S.bandSay(st) + " " + verdict;
     } else {
       reads.innerHTML = `<div><dt>Best bound over the window</dt><dd>${fmt(Math.min(...bs), 2)} to ${fmt(Math.max(...bs), 2)}</dd></div>`;
       say.textContent = S.noBandSay(Math.min(...bs), Math.max(...bs)) + " " + verdict;
@@ -386,16 +408,17 @@ function comparePlate() {
       key.innerHTML = `<li><span class="key key-ex">Figure 1(a)'s cost</span></li><li><span class="key key-ex-thin">Constant c_min and c_max</span></li>`;
     } else {
       const P = progs[1], k = Math.round(VIEW / P.dt), xs = Array.from({ length: k + 1 }, (_, j) => j * P.dt), bs = Array.from(P.bounds.subarray(0, k + 1));
-      const up = M.flatOnGrid(ext.lo), dn = M.flatOnGrid(ext.hi);
-      f = frame(chart, { x: [0, VIEW], y: [0, up * 1.15], aspect: 0.56, minH: 200, maxH: 280 });
+      const upC = M.flatOnGrid(ext.lo), dnC = M.flatOnGrid(ext.hi);
+      const upG = Array.from(progs[0].bounds.subarray(0, k + 1)), dnG = Array.from(progs[2].bounds.subarray(0, k + 1));
+      f = frame(chart, { x: [0, VIEW], y: [0, upC * 1.15], aspect: 0.56, minH: 200, maxH: 280 });
       s = axes(f, { yl: "bound (evidence)", xl: "time", grid: true });
-      s += `<rect class="band-gray" x="${f.l}" y="${f.sy(up).toFixed(1)}" width="${f.W - f.l - f.r}" height="${(f.sy(dn) - f.sy(up)).toFixed(1)}"/>` + hline(f, up, "guide") + hline(f, dn, "guide");
+      s += bandPath(f, xs, dnG, upG, "band-gray") + hline(f, upC, "guide") + hline(f, dnC, "guide");
       s += line(f, xs, bs, "ex");
-      s += edgeLabels(f, up, dn, "B(c_min)", "B(c_max)");
-      label = "The program's bound for Figure 1(a) against time, inside the band between the flat bounds for its lowest and highest cost";
-      const own = [progs[0].bounds[0], progs[2].bounds[0]];
-      reads.innerHTML = `<div><dt>Band, moved in</dt><dd>${fmt(dn, 3)} to ${fmt(up, 3)}</dd></div><div><dt>Program's flat bounds</dt><dd>${fmt(own[1], 3)} to ${fmt(own[0], 3)}<small>for the constants c_max and c_min</small></dd></div><div><dt>Bound over the window</dt><dd>${fmt(Math.min(...bs), 3)} to ${fmt(Math.max(...bs), 3)}</dd></div>`;
-      key.innerHTML = `<li><span class="key key-ex">Best bound for Figure 1(a)</span></li><li><span class="key key-band">Band</span></li>`;
+      s += edgeLabels(f, upC, dnC, "B(c_min)", "B(c_max)");
+      label = "The program's bound for Figure 1(a) against time, inside the band of its own flat bounds for the lowest and highest cost";
+      const dn = dnG[0], up = upG[0];
+      reads.innerHTML = `<div><dt>Band on the grid</dt><dd>${fmt(dn, 3)} to ${fmt(up, 3)}<small>the program's flat bounds for c_max and c_min</small></dd></div><div><dt>Continuous edges, moved in</dt><dd>${fmt(dnC, 3)} to ${fmt(upC, 3)}<small>B(c_max) and B(c_min), less 0.5826√0.01</small></dd></div><div><dt>Bound over the window</dt><dd>${fmt(Math.min(...bs), 3)} to ${fmt(Math.max(...bs), 3)}</dd></div>`;
+      key.innerHTML = `<li><span class="key key-ex">Best bound for Figure 1(a)</span></li><li><span class="key key-band">Band on the grid</span></li><li><span class="key key-guide">Continuous edges, moved in</span></li>`;
       say.textContent = S.compareSay(3, { min: Math.min(...bs), max: Math.max(...bs), dn, up });
     }
     chart.innerHTML = svg(f, s, label);
@@ -510,8 +533,11 @@ function decidePlate() {
   const tIn = $("#dc-t", el), yIn = $("#dc-y", el);
   const stats = () => {
     const tau = Array.from(data.tau), cost = costOf(choice);
-    const ec = mean(tau.map((s) => Math.min(cost(t0 + s), 1e3)));
-    return { n: tau.length, t0, y0, median: M.quantile(tau, 0.5), mean: mean(tau), se: seOf(tau), ec, c0: cost(t0), atOnce: tau.filter((s) => s === 0).length / tau.length, q97: M.quantile(tau, 0.97) };
+    // a decision forced at a deadline is charged the cost at the deadline itself, which the schedule keeps finite
+    const ec = mean(tau.map((s) => Math.min(cost(t0 + s), 1e3))), dl = deadlineOf(choice);
+    const forced = dl === null ? 0 : tau.filter((s) => t0 + s >= dl - 1e-9).length / tau.length;
+    const beyond = tau.filter((s) => t0 + s > xMax + 1e-9).length;
+    return { n: tau.length, t0, y0, median: M.quantile(tau, 0.5), mean: mean(tau), se: seOf(tau), ec, c0: cost(t0), atOnce: tau.filter((s) => s === 0).length / tau.length, forced, beyond, xMax };
   };
   const run = () => {
     data = null; drawAll();
@@ -523,7 +549,6 @@ function decidePlate() {
     solve({ job: "decide", spec: specOf(choice), t0, y0, n: NRUN, seed, keepPaths: 16 }, { key: "decide", worker: WORKER }).then((m) => {
       if (mine[0] !== choice || mine[1] !== t0 || mine[2] !== y0) return;
       data = m;
-      const st = stats();
       const dlv = deadlineOf(choice);
       // the window: from a little before the start to about 2.5 times the flat bound's mean time after it (the bound
       // at the start held fixed), so the range doesn't depend on the sampled decisions
@@ -532,7 +557,7 @@ function decidePlate() {
       xMin = Math.max(0, Math.floor((t0 - 0.25 * span) * 10) / 10);
       xMax = dlv ?? Math.min(VIEW + SPARE - 0.5, Math.ceil((t0 + span) * 10) / 10);
       if (!Number.isFinite(guess) || guess < t0 || guess > xMax) guess = NaN;
-      state.textContent = `${NRUN.toLocaleString("en-US")} decisions with seed ${seed}, checked every 0.01 time units against the program's bound (time step 0.01, evidence step 0.02, 6 time units past the window).`;
+      state.textContent = `${NRUN.toLocaleString("en-US")} decisions with seed ${seed}, checked every 0.01 time units against the program's bound (time step 0.01, evidence step 0.02, ${dlv !== null ? "a forced choice at the deadline" : "6 time units past the window"}).`;
       drawAll();
     }).catch((e) => { if (e.message !== "superseded") state.textContent = "The solver stopped: " + e.message; });
   };
@@ -551,29 +576,30 @@ function decidePlate() {
     if (shown) {
       data.paths.forEach((p) => { s += line(f, p.pts.map((q) => t0 + q[0]), p.pts.map((q) => q[1]), "path-dim"); });
       data.paths.forEach((p) => { const q = p.pts[p.pts.length - 1]; s += dot(f, t0 + q[0], q[1], "ink-dot", 2.6); });
-      // the moments of decision, counted in bins of 0.05 under the axis
-      const bw = Math.max(0.01, Math.round((xMax - xMin) / 50 * 100) / 100), nb = Math.ceil((xMax - xMin) / bw), counts = new Array(nb).fill(0);
-      for (const v of data.tau) { const j = Math.floor((t0 + v - xMin) / bw); if (j >= 0 && j < nb) counts[j]++; }
+      // the moments of decision, counted under the axis; one at the right edge (a deadline) goes in the last bin
+      const bw = Math.max(0.01, Math.round((xMax - xMin) / 50 * 100) / 100);
+      const { counts } = M.decisionBins(Array.from(data.tau, (v) => t0 + v), xMin, xMax, bw);
       const cMax = Math.max(1, ...counts), base = f.sy(0) + 2, hgt = f.sy(-top * 0.16) - base - 2;
       counts.forEach((c, j) => { if (c) s += `<rect class="hist" x="${(f.sx(xMin + j * bw) + 0.5).toFixed(1)}" y="${(base + hgt * (1 - c / cMax)).toFixed(1)}" width="${Math.max(0.6, f.sx(xMin + bw) - f.sx(xMin) - 1).toFixed(1)}" height="${(hgt * c / cMax).toFixed(1)}"/>`; });
-      const med = t0 + st.median, left = Number.isFinite(guess) ? guess >= med : med > (xMin + xMax) / 2;
-      s += vline(f, med, "ex", 'stroke-dasharray="4 3"') + text(f.sx(med) + (left ? -5 : 5), f.t + 10, "half have ended", "tag-ex", left ? "end" : "start");
+      // the median's label on a second row, on whichever side has room, so it never meets the guess's label
+      const med = t0 + st.median, left = med > xMin + 0.55 * (xMax - xMin);
+      s += vline(f, med, "ex", 'stroke-dasharray="4 3"') + text(f.sx(med) + (left ? -5 : 5), f.t + 24, "half have ended", "tag-ex", left ? "end" : "start");
     }
-    s += line(f, ts, bs, "ex");
+    s += line(f, ...dropAt(ts, bs, deadlineOf(choice)), "ex");
     s += dot(f, t0, y0, "acc-dot", 4.5);
     if (Number.isFinite(guess)) {
-      const right = shown ? guess >= t0 + st.median : guess < xMin + 0.75 * (xMax - xMin);
+      const right = guess < xMin + 0.7 * (xMax - xMin);
       s += vline(f, guess, "acc", 'stroke-width="2.2"') + text(f.sx(guess) + (right ? 5 : -5), f.t + (shown ? 10 : 10), "your guess", "tag-acc", right ? "start" : "end");
     } else if (!shown) s += text(f.sx(xMin + 0.62 * (xMax - xMin)), f.t + 10, "drag to guess", "tag-acc", "middle");
     s += `<rect class="hit" x="${f.l}" y="${f.t}" width="${f.W - f.l - f.r}" height="${f.H - f.t - f.b}"/>`;
     chart.innerHTML = svg(f, s, shown ? `Decisions from evidence ${y0.toFixed(2)} at time ${t0.toFixed(2)} against the best bound, with the moments of decision counted under the axis` : "The best bound for your schedule, the start, and your guess");
     chart._f = f;
-    key.innerHTML = `<li><span class="key key-ex">Best bound b(t)</span></li><li><span class="key key-acc">Your guess</span></li>${shown ? `<li><span class="key key-dim">Paths, ended at the bound</span></li>` : ""}`;
+    key.innerHTML = `<li><span class="key key-ex">Best bound b(t)</span></li><li><span class="key key-acc">Your guess</span></li>${shown ? `<li><span class="key key-dim">Paths, each to its decision</span></li>` : ""}`;
     if (shown) {
       reads.innerHTML = `<div><dt>Half have ended by</dt><dd>${fmt(t0 + st.median, 2)}<small>τ* median ${fmt(st.median, 3)}</small></dd></div>
         <div class="k-acc"><dt>Your guess</dt><dd>${fmt(guess, 2)}</dd></div>
         <div><dt>Mean τ*</dt><dd>${fmt(st.mean, 3)}<small>± ${fmt(2 * st.se, 3)} (two standard errors)</small></dd></div>
-        <div class="k-acc"><dt>Cost at decision, mean</dt><dd>${S.c2(st.ec)}<small>cost at the start ${S.c2(st.c0)}</small></dd></div>`;
+        <div class="k-acc"><dt>Cost at decision, mean</dt><dd>${S.c2(st.ec)}<small>cost at the start ${S.c2(st.c0)}</small></dd></div>${st.beyond ? `<div><dt>Past the chart</dt><dd>${st.beyond.toLocaleString("en-US")}<small>decisions end after time ${fmt(xMax, 2)}</small></dd></div>` : ""}`;
       say.textContent = S.decideSay(st);
       verdict.textContent = S.decideVerdict(guess, t0 + st.median);
       liftReady(fig);
@@ -642,30 +668,32 @@ function capPlate() {
       gs.forEach((g) => { s += line(f, g.map((q) => q[0]), g.map((q) => q[2]), "path-dim"); });
       label = "The gain from stopping along eight paths that are never stopped, under the line one minus the lowest cost times time";
       const maxG = Math.max(...gs.map((g) => g[g.length - 1][2]));
-      reads.innerHTML = `<div><dt>Lowest cost, c_min</dt><dd>${S.c2(lo)}</dd></div><div><dt>Highest gain at s = ${T}</dt><dd>${minus(fmt(maxG, 3))}<small>the line is at ${minus(fmt(1 - lo * T, 3))}</small></dd></div>`;
+      reads.innerHTML = `<div><dt>Lowest cost, c_min</dt><dd>${S.cLo(lo)}</dd></div><div><dt>Highest gain at s = ${T}</dt><dd>${minus(fmt(maxG, 3))}<small>the line is at ${minus(fmt(1 - lo * T, 3))}</small></dd></div>`;
       key.innerHTML = `<li><span class="key key-dim">G on eight paths, never stopped</span></li>`;
       say.textContent = S.capSay(0, { lo, T, maxG });
     } else if (step === 1) {
       const X = Math.min(VIEW + 1, Math.max(1.5, Math.ceil(M.quantile(sig, 0.9) * 2) / 2));
       const k = Math.round(X / dt), ts = Array.from({ length: k + 1 }, (_, j) => j * dt);
-      const bs = Array.from(data.bounds.subarray(0, k + 1)), cap = data.cap[0];
-      f = frame(chart, { x: [0, X], y: [0, cap * 1.15], aspect: 0.56, minH: 200, maxH: 280 });
+      // the cap the sample uses at each check: the program's own flat bound for c_min, on the same horizon
+      const bs = Array.from(data.bounds.subarray(0, k + 1)), caps = Array.from(data.cap.subarray(0, k + 1)), cap = caps[0];
+      const pathAt = (p, u) => { const q = p.pts.find((r) => Math.abs(r[0] - u) < dt / 2); return q ? q[1] : NaN; };
+      const yHi = Math.max(cap, ...data.paths.filter((p) => p.sigma <= X).map((p) => pathAt(p, p.sigma)).filter(Number.isFinite)) * 1.08 + 0.05;
+      f = frame(chart, { x: [0, X], y: [0, yHi], aspect: 0.56, minH: 200, maxH: 280 });
       s = axes(f, { yl: "evidence, Y", xl: "time since the start, s", grid: true });
-      s += hline(f, cap, "guide") + text(f.W - f.r - 2, f.sy(cap) + 14, "cap, b̄ = B(c_min)", "tk-halo", "end");
+      s += line(f, ts, caps, "guide") + text(f.W - f.r - 2, f.sy(caps[k]) + 14, "cap on the grid", "tk-halo", "end");
       data.paths.forEach((p) => {
-        const before = p.pts.filter((q) => q[0] <= p.tau + 1e-9), after = p.pts.filter((q) => q[0] >= p.tau - 1e-9 && q[0] <= X + 1e-9);
+        const before = p.pts.filter((q) => q[0] <= Math.min(p.tau, X) + 1e-9), after = p.pts.filter((q) => q[0] >= p.tau - 1e-9 && q[0] <= X + 1e-9);
         s += line(f, before.map((q) => q[0]), before.map((q) => q[1]), "path-dim") + line(f, after.map((q) => q[0]), after.map((q) => q[1]), "path-after");
       });
       s += line(f, ts, bs, "ex");
       data.paths.forEach((p) => {
-        const at = (u) => { const q = p.pts.find((r) => Math.abs(r[0] - u) < dt / 2); return q ? q[1] : NaN; };
-        if (p.sigma <= X) s += `<circle class="ring" cx="${f.sx(p.sigma).toFixed(1)}" cy="${f.sy(Math.min(at(p.sigma), cap * 1.14)).toFixed(1)}" r="4"/>`;
-        s += dot(f, p.tau, at(p.tau), "ink-dot", 3);
+        if (p.sigma <= X) s += `<circle class="ring" cx="${f.sx(p.sigma).toFixed(1)}" cy="${f.sy(pathAt(p, p.sigma)).toFixed(1)}" r="4"/>`;
+        if (p.tau <= X) s += dot(f, p.tau, pathAt(p, p.tau), "ink-dot", 3);
       });
       label = "Eight paths with the bound and the cap, each path's decision time and cap time marked";
       const ok = tau.filter((v, i) => v <= sig[i] + 1e-12).length;
-      reads.innerHTML = `<div><dt>τ* ≤ σ</dt><dd>${ok.toLocaleString("en-US")}<small>of ${tau.length.toLocaleString("en-US")} paths</small></dd></div><div><dt>Cap on the grid</dt><dd>${fmt(cap, 3)}<small>B(c_min) = ${fmt(bbar, 3)}, moved in</small></dd></div><div><dt>Mean τ*</dt><dd>${fmt(mean(tau), 3)}</dd></div><div><dt>Mean σ</dt><dd>${fmt(mean(sig), 3)}</dd></div>`;
-      key.innerHTML = `<li><span class="key key-ex">Best bound, and τ*</span></li><li><span class="key key-dim">Paths, to τ*</span></li><li><span class="key key-after">After τ*, to σ</span></li><li><span class="key key-ring">σ, at the cap</span></li>`;
+      reads.innerHTML = `<div><dt>τ* ≤ σ</dt><dd>${ok.toLocaleString("en-US")}<small>of ${tau.length.toLocaleString("en-US")} paths</small></dd></div><div><dt>Cap on the grid at s = 0</dt><dd>${fmt(cap, 3)}<small>B(c_min) = ${fmt(bbar, 3)}, less 0.5826√0.01, is ${fmt(M.flatOnGrid(lo), 3)}</small></dd></div><div><dt>Mean τ*</dt><dd>${fmt(mean(tau), 3)}</dd></div><div><dt>Mean σ</dt><dd>${fmt(mean(sig), 3)}</dd></div>`;
+      key.innerHTML = `<li><span class="key key-ex">Best bound, and τ*</span></li><li><span class="key key-dim">Paths, to τ*</span></li><li><span class="key key-after">After τ*, to σ</span></li><li><span class="key key-ring">σ, the first check at or above the cap</span></li><li><span class="key key-guide">Cap on the grid</span></li>`;
       say.textContent = S.capSay(1, { ok, n: tau.length, mTau: mean(tau), mSig: mean(sig) });
     } else if (step === 2) {
       const X = Math.max(3, Math.ceil(M.quantile(sig, 0.98)));
@@ -679,8 +707,8 @@ function capPlate() {
       s += vline(f, ms, "ex") + vline(f, exact, "acc", 'stroke-dasharray="4 3"');
       s += tags(f, [{ y: yTop * 0.92, text: `sampled mean ${ms.toFixed(2)}`, cls: "tag-ex" }, { y: yTop * 0.92, text: `b̄ tanh b̄ = ${exact.toFixed(2)}`, cls: "tag-acc" }], f.W - f.r - 2);
       label = "The cap times sampled from evidence 0, with their mean beside the closed form";
-      reads.innerHTML = `<div><dt>Mean σ, sampled</dt><dd>${fmt(ms, 3)}<small>± ${fmt(2 * seOf(sig), 3)} (two standard errors)</small></dd></div><div class="k-acc"><dt>b̄ tanh b̄ − y tanh y</dt><dd>${fmt(exact, 3)}<small>b̄ = B(${S.c2(lo)}), y = 0</small></dd></div><div><dt>Mean of 1 + c_max σ</dt><dd>${fmt(1 + hi * exact, 2)}<small>c_max = ${S.c2(hi)}</small></dd></div>`;
-      key.innerHTML = `<li><span class="key key-ex">Sampled mean</span></li><li><span class="key key-acc-dash">The paper's formula</span></li>`;
+      reads.innerHTML = `<div><dt>Mean σ on the grid</dt><dd>${fmt(ms, 3)}<small>± ${fmt(2 * seOf(sig), 3)} (two standard errors)</small></dd></div><div class="k-acc"><dt>b̄ tanh b̄ − y tanh y</dt><dd>${fmt(exact, 3)}<small>continuous model; b̄ = B(${S.cLo(lo)}), y = 0</small></dd></div><div><dt>Mean of 1 + c_max σ</dt><dd>${fmt(1 + hi * exact, 2)}<small>continuous model; c_max = ${S.cHi(hi)}</small></dd></div>`;
+      key.innerHTML = `<li><span class="key key-ex">Sampled mean, on the grid</span></li><li><span class="key key-acc-dash">The paper's formula: continuous, infinite horizon</span></li>`;
       say.textContent = S.capSay(2, { mSig: ms, seSig: seOf(sig), exact, hi });
     } else {
       const ss = Array.from({ length: TRACK + 1 }, (_, j) => j * dt);
