@@ -2,8 +2,8 @@
 //   { job: "yours", choice }   -> the reader's schedule: the program and all seven rules, scored, with their curves
 //   { job: "paper", f, p }     -> one of the paper's schedules: the program and the per-moment and weighted rules
 //   { job: "scaling" }         -> Table 9's shape at each amplitude, and the constant cost, on the page's grid
-import { runRules, familyCost, familyDeadline, scalingLosses, SCALING } from "./ch10-model.js?v=06afe54c9a";
-import { costOf, deadlineOf } from "./schedules-book.js?v=06afe54c9a";
+import { runRules, familyCost, familyDeadline, scalingLosses, SCALING } from "./ch10-model.js?v=f47f3f996a";
+import { costOf, deadlineOf } from "./schedules-book.js?v=f47f3f996a";
 
 self.onmessage = (e) => {
   const m = e.data;

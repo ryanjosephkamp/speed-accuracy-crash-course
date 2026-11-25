@@ -1,13 +1,13 @@
 // Chapter 0's plates: the reader's schedule (the contents page's plate, mounted here too), a first guess on it, and
 // the shortest proof in the paper as a strip. The bounds come from the dynamic program in the worker; the flat-bound
 // curves from closed forms in kernel.js. Sentences come from say-ch00.js.
-import "./contents.js?v=06afe54c9a";
-import { B } from "./kernel.js?v=06afe54c9a";
-import { boundForCost, toDiscrete, belief } from "./model.js?v=06afe54c9a";
-import { costOf, deadlineOf, labelOf, PRESETS, VIEW, SPARE } from "./schedules-book.js?v=06afe54c9a";
-import { getChoice, solve, onVisible, liftReady, wireStrips } from "./book.js?v=06afe54c9a";
-import { frame, line, axes, svg, fmt, keepDrawn, dropAt } from "./chart.js?v=06afe54c9a";
-import * as S from "./say-ch00.js?v=06afe54c9a";
+import "./contents.js?v=f47f3f996a";
+import { B } from "./kernel.js?v=f47f3f996a";
+import { boundForCost, toDiscrete, belief } from "./model.js?v=f47f3f996a";
+import { costOf, deadlineOf, labelOf, PRESETS, VIEW, SPARE } from "./schedules-book.js?v=f47f3f996a";
+import { getChoice, solve, onVisible, liftReady, wireStrips } from "./book.js?v=f47f3f996a";
+import { frame, line, axes, svg, fmt, keepDrawn, dropAt } from "./chart.js?v=f47f3f996a";
+import * as S from "./say-ch00.js?v=f47f3f996a";
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const plate = (id) => document.getElementById("plate-" + id);

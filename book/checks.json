@@ -1,7 +1,7 @@
 {
  "date": "2026-11-25",
- "total": 1403,
- "passed": 1403,
+ "total": 1404,
+ "passed": 1404,
  "results": [
   {
    "file": "book",
@@ -2309,7 +2309,7 @@
   {
    "file": "ch02",
    "plate": "words",
-   "name": "Rising from 0.95 at rate 1.95, the worker's reply and yoursSay and boundText (the tile text and sentence): the bound at the window's end is between 0.0195 and 0.02, and both print it as 0.0199, below the step the sentence compares it with, never 0.020; a bound within 1e-6 of the step prints \"just below 0.02\"",
+   "name": "Rising from 0.95 at rate 1.95, the worker's reply and yoursSay and boundText (the tile text and sentence): the bound at the window's end is between 0.0195 and 0.02, and both print it as 0.0199, below the step the sentence compares it with, never 0.020; in boundText, below 0.02, a bound prints with the fewest decimals from three to six that round below 0.02, and as \"just below 0.02\" when six round to 0.02: 0.0199991 prints 0.019999 and 0.0199996 prints \"just below 0.02\"",
    "ok": true,
    "detail": "bound 0.0199204: 0.0199"
   },
@@ -3065,9 +3065,9 @@
   {
    "file": "ch03",
    "plate": "bill",
-   "name": "flatJob's flat search, on Constant 0.1, Constant 0.01, and a deadline at 1: it scans exactly the levels the caption names (94, below the cap of 5), scores each with model.js's scorer, refines the up-to-three highest local peaks of those scores between their neighbors, and returns the best level it scored; in at least one case the refined level is off the scan and beats every scanned level",
+   "name": "flatJob's flat search, as it reports it, on Constant 0.1, Constant 0.01, a deadline at 1, and a drawing at 2 to time 0.2, then 0.01: its scanned levels are the caption's 94 below the cap of 5, each scored as model.js's scorer scores it; the peaks it refined are the three highest local peaks of those scores, or as many as there are, in order (more than one on at least one of the four); every level it scored inside each refined bracket lies between that peak's neighbors and is scored as the scorer scores it; and the level it returns has the highest of all those scores",
    "ok": true,
-   "detail": "Constant 0.1: 94 levels (true), scores true, 1 refined at 1.3 (true), answer 1.29000 with 0.8187712 against the best scanned 0.8187440 (true); Constant 0.01: 94 levels (true), scores true, 1 refined at 2.55 (true), answer 2.53000 with 0.9680252 against the best scanned 0.9680213 (true); a deadline at 1: 94 levels (true), scores true, 1 refined at 0.95 (true), answer 0.95000 with 0.7677601 against the best scanned 0.7677601 (true); 2 refined off the scan"
+   "detail": "Constant 0.1: 94 levels (true), scores true; 1 local peaks, 1 refined at 1.3 with 26 probes (true); returned 1.2900007, the best of 120 scores (true); Constant 0.01: 94 levels (true), scores true; 1 local peaks, 1 refined at 2.55 with 26 probes (true); returned 2.5300013, the best of 120 scores (true); a deadline at 1: 94 levels (true), scores true; 1 local peaks, 1 refined at 0.95 with 26 probes (true); returned 0.9500000, the best of 120 scores (true); a drawing at 2 to time 0.2, then 0.01: 94 levels (true), scores true; 2 local peaks, 2 refined at 0.07, 2.55 with 24, 26 probes (true); returned 0.0700000, the best of 144 scores (true)"
   },
   {
    "file": "ch03",
@@ -3205,7 +3205,7 @@
   {
    "file": "ch03",
    "plate": "words",
-   "name": "Rising from 0.95 at rate 1.95, time 2.50, the worker's value reply and sliceReads (marker text, tile text, and sentence): the bound is between 0.0195 and 0.02, and all three print it as 0.0199, below the step the sentence compares it with, never 0.020; boundShown prints a bound within 1e-6 of the step as \"just below 0.02\"",
+   "name": "Rising from 0.95 at rate 1.95, time 2.50, the worker's value reply and sliceReads (marker text, tile text, and sentence): the bound is between 0.0195 and 0.02, and all three print it as 0.0199, below the step the sentence compares it with, never 0.020; in boundShown, below 0.02, a bound prints with the fewest decimals from three to six that round below 0.02, and as \"just below 0.02\" when six round to 0.02: 0.0199991 prints 0.019999 and 0.0199996 prints \"just below 0.02\"",
    "ok": true,
    "detail": "bound 0.0199204: threshold 0.0199; tile 0.0199"
   },
@@ -3632,7 +3632,7 @@
   {
    "file": "ch04",
    "plate": "words",
-   "name": "Rising from 0.95 at rate 1.95, the worker's bounds through bandReveal, rangeTile, and revealSay: the lowest bound is between 0.0195 and 0.02, and the tile text and sentence print it as 0.0199, below the step they compare it with, never 0.020; boundText and bound3 print a bound within 1e-6 of the step as \"just below 0.02\"",
+   "name": "Rising from 0.95 at rate 1.95, the worker's bounds through bandReveal, rangeTile, and revealSay: the lowest bound is between 0.0195 and 0.02, and the tile text and sentence print it as 0.0199, below the step they compare it with, never 0.020; in boundText and in bound3, below 0.02, a bound prints with the fewest decimals from three to six that round below 0.02, and as \"just below 0.02\" when six round to 0.02: 0.0199991 prints 0.019999 and 0.0199996 prints \"just below 0.02\"",
    "ok": true,
    "detail": "lowest 0.0199204: tile 0.0199 to 1.16; Over the window, the best bound runs from 0.0199 to 1.16. Its lowest value, 0.0199, is below the grid's first evidence step, 0.02: there the"
   },
@@ -4780,16 +4780,16 @@
   {
    "file": "ch06",
    "plate": "yours",
-   "name": "the prediction box's contents by mode (predictView, which the page applies): the tiny drawing gets the box with both theory questions, Rising the box with its measurement prompt and no questions, and Constant, a flat drawing, and a deadline no box",
+   "name": "predictView's box and questions flags and its prompt, by mode: for the tiny drawing both flags true and the theory prompt; for Rising the box flag true, the questions flag false, and the measurement prompt; for Constant, a flat drawing, and a deadline both flags false",
    "ok": true,
    "detail": "tiny: box true, questions true; rising: box true, questions false; constant: box false, questions false; flat: box false, questions false; deadline: box false, questions false"
   },
   {
    "file": "ch06",
    "plate": "yours",
-   "name": "the verdict the page prints on reveal (yoursVerdict), for the tiny drawing below the chart's threshold: it grades the guesses (both right, both wrong) and gives the theory's answer, then the largest error and why there is no chart; with no guess, the theory's answer without a grade",
+   "name": "yoursVerdict on the tiny drawing below the chart's threshold, for both guesses right, both wrong, one wrong, one right, and none: the grade (singular for one guess, none without a guess), then the theory's answer, then the largest error as printed, at most the measured maximum and within 0.01 in its third figure, and the sentence that the chart opens only when an error reaches 1e-7",
    "ok": true,
-   "detail": "Both guesses match the theory. The theory, for a bounded Lipschitz change like this one: divided by ε, the per-moment error tends to a function of time that is not identically zero over all times t ≥ 0 (unless γ is constant), so over all times it is of order ε; the corrected one is at most of order ε². This chart measures both only at the times from 0 to 2.5, every 0.02. Every error here is below 10⁻⁷: the largest is 2.63e-12, rounded down. The log chart opens only when at least one error reaches 10⁻⁷, so it stays hidden. Pick a schedule that moves more."
+   "detail": "measured maximum 2.6390e-12; Your guess doesn't match the theory. The theory, for a bounded Lipschitz change like this one: divided by ε, the per-moment error tends to a function of time that is not identically zero over all times t ≥ 0 (unless γ is constant), so over all times it is of order ε; the corrected one is at most of order ε². The plate measures both errors at the sampled times from 0 to 2.5, every 0.02. Every error here is below 10⁻⁷: the largest is 2.63e-12, rounded down. The log chart opens only when at least one error reaches 10⁻⁷, so it stays hidden. Pick a schedule that moves more."
   },
   {
    "file": "ch06",
@@ -4815,9 +4815,16 @@
   {
    "file": "ch06",
    "plate": "words",
-   "name": "inside the theorem, the verdict says the per-moment limit is not identically zero over all times, and names the window the chart measures",
+   "name": "inside the theorem, the verdict says the per-moment limit is not identically zero over all times, and names the sampled times the plate measures the errors at",
    "ok": true,
-   "detail": "Both guesses match the theory. At every size from 100% to 50%, the first-order error is smaller than the per-moment error, by a factor of 10.00 to 16.67. Both also carry numerical error from the grid, the finite horizon, and the kernel's series; subtracting the constant-cost run cancels only the part the two runs share, and what remains can change with ε, so the slopes on this chart aren't a test of the theory's rates. The theory, for a bounded Lipschitz change like this one: divided by ε, the per-moment error tends to a function of time that is not identically zero over all times t ≥ 0 (unless γ is constant), so over all times it is of order ε; the corrected one is at most of order ε². This chart measures both only at the times from 0 to 2.5, every 0.02."
+   "detail": "Both guesses match the theory. At every size from 100% to 50%, the first-order error is smaller than the per-moment error, by a factor of 10.00 to 16.67. Both also carry numerical error from the grid, the finite horizon, and the kernel's series; subtracting the constant-cost run cancels only the part the two runs share, and what remains can change with ε, so the slopes on this chart aren't a test of the theory's rates. The theory, for a bounded Lipschitz change like this one: divided by ε, the per-moment error tends to a function of time that is not identically zero over all times t ≥ 0 (unless γ is constant), so over all times it is of order ε; the corrected one is at most of order ε². The plate measures both errors at the sampled times from 0 to 2.5, every 0.02."
+  },
+  {
+   "file": "ch06",
+   "plate": "words",
+   "name": "with the chart shown and one guess submitted (a wrong per-moment guess), errorsVerdict opens with the singular \"Your guess doesn't match the theory.\"",
+   "ok": true,
+   "detail": "Your guess doesn't match the theory. At every size from 100%"
   },
   {
    "file": "ch06",
@@ -6684,7 +6691,7 @@
   {
    "file": "ch09",
    "plate": "coef",
-   "name": "the text's claim: near a fast change it moves away, both ways (below 0.55 on the jump, above 0.62 on the fall)",
+   "name": "the text's claim: on the jump and the fall at their starting settings it moves away from 0.5826, below it on the jump (under 0.55) and above it on the fall (over 0.62), over the window",
    "ok": true,
    "detail": "jump down to 0.497, fall up to 0.681"
   },
@@ -6796,65 +6803,65 @@
   {
    "file": "ch09",
    "plate": "edges",
-   "name": "deadline at 0.45: the computations of the six plates that take the reader's schedule (the program, the density, a run of 2,000 trials with the finer score, the coefficient, the shift, and the refinement) run; the program, the backward plate's kept slices (back from the forced choice, whose sentence it gives, to 0), the density, the coefficient's last finite point, and the shift plot end where they should; the coefficient sentence says what the plate's summary holds (its steady range, each departure with its time and where it falls, and the value before a deadline); the shift sentence takes the flat branch exactly on the flat schedules; and the numbers and the seven sentences the plates make from them are clean",
+   "name": "deadline at 0.45: the computations of the six plates that take the reader's schedule (the program, the density, a run of 2,000 trials with the finer score, the coefficient, the shift, and the refinement) run; the program, the backward plate's kept slices (back from the forced choice, whose sentence it gives, to 0), the density, the coefficient's last finite point, and the shift plot end where they should; the coefficient sentence says what the plate's summary holds (its steady range and how many of those values are within 0.03 of 0.5826, the lowest and highest values with their times, and the value before a deadline) and states no cause; the shift sentence takes the flat branch exactly on the flat schedules; and the numbers and the seven sentences the plates make from them are clean",
    "ok": true,
    "detail": "reward 0.7126, decided by the plot's end 1.000000, trials 0.709, losses 0.7047 0.7385 0.0166 0.0290 0.7047 0.0166 0.7156 0.0174 0.7214 0.0179, plots end at 0.45 and 0.44 (23 of 23 coefficient points finite)"
   },
   {
    "file": "ch09",
    "plate": "edges",
-   "name": "deadline at 3 with cost 0.02: the computations of the six plates that take the reader's schedule (the program, the density, a run of 2,000 trials with the finer score, the coefficient, the shift, and the refinement) run; the program, the backward plate's kept slices (back from the forced choice, whose sentence it gives, to 0), the density, the coefficient's last finite point, and the shift plot end where they should; the coefficient sentence says what the plate's summary holds (its steady range, each departure with its time and where it falls, and the value before a deadline); the shift sentence takes the flat branch exactly on the flat schedules; and the numbers and the seven sentences the plates make from them are clean",
+   "name": "deadline at 3 with cost 0.02: the computations of the six plates that take the reader's schedule (the program, the density, a run of 2,000 trials with the finer score, the coefficient, the shift, and the refinement) run; the program, the backward plate's kept slices (back from the forced choice, whose sentence it gives, to 0), the density, the coefficient's last finite point, and the shift plot end where they should; the coefficient sentence says what the plate's summary holds (its steady range and how many of those values are within 0.03 of 0.5826, the lowest and highest values with their times, and the value before a deadline) and states no cause; the shift sentence takes the flat branch exactly on the flat schedules; and the numbers and the seven sentences the plates make from them are clean",
    "ok": true,
    "detail": "reward 0.9211, decided by the plot's end 1.000000, trials 0.923, losses 0.2505 0.3012 0.0007 0.0074 0.2505 0.0007 0.2512 0.0007 0.2518 0.0007, plots end at 3 and 2.99 (151 of 151 coefficient points finite)"
   },
   {
    "file": "ch09",
    "plate": "edges",
-   "name": "constant: the computations of the six plates that take the reader's schedule (the program, the density, a run of 2,000 trials with the finer score, the coefficient, the shift, and the refinement) run; the program, the backward plate's kept slices (back from the forced choice, whose sentence it gives, to 0), the density, the coefficient's last finite point, and the shift plot end where they should; the coefficient sentence says what the plate's summary holds (its steady range, each departure with its time and where it falls, and the value before a deadline); the shift sentence takes the flat branch exactly on the flat schedules; and the numbers and the seven sentences the plates make from them are clean",
+   "name": "constant: the computations of the six plates that take the reader's schedule (the program, the density, a run of 2,000 trials with the finer score, the coefficient, the shift, and the refinement) run; the program, the backward plate's kept slices (back from the forced choice, whose sentence it gives, to 0), the density, the coefficient's last finite point, and the shift plot end where they should; the coefficient sentence says what the plate's summary holds (its steady range and how many of those values are within 0.03 of 0.5826, the lowest and highest values with their times, and the value before a deadline) and states no cause; the shift sentence takes the flat branch exactly on the flat schedules; and the numbers and the seven sentences the plates make from them are clean",
    "ok": true,
    "detail": "reward 0.8188, decided by the plot's end 0.922104, trials 0.816, losses 0.0002 0.0330 0.0002 0.0330 0.0002 0.0002 0.0002 0.0002 0.0002 0.0002, plots end at 2.5 and 2.50 (126 of 126 coefficient points finite)"
   },
   {
    "file": "ch09",
    "plate": "edges",
-   "name": "flat drawing: the computations of the six plates that take the reader's schedule (the program, the density, a run of 2,000 trials with the finer score, the coefficient, the shift, and the refinement) run; the program, the backward plate's kept slices (back from the forced choice, whose sentence it gives, to 0), the density, the coefficient's last finite point, and the shift plot end where they should; the coefficient sentence says what the plate's summary holds (its steady range, each departure with its time and where it falls, and the value before a deadline); the shift sentence takes the flat branch exactly on the flat schedules; and the numbers and the seven sentences the plates make from them are clean",
+   "name": "flat drawing: the computations of the six plates that take the reader's schedule (the program, the density, a run of 2,000 trials with the finer score, the coefficient, the shift, and the refinement) run; the program, the backward plate's kept slices (back from the forced choice, whose sentence it gives, to 0), the density, the coefficient's last finite point, and the shift plot end where they should; the coefficient sentence says what the plate's summary holds (its steady range and how many of those values are within 0.03 of 0.5826, the lowest and highest values with their times, and the value before a deadline) and states no cause; the shift sentence takes the flat branch exactly on the flat schedules; and the numbers and the seven sentences the plates make from them are clean",
    "ok": true,
    "detail": "reward 0.8188, decided by the plot's end 0.922104, trials 0.816, losses 0.0002 0.0330 0.0002 0.0330 0.0002 0.0002 0.0002 0.0002 0.0002 0.0002, plots end at 2.5 and 2.50 (126 of 126 coefficient points finite)"
   },
   {
    "file": "ch09",
    "plate": "edges",
-   "name": "smooth at size 0: the computations of the six plates that take the reader's schedule (the program, the density, a run of 2,000 trials with the finer score, the coefficient, the shift, and the refinement) run; the program, the backward plate's kept slices (back from the forced choice, whose sentence it gives, to 0), the density, the coefficient's last finite point, and the shift plot end where they should; the coefficient sentence says what the plate's summary holds (its steady range, each departure with its time and where it falls, and the value before a deadline); the shift sentence takes the flat branch exactly on the flat schedules; and the numbers and the seven sentences the plates make from them are clean",
+   "name": "smooth at size 0: the computations of the six plates that take the reader's schedule (the program, the density, a run of 2,000 trials with the finer score, the coefficient, the shift, and the refinement) run; the program, the backward plate's kept slices (back from the forced choice, whose sentence it gives, to 0), the density, the coefficient's last finite point, and the shift plot end where they should; the coefficient sentence says what the plate's summary holds (its steady range and how many of those values are within 0.03 of 0.5826, the lowest and highest values with their times, and the value before a deadline) and states no cause; the shift sentence takes the flat branch exactly on the flat schedules; and the numbers and the seven sentences the plates make from them are clean",
    "ok": true,
    "detail": "reward 0.8188, decided by the plot's end 0.922104, trials 0.816, losses 0.0002 0.0330 0.0002 0.0330 0.0002 0.0002 0.0002 0.0002 0.0002 0.0002, plots end at 2.5 and 2.50 (126 of 126 coefficient points finite)"
   },
   {
    "file": "ch09",
    "plate": "edges",
-   "name": "rising: the computations of the six plates that take the reader's schedule (the program, the density, a run of 2,000 trials with the finer score, the coefficient, the shift, and the refinement) run; the program, the backward plate's kept slices (back from the forced choice, whose sentence it gives, to 0), the density, the coefficient's last finite point, and the shift plot end where they should; the coefficient sentence says what the plate's summary holds (its steady range, each departure with its time and where it falls, and the value before a deadline); the shift sentence takes the flat branch exactly on the flat schedules; and the numbers and the seven sentences the plates make from them are clean",
+   "name": "rising: the computations of the six plates that take the reader's schedule (the program, the density, a run of 2,000 trials with the finer score, the coefficient, the shift, and the refinement) run; the program, the backward plate's kept slices (back from the forced choice, whose sentence it gives, to 0), the density, the coefficient's last finite point, and the shift plot end where they should; the coefficient sentence says what the plate's summary holds (its steady range and how many of those values are within 0.03 of 0.5826, the lowest and highest values with their times, and the value before a deadline) and states no cause; the shift sentence takes the flat branch exactly on the flat schedules; and the numbers and the seven sentences the plates make from them are clean",
    "ok": true,
    "detail": "reward 0.7534, decided by the plot's end 1.000000, trials 0.758, losses 0.6627 0.9857 0.0135 0.0331 0.6627 0.0135 0.6705 0.0125 0.6751 0.0121, plots end at 2.5 and 2.50 (126 of 126 coefficient points finite)"
   },
   {
    "file": "ch09",
    "plate": "edges",
-   "name": "jump to 3.2 (a bound below the grid's first step): the computations of the six plates that take the reader's schedule (the program, the density, a run of 2,000 trials with the finer score, the coefficient, the shift, and the refinement) run; the program, the backward plate's kept slices (back from the forced choice, whose sentence it gives, to 0), the density, the coefficient's last finite point, and the shift plot end where they should; the coefficient sentence says what the plate's summary holds (its steady range, each departure with its time and where it falls, and the value before a deadline); the shift sentence takes the flat branch exactly on the flat schedules; and the numbers and the seven sentences the plates make from them are clean",
+   "name": "jump to 3.2 (a bound below the grid's first step): the computations of the six plates that take the reader's schedule (the program, the density, a run of 2,000 trials with the finer score, the coefficient, the shift, and the refinement) run; the program, the backward plate's kept slices (back from the forced choice, whose sentence it gives, to 0), the density, the coefficient's last finite point, and the shift plot end where they should; the coefficient sentence says what the plate's summary holds (its steady range and how many of those values are within 0.03 of 0.5826, the lowest and highest values with their times, and the value before a deadline) and states no cause; the shift sentence takes the flat branch exactly on the flat schedules; and the numbers and the seven sentences the plates make from them are clean",
    "ok": true,
    "detail": "reward 0.7025, decided by the plot's end 1.000000, trials 0.699, losses 0.9249 1.3147 0.0238 0.0584 0.9249 0.0238 0.9497 0.0209 0.9628 0.0195, plots end at 2.5 and 2.50 (126 of 126 coefficient points finite)"
   },
   {
    "file": "ch09",
    "plate": "edges",
-   "name": "drawing at its extremes: the computations of the six plates that take the reader's schedule (the program, the density, a run of 2,000 trials with the finer score, the coefficient, the shift, and the refinement) run; the program, the backward plate's kept slices (back from the forced choice, whose sentence it gives, to 0), the density, the coefficient's last finite point, and the shift plot end where they should; the coefficient sentence says what the plate's summary holds (its steady range, each departure with its time and where it falls, and the value before a deadline); the shift sentence takes the flat branch exactly on the flat schedules; and the numbers and the seven sentences the plates make from them are clean",
+   "name": "drawing at its extremes: the computations of the six plates that take the reader's schedule (the program, the density, a run of 2,000 trials with the finer score, the coefficient, the shift, and the refinement) run; the program, the backward plate's kept slices (back from the forced choice, whose sentence it gives, to 0), the density, the coefficient's last finite point, and the shift plot end where they should; the coefficient sentence says what the plate's summary holds (its steady range and how many of those values are within 0.03 of 0.5826, the lowest and highest values with their times, and the value before a deadline) and states no cause; the shift sentence takes the flat branch exactly on the flat schedules; and the numbers and the seven sentences the plates make from them are clean",
    "ok": true,
    "detail": "reward 0.6528, decided by the plot's end 0.999997, trials 0.648, losses 3.4812 2.4282 6.9722 8.3496 3.4812 6.9722 3.6096 6.6117 3.6510 6.5189, plots end at 2.5 and 2.50 (126 of 126 coefficient points finite)"
   },
   {
    "file": "ch09",
    "plate": "coef",
-   "name": "the 32-fold jump at 0.2: the coefficient's high comes where the cost holds steady (checked on the schedule) and its low near the jump; the sentence says so for each, names fast movement only for the low, and calls the steady range, more than 0.03 from 0.5826, just that",
+   "name": "the coefficient sentence says whether all, some, or none of the steady values are within 0.03 of 0.5826, with the steady range at four decimals, as the plate's summary counts them: all on the Constant preset, some on the 32-fold jump at 2, none on the 32-fold jump at 0.2; and it states no cause",
    "ok": true,
-   "detail": "Where the cost holds steady, the measured coefficient stays at 0.61, more than 0.03 from 0.5826. It falls to 0.49 at time 0.08, near a change in the cost, and rises to 0.61 at time 1.94, where the cost holds steady and the two bounds are 0.018 and 0.049. Near a change, the bound moves a long way within a few checks, which the leading-order shift doesn't describe. Where the cost holds steady, the bound isn't moving fast: that departure is a measurement on this grid, which the leading-order result doesn't account for."
+   "detail": "constant: 0.5857 to 0.5859, 126 of 126 within; 32-fold jump at 2: 0.5682 to 0.6143, 67 of 68 within; 32-fold jump at 0.2: 0.6143 to 0.6143, 0 of 91 within"
   },
   {
    "file": "ch09",
@@ -6936,9 +6943,9 @@
   {
    "file": "ch09",
    "plate": "words",
-   "name": "the coefficient sentence names a departure only past 0.03 from 0.5826, and prints one value when the range rounds to it",
+   "name": "the coefficient sentence prints one steady value when the range rounds to it at four decimals, and the lowest and highest values with their times",
    "ok": true,
-   "detail": "Where the cost holds steady, the measured coefficient stays at 0.59, near 0.5826. It falls to 0.50 at time 0.40, near a change in the cost. Near a change, the bound moves a long way within a few checks, which the leading-order shift doesn't describe."
+   "detail": "Where the cost holds steady, the measured coefficient stays at 0.5860, all of those values within 0.03 of 0.5826. Over the whole window, its lowest value is 0.497, at time 0.40, and its highest 0.586, at time 2.00."
   },
   {
    "file": "ch09",
@@ -7090,7 +7097,7 @@
   {
    "file": "ch09",
    "plate": "overshoot",
-   "name": "the overshoot window is up to nine check intervals ending at the stop: ?seed=6 at dt = 0.04 stops at 0.32 and its window starts at 0, eight intervals; the caption says “up to nine”",
+   "name": "firstPastMark's window start, which the plate's crop takes (its source reads tBeg = mk.tBeg): up to nine check intervals ending at the stop; ?seed=6 at dt = 0.04 stops at 0.32 and its window starts at 0, eight intervals; the caption says “up to nine”",
    "ok": true,
    "detail": "stop at 0.32, window from 0"
   },
@@ -8994,7 +9001,7 @@
   {
    "file": "ch12",
    "plate": "yours",
-   "name": "a drawing ending at 0.244631958 (the worker's run): at the smallest size the two gaps agree to the readings' two decimals, so the readings and both sentences give one pair with the digits that tell them apart, and the ranking's printed margin is the two worker gaps' difference (within its rounding) and is called a result on this grid",
+   "name": "a drawing ending at 0.244631958 (the worker's run): at the smallest size the two gaps agree to the readings' two decimals, so the readings and both sentences give one pair with the digits that tell them apart, and the ranking's printed margin is the two worker gaps' difference to within half a unit of its last printed digit, and is called a result on this grid",
    "ok": true,
    "detail": "0.130295744 and 0.130269516: readings 13.030% and 13.027%; margin 2.6 × 10⁻³ against 2.62e-3; At 6.25% of its size, the smallest, the first-order urgency is off the best bound's by up to 13.030% of the constant cost's urgency, and the per-moment urgency by up to 13.027% of the constant cost's urgency, at every time drawn. Even there, on this grid, the first-order urgency is not the closer of the two to the best bound's, by 2.6 × 10⁻³% of the constant cost's urgency; the two agree to two decimals of a percent, so the ranking rests on a difference measured on this grid."
   },

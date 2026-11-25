@@ -62,12 +62,13 @@ export function errorsVerdict(guess, ePm, eFo, EPS, outside = false) {
   return gradeOf(guess) + s + THEORY;
 }
 
-const THEORY = "The theory, for a bounded Lipschitz change like this one: divided by ε, the per-moment error tends to a function of time that is not identically zero over all times t ≥ 0 (unless γ is constant), so over all times it is of order ε; the corrected one is at most of order ε². This chart measures both only at the times from 0 to 2.5, every 0.02.";
-/** The grade of the reader's two guesses against the theory (Order ε for the per-moment rule, at most order ε² for the
- * correction), or nothing when neither was made. */
+const THEORY = "The theory, for a bounded Lipschitz change like this one: divided by ε, the per-moment error tends to a function of time that is not identically zero over all times t ≥ 0 (unless γ is constant), so over all times it is of order ε; the corrected one is at most of order ε². The plate measures both errors at the sampled times from 0 to 2.5, every 0.02.";
+/** The grade of the guesses the reader submitted, against the theory (Order ε for the per-moment rule, at most order ε²
+ * for the correction): singular for one guess, nothing for none. */
 function gradeOf(guess) {
-  if (guess.pm === null && guess.fo === null) return "";
-  const right = (guess.pm === 1) + (guess.fo === 2);
+  const made = [[guess.pm, 1], [guess.fo, 2]].filter(([g]) => g !== null), right = made.filter(([g, want]) => g === want).length;
+  if (!made.length) return "";
+  if (made.length === 1) return right ? "Your guess matches the theory. " : "Your guess doesn't match the theory. ";
   return right === 2 ? "Both guesses match the theory. " : right === 1 ? "One guess matches the theory. " : "Neither guess matches the theory. ";
 }
 

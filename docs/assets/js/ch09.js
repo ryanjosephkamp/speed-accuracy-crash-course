@@ -2,12 +2,12 @@
 // paper's backward_induction_x and known_reward); the trials and the overshoots are sampled here, in small batches,
 // with kernel.js's seeded generator; the paper's Tables 1, 2, and 12 come from ch09-model.js, checked cell by cell
 // against the generated tables. The words under each plate come from say-ch09.js.
-import * as K from "./kernel.js?v=06afe54c9a";
-import * as M from "./ch09-model.js?v=06afe54c9a";
-import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, defaultDrawing } from "./schedules-book.js?v=06afe54c9a";
-import { getChoice, setChoice, solve, onVisible, watchVisible, liftReady, calm, seedParam } from "./book.js?v=06afe54c9a";
-import { frame, line, area, axes, svg, fmt, keepDrawn } from "./chart.js?v=06afe54c9a";
-import * as S from "./say-ch09.js?v=06afe54c9a";
+import * as K from "./kernel.js?v=f47f3f996a";
+import * as M from "./ch09-model.js?v=f47f3f996a";
+import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, defaultDrawing } from "./schedules-book.js?v=f47f3f996a";
+import { getChoice, setChoice, solve, onVisible, watchVisible, liftReady, calm, seedParam } from "./book.js?v=f47f3f996a";
+import { frame, line, area, axes, svg, fmt, keepDrawn } from "./chart.js?v=f47f3f996a";
+import * as S from "./say-ch09.js?v=f47f3f996a";
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const plate = (id) => document.getElementById("plate-" + id);
@@ -16,7 +16,7 @@ const segHTML = (name, opts, cur, legend) => `<fieldset class="seg"><legend>${le
   `<label><input type="radio" name="${name}" value="${v}"${String(v) === String(cur) ? " checked" : ""}><span>${lbl}</span></label>`).join("")}</div></fieldset>`;
 const onSeg = (el, name, fn) => el.querySelectorAll(`input[name="${name}"]`).forEach((r) => r.addEventListener("change", () => fn(r.value)));
 const setSeg = (el, name, v) => el.querySelectorAll(`input[name="${name}"]`).forEach((r) => { r.checked = r.value === String(v); });
-const WORKER = new URL("./ch09-worker.js?v=06afe54c9a", import.meta.url);
+const WORKER = new URL("./ch09-worker.js?v=f47f3f996a", import.meta.url);
 const run = (job, opts = {}) => solve(job, { worker: WORKER, ...opts });
 const fail = (state, e) => { if (e.message !== "superseded") state.textContent = "The solver stopped: " + e.message; };
 const finiteMax = (arr) => arr.reduce((m, v) => (Number.isFinite(v) ? Math.max(m, v) : m), -Infinity);
@@ -466,7 +466,8 @@ function overshootPlate() {
   const newPath = () => { onePath = M.onePath(b, dt, K.rng(seed + 101 + runN * 7 + Math.round(dt * 1e6))); };
   const drawPath = () => {
     const P = onePath, s0 = P.side;
-    const tEnd = P.stop[0], tBeg = Math.max(0, tEnd - 9 * dt);
+    // the window's start comes from firstPastMark, which also decides the ring, so the two can't disagree
+    const mk = M.firstPastMark(P, dt), tEnd = P.stop[0], tBeg = mk.tBeg;
     const fp = P.path.filter((p) => p[0] >= tBeg - 1e-12), cp = P.checks.filter((p) => p[0] >= tBeg - 1e-12);
     const ys = fp.map((p) => s0 * p[1]);
     const lo = Math.min(...ys, b - 0.1), hi = Math.max(...ys, b + 0.05);
@@ -479,7 +480,6 @@ function overshootPlate() {
     const st = P.stop, over = s0 * st[1] - b;
     s += `<path class="acc" stroke-width="2.6" d="M${f.sx(st[0]).toFixed(1)} ${f.sy(b).toFixed(1)}V${f.sy(s0 * st[1]).toFixed(1)}"/>`;
     s += `<text class="tag-acc" x="${(f.sx(st[0]) - 6).toFixed(1)}" y="${(f.sy(s0 * st[1]) - 6).toFixed(1)}" text-anchor="end">past by ${fmt(over, 3)}</text>`;
-    const mk = M.firstPastMark(P, dt);
     if (mk.kind === "ring") {
       const fx = f.sx(mk.t), right = fx < f.W * 0.6;
       s += `<circle class="ring-ex" cx="${fx.toFixed(1)}" cy="${f.sy(s0 * P.first[1]).toFixed(1)}" r="4"/><text class="tk" x="${(fx + (right ? 6 : -6)).toFixed(1)}" y="${(f.sy(b) + 14).toFixed(1)}" text-anchor="${right ? "start" : "end"}">first fine step past it, unseen</text>`;
@@ -577,7 +577,7 @@ function coefPlate() {
       reads.innerHTML = `${steady ? `<div><dt>Where the cost is steady</dt><dd>${fmt(steady[0], 3) === fmt(steady[1], 3) ? fmt(steady[0], 3) : `${fmt(steady[0], 3)} to ${fmt(steady[1], 3)}`}</dd></div>` : ""}
         ${all ? `<div class="k-ex"><dt>Over the ${dl !== null ? "trial" : "window"}</dt><dd>${fmt(all.lo, 3)} to ${fmt(all.hi, 3)}</dd></div>` : ""}
         ${lastK !== null ? `<div><dt>Last check before the deadline</dt><dd>${fmt(lastK, 3)}</dd></div>` : ""}`;
-      say.textContent = S.coefSay(steady, all, lastK, C.flat);
+      say.textContent = S.coefSay(steady, all, lastK, C.flat, C.steadyIn);
       state.textContent = `Two programs on an evidence grid of ${m.h}, ${dl !== null ? "to the deadline" : "to a forced choice at " + (M.WINDOW + M.SPARE)}, compared every ${2 * m.dtC} time units${dl !== null ? " up to the last check before it" : ""}.`;
       keepDrawn(chart, draw);
     }).catch((e) => { if (my === gen) fail(state, e); });

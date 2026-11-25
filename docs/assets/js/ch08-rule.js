@@ -9,10 +9,10 @@
 // jumps. The equation's map (mapExact) uses the level's own kernel, integrated with its exact cumulative weights and
 // up to a deadline, so it changes continuously with the level; its crossings approximate the equation's solutions
 // (tools/checks/ch08.mjs holds them to a separate evaluation on a finer grid).
-import { boundForCost, boundaryKernel, kernelForBound, score, toDiscrete, belief, grid } from "./model.js?v=06afe54c9a";
-import { costOf, deadlineOf, paramsOf, VIEW, SPARE, DRAW_TIMES } from "./schedules-book.js?v=06afe54c9a";
-import { dropAt, line } from "./chart.js?v=06afe54c9a";
-import { flux, fluxTotal, kappa } from "./kernel.js?v=06afe54c9a";
+import { boundForCost, boundaryKernel, kernelForBound, score, toDiscrete, belief, grid } from "./model.js?v=f47f3f996a";
+import { costOf, deadlineOf, paramsOf, VIEW, SPARE, DRAW_TIMES } from "./schedules-book.js?v=f47f3f996a";
+import { dropAt, line } from "./chart.js?v=f47f3f996a";
+import { flux, fluxTotal, kappa } from "./kernel.js?v=f47f3f996a";
 
 export const UPDATES = 30;
 

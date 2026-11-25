@@ -2,13 +2,13 @@
 // fixed points the rule's equation asks for), model.js (the constant-cost bound, the binned kernels, the dynamic
 // program and its scorer), or kernel.js (the kernel's series and transform); the heavy work runs in ch08-worker.js.
 // The words under each plate come from say-ch08.js, which takes numbers and returns sentences.
-import * as K from "./kernel.js?v=06afe54c9a";
-import { boundForCost, kernelForBound, toDiscrete } from "./model.js?v=06afe54c9a";
-import { PRESETS, DRAW, paramsOf, labelOf, defaultDrawing, deadlineOf, VIEW } from "./schedules-book.js?v=06afe54c9a";
-import { getChoice, setChoice, onVisible, watchVisible, liftReady, calm } from "./book.js?v=06afe54c9a";
-import { frame, line, area, axes, svg, fmt, keepDrawn } from "./chart.js?v=06afe54c9a";
-import { weightedHistory, mapExact, scheduleFor, spikeCost, shareExact, codeStretches, P13, levelDerivative, comparisonLines, startSeries, startLine, shiftLines } from "./ch08-rule.js?v=06afe54c9a";
-import * as S from "./say-ch08.js?v=06afe54c9a";
+import * as K from "./kernel.js?v=f47f3f996a";
+import { boundForCost, kernelForBound, toDiscrete } from "./model.js?v=f47f3f996a";
+import { PRESETS, DRAW, paramsOf, labelOf, defaultDrawing, deadlineOf, VIEW } from "./schedules-book.js?v=f47f3f996a";
+import { getChoice, setChoice, onVisible, watchVisible, liftReady, calm } from "./book.js?v=f47f3f996a";
+import { frame, line, area, axes, svg, fmt, keepDrawn } from "./chart.js?v=f47f3f996a";
+import { weightedHistory, mapExact, scheduleFor, spikeCost, shareExact, codeStretches, P13, levelDerivative, comparisonLines, startSeries, startLine, shiftLines } from "./ch08-rule.js?v=f47f3f996a";
+import * as S from "./say-ch08.js?v=f47f3f996a";
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const plate = (id) => document.getElementById("plate-" + id);
@@ -46,7 +46,7 @@ let worker = null, nextId = 1;
 const pending = new Map(), latest = new Map();
 function work(job, { key = null, progress = null } = {}) {
   if (!worker) {
-    worker = new Worker(new URL("./ch08-worker.js?v=06afe54c9a", import.meta.url), { type: "module" });
+    worker = new Worker(new URL("./ch08-worker.js?v=f47f3f996a", import.meta.url), { type: "module" });
     worker.onmessage = (e) => {
       const m = e.data, p = pending.get(m.id);
       if (!p) return;

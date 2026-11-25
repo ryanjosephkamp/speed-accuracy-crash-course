@@ -10,9 +10,9 @@
 //     beside the continuous best and the earn plate's curve of averages: a like-for-like comparison of a bound held flat
 //     with the best time-dependent policy, and the plate's heavier sums off the page's thread
 // Both answer through valueJob and flatJob, which tools/checks/ch03.mjs also runs.
-import { valueSurface, bestFlat, bestFlatOnGrid, flatOnSchedule } from "./ch03-model.js?v=06afe54c9a";
-import { boundForCost, toDiscrete } from "./model.js?v=06afe54c9a";
-import { costOf, deadlineOf, VIEW, SPARE } from "./schedules-book.js?v=06afe54c9a";
+import { valueSurface, bestFlat, bestFlatOnGrid, flatOnSchedule } from "./ch03-model.js?v=f47f3f996a";
+import { boundForCost, toDiscrete } from "./model.js?v=f47f3f996a";
+import { costOf, deadlineOf, VIEW, SPARE } from "./schedules-book.js?v=f47f3f996a";
 
 export function valueJob(m, progress = null) {
   const dt = m.dt ?? 0.01, h = m.h ?? 0.02;
