@@ -106,3 +106,11 @@ export function keepDrawn(el, draw) {
   draw(); w = Math.round(el.clientWidth);
   return () => { w = 0; run(); };
 }
+
+/** A curve that jumps at x (a deadline's forced choice): its last point drops there, so insert the left limit at x
+ * and the line falls straight down instead of sloping across the last step. */
+export function dropAt(xs, ys, x) {
+  const n = xs.length;
+  if (x === null || x === undefined || n < 2 || Math.abs(xs[n - 1] - x) > 1e-9) return [xs, ys];
+  return [[...xs.slice(0, n - 1), x, x], [...ys.slice(0, n - 1), ys[n - 2], ys[n - 1]]];
+}

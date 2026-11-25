@@ -10,7 +10,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { exactPolicy, perMoment, weightedBound, toDiscrete, score } from "../../book/assets/js/model.js";
 import { CHOICES, spec, costFromSpec, HORIZON } from "../validity/schedules.mjs";
-import { check, ROOT } from "./lib.mjs";
+import { check, ROOT, runWorker } from "./lib.mjs";
 
 const REF = JSON.parse(readFileSync(join(ROOT, "tools/validity/paper-code.json"), "utf8"));
 const SRC = JSON.parse(readFileSync(join(ROOT, "paper/SOURCE.json"), "utf8"));
@@ -55,21 +55,24 @@ for (const choice of CHOICES) {
 
 // ---- the worker the pages call, run here as the page runs it, against the same reference -------------------------
 {
-  let reply = null;
-  globalThis.self = { postMessage: (m) => { if (m.ok !== undefined) reply = m; } };
-  await import("../../book/assets/js/dp-worker.js");
-  const ask = (choice) => { reply = null; globalThis.self.onmessage({ data: { job: "bounds", choice, id: 1 } }); return reply; };
+  const ask = (choice) => runWorker("../../book/assets/js/dp-worker.js", { job: "bounds", choice });
   for (const choice of CHOICES) {
-    const s = spec(choice), ref = REF.schedules[s.id], m = ask(choice);
-    let worst = 0;
-    m.t.forEach((t, i) => { const k = Math.round(t / REF.dt), r = ref.exact[k], v = m.exact[i];
-      if (Number.isFinite(r) && r !== null && Number.isFinite(v)) worst = Math.max(worst, Math.abs(r - v)); });
-    check("schedule", `${s.id}: the page's worker returns the reference bound at every time it plots (within 1e-6)`, worst < 1e-6, `largest difference ${worst.toExponential(2)} over ${m.t.length} times`);
+    const s = spec(choice), ref = REF.schedules[s.id], m = await ask(choice);
+    const ok = !!(m && m.ok && Array.isArray(m.t) && m.t.length > 50 && m.exact.length === m.t.length && m.pm.length === m.t.length);
+    let worst = 0, pairs = 0;
+    if (ok) m.t.forEach((t, i) => {
+      const k = Math.round(t / REF.dt), r = ref.exact[k], v = m.exact[i];
+      if (r === null && v === null) return;          // both off the grid's cap: the same, and counted
+      if (Number.isFinite(r) && Number.isFinite(v)) { worst = Math.max(worst, Math.abs(r - v)); pairs++; }
+    });
+    check("schedule", `${s.id}: the page's worker returns the reference bound at every time it plots (within 1e-6)`, ok && pairs === m.t.length && worst < 1e-6,
+      ok ? `largest difference ${worst.toExponential(2)}, ${pairs} of ${m.t.length} times compared` : "no valid reply");
   }
   for (const at of [0.45, 1, 0.8]) {
-    const m = ask({ id: "deadline", params: { at, c: 0.1 } });
+    const m = await ask({ id: "deadline", params: { at, c: 0.1 } });
     const last = m.t[m.t.length - 1];
-    check("schedule", `a deadline at ${at}: the worker's last point is the forced choice, at the deadline, with bound 0`, Math.abs(last - at) < 1e-9 && m.exact[m.exact.length - 1] === 0, `last point ${last}, bound ${m.exact[m.exact.length - 1]}`);
+    check("schedule", `a deadline at ${at}: the worker's last point is the forced choice, at the deadline, with both bounds 0`,
+      Math.abs(last - at) < 1e-9 && m.exact[m.exact.length - 1] === 0 && m.pm[m.pm.length - 1] === 0, `last point ${last}, bounds ${m.exact[m.exact.length - 1]} and ${m.pm[m.pm.length - 1]}`);
   }
 }
 

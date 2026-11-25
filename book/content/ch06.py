@@ -66,7 +66,7 @@ PLATES = {
         "title": "Starts near the bound",
         "state": "computed",
         "state_text": "Sampled in the page, beside the exact curve from the series",
-        "caption": r"""Each decision starts at evidence drawn from $\pi_0(y) = 4c_0\cosh^2 y$ (left, the density) and runs until it reaches the bound, checked every 0.0025 time units against the bound moved in by $0.5826\sqrt{0.0025}$. Right: a histogram of 8,000 decision times on $0 \le s < 3$ (a few run longer, and starts above the moved-in bound stop at 0), under the exact kernel $w(s)$. The runs are a demonstration with a fixed seed (add `?seed=` to the address for another); the curve is the series. Checking only every 0.0025 is an approximation, so the runs can differ from the exact law by more than their sampling error.""",
+        "caption": r"""Each decision starts at evidence drawn from $\pi_0(y) = 4c_0\cosh^2 y$ (left, the density) and runs until it reaches the bound, checked every 0.0025 time units against the bound moved in by $0.5826\sqrt{0.0025}$. Right: a histogram of 8,000 decision times on $0 \le s < 3$ (runs of three or more time units are outside the histogram, and starts above the moved-in bound stop at 0), under the exact kernel $w(s)$. The runs are a demonstration with a fixed seed (add `?seed=` to the address for another); the curve is the series. Checking only every 0.0025 is an approximation, so the runs can differ from the exact law by more than their sampling error.""",
         "wide": True,
     },
     "transform": {
@@ -87,7 +87,7 @@ PLATES = {
         "title": "Your schedule, scaled down",
         "state": "computed",
         "state_text": "Computed in the page: a dynamic program on a grid, and the kernel from its series",
-        "caption": r"""Your schedule $c(t)$, written as $c_0 + \varepsilon\gamma(t)$ with $c_0$ its average over the window and $\gamma = c - c_0$, then scaled down by $\varepsilon$. Top: the dynamic program's $(b_\varepsilon - b_0)/\varepsilon$ (ink), the first-order $\beta(t)$ (green), and the per-moment $B'(c_0)\gamma(t)$ (dashed). The dashed curve on top is the per-moment rule's linear response; its error below uses the full $B(c_0 + \varepsilon\gamma(t))$. Bottom: the largest error of each shortcut's bound over the window, against $\varepsilon$, on log axes, with guide lines of slope 1 and 2. Errors are measured from the program's own constant-cost bound, so the offsets the two runs share cancel. The dotted line is the grid's floor, taken as the first-order error at the smallest $\varepsilon$ (about $10^{-3}$ to $3\times10^{-4}$ on this grid, lower on a finer one); slopes are fitted over the three smallest sizes whose error is at least four times it, since the theory's rates are about small sizes.""",
+        "caption": r"""Your schedule $c(t)$, written as $c_0 + \varepsilon\gamma(t)$ with $c_0$ its average over the window and $\gamma = c - c_0$, then scaled down by $\varepsilon$. Top: the dynamic program's $(b_\varepsilon - b_0)/\varepsilon$ (ink), the first-order $\beta(t)$ (green), and the per-moment $B'(c_0)\gamma(t)$ (dashed). The dashed curve on top is the per-moment rule's linear response; its error below uses the full $B(c_0 + \varepsilon\gamma(t))$. Bottom: the largest error of each shortcut's bound over the window, against $\varepsilon$, on log axes, with guide lines of slope 1 and 2. Errors are measured from the program's own constant-cost bound, so the offsets the two runs share cancel; they still carry the grid's own error, so the chart compares the two errors at each size and isn't a test of the theory's rates.""",
         "wide": True,
     },
 }
@@ -232,7 +232,7 @@ The proof uses the exact equation of chapter 5, which has no derivative of the b
             ("plain", r"""
 {{ref:thm:main}}, with {{ref:prop:rule}}, compares two shortcuts. The per-moment rule's error in the bound shrinks no faster than the size of the change: divided by $\varepsilon$, it tends to $B'(c_0)(\gamma - w \star \gamma)$, which is not identically zero unless $\gamma$ is constant. With the first-order correction, the error shrinks faster than the change, $o(\varepsilon)$; when the change is smooth (Lipschitz), it is $O(\varepsilon^2)$.
 
-Here is that comparison on the schedule you chose on the contents page. The page writes your schedule as $c_0 + \varepsilon\gamma$, with $c_0$ its average over the window, and shrinks the change. A grid has a finest resolution: below a floor, drawn on the chart, the errors stop following the theory, so the page fits slopes only above it. Before it draws the bottom chart, guess how fast each error shrinks.
+Here is that comparison on the schedule you chose on the contents page. The page writes your schedule as $c_0 + \varepsilon\gamma$, with $c_0$ its average over the window, and shrinks the change. A grid adds errors of its own that don't shrink with $\varepsilon$, so the page compares the two errors at each size instead of reading the theory's rates off the grid. Before it draws the bottom chart, say how fast the theory says each error shrinks.
 """),
             ("plate", "yours"),
             ("plain", r"""
@@ -315,7 +315,7 @@ It tends to $B'(c_0)(\gamma - w \star \gamma)$. Write $\gamma = \operatorname{Im
                 (r"“{{ref:thm:main}} covers the 16-fold rise and the deadline.”",
                  r"Large changes, discontinuous steps, and deadlines lie outside it."),
                 (r"“The per-moment rule's error is first order, so it loses first-order reward.”",
-                 r"Its *bound* error is first order; its *reward* loss is at most second order, by {{ref:prop:loss}} (chapter 7), for small changes. That is why it is close in reward and wrong in timing."),
+                 r"Its *bound* error is first order; its *reward* loss is at most second order, by {{ref:prop:loss}} (chapter 7): for a small, bounded, continuous change and a fixed start below the bound. That is why it is close in reward and wrong in timing."),
                 (r"“‘Smoothly’ in the abstract means differentiable.”",
                  r"The paper doesn't define it; it corresponds to the Lipschitz case of {{ref:thm:main}} and {{ref:prop:rule}}, where the error is $O(\varepsilon^2)$."),
             ]),

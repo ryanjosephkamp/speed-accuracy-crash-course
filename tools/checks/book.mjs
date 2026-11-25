@@ -29,3 +29,13 @@ for (const c of [0.05, 0.1, 0.5]) {
   }
 }
 
+
+// ---- a rule's bound drops at a deadline instead of sloping across the last step ---------------------------------
+{
+  const { dropAt } = await import("../../book/assets/js/chart.js");
+  const [t, v] = dropAt([0.42, 0.44, 0.45], [1.2854, 1.2854, 0], 0.45);
+  check("schedule", "at a deadline the per-moment curve holds its value up to the forced choice and drops there",
+    t.length === 4 && t[2] === 0.45 && v[2] === 1.2854 && t[3] === 0.45 && v[3] === 0, `${t.join(", ")} / ${v.join(", ")}`);
+  const [t2] = dropAt([0, 1, 2], [1, 1, 1], null);
+  check("schedule", "without a deadline the curve is unchanged", t2.length === 3, String(t2.length));
+}

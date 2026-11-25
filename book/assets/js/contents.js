@@ -2,7 +2,7 @@
 // best bound for it from the dynamic program, beside the per-moment rule's bound.
 import { PRESETS, DRAW, DRAW_TIMES, DRAW_MIN, DRAW_MAX, costOf, defaultDrawing, paramsOf, deadlineOf, VIEW, labelOf } from "./schedules-book.js";
 import { getChoice, setChoice, solve, onVisible, liftReady } from "./book.js";
-import { frame, line, axes, svg, tags, fmt, keepDrawn } from "./chart.js";
+import { frame, line, axes, svg, tags, fmt, keepDrawn, dropAt } from "./chart.js";
 
 const fig = document.getElementById("plate-schedule");
 const rootEl = fig?.querySelector(".demo-root");
@@ -74,7 +74,8 @@ function build() {
     const top = Math.max(...exact.filter(Number.isFinite), ...pm.filter(Number.isFinite)) * 1.12;
     const f = frame(boundEl, { x: [0, t[t.length - 1]], y: [0, Math.max(0.4, top)], aspect: 0.42, minH: 160, maxH: 260 });
     let inner = axes(f, { yl: "bound (evidence)", xl: "time", grid: true });
-    inner += line(f, t, pm, "pm") + line(f, t, exact, "ex");
+    const [tp, pmp] = dropAt(t, pm, result.deadline);   // the rule's bound holds until the forced choice, then drops
+    inner += line(f, tp, pmp, "pm") + line(f, t, exact, "ex");
     boundEl.innerHTML = svg(f, inner, `The best bound and the per-moment rule's bound for ${labelOf(choice)}`);
     // readings: where the two bounds differ most, and the bound at the start
     let gi = 0, g = -1;

@@ -6,7 +6,7 @@ import { B } from "./kernel.js";
 import { boundForCost, toDiscrete, belief } from "./model.js";
 import { costOf, deadlineOf, labelOf, PRESETS, VIEW, SPARE } from "./schedules-book.js";
 import { getChoice, solve, onVisible, liftReady, wireStrips } from "./book.js";
-import { frame, line, axes, svg, fmt, keepDrawn } from "./chart.js";
+import { frame, line, axes, svg, fmt, keepDrawn, dropAt } from "./chart.js";
 import * as S from "./say-ch00.js";
 
 const $ = (sel, el = document) => el.querySelector(sel);
@@ -49,7 +49,8 @@ function hero() {
     s += `<path class="cost" d="${path(ts, cs, syC)}"/>`;
     if (dl !== null) s += `<path class="acc" stroke-dasharray="3 3" d="M${sx(dl).toFixed(1)} 14V${yb1}"/>`;
     s += `<text class="lab" x="${l}" y="11">cost of time: ${p.label.toLowerCase()}</text>`;
-    s += `<path class="pm" d="${path(ts, pm, syB)}"/>`;
+    const [tp, pmp] = dropAt(ts, pm, dl);
+    s += `<path class="pm" d="${path(tp, pmp, syB)}"/>`;
     if (ex) s += `<path class="ex" d="${path(ex.t, ex.exact, syB)}"/>`;
     else s += `<text class="tk" x="${(W / 2).toFixed(0)}" y="${((yb0 + yb1) / 2).toFixed(0)}" text-anchor="middle">solving the best bound…</text>`;
     s += `<text class="lab" x="${l}" y="${yb0 - 4}">the bound: best (ink) and per-moment (dashed)</text>`;
@@ -101,7 +102,8 @@ function guessPlate() {
   const drawBound = () => {
     const f = frame(boundEl, { x: [0, view], y: [0, yTop], aspect: 0.5, minH: 190, maxH: 280 });
     let s = axes(f, { yl: "bound (evidence)", xl: "time", grid: true });
-    s += line(f, ts, pm, "pm");
+    const [tp, pmp] = dropAt(ts, pm, dl);
+    s += line(f, tp, pmp, "pm");
     if (shown && result) {
       s += line(f, result.t, result.exact, "ex");
       const bT = bestAt();

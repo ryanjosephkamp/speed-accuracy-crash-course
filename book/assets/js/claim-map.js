@@ -75,7 +75,7 @@ export function mountMap(root, { data, chapter = null, focus = "thm:main", links
   <div class="cm3"><p class="cm-info">Loading the 3D map…</p></div>
 </div>
 <div class="cm-view" data-view="pages">
-  <p class="cm-how">One page per chapter, chapter 1 at the back, with each page's claims set by layer. On the page in hand, the pages it uses are outlined in slate and the pages that use it in green; tap a page's number to take it in hand.</p>
+  <p class="cm-how">One page per chapter, chapter 1 at the back, with each page's claims set by layer. On the page in hand, the number badges of the pages it uses turn slate and of the pages that use it green (slate wins where links run both ways); tap a page's number to take it in hand.</p>
   <div class="cm3"><p class="cm-info">Loading the 3D map…</p></div>
 </div>`;
   const $ = (s) => root.querySelector(s);

@@ -6,6 +6,7 @@ import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, VIEW, defaultDraw
 import { getChoice, setChoice, solve, onVisible, watchVisible, liftReady, calm, seedParam } from "./book.js";
 import { frame, line, area, axes, svg, tags, fmt, keepDrawn } from "./chart.js";
 import * as S from "./say-ch06.js";
+import { yoursErrors, errorRange } from "./ch06-model.js";
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const plate = (id) => document.getElementById("plate-" + id);
@@ -434,7 +435,7 @@ function transformPlate() {
       reads.innerHTML = `<div class="k-wb"><dt>Closed form at λ = 1</dt><dd>${fmt(K.transform(1, c0), 4)}</dd></div>
         <div><dt>Series at λ = 1</dt><dd>${fmt(K.transformSeries(1, c0, 40000), 4)}<small>largest gap at the dots ${Math.max(...gaps).toExponential(1)}</small></dd></div>` + reads.innerHTML;
       head.textContent = step === 3 ? "Step 4: the flux's transform, normalized, is the closed form (green); the dots are the series, term by term."
-        : "Step 5: the decision times from π₀ (crosses, two standard errors) land on the same transform.";
+        : "Step 5: estimates from the monitored sampler of decision times from π₀ (crosses, two standard errors), beside the same transform.";
       label = "The kernel's Laplace transform: the closed form, the series, and sampled decision times";
     }
     chart.innerHTML = svg(f, g, label);
@@ -523,30 +524,27 @@ function yoursPlate() {
   };
   const drawBot = () => {
     if (!data || !reveal) { bot.hidden = true; return; }
+    const { ePm, eFo } = data, yr = errorRange(ePm, eFo);
+    if (!yr) { bot.hidden = true; reads.innerHTML = ""; verdict.textContent = S.tooSmallSay(); return; }
     bot.hidden = false;
-    const { ePm, eFo } = data;
-    const vals = [...ePm, ...eFo].filter((v) => v > 0);
-    const yLo = Math.max(1e-6, Math.min(Math.min(...vals) / 3, 4e-5)), yHi = Math.max(...vals) * 3;
+    const [yLo, yHi] = yr;
     const f = frame(bot, { x: [EPS[EPS.length - 1] / 1.3, 1.3], y: [yLo, yHi], xlog: true, ylog: true, aspect: 0.5, minH: 180, maxH: 280 });
     let g = axes(f, { yl: "largest error in the bound", xl: "ε", grid: true });
-    // guide lines of slope 1 and 2 through the per-moment error at the largest epsilon
+    // guide lines of slope 1 and 2 through the per-moment error at the largest epsilon: guides only
     const e0 = EPS[0], y0 = ePm[0] || yHi / 3;
     g += line(f, [e0, EPS[EPS.length - 1]], [y0, y0 * EPS[EPS.length - 1] / e0], "guide");
     g += line(f, [e0, EPS[EPS.length - 1]], [y0 / 3, (y0 / 3) * (EPS[EPS.length - 1] / e0) ** 2], "guide");
     const xl = EPS[EPS.length - 1] * 1.6, lx = f.sx(xl);
     g += `<text class="tk" x="${lx.toFixed(1)}" y="${(f.sy(y0 * xl / e0) - 6).toFixed(1)}">slope 1</text>`;
     g += `<text class="tk" x="${lx.toFixed(1)}" y="${Math.min(f.H - f.b - 4, f.sy((y0 / 3) * (xl / e0) ** 2) + 14).toFixed(1)}">slope 2</text>`;
-    g += line(f, EPS, ePm, "pm") + line(f, EPS, eFo.map((v) => Math.max(v, yLo)), "wb");
-    g += EPS.map((e, k) => `<circle class="wb-dot" cx="${f.sx(e).toFixed(1)}" cy="${f.sy(Math.max(eFo[k], yLo)).toFixed(1)}" r="3"/>`).join("");
-    const floor = S.gridFloor(eFo);
-    g += `<path class="dim" stroke-dasharray="1 3" d="M${f.l} ${f.sy(floor).toFixed(1)}H${f.W - f.r}"/><text class="tk" x="${f.W - f.r}" y="${(f.sy(floor) + 13).toFixed(1)}" text-anchor="end">this grid's floor, about ${floor.toExponential(0)}</text>`;
-    bot.innerHTML = svg(f, g, "The largest error of each shortcut's bound against epsilon, on log axes, with guide lines of slope 1 and 2 and the grid's floor");
-    const fit = { pm: S.fitAbove(EPS, ePm, floor), fo: S.fitAbove(EPS, eFo, floor) };
-    const sl = (x) => (x ? `slope ${fmt(x.slope, 2)} from ${x.from >= 0.1 ? Math.round(x.from * 100) : (x.from * 100).toFixed(1)}% to ${x.to >= 0.1 ? Math.round(x.to * 100) : (x.to * 100).toFixed(1)}%` : "at the floor; no slope fitted");
-    reads.innerHTML = `<div class="k-pm"><dt>Per-moment error, smallest ε</dt><dd>${ePm[ePm.length - 1].toExponential(1)}<small>${sl(fit.pm)}</small></dd></div>
-      <div class="k-wb"><dt>First-order error, smallest ε</dt><dd>${eFo[eFo.length - 1].toExponential(1)}<small>${sl(fit.fo)}</small></dd></div>
-      <div><dt>Middle cost c₀</dt><dd>${fmt(data.c0, 3)}<small>the window's average</small></dd></div>`;
-    verdict.textContent = S.ordersVerdict(guess, fit, floor, data.outside);
+    g += line(f, EPS, ePm, "pm") + line(f, EPS, eFo, "wb");
+    g += EPS.map((e, k) => (eFo[k] > 0 ? `<circle class="wb-dot" cx="${f.sx(e).toFixed(1)}" cy="${f.sy(eFo[k]).toFixed(1)}" r="3"/>` : "")).join("");
+    bot.innerHTML = svg(f, g, "The largest error of each shortcut's bound against epsilon, on log axes, with guide lines of slope 1 and 2");
+    const ratios = S.errorRatios(ePm, eFo);
+    reads.innerHTML = `<div class="k-pm"><dt>Per-moment error</dt><dd>${ePm[ePm.length - 1].toExponential(1)}<small>at the smallest ε; ${ePm[0].toExponential(1)} at the largest</small></dd></div>
+      <div class="k-wb"><dt>First-order error</dt><dd>${eFo[eFo.length - 1].toExponential(1)}<small>at the smallest ε; ${eFo[0].toExponential(1)} at the largest</small></dd></div>
+      <div><dt>Per-moment ÷ first-order</dt><dd>${ratios.lo === null ? "–" : fmt(ratios.lo, 1) + " to " + fmt(ratios.hi, 1)}<small>over the sizes shown</small></dd></div>`;
+    verdict.textContent = S.errorsVerdict(guess, ePm, eFo, EPS, data.outside);
     liftReady(fig);
   };
   const run = () => {
@@ -562,17 +560,16 @@ function yoursPlate() {
     let moves = 0; for (let t = 0; t <= VIEW + 6; t += 0.01) moves = Math.max(moves, Math.abs(cost(t) - c0));
     if (moves <= 1e-9 * c0) { note.textContent = S.outsideNote("constant"); state.textContent = ""; return; }
     const outside = choice.id === "rising";
+    $("#yo-predict", el).querySelectorAll("fieldset").forEach((fs) => { fs.hidden = outside; });
+    $("#yo-predict", el).querySelector("p").textContent = outside ? "The rising cost is outside the theorem: show the measured errors." : "As ε shrinks, how fast does the theory say each shortcut's error shrinks?";
     note.textContent = outside ? S.outsideNote("rising") : S.insideNote(labelOf(choice));
     state.textContent = "Solving seven dynamic programs…";
     solve({ job: "scale", choice, c0, eps: EPS, view: VIEW }, { key: "yours", progress: (p) => { if (my === gen) state.textContent = `Solving seven dynamic programs… ${1 + Math.round(p * 6)} of 7`; } }).then((m) => {
       if (my !== gen) return;
       const t = m.t, gamma = (x) => cost(x) - c0;
-      const beta = Array.from(K.firstOrder(gamma, t, c0));
+      const { beta, ePm, eFo } = yoursErrors(m, cost, c0, EPS);
       const pmr = Array.from(K.perMomentResponse(gamma, t, c0));
       const dev = m.runs.map((r, k) => r.map((v, i) => (v - m.b0[i]) / EPS[k]));
-      const b0c = K.B(c0);
-      const ePm = m.runs.map((r, k) => Math.max(...t.map((x, i) => Math.abs((r[i] - m.b0[i]) - (K.B(c0 + EPS[k] * gamma(x)) - b0c)))));
-      const eFo = m.runs.map((r, k) => Math.max(...t.map((x, i) => Math.abs((r[i] - m.b0[i]) - EPS[k] * beta[i]))));
       data = { t, dev, beta, pmr, ePm, eFo, c0, outside };
       state.textContent = "Time step 0.01, evidence step 0.02, 6 time units past the window; errors measured from the program's own constant-cost bound.";
       drawTop(); drawBot();

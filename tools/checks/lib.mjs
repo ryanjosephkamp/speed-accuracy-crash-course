@@ -27,3 +27,19 @@ export function check(plate, name, ok, detail) {
 }
 /** A number printed to d decimals matches the paper's printed value. */
 export const asPrinted = (x, s) => { const d = (s.split(".")[1] || "").length; return x.toFixed(d) === s; };
+
+/** Run a page's worker as the page does: import it once (each worker sets self.onmessage), send it one job, and
+ * return its final reply ({ ok, ... }). The book's workers answer synchronously. rel is relative to this folder. */
+const handlers = new Map();
+export async function runWorker(rel, msg) {
+  globalThis.self ??= {};
+  let replies = [];
+  globalThis.self.postMessage = (m) => replies.push(m);
+  if (!handlers.has(rel)) {
+    await import(new URL(rel, import.meta.url).href);
+    handlers.set(rel, globalThis.self.onmessage);
+  }
+  replies = [];
+  handlers.get(rel)({ data: { ...msg, id: 1 } });
+  return replies.find((m) => m.ok !== undefined) || null;
+}

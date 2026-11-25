@@ -5,7 +5,8 @@ import { exactPolicy, boundForCost, OVERSHOOT } from "../../book/assets/js/model
 import { VIEW, SPARE } from "../../book/assets/js/schedules-book.js";
 import { costOf, PRESETS, defaultDrawing } from "../../book/assets/js/schedules-book.js";
 import * as S from "../../book/assets/js/say-ch06.js";
-import { check, N, SIN, asPrinted } from "./lib.mjs";
+import { yoursErrors, errorRange } from "../../book/assets/js/ch06-model.js";
+import { check, N, SIN, asPrinted, runWorker } from "./lib.mjs";
 
 // ---- the constant-cost bound ------------------------------------------------------------------------------
 for (const c of [0.02, 0.1, 0.5, 2]) {
@@ -26,8 +27,8 @@ for (const c of [0.02, 0.1, 0.5]) {
   const { w } = K.kernelBins(c);
   const tot = w.reduce((a, v) => a + v, 0);
   check("kernel", `the kernel's bins telescope to 1 at c0 = ${c} (by construction; the next check tests a bin)`, Math.abs(tot - 1) < 1e-9, `sum ${tot.toFixed(12)}`);
-  { const kb = K.kernelBins(c), m0 = kb.w[0], want = K.kernelMass(0, kb.edges[1], b, 20000);
-    check("kernel", `the kernel's first bin holds the series' mass over its interval at c0 = ${c} (within 1e-4)`, Math.abs(m0 - want) < 1e-4, `${m0.toFixed(6)} vs ${want.toFixed(6)}`); }
+  { const kb = K.kernelBins(c), m0 = kb.w[0], want = K.kernelMass(0, kb.edges[1], b, 200000);
+    check("kernel", `the kernel's first bin holds the series' mass over its interval at c0 = ${c} (within 1e-5, the direct sum's truncation)`, Math.abs(m0 - want) < 1e-5, `${m0.toFixed(6)} vs ${want.toFixed(6)}`); }
   check("starts", `pi_0 integrates to 1 at c0 = ${c}`, Math.abs(K.pi0Cdf(b, c) - 1) < 1e-6, `${K.pi0Cdf(b, c).toFixed(8)}`);
 }
 {
@@ -107,48 +108,46 @@ for (const row of SIN) {
       S.sketchSay(R.next(), i % 3 ? R.next() * 2 : NaN, R.next(), R.next(), 1 + R.next()),
       S.startsVerdict(["zero", "spread", "bound"][i % 3], R.next(), 0.1, 1.17, 0.546),
       S.bracketSay(R.next() * 0.3, R.next(), R.next()),
-      S.ordersVerdict({ pm: i % 4 === 0 ? null : i % 3, fo: i % 4 === 0 ? null : (i + 1) % 3 },
-        { pm: i % 5 ? { slope: R.next() * 3, from: 1, to: 0.125 } : null, fo: i % 7 ? { slope: R.next() * 3, from: 1, to: 0.25 } : null }, R.next() * 1e-3, i % 6 === 0),
+      S.errorsVerdict({ pm: i % 4 === 0 ? null : i % 3, fo: i % 4 === 0 ? null : (i + 1) % 3 },
+        [R.next(), R.next() * 0.5, R.next() * 0.2], [R.next() * 0.1, R.next() * 0.05, i % 9 ? R.next() * 0.01 : 0], [1, 0.5, 0.25], i % 6 === 0),
       S.zText((R.next() - 0.5) * 8),
     ];
     for (const s of say) { n++; if (/NaN|undefined|Infinity|null/.test(s)) bad++; }
   }
   check("words", "the plates' sentences never print NaN, undefined, Infinity, or null", bad === 0, `${n} sentences, ${bad} bad`);
-  check("words", "the gap sentence puts a 3-standard-error miss at about one time in twenty only under its stated assumptions, and doesn't flag 1.5", /if the sampling error were normal and the runs unbiased/.test(S.zText(3)) && !/twenty/.test(S.zText(1.5)), S.zText(3));
+  check("words", "the gap sentence, for a gap over 2 standard errors, gives the one-in-twenty chance of a gap over 2 under its stated assumptions, and doesn't flag 1.5", /if the sampling error were normal and the runs unbiased, a gap over 2 would come about one time in twenty/.test(S.zText(3)) && !/twenty/.test(S.zText(1.5)), S.zText(3));
 }
 
 
-// ---- the plate "Your schedule, scaled down", run as the page runs it (the scale job's programs, the same errors) ----
+// ---- the plate "Your schedule, scaled down", through the page's own worker and error calculation -------------------
 {
   const EPS = [1, 0.5, 0.25, 0.125, 0.0625, 0.03125];
-  const errors = (cost, dt = 0.01, h = 0.02) => {
+  const run = async (choice) => {
+    const cost = costOf(choice);
     const ts = Array.from({ length: 501 }, (_, i) => (i * VIEW) / 500);
-    const c0 = ts.reduce((a, t) => a + cost(t), 0) / ts.length, gamma = (x) => cost(x) - c0, H = VIEW + SPARE;
-    const flat = exactPolicy(() => c0, H, dt, h), kv = Math.round(VIEW / dt), t = Array.from(flat.ts.slice(0, kv + 1));
-    const beta = K.firstOrder(gamma, t, c0), b0c = K.B(c0), eFo = [], ePm = [];
-    for (const e of EPS) {
-      const r = exactPolicy((x) => c0 + e * gamma(x), H, dt, h).bounds;
-      let mf = 0, mp = 0;
-      t.forEach((x, i) => { const d = r[i] - flat.bounds[i]; mf = Math.max(mf, Math.abs(d - e * beta[i])); mp = Math.max(mp, Math.abs(d - (K.B(c0 + e * gamma(x)) - b0c))); });
-      eFo.push(mf); ePm.push(mp);
-    }
-    return { eFo, ePm };
+    const c0 = ts.reduce((a, t) => a + cost(t), 0) / ts.length;
+    const m = await runWorker("../../book/assets/js/dp-worker.js", { job: "scale", choice, c0, eps: EPS, view: VIEW });
+    return { m, ...yoursErrors(m, cost, c0, EPS) };
   };
-  const runs = [...PRESETS.filter((p) => !["deadline", "constant", "rising"].includes(p.id))   // outside the theorem, or nothing to shrink
+  const cases = [...PRESETS.filter((p) => !["deadline", "constant"].includes(p.id))
     .map((p) => ({ id: p.id, choice: { id: p.id, params: Object.fromEntries(p.params.map((q) => [q.id, q.value])) } })),
-    { id: "draw (the default drawing)", choice: { id: "draw", points: defaultDrawing() } }];
-  for (const p of runs) {
-    const cost = costOf(p.choice);
-    const { eFo, ePm } = errors(cost), floor = S.gridFloor(eFo);
-    const fo = S.fitAbove(EPS, eFo, floor), pm = S.fitAbove(EPS, ePm, floor);
-    const ok = fo && pm && fo.slope >= 1.5 && pm.slope >= 0.5 && pm.slope < 1.5;
-    check("yours", `${p.id}: above the grid's floor, the first-order error falls like eps^2 or faster and the per-moment error like eps`, ok,
-      `first-order slope ${fo ? fo.slope.toFixed(2) : "none"} (${fo ? fo.from + " to " + fo.to : ""}), per-moment ${pm ? pm.slope.toFixed(2) : "none"}, floor ${floor.toExponential(1)}`);
+    { id: "draw (the default drawing)", choice: { id: "draw", points: defaultDrawing() } },
+    { id: "Smooth at middle cost 0.02, size 0.05", choice: { id: "smooth", params: { c0: 0.02, size: 0.05 } } },
+    { id: "Smooth at middle cost 0.5, size 0.05", choice: { id: "smooth", params: { c0: 0.5, size: 0.05 } } }];
+  for (const c of cases) {
+    const { m, ePm, eFo } = await run(c.choice);
+    const yr = errorRange(ePm, eFo), r = S.errorRatios(ePm, eFo);
+    const say = S.errorsVerdict({ pm: null, fo: null }, ePm, eFo, EPS, c.id === "rising");
+    const claimed = /At every size/.test(say), truly = r.n === EPS.length && r.smaller === EPS.length;
+    check("yours", `${c.id}: the worker's reply is complete, the chart's range is ordered, and the sentence's "every size" holds exactly when it is true`,
+      m && m.ok && m.runs.length === EPS.length && yr && yr[0] < yr[1] && claimed === truly && !/slope of|like ε²\)|not at all/.test(say),
+      `ratios ${r.lo?.toFixed(2)} to ${r.hi?.toFixed(2)} at ${r.smaller} of ${r.n} sizes; range ${yr ? yr.map((v) => v.toExponential(1)).join(" to ") : "none"}`);
   }
-  const wave = costOf({ id: "wave", params: { omega: 2, size: 0.3 } });
-  const coarse = errors(wave), fine = errors(wave, 0.005, 0.01);
-  const f1 = S.gridFloor(coarse.eFo), f2v = S.gridFloor(fine.eFo);
-  check("yours", "the floor is the grid's: halving both steps lowers Wave's floor at least twofold", f2v < f1 / 2, `${f1.toExponential(2)} on (0.01, 0.02), ${f2v.toExponential(2)} on (0.005, 0.01)`);
-  const v = S.ordersVerdict({ pm: null, fo: null }, { pm: { slope: 1, from: 1, to: 0.03125 }, fo: null }, 7e-4, true);
-  check("words", "on the rising cost, the verdict calls the slopes measurements and says the theorem doesn't cover it", /outside the theorem/.test(v) && /measurements/.test(v) && !/O\(ε²\) for a Lipschitz/.test(v), v);
+  // a change too small for the grid: no chart, and a sentence that says why
+  const near = { id: "draw", points: Array.from({ length: 26 }, (_, i) => 2 - (1e-5 * i) / 25) };
+  const n = await run(near);
+  check("yours", "a nearly flat drawing (2 to 1.99999): no log chart is drawn, and the plate says the change is too small", errorRange(n.ePm, n.eFo) === null && /too small/.test(S.tooSmallSay()),
+    `largest error ${Math.max(...n.ePm, ...n.eFo).toExponential(2)}`);
+  const v = S.errorsVerdict({ pm: null, fo: null }, [1e-2, 5e-3], [1e-3, 3e-4], [1, 0.5], true);
+  check("words", "on the rising cost, the verdict calls the errors measurements and says the theorem doesn't cover it", /says nothing about it/.test(v) && /measurements/.test(v) && !/O\(ε²\)\./.test(v), v);
 }
