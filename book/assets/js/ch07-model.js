@@ -344,9 +344,9 @@ export const LOSS_HORIZON = 14;
  * policy, the per-moment rule, and the first-order bound b0 + eps beta(t) (clipped at 0), each scored by the forward
  * computation, with each rule's loss and Conjecture 11's prediction for it. The rules' bounds are evidence bounds
  * checked every dt (moved in by the monitoring shift, as the solver's worker does); the program is scored from its
- * own stop set, so the reference is the program's own value and no rule can score above it on the grid. The grid's
- * resolution is the per-moment rule's loss at the constant cost c0: 0 in the continuous problem, so all of it is
- * the grid's. */
+ * own stop set, so the reference is the program's own value, the best any policy on this grid can score. The
+ * baseline (floor) is the per-moment rule's loss at the constant cost c0 on this grid with this forced choice: 0 in
+ * the continuous problem on an infinite horizon, so it measures the grid and the horizon together. */
 export function lossRun(cost, EPS, { horizon = LOSS_HORIZON, view = 2.5, dt = 0.01, h = 0.02, every = 2, progress = null } = {}) {
   const c0 = cost(0);
   const gamma = (t) => cost(t) - c0;
@@ -390,6 +390,10 @@ export function lossRun(cost, EPS, { horizon = LOSS_HORIZON, view = 2.5, dt = 0.
 /** The top of the ratio chart's axis: 2, or the largest ratio rounded up, at most 8. */
 export const ratioAxisTop = (ratios) => Math.min(8, Math.max(2, Math.ceil(Math.max(0, ...ratios) * 1.1)));
 
+/** How the ratio chart draws a ratio: a dot on the axis, an arrow with its value at the top past the axis, or not at
+ * all when there is no ratio. */
+export const ratioMark = (v, top) => (!Number.isFinite(v) ? "none" : v <= top ? "dot" : "arrow");
+
 /** Whether a schedule is flat: within a relative 1e-9 of its cost at time 0 at every 0.01 up to the horizon. */
 export function isFlat(cost, horizon = LOSS_HORIZON) {
   const c0 = cost(0);
@@ -398,8 +402,8 @@ export function isFlat(cost, horizon = LOSS_HORIZON) {
   return true;
 }
 
-/** A display rule, not an error bound: a loss counts as resolved by the grid when it is at least ten times the grid's
- * resolution (the per-moment rule's loss at the constant cost, all of it the grid's). */
+/** A display cutoff, not an error bound: a loss is drawn as a filled dot when it is at least ten times the baseline
+ * (the per-moment rule's loss at the constant cost, on this grid and horizon). */
 export const resolved = (loss, floor) => Number.isFinite(loss) && loss >= 10 * floor;
 
 /** The slope of log y against log x over the n smallest x where keep[i] holds (least squares), where the order of a

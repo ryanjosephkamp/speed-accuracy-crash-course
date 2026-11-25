@@ -61,7 +61,7 @@ for (const c of [0.02, 0.1, 0.3, 1]) {
     for (let i = 0; i <= n; i++) { const sv = a + i * hh, wv = K.kernelAt(sv, c), f = i === 0 || i === n ? 1 : i % 2 ? 4 : 2; re += f * wv * Math.cos(om * sv); im += f * wv * Math.sin(om * sv); }
     re *= hh / 3; im *= hh / 3;
     const d = Math.hypot(pts[i2].re - pts[i1].re - re, pts[i2].im - pts[i1].im - im);
-    check("transfer", "between s = 0.1 and 0.5, the running integral at c0 = 0.02, omega = 100 matches Simpson's rule on 40,000 steps", d < 1e-7, `difference ${d.toExponential(1)}`);
+    check("transfer", "between the first bin edges at or above s = 0.1 and 0.5, the running integral at c0 = 0.02, omega = 100 matches Simpson's rule on 40,000 steps", d < 1e-7, `edges ${a.toFixed(4)} and ${bb.toFixed(4)}; difference ${d.toExponential(1)}`);
   }
 }
 for (const c of [1e-4, 3e-4, 1e-3, 3e-3, 0.01, 0.02, 0.035, 0.05, 0.1, 0.2, 0.3, 0.5, 1, 2, 3, 5, 10]) {
@@ -217,22 +217,26 @@ for (const c of [0.02, 0.1, 0.5]) {
   const res = M.lossRun(costOf({ id: "smooth" }), EPS);
   const lp = res.runs.map((r) => r.loss.pm), keep = lp.map((v) => M.resolved(v, res.floor));
   const slope = M.lastSlope(EPS, lp, keep);
-  check("loss", "on the smooth preset, the per-moment loss falls with a slope near 2 over its three smallest resolved sizes", slope > 1.6 && slope < 2.4 && keep.filter(Boolean).length >= 4 && res.floor > 0 && res.floor < 1e-4, `slope ${slope.toFixed(2)}; ${keep.filter(Boolean).length} of 7 sizes resolved; resolution ${res.floor.toExponential(1)}; c(0) = ${res.c0.toFixed(4)}`);
+  check("loss", "on the smooth preset, the per-moment loss falls with a slope near 2 over its three smallest sizes above the display cutoff", slope > 1.6 && slope < 2.4 && keep.filter(Boolean).length >= 4 && res.floor > 0 && res.floor < 1e-4, `slope ${slope.toFixed(2)}; ${keep.filter(Boolean).length} of 7 sizes above the cutoff; baseline ${res.floor.toExponential(1)}; c(0) = ${res.c0.toFixed(4)}`);
   const ratios = res.runs.filter((r) => r.eps <= 0.25 && M.resolved(r.loss.pm, res.floor) && r.late.pm < 0.1).map((r) => r.pred.pm / r.loss.pm);
-  check("conjecture", "on the smooth preset, the conjecture's prediction for the per-moment rule is within 0.8 to 1.3 of the scored loss wherever that loss is resolved and mostly early (eps <= 1/4)", ratios.length >= 2 && ratios.every((x) => x > 0.8 && x < 1.3), ratios.map((x) => x.toFixed(3)).join(", "));
+  check("conjecture", "on the smooth preset, the conjecture's prediction for the per-moment rule is within 0.8 to 1.3 of the scored loss wherever that loss is above the display cutoff and mostly early (eps <= 1/4)", ratios.length >= 2 && ratios.every((x) => x > 0.8 && x < 1.3), ratios.map((x) => x.toFixed(3)).join(", "));
   const draw = M.lossRun(costOf({ id: "draw", points: defaultDrawing() }), [1 / 4]);
-  check("conjecture", "the late share is a share: between 0 and 1, and the running share ends at 1", res.runs.every((r) => r.late.pm >= 0 && r.late.pm <= 1 && Math.abs(r.cum.pm[r.cum.pm.length - 1] - 1) < 1e-12) && draw.runs[0].late.pm >= 0, `late shares ${res.runs.map((r) => (100 * r.late.pm).toFixed(0) + "%").join(", ")}`);
-  // the display rule for "resolved", against a grid twice as fine in time and space: every loss it marks resolved
-  // on the page's grid moves by under 10%
+  check("conjecture", "the late share is a share: between 0 and 1, and the running share ends at 1 (Smooth at seven sizes, the default drawing at 1/4)", res.runs.every((r) => r.late.pm >= 0 && r.late.pm <= 1 && Math.abs(r.cum.pm[r.cum.pm.length - 1] - 1) < 1e-12) && draw.runs[0].late.pm >= 0, `late shares ${res.runs.map((r) => (100 * r.late.pm).toFixed(0) + "%").join(", ")}`);
+  // the display cutoff against a grid twice as fine in time and space, and against a forced choice at 28 instead of 14
   const fine = M.lossRun(costOf({ id: "smooth" }), EPS, { dt: 0.005, h: 0.01 });
-  const moves = [];
-  res.runs.forEach((r, i) => { for (const w of ["pm", "fo"]) if (M.resolved(r.loss[w], res.floor)) moves.push(Math.abs(fine.runs[i].loss[w] / r.loss[w] - 1)); });
-  check("loss", "on the smooth preset, every loss the plate marks resolved changes by under 10% on a grid twice as fine", moves.length >= 6 && Math.max(...moves) < 0.1, `${moves.length} losses, largest change ${(100 * Math.max(...moves)).toFixed(1)}%; resolution ${res.floor.toExponential(1)} here, ${fine.floor.toExponential(1)} on the finer grid`);
+  const long = M.lossRun(costOf({ id: "smooth" }), EPS, { horizon: 28 });
+  const moves = [], movesH = [];
+  res.runs.forEach((r, i) => { for (const w of ["pm", "fo"]) if (M.resolved(r.loss[w], res.floor)) { moves.push(Math.abs(fine.runs[i].loss[w] / r.loss[w] - 1)); movesH.push(Math.abs(long.runs[i].loss[w] / r.loss[w] - 1)); } });
+  check("loss", `on the Smooth preset, each of the ${moves.length} losses above the display cutoff (both rules, seven sizes) changes by under 10% on a grid twice as fine, and by under 10% with the forced choice at 28`, moves.length >= 6 && Math.max(...moves) < 0.1 && Math.max(...movesH) < 0.1, `largest changes ${(100 * Math.max(...moves)).toFixed(1)}% (finer grid) and ${(100 * Math.max(...movesH)).toFixed(2)}% (horizon 28); baseline ${res.floor.toExponential(1)}, ${fine.floor.toExponential(1)}, ${long.floor.toExponential(1)}`);
+  // the baseline depends on the forced horizon as well as the grid (the audit's flat cost of 0.01), which is why the
+  // page calls it the baseline for this grid and horizon
+  const b14 = M.lossRun(() => 0.01, []).floor, b28 = M.lossRun(() => 0.01, [], { horizon: 28 }).floor;
+  check("loss", "at a flat cost of 0.01, the baseline on the same grid changes with the forced horizon (14 against 28)", b14 > 2 * b28 && b28 > 0, `${b14.toExponential(3)} at 14, ${b28.toExponential(3)} at 28`);
 }
 {
-  // the program scored from its own stop set: its score is its value, it matches exactPolicy's bounds, and no rule
-  // scores above it, including where a high cost puts its bound below the grid's first step (a 32-fold jump at 0.2,
-  // and a flat cost of 3.2) and on a flat cost of 0.98
+  // the program scored from its own stop set: its score is its value and it matches exactPolicy's bounds; on four
+  // schedules, three policies score at or below it: the per-moment rule, the first-order bound b0 + beta (eps = 1,
+  // around c(0), clipped at 0), and the exported bound, including where a high cost puts the exported bound at 0
   const cases = [["Smooth", costOf({ id: "smooth" })], ["32-fold jump at 0.2", costOf({ id: "jump", params: { at: 0.2, factor: 32 } })], ["flat 0.98", () => 0.98], ["flat 3.2", () => 3.2]];
   const out = [];
   let ok = true;
@@ -240,21 +244,25 @@ for (const c of [0.02, 0.1, 0.5]) {
     const P = M.gridProgram(cost, 8.5), E = exactPolicy(cost, 8.5);
     let same = 0; for (let k = 0; k < P.ts.length; k++) if (!(P.bounds[k] === E.bounds[k])) same++;
     const Rm = M.forwardPolicy({ stop: P.stop, m: P.m }, P.ts, cost).reward;
+    const c0 = cost(0), beta = K.firstOrder((t) => cost(t) - c0, Array.from(P.ts), c0);
     const pm = Float64Array.from(P.ts, (t) => toDiscrete(boundForCost(cost(t)), 0.01));
-    const lossPm = P.value - M.forward(pm, P.ts, cost).reward, lossB = P.value - score(E.bounds, E.ts, cost).reward;
-    ok = ok && same === 0 && Math.abs(Rm - P.value) < 1e-12 && lossPm > -1e-12 && lossB > -1e-12;
-    out.push(`${name}: value ${P.value.toFixed(6)}, per-moment loss ${lossPm.toExponential(1)}, exported bound's loss ${lossB.toExponential(1)}`);
+    const fo = Float64Array.from(P.ts, (t, k) => toDiscrete(K.B(c0) + beta[k], 0.01));
+    const lossPm = P.value - M.forward(pm, P.ts, cost).reward, lossFo = P.value - M.forward(fo, P.ts, cost).reward, lossB = P.value - score(E.bounds, E.ts, cost).reward;
+    ok = ok && same === 0 && Math.abs(Rm - P.value) < 1e-12 && lossPm > -1e-12 && lossFo > -1e-12 && lossB > -1e-12;
+    out.push(`${name}: value ${P.value.toFixed(6)}; losses: per-moment ${lossPm.toExponential(1)}, first-order ${lossFo.toExponential(1)}, exported bound ${lossB.toExponential(1)}`);
   }
-  check("scorer", "the program scored from its own stop set earns its value, equals exactPolicy's bounds, and no policy scores above it", ok, out.join("; "));
+  check("scorer", "the program scored from its own stop set earns its value and equals exactPolicy's bounds; on four schedules the per-moment rule, the first-order bound, and the exported bound each score at or below it", ok, out.join("; "));
   const P = M.gridProgram(() => 3.2, 8.5);
   const zeroLoss = P.value - score(exactPolicy(() => 3.2, 8.5).bounds, P.ts, () => 3.2).reward;
   check("scorer", "at a cost of 3.2 the exported bound reads 0 (as in the paper's code) though the center waits: scored as a bound it loses, scored from the stop set it doesn't", P.bounds[0] === 0 && P.best[0] > 0 && zeroLoss > 1e-3, `bound ${P.bounds[0]}, interpolated ${P.best[0].toFixed(4)}; the exported bound loses ${zeroLoss.toExponential(2)}`);
 }
 {
-  // a drawing at 2 for its first point and 0.01 after, at eps = 1 (from the audit): its ratios fit the axis the plate builds
+  // the audit's drawing (2 for its first point, 0.01 after) at eps = 1: both ratios fit the axis, which grows to 7;
+  // and, with made-up ratios of 12 and 3, the axis stops at 8 and the 12 is drawn as an arrow at the top
   const res = M.lossRun(costOf({ id: "draw", points: [2, ...Array(25).fill(0.01)] }), [1]);
   const r = res.runs[0], ratios = [r.pred.pm / r.loss.pm, r.pred.fo / r.loss.fo], top = M.ratioAxisTop(ratios);
-  check("conjecture", "a ratio above 2 widens the plate's axis to hold it (up to 8), and every loss is nonnegative", ratios.every((x) => x <= top) && top > 2 && r.loss.pm > 0 && r.loss.fo > 0, `ratios ${ratios.map((x) => x.toFixed(2)).join(", ")}; axis top ${top}`);
+  const capTop = M.ratioAxisTop([12, 3]);
+  check("conjecture", "on the audit's drawing at eps = 1, both rules' ratios (6.3 and 2.9) are drawn as dots on an axis to 7, and both losses are positive; made-up ratios 12 and 3 give an axis to 8 with the 12 drawn as an arrow", ratios.every((x) => M.ratioMark(x, top) === "dot") && top === 7 && r.loss.pm > 0 && r.loss.fo > 0 && capTop === 8 && M.ratioMark(12, capTop) === "arrow" && M.ratioMark(3, capTop) === "dot" && M.ratioMark(NaN, capTop) === "none", `ratios ${ratios.map((x) => x.toFixed(2)).join(", ")}; axis top ${top}`);
 }
 
 // ---- the sentences ----------------------------------------------------------------------------------------
@@ -279,6 +287,7 @@ for (const c of [0.02, 0.1, 0.5]) {
       S.lossSay(1 / 2 ** (i % 7), u() * 1e-3, (u() - 0.2) * 1e-5, i % 3 ? 3 * u() : NaN, i % 4 ? 5 * u() : NaN, i % 2 === 0, i % 3 === 0),
       S.conjSay(1 / 2 ** (i % 7), i % 5 ? 2 * u() : NaN, i % 2 === 0, i % 6 ? u() : NaN, 2 * u(), i % 3 === 0, u(), i % 7 ? u() * 1e-3 : 0, i % 4 ? u() * 1e-4 : -1e-9),
       S.lossState(14, i % 2 === 0, i % 3 ? "loss" : "conj"),
+      S.shiftState(i % 2 === 0, 126, i % 3 === 0),
       S.noLossNote(),
     ];
     for (const s of say) { n++; if (/NaN|undefined|Infinity|null/.test(s)) bad++; }
@@ -290,5 +299,7 @@ for (const c of [0.02, 0.1, 0.5]) {
   const neg = S.lossSay(0.25, -9.5e-6, 1e-6, NaN, NaN, false, false), cj = S.conjSay(0.25, 1.02, true, 0.02, 1.4, true, 0.9, 1e-4, 1e-6);
   const la = S.lookaheadSay(1e-4, 0.504, 4.95, 0.619, 0.035) + S.lookaheadVerdict("half", 0.504, 1e-4, 4.95);
   check("words", "a nonpositive loss is a difference the grid can't measure, the first-order ratio is not credited to the conjecture, and powers of ten read as 10⁻⁴", /no reward measurable on this grid/.test(neg) && !/loses −/.test(neg) && /doesn't cover the first-order bound/.test(cj) && /10⁻⁴ to 10/.test(la) && /c₀ = 10⁻⁴/.test(la) && !/e-\d/.test(la + neg), `${neg} | ${la}`);
+  const st = S.shiftState(false, 126, true), st0 = S.shiftState(true, 48, false), cut = S.lossSay(0.25, 1e-5, 1e-6, NaN, NaN, false, false);
+  check("words", "the shift plate says the program can still wait at 0 where its exported bound reads 0, the band's step 3 says expected time, and losses under the cutoff are called that", /can still wait at 0/.test(st) && !/wait/.test(st0) && /deadline/.test(st0) && /expected time spent above/.test(S.BAND_HEADS[2]) && /below the display cutoff/.test(cut) && !/resolv/.test(cut + S.conjSay(0.25, 1, false, 0, 1, false, 0, 1e-5, 1e-6)), st);
   check("words", "the loss sentence names a slope near 2 as second order, and the conjecture's sentence starts with the word Conjecture", /close to the 2/.test(S.lossSay(0.25, 1e-4, 1e-6, 1.95, 3.8, true, true)) && !/close to the 2/.test(S.lossSay(0.25, 1e-4, 1e-6, 1.2, 3.8, true, true)) && /^Conjecture/.test(S.conjSay(0.25, 1.02, true, 0.02, 1.4, false, 0.9)), S.lossSay(0.25, 1e-4, 1e-6, 1.95, 3.8, true, true));
 }
