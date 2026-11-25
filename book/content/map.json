@@ -876,7 +876,7 @@
 "eq:Bprime": {
 "ch": 3,
 "depth": 5,
-"kind": "Proposition",
+"kind": "Classical result, derived in the text",
 "label": "B′(c)",
 "name": "The slope of the constant-cost bound",
 "page": 4,
@@ -887,13 +887,13 @@
 "eq:constant-bound": {
 "ch": 3,
 "depth": 4,
-"kind": "Proposition",
+"kind": "Classical result, derived in the text",
 "label": "B(c): constant cost",
 "name": "The constant-cost bound B(c)",
 "page": 4,
 "sec": "2",
-"status": "proved",
-"statusLabel": "Proved"
+"status": "cited",
+"statusLabel": "Cited"
 },
 "exp:heldout": {
 "ch": 10,
