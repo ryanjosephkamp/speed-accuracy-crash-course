@@ -109,7 +109,7 @@ PLATES = {
         "title": "How far in, moment by moment",
         "state": "computed",
         "state_text": "Computed in the page: the dynamic program on two grids",
-        "caption": r"""Your schedule (top, the cost on a log scale), solved twice on an evidence grid of 0.01: once checking every 0.01 time units and once every 0.0025, with the choice forced at 8.5 or at a deadline. Bottom: the gap between the two bounds divided by $\sqrt{0.01} - \sqrt{0.0025}$, every 0.02 time units and at the last check before the end, beside 0.5826 (dashed). If each bound sat exactly $0.5826\sqrt{\Delta t}$ inside one continuous bound, the curve would be the dashed line. Values outside 0.4 to 0.8 are drawn at the edge. Times where either bound is 0 are left out, as is the forced choice itself.""",
+        "caption": r"""Your schedule (top, the cost on a log scale), solved twice on an evidence grid of 0.01: once checking every 0.01 time units and once every 0.0025, with the choice forced at 8.5 or at a deadline. Bottom: the gap between the two bounds divided by $\sqrt{0.01} - \sqrt{0.0025}$, every 0.02 time units and at the last check before the end, beside 0.5826 (dashed). If each bound sat exactly $0.5826\sqrt{\Delta t}$ inside one continuous bound, the curve would be the dashed line. Values outside 0.4 to 0.8 are drawn at the edge. Times where either bound is 0 are left out, as is the forced choice itself. The readings' steady range covers the times where the cost stays within 2% (in log) over 0.3 time units either side; before a deadline, it also leaves out the last 0.1, so it ends at least 0.4 before the deadline.""",
         "wide": False,
     },
     "shift": {

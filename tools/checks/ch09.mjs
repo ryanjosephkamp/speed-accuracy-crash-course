@@ -254,25 +254,25 @@ check("sweep", "the plate's SweepSwingThird and SweepSwingSixTenths are the pape
 }
 
 // ---- every plate's computation on the edge cases ----------------------------------------------------------------------
-// the coefficient sentence held to the summary the plate makes (coefSummary): the steady range at four decimals with
-// whether all, some, or none of its values are within 0.03 of 0.5826 (the summary's count, which must agree with the
-// range's ends), the lowest and highest values with their times, the value before a deadline, and no stated cause
+// the coefficient sentence held to the summary the plate makes (coefSummary), word for word, so that any added clause
+// (a cause, say) fails: the steady range at four decimals, up to its last time before a deadline, with whether all,
+// some, or none of its values are within 0.03 of 0.5826 (the summary's count, which must agree with the range's ends);
+// on a cost that moves, the lowest and highest values with their times; and the value before a deadline
 const coefWant = (CS) => {
-  const K0 = 0.5826, f2 = (x) => x.toFixed(2), f3 = (x) => x.toFixed(3), f4 = (x) => x.toFixed(4), out = [];
-  let consistent = true;
+  const K0 = 0.5826, f2 = (x) => x.toFixed(2), f3 = (x) => x.toFixed(3), f4 = (x) => x.toFixed(4);
+  let s = "", consistent = true;
   if (CS.steady) {
     const [lo, hi] = CS.steady, { n, within } = CS.steadyIn, inside = (v) => Math.abs(v - K0) <= 0.03;
     const word = within === n ? "all" : within === 0 ? "none" : "some";
     consistent = word === "all" ? inside(lo) && inside(hi) : word === "none" ? !inside(lo) && !inside(hi) : !(inside(lo) && inside(hi)) && !(hi < K0 - 0.03 || lo > K0 + 0.03);
-    out.push(`Where the cost holds steady, the measured coefficient ${f4(lo) === f4(hi) ? `stays at ${f4(lo)}` : `runs from ${f4(lo)} to ${f4(hi)}`}, ${word} of those values within 0.03 of ${K0}${word === "some" ? " and some not" : ""}.`);
+    s += `Where the cost holds steady${CS.lastK !== null ? `, up to time ${f2(CS.steadyEnd)}` : ""}, the measured coefficient ${f4(lo) === f4(hi) ? `stays at ${f4(lo)}` : `runs from ${f4(lo)} to ${f4(hi)}`}, ${word} of those values within 0.03 of ${K0}${word === "some" ? " and some not" : ""}. `;
   }
-  if (CS.flat) return { parts: [...out, "The cost never changes here, so every time is steady."], consistent };
-  out.push(`its lowest value is ${f3(CS.all.lo)}, at time ${f2(CS.all.tLo)}, and its highest ${f3(CS.all.hi)}, at time ${f2(CS.all.tHi)}.`);
-  if (CS.lastK !== null) out.push(`At the last check before the deadline it is ${f3(CS.lastK)}.`);
-  return { parts: out, consistent };
+  if (CS.flat) return { text: s + "The cost never changes here, so every time is steady.", consistent };
+  s += `Over the whole ${CS.lastK !== null ? "trial" : "window"}, its lowest value is ${f3(CS.all.lo)}, at time ${f2(CS.all.tLo)}, and its highest ${f3(CS.all.hi)}, at time ${f2(CS.all.tHi)}. `;
+  if (CS.lastK !== null) s += `At the last check before the deadline it is ${f3(CS.lastK)}.`;
+  return { text: s.trim(), consistent };
 };
-const NO_CAUSE = /moves a long way|near a change|isn't moving fast|leading-order shift|because/;
-const coefMatches = (say, CS) => { const w = coefWant(CS); return w.consistent && w.parts.every((x) => say.includes(x)) && !NO_CAUSE.test(say); };
+const coefMatches = (say, CS) => { const w = coefWant(CS); return w.consistent && say === w.text; };
 {
   const cases = [
     ["deadline at 0.45", preset("deadline", { at: 0.45 })], ["deadline at 3 with cost 0.02", preset("deadline", { at: 3, c: 0.02 })], ["constant", preset("constant")],
@@ -301,7 +301,7 @@ const coefMatches = (say, CS) => { const w = coefWant(CS); return w.consistent &
     const sents = [
       slice(0), slice(B.keepK.length - 1), S.densitySay("best", T[kEnd], dEnd.up, dEnd.lo, F, dEnd.forced),
       S.trialsSay(Tr.n, Tr.mean, Tr.se, F.reward, fine, Tr.sd, 2e-5, M.trialsFor(Tr.sd, 2e-5)),
-      S.coefSay(CS.steady, CS.all, CS.lastK, CS.flat, CS.steadyIn), S.shiftSay(Lr.loss, flat, H), S.refineSay(Rf, name),
+      S.coefSay(CS.steady, CS.all, CS.lastK, CS.flat, CS.steadyIn, CS.steadyEnd), S.shiftSay(Lr.loss, flat, H), S.refineSay(Rf, name),
     ];
     // the coefficient: the solver compares up to the last check before the horizon, and the plate draws the times up to
     // its view; the drawn curve has finite points, the last of them at 2.5 or at the last check before a deadline
@@ -310,7 +310,7 @@ const coefMatches = (say, CS) => { const w = coefWant(CS); return w.consistent &
     // sentence is the forced choice's, at its time
     const kk = B.keepK, okK = kk[0] === T.length - 1 && kk[kk.length - 1] === 0 && kk.every((k, i) => i === 0 || k < kk[i - 1]) && /nobody waits/.test(sents[0]) && sents[0].includes(H.toFixed(2));
     const flatWant = ["constant", "flat drawing", "smooth at size 0"].includes(name);
-    check("edges", `${name}: the computations of the six plates that take the reader's schedule (the program, the density, a run of 2,000 trials with the finer score, the coefficient, the shift, and the refinement) run; the program, the backward plate's kept slices (back from the forced choice, whose sentence it gives, to 0), the density, the coefficient's last finite point, and the shift plot end where they should; the coefficient sentence says what the plate's summary holds (its steady range and how many of those values are within 0.03 of 0.5826, the lowest and highest values with their times, and the value before a deadline) and states no cause; the shift sentence takes the flat branch exactly on the flat schedules; and the numbers and the seven sentences the plates make from them are clean`,
+    check("edges", `${name}: the computations of the six plates that take the reader's schedule (the program, the density, a run of 2,000 trials with the finer score, the coefficient, the shift, and the refinement) run; the program, the backward plate's kept slices (back from the forced choice, whose sentence it gives, to 0), the density, the coefficient's last finite point, and the shift plot end where they should; the coefficient sentence is, word for word, what the plate's summary holds: its steady range (up to its last time before a deadline) with whether all, some, or none of those values are within 0.03 of 0.5826, on a cost that moves the lowest and highest values with their times, and the value before a deadline, and nothing more; the shift sentence takes the flat branch exactly on the flat schedules; and the numbers and the seven sentences the plates make from them are clean`,
       okB && okK && okD && okC && finite(nums) && Math.abs(lastT - (dl ?? 2.5)) < 1e-9 && !sents.some(bad) && nums.slice(7).every((v) => v > -1e-3) && flat === flatWant && /both rules give the constant-cost bound/.test(sents[5]) === flatWant,
       `reward ${F.reward.toFixed(4)}, decided by the plot's end ${(dEnd.up + dEnd.lo).toFixed(6)}, trials ${Tr.mean.toFixed(3)}, losses ${nums.slice(7).map((v) => v.toFixed(4)).join(" ")}, plots end at ${lastT} and ${CS.lastT === null ? "no finite point" : CS.lastT.toFixed(2)} (${CS.finite} of ${CS.drawn} coefficient points finite)`);
   }
@@ -319,13 +319,22 @@ const coefMatches = (say, CS) => { const w = coefWant(CS); return w.consistent &
     // midpoint at 2 (some within and some not), and the 32-fold jump with its midpoint at 0.2 (none within)
     let ok = true; const seen = [];
     for (const [name, choice, word] of [["constant", preset("constant"), "all"], ["32-fold jump at 2", preset("jump", { at: 2, factor: 32 }), "some"], ["32-fold jump at 0.2", preset("jump", { at: 0.2, factor: 32 }), "none"]]) {
-      const cost = costOf(choice), CS = M.coefSummary(M.shiftCoef(cost, 8.5), cost, null), say = S.coefSay(CS.steady, CS.all, CS.lastK, CS.flat, CS.steadyIn);
+      const cost = costOf(choice), CS = M.coefSummary(M.shiftCoef(cost, 8.5), cost, null), say = S.coefSay(CS.steady, CS.all, CS.lastK, CS.flat, CS.steadyIn, CS.steadyEnd);
       const got = CS.steadyIn.within === CS.steadyIn.n ? "all" : CS.steadyIn.within === 0 ? "none" : "some";
       if (got !== word || !coefMatches(say, CS) || !say.includes(`${word} of those values within 0.03 of 0.5826`)) ok = false;
       seen.push(`${name}: ${CS.steady.map((v) => v.toFixed(4)).join(" to ")}, ${CS.steadyIn.within} of ${CS.steadyIn.n} within`);
     }
-    check("coef", "the coefficient sentence says whether all, some, or none of the steady values are within 0.03 of 0.5826, with the steady range at four decimals, as the plate's summary counts them: all on the Constant preset, some on the 32-fold jump at 2, none on the 32-fold jump at 0.2; and it states no cause",
+    check("coef", "the coefficient sentence says whether all, some, or none of the steady values are within 0.03 of 0.5826, with the steady range at four decimals, as the plate's summary counts them: all on the Constant preset, some on the 32-fold jump at 2, none on the 32-fold jump at 0.2; each sentence is word for word what the summary holds, and nothing more",
       ok, seen.join("; "));
+  }
+  {
+    // a deadline at 1.05 with cost 0.5: the cost is flat through the trial, but the steady range stops at 0.64, at least
+    // 0.4 before the deadline, and the sentence says so; the value at the last check, outside the tolerance, comes after
+    const choice = preset("deadline", { at: 1.05, c: 0.5 }), cost = costOf(choice), CS = M.coefSummary(M.shiftCoef(cost, 1.05), cost, 1.05);
+    const say = S.coefSay(CS.steady, CS.all, CS.lastK, CS.flat, CS.steadyIn, CS.steadyEnd);
+    check("coef", "a deadline at 1.05 with cost 0.5: the steady range's last time is 0.64 (at least 0.4 before the deadline), the sentence names it (“up to time 0.64”) and is word for word what the summary holds, and the value at the last check, 1.04, is given after",
+      Math.abs(CS.steadyEnd - 0.64) < 1e-9 && CS.steadyEnd <= 1.05 - 0.4 + 1e-9 && say.includes("Where the cost holds steady, up to time 0.64,") && coefMatches(say, CS) && Math.abs(CS.lastK - 0.5826) > 0.03,
+      say);
   }
   // the refinement on the reader's schedule: every grid gives a loss, and the page's grid's is model.js's
   const r = M.refine(costOf(preset("jump")), 8.5);
@@ -566,9 +575,12 @@ const coefMatches = (say, CS) => { const w = coefWant(CS); return w.consistent &
   const p19 = runOf(19, 0.000625), p6 = runOf(6, 0.04), m6 = M.firstPastMark(p6, 0.04);
   // a short run: ?seed=6 at 0.04 stops at 0.32, so the window starts at 0 with fewer than nine intervals, as the caption allows
   const capO = readFileSync(join(ROOT, "book/content/ch09.py"), "utf8");
-  check("overshoot", "firstPastMark's window start, which the plate's crop takes (its source reads tBeg = mk.tBeg): up to nine check intervals ending at the stop; ?seed=6 at dt = 0.04 stops at 0.32 and its window starts at 0, eight intervals; the caption says “up to nine”",
-    readFileSync(join(ROOT, "book/assets/js/ch09.js"), "utf8").includes("tBeg = mk.tBeg;") && m6.tBeg === 0 && p6.stop[0] < 9 * 0.04 - 1e-9 && Math.round(p6.stop[0] / 0.04) === 8 && capO.includes("up to nine check intervals ending at the stop") && !capO.includes("the last nine check intervals"),
-    `stop at ${p6.stop[0].toFixed(2)}, window from ${m6.tBeg}`);
+  const v6 = M.overshootView(p6, 0.04), v26 = M.overshootView(runOf(2026, 0.04), 0.04);
+  const times = (v) => v.checks.map((c) => +c[0].toFixed(6)).join(", ");
+  check("overshoot", "overshootView, which gives the plate's axes and dots: for ?seed=6 at dt = 0.04 the window starts at 0 and holds the nine checks 0 to 0.32 (eight intervals, fewer than nine), and for the opening run it holds the ten checks 0.36 to 0.72 (nine intervals ending at the stop); the caption says “up to nine”",
+    v6.tBeg === 0 && times(v6) === Array.from({ length: 9 }, (_, i) => +(0.04 * i).toFixed(6)).join(", ") && Math.abs(v26.tBeg - 0.36) < 1e-9 && times(v26) === Array.from({ length: 10 }, (_, i) => +(0.36 + 0.04 * i).toFixed(6)).join(", ")
+    && v6.path[0][0] === 0 && v6.tEnd === p6.stop[0] && capO.includes("up to nine check intervals ending at the stop") && !capO.includes("the last nine check intervals"),
+    `seed 6: from ${v6.tBeg}, checks ${times(v6)}; opening run: from ${v26.tBeg.toFixed(2)}, ${v26.checks.length} checks`);
   check("overshoot", "firstPastMark, which decides the overshoot plate's ring or earlier-time note (the drawing itself isn't inspected): its kind, time, and window start are right on 200 runs; ?seed=19 at dt = 0.000625 (and the default seed at 0.0025) comes earlier than the window, with the time the note prints, 0.2597, the first fine step's; the opening run at 0.04 is ringed",
     ok && m19.kind === "earlier" && m19.t === p19.first[0] && m19.t < m19.tBeg && String(+m19.t.toFixed(4)) === "0.2597" && m25.kind === "earlier" && m04.kind === "ring", `seed 19: first at ${m19.t.toFixed(6)}, window from ${m19.tBeg.toFixed(6)}; opening run ringed at ${m04.t.toFixed(4)}`);
 }
