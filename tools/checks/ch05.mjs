@@ -5,7 +5,7 @@
 import * as K from "../../book/assets/js/kernel.js";
 import { exactPolicy } from "../../book/assets/js/model.js";
 import { costOf, PRESETS, defaultDrawing, paramsOf, VIEW } from "../../book/assets/js/schedules-book.js";
-import { solveSchedule, frozenRule, costRange, leftSide, belief, gPrime, B, F, testStep, FIXED, areaTo, wAt, chords, halfCrossed, costBounds, bandStats, worstResidual } from "../../book/assets/js/ch05-model.js";
+import { solveSchedule, frozenRule, costRange, leftSide, belief, gPrime, B, F, testStep, FIXED, areaTo, wAt, chords, halfCrossed, costBounds, bandStats, worstResidual, liveSummary } from "../../book/assets/js/ch05-model.js";
 import * as S from "../../book/assets/js/say-ch05.js";
 import { check, N, asPrinted } from "./lib.mjs";
 
@@ -58,12 +58,13 @@ for (const [name, cost] of Object.entries(TEST)) {
 }
 {
   for (const name of ["sinusoid", "smooth step"]) {
-    const on = every01(3), c = worstResidual(coarseOf[name], 0, 3, on).w, f = worstResidual(fineOf[name], 0, 3, on).w;
-    check("grid", `${name}: at the same 301 times from 0 to 3 and the same horizon, the residual is smaller on the paper's grid than on Δt 0.01, h 0.02`, f < c, `${f.toExponential(2)} vs ${c.toExponential(2)}`);
+    const on = every01(3), cr = worstResidual(coarseOf[name], 0, 3, on), fr = worstResidual(fineOf[name], 0, 3, on), c = cr.w, f = fr.w;
+    check("grid", `${name}: at the same 301 times from 0 to 3 and the same horizon, the residual is smaller on the paper's grid than on Δt 0.01, h 0.02 (every one of the 301 pairs compared)`,
+      f < c && cr.n === 301 && fr.n === 301 && cr.missing + fr.missing === 0, `${f.toExponential(2)} vs ${c.toExponential(2)}; compared ${fr.n} and ${cr.n}`);
   }
   const fx = solveSchedule(testStep, FIXED.horizon, { dt: FIXED.dt, h: FIXED.h, cMin: 0.1, every: 1, lhsUpto: 3 });
   const w = worstResidual(fx, 0, 3);
-  check("area", "the plates' grid (Δt 0.005, h 0.01, forced choice at 8): the left side is within 2e-3 of 1/4 on the test step, 0 to 3 (measured 1.6e-3)", w.w < 2e-3, `worst ${w.w.toExponential(2)} at ${w.at.toFixed(3)}`);
+  check("area", "the plates' grid (Δt 0.005, h 0.01, forced choice at 8): the left side is within 2e-3 of 1/4 on the test step, at all 601 times from 0 to 3 (measured 1.6e-3)", w.w < 2e-3 && w.n === 601 && w.missing === 0, `worst ${w.w.toExponential(2)} at ${w.at.toFixed(3)}, over ${w.n} times`);
   const tail = fineOf.constant.lhs[fineOf.constant.ts.findIndex((t) => Math.abs(t - 9.5) < 1e-9)];
   check("exact", "the finite horizon: a constant cost's left side falls well below 1/4 half a time unit before the forced choice", tail < 0.2, `left side ${tail.toFixed(4)} at t = 9.5`);
 }
@@ -85,9 +86,19 @@ for (const [name, cost] of Object.entries(TEST)) {
     for (let k = 0; k < o.ts.length - 1; k++) for (let n = 0; n <= o.M; n++) if ((n * 0.02 >= o.bounds[k]) !== (o.stop[k * (o.M + 1) + n] === 1)) differ++;
   }
   check("grid", "on the paper's three test schedules, the program's stop mask is exactly |x| ≥ b at every step and node", differ === 0, `${differ} nodes differ`);
-  const zeros = out.ts.filter((t, k) => t <= VIEW + 1e-9 && out.bounds[k] === 0).length;
-  const say = S.liveSay({ label: "Cost jumps", dt: 0.01, w: worstResidual(out, 0, VIEW).w, wf: NaN, wc: NaN, pm: 0.1, far: false, constant: false, zeros, fold: 32 });
-  check("words", "the live sentence names the grid's limit when the bound reads 0 (the 32-fold jump)", zeros > 0 && /reads as 0/.test(say), `${zeros} times read 0`);
+  // the live plate on that schedule, coarse grid: the count names its window, and the summaries leave those times out
+  const full = solveSchedule(cost, 10, { dt: 0.01, h: 0.02, cMin: 0.1, every: 1, lhsUpto: 10 }), rr = costRange(cost, 10);
+  Object.assign(full, { cMin: rr.lo, cMax: rr.hi });
+  const near = liveSummary(full, null, full, false, VIEW), far = liveSummary(full, null, full, true, VIEW);
+  const sayNear = S.liveSay({ label: "Cost jumps", dt: 0.01, w: near.w, wf: NaN, wc: NaN, pm: near.pm, far: false, constant: false, zeros: near.zeros, nWin: near.nWin, X: near.X, fold: near.fold, horizon: 10 });
+  const sayFar = S.liveSay({ label: "Cost jumps", dt: 0.01, w: far.w, wf: NaN, wc: NaN, pm: far.pm, far: true, tail: far.tail, constant: false, zeros: far.zeros, nWin: far.nWin, X: far.X, fold: far.fold, horizon: 10 });
+  check("words", "a 32-fold jump on Δt 0.01: the sentence counts the zero bounds in the window shown, 0 to 2.5 or to the forced choice",
+    near.zeros > 0 && near.nWin === 251 && far.nWin === 1000 && far.zeros > near.zeros && sayNear.includes(`At ${near.zeros} of the 251 times from 0 to 2.5`) && sayFar.includes(`At ${far.zeros} of the 1000 times from 0 to 10, before the forced choice`),
+    `${near.zeros} of ${near.nWin}; ${far.zeros} of ${far.nWin}`);
+  const raw = worstResidual(full, 0, VIEW);
+  check("grid", "there the largest residual leaves out the times whose bound reads 0, and says how many", near.skipped === near.zeros && near.w < raw.w,
+    `${near.w.toExponential(2)} over the resolved times, ${raw.w.toExponential(2)} with them; ${near.skipped} left out`);
+  check("grid", "and the time 0.70 on show reads as unresolved: its snapshot's bound is 0", sn.b === 0, `bound ${sn.b}`);
 }
 
 // ---- the book's schedules on the live plate -----------------------------------------------------------------------
@@ -123,12 +134,13 @@ for (const [name, cost] of Object.entries(TEST)) {
     const out = solveSchedule(cost, 10, { dt: 0.002, h: 0.005, cMin: r.lo, every: 5, lhsUpto: 2.6 });
     const co = solveSchedule(cost, 10, { dt: 0.01, h: 0.02, cMin: r.lo, every: 1, lhsUpto: 2.6 });
     const w = worstResidual(out, 0, VIEW, on), wc = worstResidual(co, 0, VIEW, on);
-    check("grid", `${ch.id}: on the paper's grid the left side is within 3e-3 of 1/4 over 0 to 2.5, and closer than on Δt 0.01 at the same 251 times`, w.w < 3e-3 && w.w < wc.w, `${w.w.toExponential(2)} at ${w.at.toFixed(2)}, against ${wc.w.toExponential(2)}`);
+    check("grid", `${ch.id}: on the paper's grid the left side is within 3e-3 of 1/4 over 0 to 2.5, and closer than on Δt 0.01 at the same 251 times (every pair compared)`,
+      w.w < 3e-3 && w.w < wc.w && w.n === 251 && wc.n === 251 && w.missing + wc.missing === 0, `${w.w.toExponential(2)} at ${w.at.toFixed(2)}, against ${wc.w.toExponential(2)}; compared ${w.n} and ${wc.n}`);
     if (ch.id === "jump") {
       const g = costBounds(ch, paramsOf(ch));
       check("holder", "Figure 1(a): C = √15 from the formula's levels 0.1 and 1.6", Math.abs(Math.sqrt((g.hi - g.lo) / g.lo) - Math.sqrt(15)) < 1e-12, `${Math.sqrt((g.hi - g.lo) / g.lo).toFixed(6)}`);
       check("exact", "Figure 1(a): on the paper's grid, the residual over 0 to 2.5 is above the test's 1.5e-3, as the text says", w.w > 1.5e-3, `${w.w.toExponential(2)}`);
-      const say = S.liveSay({ label: "Cost jumps", dt: 0.002, w: w.w, wf: w.w, wc: wc.w, pm: 0.15, far: false, constant: false, zeros: 0, fold: g.hi / g.lo });
+      const say = S.liveSay({ label: "Cost jumps", dt: 0.002, w: w.w, wf: w.w, wc: wc.w, pm: 0.15, far: false, constant: false, zeros: 0, fold: r.hi / r.lo, horizon: 10 });
       check("words", "the live sentence on Figure 1(a): says refinement lowers the residual and names the test's allowance and the 16-fold change, without calling the grid the source",
         /lowers the largest residual/.test(say) && /1\.5 × 10⁻³/.test(say) && /16-fold/.test(say) && !/main source/.test(say), say);
     }
@@ -136,9 +148,36 @@ for (const [name, cost] of Object.entries(TEST)) {
   {
     const out = fineOf.constant, w = worstResidual(out, 0, VIEW).w;
     let tail = 0; out.ts.forEach((t, i) => { if (t >= out.horizon - 1 && Number.isFinite(out.lhs[i])) tail = Math.max(tail, Math.abs(out.lhs[i] - 0.25)); });
-    const say = S.liveSay({ label: "Constant", dt: 0.002, w, wf: w, wc: worstResidual(coarseOf.constant, 0, VIEW).w, pm: 0, far: true, tail, horizon: 10, constant: true, zeros: 0, fold: 1 });
+    const say = S.liveSay({ label: "Constant", dt: 0.002, w, wf: w, wc: worstResidual(coarseOf.constant, 0, VIEW).w, pm: 0, far: true, tail, horizon: 10, constant: true, zeros: 0, nWin: 1000, X: 10, fold: 1 });
     check("words", "the live sentence for a constant cost, shown to the forced choice, keeps the finite-horizon explanation and limits the claim to the times shown", /forced choice at 10/.test(say) && /every time shown from 0 to 2\.5/.test(say), say);
   }
+}
+
+const FX0 = solveSchedule(testStep, FIXED.horizon, { dt: FIXED.dt, h: FIXED.h, cMin: 0.1, every: 1, lhsUpto: 3, snaps: [1.2], snapTo: 2 });
+// ---- the live plate's fold change, the band's printed interval, and two labels ---------------------------------------
+{
+  const ch = { id: "pulse", params: { at: 0.8, factor: 32 } }, cost = costOf(ch), r = costRange(cost, 10);
+  const fine = solveSchedule(cost, 10, { dt: 0.002, h: 0.005, cMin: r.lo, every: 5, lhsUpto: 10 }), coarse = solveSchedule(cost, 10, { dt: 0.01, h: 0.02, cMin: r.lo, every: 1, lhsUpto: 10 });
+  for (const o of [fine, coarse]) Object.assign(o, { cMin: r.lo, cMax: r.hi });
+  const sum = liveSummary(fine, fine, coarse, false, VIEW);
+  const say = S.liveSay({ label: "Pulse", dt: 0.002, w: sum.w, wf: sum.wf, wc: sum.wc, pm: sum.pm, far: false, constant: false, zeros: sum.zeros, nWin: sum.nWin, X: sum.X, fold: sum.fold, horizon: 10, restricted: sum.nBoth < sum.nView });
+  check("words", "Pulse at factor 32: the sentence gives the cost's actual change up to time 10 (about 31-fold), not the 32 of its formula", sum.wf > 1.5e-3 && /31-fold up to time 10/.test(say) && !/32-fold/.test(say), say);
+  // the band prints its interval rounded outward, so the printed interval holds the cost
+  const sm = { id: "smooth", params: { c0: 0.02, size: 1 } }, cases = [sm, ...PRESETS.filter((p) => p.id !== "deadline" && p.id !== "rising").map((p) => presetChoice(p.id))];
+  let holds = true;
+  const rows = cases.map((c) => {
+    const g = costBounds(c, paramsOf(c)), lo = +S.outward(g.lo, false), hi = +S.outward(g.hi, true), long = costRange(costOf(c), 400);
+    const tol = 1e-9; // the printed decimal of a value like 0.07, stored as 0.06999999999999999
+    if (!(lo <= g.lo * (1 + tol) && hi >= g.hi * (1 - tol) && lo <= long.lo * (1 + tol) && hi >= long.hi * (1 - tol))) holds = false;
+    return `${c.id} [${S.outward(g.lo, false)}, ${S.outward(g.hi, true)}]`;
+  });
+  const g = costBounds(sm, paramsOf(sm));
+  check("holder", "the band's printed interval is rounded outward, so it holds the formula's bounds and the cost sampled to time 400 (Smooth at 0.02 prints below 0.0067)",
+    holds && +S.outward(g.lo, false) < 0.00671676, rows.join(", "));
+  const L = FX0.lhs[Math.round(1.3 / FX0.dt)], hl = S.heroChartLabel(L);
+  check("words", "the hero chart says the areas are about ¼ and prints the green one's value on the grid", /about ¼/.test(hl) && hl.includes(L.toFixed(3)) && !/areas of ¼/.test(hl), hl);
+  const cs = S.regularSay(4, { ratios: chords(FX0.snaps[0].V, FX0.h, FX0.snaps[0].b, [0.4, 0.05]), slope: 0.2, gp: 0.21, h: FX0.h });
+  check("words", "the chords sentence calls W(t, b − ε)/ε the sizes of the slopes, which are negative on the chart", /sizes of the chords' slopes/.test(cs), cs);
 }
 
 // ---- the envelope identity on the plates' grid ----------------------------------------------------------------------
@@ -311,7 +350,8 @@ const cumCost = (o) => {
       S.bandVerdict(["jump", "cont", null][i % 3], r(), 1 + r() * 15, r() * 4),
       S.standingNote(["deadline", "rising", "draw", "constant", "preset"][i % 5], "Pulse"),
       S.areaSay(i % 4, { t: r() * 2, u0: r(), c: r(), z: r(), Rz: r(), gap: r() * 1e-3, R: r(), bc: r() * 1.4, L: 0.25 + (r() - 0.5) * 1e-3, Bc: r() * 1.4 }),
-      S.liveSay({ label: "Pulse", dt: [0.002, 0.01][i % 2], w: r() * 1e-3, wf: i % 3 ? r() * 3e-3 : NaN, wc: i % 4 ? r() * 1e-2 : NaN, pm: r() * 0.3, far: i % 2 === 0, tail: i % 5 ? r() * 0.2 : NaN, horizon: 10, constant: i % 9 === 0, zeros: i % 6 ? 0 : 12, fold: i % 7 ? 1 + r() * 30 : NaN }),
+      S.liveSay({ label: "Pulse", dt: [0.002, 0.01][i % 2], w: r() * 1e-3, wf: i % 3 ? r() * 3e-3 : NaN, wc: i % 4 ? r() * 1e-2 : NaN, pm: r() * 0.3, far: i % 2 === 0, tail: i % 5 ? r() * 0.2 : NaN, horizon: 10, constant: i % 9 === 0, zeros: i % 6 ? 0 : 12, nWin: 251, X: i % 2 ? 2.5 : 10, restricted: i % 3 === 0, fold: i % 7 ? 1 + r() * 30 : NaN }),
+      S.heroChartLabel(i % 5 ? 0.25 + (r() - 0.5) * 1e-3 : NaN), S.outward(r() * 2, i % 2 === 0),
       S.speedSay(["y", "u"][i % 2], r(), r() * 2, r(), r()),
       S.sci((r() - 0.5) * 10 ** (-1 - Math.floor(r() * 12))),
     ];
