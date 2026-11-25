@@ -1,12 +1,12 @@
 // Chapter 7's plates. Every number drawn comes from kernel.js (the series and the closed forms), ch07-model.js (the
 // series form of the transfer function, the scans, the closed forms behind the loss, and the forward computation),
 // the solver's workers, or the paper's Table 1; the words under each plate come from the functions in say-ch07.js.
-import * as K from "./kernel.js?v=3012045bec";
-import * as M from "./ch07-model.js?v=3012045bec";
-import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, VIEW, defaultDrawing } from "./schedules-book.js?v=3012045bec";
-import { getChoice, setChoice, solve, onVisible, watchVisible, liftReady, calm, seedParam } from "./book.js?v=3012045bec";
-import { frame, line, area, axes, svg, tags, fmt, keepDrawn } from "./chart.js?v=3012045bec";
-import * as S from "./say-ch07.js?v=3012045bec";
+import * as K from "./kernel.js?v=37a0cf8296";
+import * as M from "./ch07-model.js?v=37a0cf8296";
+import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, VIEW, defaultDrawing } from "./schedules-book.js?v=37a0cf8296";
+import { getChoice, setChoice, solve, onVisible, watchVisible, liftReady, calm, seedParam, wireStrips } from "./book.js?v=37a0cf8296";
+import { frame, line, area, axes, svg, tags, fmt, keepDrawn } from "./chart.js?v=37a0cf8296";
+import * as S from "./say-ch07.js?v=37a0cf8296";
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const plate = (id) => document.getElementById("plate-" + id);
@@ -164,7 +164,7 @@ function wavePlate() {
       reads.innerHTML = `<div class="k-wb"><dt>Gain |w̃(−iω)|</dt><dd>${fmt(tr.gain, 3)}<small>of the per-moment swing</small></dd></div>
         <div class="k-wb"><dt>Lead</dt><dd>${fmt(tr.lead, 1)}°<small>ahead of the per-moment response</small></dd></div>
         <div class="k-wb"><dt>Lead in time</dt><dd>${fmt(tl, 3)}<small>the mean look-ahead is ${fmt(m, 3)}</small></dd></div>
-        <div class="k-pm"><dt>Per-moment swing, too large by</dt><dd>${fmt(1 / tr.gain, 2)}×</dd></div>`;
+        <div class="k-pm"><dt>Per-moment swing ÷ the bound's</dt><dd>${fmt(1 / tr.gain, 2)}</dd></div>`;
       say.textContent = S.waveSay(c0, om, tr.gain, tr.lead, tl, m);
     } else { reads.innerHTML = ""; say.textContent = ""; }
     liftReady(fig);
@@ -194,29 +194,6 @@ function wavePlate() {
   });
   watchVisible(fig, (v) => { visible = v; if (v && playing && !raf) raf = requestAnimationFrame(loop); });
   keepDrawn(resp, draw);
-}
-
-// ---------------------------------------------------------------- the proof strips
-function strips() {
-  document.querySelectorAll(".strip").forEach((st) => {
-    const n = +st.dataset.steps, inp = st.querySelector("input[type=range]");
-    const cards = [...st.querySelectorAll(".strip-step")], btns = [...st.querySelectorAll(".strip-steps button")];
-    const fig = plate(st.dataset.plate);
-    let at = 0;
-    const show = (k) => {
-      at = Math.max(0, Math.min(n - 1, k));
-      cards.forEach((c, i) => { c.hidden = i !== at; });
-      btns.forEach((b, i) => { if (i === at) { b.setAttribute("aria-current", "step"); b.classList.add("seen"); } else b.removeAttribute("aria-current"); });
-      inp.value = at;
-      st.querySelector('[data-go="-1"]').disabled = at === 0;
-      const nx = st.querySelector('[data-go="1"]'); nx.disabled = at === n - 1; nx.textContent = at === n - 1 ? "Last step" : "Next step";
-      if (fig) { fig.dataset.step = at; fig.dispatchEvent(new CustomEvent("strip-step", { detail: at })); }
-    };
-    inp.addEventListener("input", () => show(+inp.value));
-    btns.forEach((b, i) => b.addEventListener("click", () => show(i)));
-    st.querySelectorAll("[data-go]").forEach((b) => b.addEventListener("click", () => show(at + +b.dataset.go)));
-    show(0);
-  });
 }
 
 // ---------------------------------------------------------------- plate: the terms of the transform (Corollary 8's proof)
@@ -314,7 +291,7 @@ function lookaheadPlate() {
   const kEl = $("#la-k", el), mEl = $("#la-m", el), reads = $("#la-reads", el), say = $("#la-say", el), out = $("#la-out", el), inp = $("#la-c", el), verdict = $("#la-verdict", el);
   const draw = () => {
     const c0 = 10 ** lc, m = K.meanLookAhead(c0), dec = K.meanDecisionTime(c0), best = maxLA();
-    out.textContent = c0 >= 0.01 ? String(+c0.toPrecision(2)) : c0.toExponential(1);
+    out.textContent = S.num(c0);
     const fk = frame(kEl, { x: [1e-3, 8], y: [1e-3, 20], xlog: true, ylog: true, aspect: 0.5, minH: 180, maxH: 260 });
     let g = axes(fk, { yl: "weight w(s)", xl: "time ahead, s", grid: true });
     const inK = (v) => (v >= 1e-3 && v <= 20 ? v : NaN);
@@ -344,7 +321,7 @@ function lookaheadPlate() {
     reads.innerHTML = `<div class="k-wb"><dt>Mean look-ahead, m(c₀)</dt><dd>${fmt(m, 3)}<small>time units</small></dd></div>
       <div><dt>Mean decision time from 0</dt><dd>${fmt(dec, 2)}<small>b₀ tanh b₀</small></dd></div>
       <div><dt>Bound, b₀</dt><dd>${fmt(K.B(c0), 3)}</dd></div>
-      <div class="k-wb"><dt>Largest look-ahead</dt><dd>${fmt(best.m, 3)}<small>at c₀ ≈ ${fmt(best.cost, 3)}, numerically</small></dd></div>`;
+      <div class="k-wb"><dt>Largest look-ahead</dt><dd>${fmt(best.m, 3)}<small>at c₀ ≈ ${fmt(best.cost, 3)}, scanned over 10⁻⁴ to 10</small></dd></div>`;
     say.textContent = S.lookaheadSay(c0, m, dec, best.m, best.cost);
     if (guess) verdict.textContent = S.lookaheadVerdict(guess, M.lookAheadClosed(1e-4), 1e-4, K.meanDecisionTime(1e-4));
     liftReady(fig);
@@ -376,14 +353,10 @@ function meanPlate() {
   el.innerHTML = `<p class="fine" id="mn-step"></p><div class="controls">${segHTML("mn-c", [[0.02, "0.02"], [0.1, "0.1"], [0.5, "0.5"]], c0, "Cost of time, c₀")}</div>
     <div class="chart-wrap" id="mn-chart"></div><dl class="reads" id="mn-reads"></dl>`;
   const chart = $("#mn-chart", el), reads = $("#mn-reads", el), head = $("#mn-step", el);
-  // the mean of 400 decisions from each of six starts, seeded
+  // the mean of 400 decisions from each of six starts, seeded (ch07-model.js's sampleStarts)
   const sampled = (c) => {
-    if (samples.has(c)) return samples.get(c);
-    const b = K.B(c), R = K.rng(seedParam(2026) + 31 + Math.round(c * 1000));
-    const ys = [0, 0.2, 0.4, 0.6, 0.8, 0.95].map((u) => u * b);
-    const out = ys.map((y) => { let a = 0, q = 0; const n = 400; for (let i = 0; i < n; i++) { const t = K.decide(y, b, R).t; a += t; q += t * t; } a /= n; return { y, mean: a, se: Math.sqrt(Math.max(0, q / n - a * a) / n) }; });
-    samples.set(c, out);
-    return out;
+    if (!samples.has(c)) samples.set(c, M.sampleStarts(c, seedParam(2026)));
+    return samples.get(c);
   };
   const draw = () => {
     head.textContent = S.MEAN_HEADS[step];
@@ -400,9 +373,9 @@ function meanPlate() {
       const lEnd = Math.min(6, 0.9 / m);
       g += txt(f.sx(lEnd) + 6, f.sy(1 - m * lEnd) + 4, `slope −${fmt(m, 3)}`, "tag-ex");
       label = "The kernel's Laplace transform, 1 at zero, with its tangent of slope minus the mean";
-      const dq = -(K.transform(1e-4, c0) - 1) / 1e-4;
-      reads.innerHTML = `<div class="k-wb"><dt>w̃ at λ = 10⁻⁹</dt><dd>${fmt(K.transform(1e-9, c0), 6)}</dd></div>
-        <div class="k-wb"><dt>−w̃′(0), difference quotient</dt><dd>${fmt(dq, 4)}<small>the mean from the series: ${fmt(m, 4)}</small></dd></div>`;
+      const w4 = K.transform(1e-4, c0), dq = -(w4 - 1) / 1e-4;
+      reads.innerHTML = `<div class="k-wb"><dt>w̃ at λ = 10⁻⁴</dt><dd>${fmt(w4, 6)}<small>1 − 10⁻⁴ m(c₀) = ${fmt(1 - 1e-4 * m, 6)}</small></dd></div>
+        <div class="k-wb"><dt>−w̃′(0), difference quotient</dt><dd>${fmt(dq, 4)}<small>from λ = 10⁻⁴; the mean from the series: ${fmt(m, 4)}</small></dd></div>`;
     } else if (step === 1 || step === 2) {
       const ys = range(0, b, 161), pis = ys.map((y) => K.pi0(y, c0)), ets = ys.map((y) => M.meanTimeFrom(y, b)), prod = ys.map((y, i) => pis[i] * ets[i]);
       const top = Math.max(...pis, ...ets) * 1.12;
@@ -419,15 +392,15 @@ function meanPlate() {
           <div class="k-wb"><dt>Mean of the kernel</dt><dd>${fmt(m, 4)}<small>from the series</small></dd></div>`;
       } else {
         g += line(f, ys, ets, "ex");
-        const sm = sampled(c0);
+        const smp = sampled(c0), sm = smp.starts;
         for (const p of sm) {
           const X = f.sx(p.y), Y = f.sy(p.mean);
           g += `<path class="acc" d="M${P(X - 4)} ${P(Y - 4)}l8 8M${P(X + 4)} ${P(Y - 4)}l-8 8M${P(X)} ${P(f.sy(p.mean - 2 * p.se))}V${P(f.sy(p.mean + 2 * p.se))}"/>`;
         }
         g += txt(f.sx(ys[10]) + 4, f.sy(ets[10]) - 8, "b₀ tanh b₀ − y tanh y", "tag-ex");
         label = "The mean time to the bound from each start, beside sampled decisions from six starts";
-        const worst = Math.max(...sm.map((p) => Math.abs(p.mean - M.meanTimeFrom(p.y, b)) / Math.max(p.se, 1e-9)));
-        reads.innerHTML = `<div><dt>Runs</dt><dd>${(400 * sm.length).toLocaleString("en-US")}<small>400 from each start</small></dd></div>
+        const worst = M.worstGap(smp, b);
+        reads.innerHTML = `<div><dt>Runs</dt><dd>${(400 * sm.length).toLocaleString("en-US")}<small>400 from each start, checked every ${smp.dt >= 0.001 ? smp.dt : smp.dt.toExponential(1)}</small></dd></div>
           <div><dt>Largest gap, in standard errors</dt><dd>${fmt(worst, 1)}</dd></div>
           <div class="k-wb"><dt>Closed form (22), both forms</dt><dd>${fmt(M.lookAheadFirst(c0), 4)}<small>and ${fmt(M.lookAheadClosed(c0), 4)}</small></dd></div>`;
       }
@@ -446,7 +419,7 @@ function meanPlate() {
       label = "The mean look-ahead against the cost, from a ten-thousandth to 100, with its limits";
       reads.innerHTML = `<div class="k-wb"><dt>At c₀ = 10⁻⁴</dt><dd>${fmt(M.lookAheadClosed(1e-4), 4)}<small>tending to ½</small></dd></div>
         <div class="k-wb"><dt>At c₀ = 100, ÷ ⅔ b₀²</dt><dd>${fmt(M.lookAheadClosed(100) / ((2 / 3) * K.B(100) ** 2), 4)}<small>tending to 1</small></dd></div>
-        <div><dt>Largest, scanned</dt><dd>${fmt(best.m, 3)}<small>at c₀ ≈ ${fmt(best.cost, 3)}</small></dd></div>`;
+        <div><dt>Largest, scanned over 10⁻⁴ to 10</dt><dd>${fmt(best.m, 3)}<small>at c₀ ≈ ${fmt(best.cost, 3)}</small></dd></div>`;
     }
     chart.innerHTML = svg(f, g, label);
     liftReady(fig);
@@ -486,23 +459,21 @@ function shiftPlate() {
   const run = () => {
     data = null; draw(); reads.innerHTML = ""; say.textContent = "";
     pick.value = choice.id;
-    if (choice.id === "constant") { note.textContent = S.shiftNote("constant"); state.textContent = ""; return; }
     const dl = deadlineOf(choice);
-    note.textContent = dl !== null ? S.shiftNote("deadline") : S.shiftNote("", labelOf(choice));
+    const cost = costOf(choice), flat = dl === null && M.isFlat(cost);
+    note.textContent = S.shiftNote(dl !== null ? "deadline" : flat ? "constant" : "", labelOf(choice));
     state.textContent = "Solving the dynamic program…";
-    const cost = costOf(choice);
     solve({ job: "bounds", choice }, { key: "ch07-shift" }).then((m) => {
       const t = m.t, view = dl ?? VIEW;
       const sh = t.map((x) => (dl !== null && x >= dl - 1e-9 ? 0 : M.shiftedBound(cost, x)));
       data = { t, exact: m.exact, pm: m.pm, sh, c: m.cost, view };
-      const n = t.length, gap = (a) => t.map((_, i) => Math.abs(a[i] - m.exact[i])).filter(Number.isFinite);
-      const gp = gap(m.pm), gs = gap(sh);
-      const avg = (a) => a.reduce((x, y) => x + y, 0) / Math.max(1, a.length);
-      reads.innerHTML = `<div class="k-pm"><dt>Per-moment: average gap</dt><dd>${fmt(avg(gp), 3)}<small>largest ${fmt(Math.max(...gp), 3)}</small></dd></div>
-        <div class="k-wb"><dt>Shifted: average gap</dt><dd>${fmt(avg(gs), 3)}<small>largest ${fmt(Math.max(...gs), 3)}</small></dd></div>
-        <div><dt>Shift at time 0</dt><dd>${fmt(K.meanLookAhead(cost(0), 400), 3)}<small>m(c(0)), time units</small></dd></div>`;
-      say.textContent = S.shiftSay(labelOf(choice), Math.max(...gp), Math.max(...gs), avg(gp), avg(gs));
-      state.textContent = `Time step 0.01, evidence step 0.02, ${n} times over the window; gaps measured from the program's bound.`;
+      const n = t.length, G = M.shiftGaps(m.exact, m.pm, sh);
+      reads.innerHTML = `<div class="k-pm"><dt>Per-moment: average gap</dt><dd>${fmt(G.avgPm, 3)}<small>largest ${fmt(G.maxPm, 3)}</small></dd></div>
+        <div class="k-wb"><dt>Shifted: average gap</dt><dd>${fmt(G.avgSh, 3)}<small>largest ${fmt(G.maxSh, 3)}</small></dd></div>
+        <div><dt>Shift at time 0</dt><dd>${fmt(M.lookAheadClosed(cost(0)), 3)}<small>m(c(0)), time units</small></dd></div>`;
+      say.textContent = S.shiftSay(labelOf(choice), G, flat);
+      const zero = m.exact.some((v, i) => v === 0 && (dl === null || t[i] < dl - 1e-9));
+      state.textContent = `Time step 0.01, evidence step 0.02, ${dl !== null ? "to the forced choice at the deadline" : "6 time units past the window"}; ${n} times shown, every 0.02 and the last one; gaps measured from the program's bound.${zero ? " Where the program's bound lies below the grid's first step, it reads as 0, as in the paper's code." : ""}`;
       draw();
     }).catch((e) => { if (e.message !== "superseded") state.textContent = "The solver stopped: " + e.message; });
   };
@@ -752,7 +723,7 @@ let lossWorker = null, lossNext = 1;
 const lossPending = new Map(), lossCache = new Map();
 function getLossWorker() {
   if (lossWorker) return lossWorker;
-  lossWorker = new Worker(new URL("./ch07-worker.js?v=3012045bec", import.meta.url), { type: "module" });
+  lossWorker = new Worker(new URL("./ch07-worker.js?v=37a0cf8296", import.meta.url), { type: "module" });
   lossWorker.onmessage = (e) => {
     const m = e.data, p = lossPending.get(m.id);
     if (!p) return;
@@ -777,7 +748,9 @@ function lossFor(choice, onProgress) {
   if (onProgress) { entry.listeners.add(onProgress); onProgress(entry.done); }
   return entry.promise;
 }
-const scheduleKind = (choice) => (deadlineOf(choice) !== null ? "deadline" : choice.id === "constant" ? "constant" : choice.id === "rising" ? "rising" : "");
+// what a schedule is, for the loss plates: a deadline, a flat cost (by its values, so a flat drawing or a Smooth of
+// size 0 counts), the rising cost, or one the proposition covers
+const scheduleKind = (choice) => (deadlineOf(choice) !== null ? "deadline" : M.isFlat(costOf(choice)) ? "constant" : choice.id === "rising" ? "rising" : "");
 const epsLabel = (e) => (e >= 1 ? "1" : `1/${Math.round(1 / e)}`);
 const epsDial = (id, k) => `<label class="dial"><span class="ctl-key">Size of the change, ε</span><output id="${id}-out">${epsLabel(LOSS_EPS[k])}</output>
   <input type="range" id="${id}" min="0" max="${LOSS_EPS.length - 1}" step="1" value="${k}" aria-label="Size of the change, as a power of one half"></label>`;
@@ -806,6 +779,7 @@ function lossPlate() {
     const floor10 = 10 * data.floor;
     const lp = data.runs.map((r) => r.loss.pm), lf = data.runs.map((r) => r.loss.fo);
     const pos = [...lp, ...lf].filter((v) => v > 0);
+    if (!pos.length) { bot.innerHTML = `<p class="fine">${S.noLossNote()}</p>`; liftReady(fig); return; }
     const yLo = Math.min(floor10 / 4, ...pos) / 1.5, yHi = Math.max(...pos) * 3;
     const fb = frame(bot, { x: [1 / 90, 1.4], y: [yLo, yHi], xlog: true, ylog: true, aspect: 0.5, minH: 190, maxH: 270 });
     let h = axes(fb, { yl: "loss of reward", xl: "size of the change, ε", grid: true, xt: LOSS_EPS.slice().reverse(), fx: epsLabel });
@@ -829,11 +803,11 @@ function lossPlate() {
     const run = data.runs[k];
     const rp = data.runs.map((r) => M.resolved(r.loss.pm, data.floor)), rf = data.runs.map((r) => M.resolved(r.loss.fo, data.floor));
     const sp = M.lastSlope(LOSS_EPS, data.runs.map((r) => r.loss.pm), rp), sf = M.lastSlope(LOSS_EPS, data.runs.map((r) => r.loss.fo), rf);
-    const v = (x) => (Math.abs(x) < 1e-12 ? "0" : x.toExponential(1));
+    const v = (x) => (Math.abs(x) < 1e-12 ? "0" : S.num(x));
     reads.innerHTML = `<div class="k-pm"><dt>Per-moment loss</dt><dd>${v(run.loss.pm)}<small>slope, three smallest resolved: ${fmt(sp, 2)}</small></dd></div>
       <div class="k-wb"><dt>First-order bound's loss</dt><dd>${v(run.loss.fo)}<small>slope, three smallest resolved: ${fmt(sf, 2)}</small></dd></div>
-      <div><dt>Grid's resolution</dt><dd>${data.floor.toExponential(1)}<small>reward change for a 0.001 move at c(0)</small></dd></div>`;
-    say.textContent = S.lossSay(run.eps, run.loss.pm, run.loss.fo, sp, sf, rp[k], rf[k], Math.min(...run.bounds.fo) <= 0);
+      <div><dt>Grid's resolution</dt><dd>${S.num(data.floor)}<small>the per-moment loss at the constant cost c(0), all of it the grid's</small></dd></div>`;
+    say.textContent = S.lossSay(run.eps, run.loss.pm, run.loss.fo, sp, sf, rp[k], rf[k], run.foZero);
   };
   const run = () => {
     data = null; draw(); reads.innerHTML = ""; say.textContent = "";
@@ -846,7 +820,7 @@ function lossPlate() {
     lossFor(choice, (p) => { if (JSON.stringify(choice) === mine && !data) state.textContent = `Solving and scoring ${LOSS_EPS.length} sizes of the change… ${Math.round(p * LOSS_EPS.length)} of ${LOSS_EPS.length}`; }).then((m) => {
       if (JSON.stringify(choice) !== mine) return;
       data = m;
-      state.textContent = `Time step 0.01, evidence step 0.02, a forced choice at time ${M.LOSS_HORIZON}; each policy scored by the forward computation.`;
+      state.textContent = S.lossState(M.LOSS_HORIZON, m.runs.some((r) => r.centerWaits > 0), "loss");
       draw(); readOut();
     }).catch((e) => { if (JSON.stringify(choice) === mine) state.textContent = "The solver stopped: " + e.message; });
   };
@@ -882,24 +856,34 @@ function conjPlate() {
     g += line(f, tcs, run.cum.pm, "pm") + line(f, tcs, run.cum.fo, "wb");
     g += txt(f.sx(H - 2) - 4, f.H - f.b - 8, `forced choice at ${H}`, "tk", "end");
     top.innerHTML = svg(f, g, `At epsilon ${epsLabel(run.eps)}: the running share of the conjecture's prediction against the time of decision, for each rule`);
-    const fb = frame(bot, { x: [1 / 90, 1.4], y: [0, 2], xlog: true, aspect: 0.45, minH: 170, maxH: 240 });
-    let h = axes(fb, { yl: "predicted ÷ scored", xl: "size of the change, ε", grid: true, xt: LOSS_EPS.slice().reverse(), fx: epsLabel, yt: [0, 0.5, 1, 1.5, 2] });
-    h += `<path class="guide" d="M${fb.l} ${P(fb.sy(1))}H${fb.W - fb.r}"/>` + txt(fb.l + 4, fb.sy(1) - 6, "the conjecture's limit, 1", "tk");
-    const pts = (which, full, hollow) => data.runs.map((r, i) => { const v = ratio(r, which); if (!Number.isFinite(v)) return ""; return dot(fb, LOSS_EPS[i], Math.max(0, Math.min(2, v)), M.resolved(r.loss[which], data.floor) ? full : hollow, i === k ? 5 : 3.5); }).join("");
-    h += line(fb, LOSS_EPS, data.runs.map((r) => (M.resolved(r.loss.pm, data.floor) ? Math.min(2, ratio(r, "pm")) : NaN)), "pm");
-    h += pts("fo", "wb-dot", "ring-wb") + pts("pm", "pm-dot", "ring-pm");
+    // the axis reaches the largest ratio up to 8; a ratio past that is drawn at the top with an arrow and its value
+    const ratios = data.runs.flatMap((r) => [ratio(r, "pm"), ratio(r, "fo")]).filter(Number.isFinite);
+    const yMax = M.ratioAxisTop(ratios);
+    const fb = frame(bot, { x: [1 / 90, 1.4], y: [0, yMax], xlog: true, aspect: 0.45, minH: 170, maxH: 240 });
+    let h = axes(fb, { yl: "predicted ÷ scored", xl: "size of the change, ε", grid: true, xt: LOSS_EPS.slice().reverse(), fx: epsLabel });
+    h += `<path class="guide" d="M${fb.l} ${P(fb.sy(1))}H${fb.W - fb.r}"/>` + txt(fb.l + 4, fb.sy(1) - 6, "1, the agreement line", "tk");
+    const pts = (which, full, hollow, tagCls) => data.runs.map((r, i) => {
+      const v = ratio(r, which);
+      if (!Number.isFinite(v)) return "";
+      const cls = M.resolved(r.loss[which], data.floor) ? full : hollow;
+      if (v <= yMax) return dot(fb, LOSS_EPS[i], Math.max(0, v), cls, i === k ? 5 : 3.5);
+      const X = fb.sx(LOSS_EPS[i]), Y = fb.sy(yMax);
+      return arrowPx(X, Y + 12, X, Y - 2, tagCls === "tag-wb" ? "wb" : "pm", 5) + txt(X, Y + 24, fmt(v, 1), tagCls, "middle");
+    }).join("");
+    h += line(fb, LOSS_EPS, data.runs.map((r) => { const v = ratio(r, "pm"); return M.resolved(r.loss.pm, data.floor) && v <= yMax ? v : NaN; }), "pm");
+    h += pts("fo", "wb-dot", "ring-wb", "tag-wb") + pts("pm", "pm-dot", "ring-pm", "tag-pm");
     bot.innerHTML = svg(fb, h, "The conjecture's prediction divided by the scored loss, against the size of the change, for each rule");
     liftReady(fig);
   };
   const readOut = () => {
     if (!data) return;
     const run = data.runs[k], rp = M.resolved(run.loss.pm, data.floor), rf = M.resolved(run.loss.fo, data.floor);
-    const v = (x) => (Math.abs(x) < 1e-12 ? "0" : x.toExponential(1));
+    const v = (x) => (Math.abs(x) < 1e-12 ? "0" : S.num(x));
     reads.innerHTML = `<div class="k-pm"><dt>Per-moment: predicted</dt><dd>${v(run.pred.pm)}<small>scored ${v(run.loss.pm)}${rp ? "" : ", not resolved"}</small></dd></div>
       <div class="k-pm"><dt>Ratio</dt><dd>${fmt(ratio(run, "pm"), 2)}<small>${fmt(run.late.pm * 100, 0)}% from the last 2 time units</small></dd></div>
       <div class="k-wb"><dt>First-order: predicted</dt><dd>${v(run.pred.fo)}<small>scored ${v(run.loss.fo)}${rf ? "" : ", not resolved"}</small></dd></div>
       <div class="k-wb"><dt>Ratio</dt><dd>${fmt(ratio(run, "fo"), 2)}<small>${fmt(run.late.fo * 100, 0)}% from the last 2 time units</small></dd></div>`;
-    say.textContent = S.conjSay(run.eps, ratio(run, "pm"), rp, run.late.pm, ratio(run, "fo"), rf, run.late.fo);
+    say.textContent = S.conjSay(run.eps, ratio(run, "pm"), rp, run.late.pm, ratio(run, "fo"), rf, run.late.fo, run.loss.pm, run.loss.fo);
   };
   const drawFacts = (c0) => {
     const b = K.B(c0), h = 1e-3;
@@ -920,7 +904,7 @@ function conjPlate() {
     lossFor(choice, (p) => { if (JSON.stringify(choice) === mine && !data) state.textContent = `Solving and scoring ${LOSS_EPS.length} sizes of the change… ${Math.round(p * LOSS_EPS.length)} of ${LOSS_EPS.length}`; }).then((m) => {
       if (JSON.stringify(choice) !== mine) return;
       data = m;
-      state.textContent = `Time step 0.01, evidence step 0.02, a forced choice at time ${M.LOSS_HORIZON}; the prediction leaves out the last grid time.`;
+      state.textContent = S.lossState(M.LOSS_HORIZON, m.runs.some((r) => r.centerWaits > 0), "conj");
       draw(); readOut();
     }).catch((e) => { if (JSON.stringify(choice) === mine) state.textContent = "The solver stopped: " + e.message; });
   };
@@ -932,7 +916,7 @@ function conjPlate() {
 
 // ---------------------------------------------------------------- start
 hero();
-strips();
+wireStrips();
 const lazy = [["wave", wavePlate], ["arrows", arrowsPlate], ["lookahead", lookaheadPlate], ["mean", meanPlate], ["shift", shiftPlate],
   ["halfint", halfPlate], ["reward", rewardPlate], ["band", bandPlate], ["loss", lossPlate], ["conj", conjPlate]];
 for (const [id, fn] of lazy) { const f = plate(id); if (f) onVisible(f, () => { try { fn(); } catch (e) { const r = rootOf(id); if (r) r.innerHTML = failText(e); console.error(e); } }); }

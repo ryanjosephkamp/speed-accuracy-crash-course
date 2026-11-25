@@ -1,11 +1,11 @@
 // Chapter 6's plates. Every number drawn comes from kernel.js (the series, the closed forms, the sampler) or from
 // the dynamic program in the worker; the words under each plate come from the functions in say-ch06.js, which take
 // numbers and return sentences.
-import * as K from "./kernel.js?v=3012045bec";
-import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, VIEW, defaultDrawing } from "./schedules-book.js?v=3012045bec";
-import { getChoice, setChoice, solve, onVisible, watchVisible, liftReady, calm, seedParam } from "./book.js?v=3012045bec";
-import { frame, line, area, axes, svg, tags, fmt, keepDrawn } from "./chart.js?v=3012045bec";
-import * as S from "./say-ch06.js?v=3012045bec";
+import * as K from "./kernel.js?v=37a0cf8296";
+import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, VIEW, defaultDrawing } from "./schedules-book.js?v=37a0cf8296";
+import { getChoice, setChoice, solve, onVisible, watchVisible, liftReady, calm, seedParam } from "./book.js?v=37a0cf8296";
+import { frame, line, area, axes, svg, tags, fmt, keepDrawn } from "./chart.js?v=37a0cf8296";
+import * as S from "./say-ch06.js?v=37a0cf8296";
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const plate = (id) => document.getElementById("plate-" + id);
@@ -98,10 +98,11 @@ function scalePlate() {
     const gFo = Math.max(...win.map((i) => Math.abs(dev[sel][i] - beta[i])));
     const gPm = Math.max(...win.map((i) => Math.abs(dev[sel][i] - pmr[i])));
     const gFoAll = dev.map((d) => Math.max(...win.map((i) => Math.abs(d[i] - beta[i]))));
+    const gPmAll = dev.map((d) => Math.max(...win.map((i) => Math.abs(d[i] - pmr[i]))));
     reads.innerHTML = `<div class="k-wb"><dt>Largest gap to β</dt><dd>${fmt(gFo, 3)}<small>between times 0.5 and 3.5</small></dd></div>
       <div class="k-pm"><dt>Largest gap to per-moment</dt><dd>${fmt(gPm, 3)}<small>same window</small></dd></div>
       <div><dt>Swing of β</dt><dd>${fmt(maxAbs(beta), 3)}<small>for comparison</small></dd></div>`;
-    say.textContent = S.scaleSay(EPS[sel], gFo, gPm, gFoAll, EPS);
+    say.textContent = S.scaleSay(EPS[sel], gFo, gPm, gFoAll, EPS, gPmAll);
     liftReady(fig);
   };
   const run = () => {
@@ -152,6 +153,9 @@ function sketchPlate() {
       s += area(f, kx, kw.map((v) => Math.min(v, top)), 0, "wb-fill") + line(f, kx, kw, "wb");
       s += `<path class="wb" stroke-dasharray="3 3" d="M${f.sx(m).toFixed(1)} ${f.t}V${f.H - f.b}"/><text class="tag-wb" x="${(f.sx(m) + 5).toFixed(1)}" y="${f.t + 12}">mean ${fmt(m, 3)}</text>`;
     }
+    // the chart stops at 3: say so where a curve runs above it (the kernel does near 0, like s^(-1/2))
+    if (shown && kw.some((v) => v > top)) s += `<text class="tag-wb" x="${(f.sx(0.02) + 4).toFixed(1)}" y="${f.t + 10}">w(s) runs above ${top} near 0</text>`;
+    if (drew && norm.some((v) => v > top)) s += `<text class="tag-acc" x="${f.W - f.r - 2}" y="${f.t + 24}" text-anchor="end">your weights run above ${top}</text>`;
     s += `<rect class="hit" x="${f.l}" y="${f.t}" width="${f.W - f.l - f.r}" height="${f.H - f.t - f.b}"/>`;
     chart.innerHTML = svg(f, s, shown ? `Your drawn weights beside the kernel for a cost of ${c0}` : "A sheet to draw your weights on");
     chart._f = f;
@@ -490,7 +494,7 @@ function yoursPlate() {
   const fig = plate("yours"), el = rootOf("yours");
   if (!el) return;
   const EPS = [1, 0.5, 0.25, 0.125, 0.0625, 0.03125];
-  let choice = getChoice(), data = null, sel = 2, guess = { pm: null, fo: null }, reveal = false;
+  let choice = getChoice(), data = null, sel = 2, guess = { pm: null, fo: null }, reveal = false, gen = 0;
   const groups = [...new Set(PRESETS.map((p) => p.group))];
   el.innerHTML = `<div class="controls"><label class="dial" style="flex:1 1 14rem"><span class="ctl-key">Your schedule</span><span></span>
       <select class="pick" id="yo-pick">${groups.map((g) => `<optgroup label="${g}">${PRESETS.filter((p) => p.group === g).map((p) => `<option value="${p.id}">${p.label}</option>`).join("")}</optgroup>`).join("")}<optgroup label="Yours"><option value="draw">${DRAW.label}</option></optgroup></select></label>
@@ -498,7 +502,7 @@ function yoursPlate() {
     <p class="fine" id="yo-note"></p>
     <div class="chart-wrap" id="yo-top"></div>
     <ul class="legend"><li><span class="key key-ex">Program, (b − b₀) ÷ ε</span></li><li><span class="key key-wb">First order, β</span></li><li><span class="key key-pm">Per-moment</span></li></ul>
-    <div class="predict" id="yo-predict"><p>As ε shrinks, how fast does each shortcut's error shrink?</p>
+    <div class="predict" id="yo-predict"><p>As ε shrinks, how fast does the theory say each shortcut's error shrinks?</p>
       ${segHTML("yo-gpm", [["0", "Not at all"], ["1", "Like ε"], ["2", "Like ε²"]], "", "Per-moment rule")}
       ${segHTML("yo-gfo", [["0", "Not at all"], ["1", "Like ε"], ["2", "Like ε²"]], "", "First-order correction")}
       <div class="actions" style="margin-top:8px"><button class="btn btn-go" type="button" id="yo-show">Show the errors</button></div>
@@ -534,28 +538,34 @@ function yoursPlate() {
     g += `<text class="tk" x="${lx.toFixed(1)}" y="${Math.min(f.H - f.b - 4, f.sy((y0 / 3) * (xl / e0) ** 2) + 14).toFixed(1)}">slope 2</text>`;
     g += line(f, EPS, ePm, "pm") + line(f, EPS, eFo.map((v) => Math.max(v, yLo)), "wb");
     g += EPS.map((e, k) => `<circle class="wb-dot" cx="${f.sx(e).toFixed(1)}" cy="${f.sy(Math.max(eFo[k], yLo)).toFixed(1)}" r="3"/>`).join("");
-    g += `<path class="dim" stroke-dasharray="1 3" d="M${f.l} ${f.sy(1e-4).toFixed(1)}H${f.W - f.r}"/><text class="tk" x="${f.W - f.r}" y="${(f.sy(1e-4) + 13).toFixed(1)}" text-anchor="end">grid resolution, about 10⁻⁴</text>`;
-    bot.innerHTML = svg(f, g, "The largest error of each shortcut's bound against epsilon, on log axes, with guide lines of slope 1 and 2");
-    const slope = (arr) => { const k = arr.length - 4, xs = EPS.slice(k).map(Math.log10), ys = arr.slice(k).map((v) => Math.log10(Math.max(v, 1e-9))); const mx = xs.reduce((a, b) => a + b) / 4, my = ys.reduce((a, b) => a + b) / 4; let num = 0, den = 0; xs.forEach((x, i) => { num += (x - mx) * (ys[i] - my); den += (x - mx) ** 2; }); return num / den; };
-    const sPm = slope(ePm), sFo = slope(eFo);
-    reads.innerHTML = `<div class="k-pm"><dt>Per-moment error, smallest ε</dt><dd>${ePm[ePm.length - 1].toExponential(1)}<small>slope over the last four: ${fmt(sPm, 2)}</small></dd></div>
-      <div class="k-wb"><dt>First-order error, smallest ε</dt><dd>${eFo[eFo.length - 1].toExponential(1)}<small>slope over the last four: ${fmt(sFo, 2)}</small></dd></div>
+    const floor = S.gridFloor(eFo);
+    g += `<path class="dim" stroke-dasharray="1 3" d="M${f.l} ${f.sy(floor).toFixed(1)}H${f.W - f.r}"/><text class="tk" x="${f.W - f.r}" y="${(f.sy(floor) + 13).toFixed(1)}" text-anchor="end">this grid's floor, about ${floor.toExponential(0)}</text>`;
+    bot.innerHTML = svg(f, g, "The largest error of each shortcut's bound against epsilon, on log axes, with guide lines of slope 1 and 2 and the grid's floor");
+    const fit = { pm: S.fitAbove(EPS, ePm, floor), fo: S.fitAbove(EPS, eFo, floor) };
+    const sl = (x) => (x ? `slope ${fmt(x.slope, 2)} from ${x.from >= 0.1 ? Math.round(x.from * 100) : (x.from * 100).toFixed(1)}% to ${x.to >= 0.1 ? Math.round(x.to * 100) : (x.to * 100).toFixed(1)}%` : "at the floor; no slope fitted");
+    reads.innerHTML = `<div class="k-pm"><dt>Per-moment error, smallest ε</dt><dd>${ePm[ePm.length - 1].toExponential(1)}<small>${sl(fit.pm)}</small></dd></div>
+      <div class="k-wb"><dt>First-order error, smallest ε</dt><dd>${eFo[eFo.length - 1].toExponential(1)}<small>${sl(fit.fo)}</small></dd></div>
       <div><dt>Middle cost c₀</dt><dd>${fmt(data.c0, 3)}<small>the window's average</small></dd></div>`;
-    verdict.textContent = S.ordersVerdict(guess, sPm, sFo);
+    verdict.textContent = S.ordersVerdict(guess, fit, floor, data.outside);
     liftReady(fig);
   };
   const run = () => {
-    data = null; drawTop(); drawBot();
+    const my = ++gen;   // a newer selection makes this run's answer stale
+    data = null; verdict.textContent = ""; reads.innerHTML = ""; drawTop(); drawBot();
     pick.value = choice.id;
     const dl = deadlineOf(choice);
-    if (dl !== null) { note.textContent = S.outsideNote("deadline"); state.textContent = ""; reads.innerHTML = ""; return; }
-    if (choice.id === "constant") { note.textContent = S.outsideNote("constant"); state.textContent = ""; reads.innerHTML = ""; return; }
-    note.textContent = choice.id === "rising" ? S.outsideNote("rising") : S.insideNote(labelOf(choice));
+    if (dl !== null) { note.textContent = S.outsideNote("deadline"); state.textContent = ""; return; }
     const cost = costOf(choice);
     const tsAvg = range(0, VIEW, 501);
     const c0 = tsAvg.reduce((a, t) => a + cost(t), 0) / tsAvg.length;
+    // a cost that doesn't move (a flat drawing, a size of 0) has nothing to shrink, whatever its preset
+    let moves = 0; for (let t = 0; t <= VIEW + 6; t += 0.01) moves = Math.max(moves, Math.abs(cost(t) - c0));
+    if (moves <= 1e-9 * c0) { note.textContent = S.outsideNote("constant"); state.textContent = ""; return; }
+    const outside = choice.id === "rising";
+    note.textContent = outside ? S.outsideNote("rising") : S.insideNote(labelOf(choice));
     state.textContent = "Solving seven dynamic programs…";
-    solve({ job: "scale", choice, c0, eps: EPS, view: VIEW }, { key: "yours", progress: (p) => { state.textContent = `Solving seven dynamic programs… ${1 + Math.round(p * 6)} of 7`; } }).then((m) => {
+    solve({ job: "scale", choice, c0, eps: EPS, view: VIEW }, { key: "yours", progress: (p) => { if (my === gen) state.textContent = `Solving seven dynamic programs… ${1 + Math.round(p * 6)} of 7`; } }).then((m) => {
+      if (my !== gen) return;
       const t = m.t, gamma = (x) => cost(x) - c0;
       const beta = Array.from(K.firstOrder(gamma, t, c0));
       const pmr = Array.from(K.perMomentResponse(gamma, t, c0));
@@ -563,10 +573,10 @@ function yoursPlate() {
       const b0c = K.B(c0);
       const ePm = m.runs.map((r, k) => Math.max(...t.map((x, i) => Math.abs((r[i] - m.b0[i]) - (K.B(c0 + EPS[k] * gamma(x)) - b0c)))));
       const eFo = m.runs.map((r, k) => Math.max(...t.map((x, i) => Math.abs((r[i] - m.b0[i]) - EPS[k] * beta[i]))));
-      data = { t, dev, beta, pmr, ePm, eFo, c0 };
+      data = { t, dev, beta, pmr, ePm, eFo, c0, outside };
       state.textContent = "Time step 0.01, evidence step 0.02, 6 time units past the window; errors measured from the program's own constant-cost bound.";
       drawTop(); drawBot();
-    }).catch((e) => { if (e.message !== "superseded") state.textContent = "The solver stopped: " + e.message; });
+    }).catch((e) => { if (e.message !== "superseded" && my === gen) state.textContent = "The solver stopped: " + e.message; });
   };
   pick.addEventListener("change", () => {
     if (pick.value === "draw") { const c = getChoice(); choice = c.id === "draw" && Array.isArray(c.points) ? c : { id: "draw", points: defaultDrawing() }; }

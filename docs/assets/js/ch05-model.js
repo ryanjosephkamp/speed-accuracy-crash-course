@@ -7,14 +7,19 @@
 // by the belief g(x), and the choice forced at the horizon. Two savings that change no number: the value and u are
 // even in x, so only x >= 0 is stored (a move to -x reads +x); and past B(c_min) + 1, every start decides at once
 // (Lemma 1(c) caps the bound at B(c_min)), so the value there is the value of deciding and u is the cost now.
+//
+// The sweep for u stops exactly where the program's own Bellman step stops (deciding is worth at least waiting), node
+// by node. The bound the program reports is read off those choices as model.js and the paper's backward_induction_x
+// read it, and when it lies below the grid's first step it reads as 0, even if the center still waits; the stop mask
+// keeps the sweep right in that case.
 // tools/checks/ch05.mjs compares the bounds with model.js's exactPolicy and the left side with the paper's own test,
 // tests/test_exact_equation.py, on its grid, cases, and tolerances.
 
-import { boundForCost } from "./model.js?v=3012045bec";
+import { boundForCost } from "./model.js?v=37a0cf8296";
 
 export const OVERSHOOT = 0.5826; // -zeta(1/2) / sqrt(2 pi): the continuous bound sits this many sqrt(dt) outside the grid's
 
-/** The paper's own test schedule (tests/test_exact_equation.py, "smooth step"): 0.1, rising to 0.4 in a logistic
+/** The test schedule from the paper's code (tests/test_exact_equation.py, "smooth step"): 0.1, rising toward 0.4 in a logistic
  * step of scale 0.05 centered at time 1.5. */
 export const testStep = (t) => 0.1 + 0.3 / (1 + Math.exp(-(t - 1.5) / 0.05));
 
@@ -44,10 +49,10 @@ export function costRange(cost, upto) {
   return { lo, hi };
 }
 
-/** The grid on x >= 0: spacing h, out to the largest x where waiting is worked out, and the two step kernels
- * (model.js's, normalized over 6 standard deviations of the step). */
-export function halfGrid(dt, h, reach) {
-  const M = Math.ceil(reach / h);
+/** The grid on x >= 0: spacing h, out to the largest x where waiting is worked out (or M cells, if given), and the
+ * two step kernels (model.js's, normalized over 6 standard deviations of the step). */
+export function halfGrid(dt, h, reach, cells = null) {
+  const M = cells ?? Math.ceil(reach / h);
   const r = Math.ceil((6 * Math.sqrt(dt)) / h);
   const kernel = (mu) => {
     const k = new Float64Array(2 * r + 1);
@@ -116,6 +121,9 @@ export function solveSchedule(cost, horizon, { dt = 0.002, h = 0.005, cMin = nul
   const decide = Float64Array.from(g, (gi) => Math.max(gi, 1 - gi));
   const v = Float64Array.from(decide), wait = new Float64Array(L);
   const bounds = new Float64Array(steps + 1);
+  // the program's choice at every step and grid point: 1 where deciding is worth at least waiting
+  const W1 = M + 1, stop = new Uint8Array((steps + 1) * W1);
+  stop.fill(1, steps * W1);
   const yIdx = ys.map((y) => Math.min(M, Math.round(y / h)));
   const Vy = yIdx.map(() => new Float64Array(steps + 1));
   const snapN = Math.min(M, Math.ceil(snapTo / h));
@@ -141,7 +149,7 @@ export function solveSchedule(cost, horizon, { dt = 0.002, h = 0.005, cMin = nul
       }
     }
     bounds[k] = b;
-    for (let i = 0; i <= M; i++) v[i] = Math.max(decide[i], wait[i]);
+    for (let i = 0; i <= M; i++) { v[i] = Math.max(decide[i], wait[i]); stop[k * W1 + i] = decide[i] >= wait[i] ? 1 : 0; }
     for (let q = 0; q < yIdx.length; q++) Vy[q][k] = v[yIdx[q]];
     if (snapAt.has(k)) for (const sn of snapAt.get(k)) sn.V = Array.from(v.subarray(0, snapN + 1));
     if (onProgress && k % 200 === 0) onProgress((steps - k) / total);
@@ -156,7 +164,7 @@ export function solveSchedule(cost, horizon, { dt = 0.002, h = 0.005, cMin = nul
   for (let k = steps - 1; k >= 0; k--) {
     stepMean(u, nu, G, g);
     const bk = bounds[k];
-    for (let i = 0; i <= M; i++) if (x[i] >= bk) nu[i] = c[k];
+    for (let i = 0; i <= M; i++) if (stop[k * W1 + i]) nu[i] = c[k];
     for (let i = M + 1; i < L; i++) nu[i] = c[k];
     [u, nu] = [nu, u];
     if (keepSet.has(k) && ts[k] <= lhsUpto + 1e-9 && Number.isFinite(bk)) lhs.set(k, leftSide(u, h, bk + shift));
@@ -171,6 +179,8 @@ export function solveSchedule(cost, horizon, { dt = 0.002, h = 0.005, cMin = nul
     cost: kept.map((k) => c[k]),
     lhs: kept.map((k) => (lhs.has(k) ? lhs.get(k) : NaN)),
     pm: kept.map((k) => (lhs.has(k) ? c[k] * F(bounds[k] + shift) : NaN)),
+    centerWaits: kept.map((k) => !stop[k * W1]),
+    stop, M,
     Vy: Vy.map((arr) => kept.map((k) => arr[k])),
     yGrid: yIdx.map((i) => i * h),
     snaps: snapOut.map((s) => ({ ...s, b: bounds[s.k], x: Array.from(x.subarray(0, snapN + 1)) })),
@@ -179,21 +189,22 @@ export function solveSchedule(cost, horizon, { dt = 0.002, h = 0.005, cMin = nul
 }
 
 /**
- * The rule frozen at the start (t_K, y): stop at step K + n once |X| reaches the bound the program found for time
- * t_K + n dt. Returns the law of n (f[n], with the forced choice at the horizon) and A = E[g(|X|) at the stop],
+ * The rule frozen at the start (t_K, y): stop at step K + n wherever the program stops at step K + n (its stop mask, M
+ * grid cells past 0). Returns the law of n (f[n], with the forced choice at the horizon) and A = E[g(|X|) at the stop],
  * on the same grid and steps, by moving the probability of still deciding forward one step at a time.
  */
-export function frozenRule(bounds, dt, h, y, K, cMin) {
-  const steps = bounds.length - 1;
-  const G = halfGrid(dt, h, Math.min(B(cMin), 12) + 1);
-  const { M, r, kUp, kDown, x } = G;
+export function frozenRule(stopMask, M, dt, h, y, K) {
+  const W1 = M + 1, steps = stopMask.length / W1 - 1;
+  const G = halfGrid(dt, h, 0, M);
+  const { r, kUp, kDown, x } = G;
   const L = M + r + 1;
   const g = Float64Array.from(x, belief);
+  const stops = (k, i) => i > M || stopMask[k * W1 + i] === 1;
   const iy = Math.round(y / h);
   let p = new Float64Array(L), q = new Float64Array(L);
   const f = [];
   let A = 0, alive = 1;
-  if (x[iy] >= bounds[K]) return { f: [1], A: Math.max(g[iy], 1 - g[iy]), y: x[iy] };
+  if (stops(K, iy)) return { f: [1], A: Math.max(g[iy], 1 - g[iy]), y: x[iy] };
   p[iy] = 1; f.push(0);
   let lo = iy, hi = iy;
   for (let k = K; k < steps && alive > 1e-13; k++) {
@@ -205,13 +216,12 @@ export function frozenRule(bounds, dt, h, y, K, cMin) {
       const a = pi * g[i], bb = pi * (1 - g[i]);
       for (let j = -r; j <= r; j++) q[Math.abs(i + j)] += a * kUp[j + r] + bb * kDown[j + r];
     }
-    const bk = k + 1 === steps ? -1 : bounds[k + 1];
     let stop = 0, nl = L, nh = -1;
     alive = 0;
-    for (let i = 0; i <= Math.min(L - 1, nhi); i++) {
+    for (let i = 0; i <= nhi; i++) {
       const qi = q[i];
       if (qi === 0) continue;
-      if (x[i] >= bk) { stop += qi; A += qi * Math.max(g[i], 1 - g[i]); q[i] = 0; }
+      if (stops(k + 1, i)) { stop += qi; A += qi * Math.max(g[i], 1 - g[i]); q[i] = 0; }
       else { alive += qi; if (i < nl) nl = i; nh = i; }
     }
     f.push(stop);
@@ -221,4 +231,89 @@ export function frozenRule(bounds, dt, h, y, K, cMin) {
     lo = nl; hi = nh;
   }
   return { f, A, y: x[iy] };
+}
+
+// ---- small pieces the plates draw with, here so the checks run the same code -------------------------------------
+
+/** The integral from xs[0] to z of the straight-line interpolant through (xs[i], fs[i]): the area a plate shades. */
+export function areaTo(xs, fs, z) {
+  let s = 0;
+  for (let i = 1; i < xs.length; i++) {
+    if (xs[i] <= z) { s += 0.5 * (fs[i] + fs[i - 1]) * (xs[i] - xs[i - 1]); continue; }
+    if (xs[i - 1] < z) { const fz = fs[i - 1] + ((fs[i] - fs[i - 1]) * (z - xs[i - 1])) / (xs[i] - xs[i - 1]); s += 0.5 * (fz + fs[i - 1]) * (z - xs[i - 1]); }
+    break;
+  }
+  return s;
+}
+
+/** The value of waiting W = V - g at level y on a snapshot's grid, interpolated between the two nodes that enclose y. */
+export function wAt(V, h, y) {
+  const j = Math.floor(y / h + 1e-12), w = y / h - j;
+  const W = (i) => V[i] - belief(i * h);
+  return W(j) * (1 - w) + W(j + 1) * w;
+}
+
+/** Chords from the grid's bound b to the grid points nearest b - e for each e: the actual distance, the point, W there,
+ * and the size of the chord's slope W/(distance). */
+export function chords(V, h, b, list) {
+  return list.map((e) => { const j = Math.round((b - e) / h), y = j * h, w = V[j] - belief(y); return { e: b - y, y, w, r: w / (b - y) }; });
+}
+
+/** Crossing times with paths still below the bound at the end left out (censored): the time by which half of all n
+ * paths have crossed, the smallest s with at least n/2 crossings by s; NaN if fewer than half crossed. */
+export function halfCrossed(times, n) {
+  const done = times.filter(Number.isFinite).sort((a, b) => a - b), need = Math.ceil(n / 2);
+  return done.length >= need ? done[need - 1] : NaN;
+}
+
+/** Bounds on a book schedule's cost over all t >= 0, from its formula (not from samples): every preset other than
+ * the deadline and the rising cost lies between its lowest and highest level, the logistic joins being convex
+ * combinations in log c; Smooth's three sines add to at most 1.1 in size; a drawing is held flat past its last point.
+ * Returns null for a schedule with no such pair. */
+export function costBounds(choice, params) {
+  const p = params;
+  switch (choice.id) {
+    case "jump": return { lo: 0.1, hi: 0.1 * p.factor };
+    case "fall": return { lo: 0.4 / p.factor, hi: 0.4 };
+    case "pulse": return { lo: 0.1, hi: 0.1 * p.factor };
+    case "wave": return { lo: 0.1 * (1 - p.size), hi: 0.1 * (1 + p.size) };
+    case "constant": return { lo: p.c, hi: p.c };
+    case "smooth": return { lo: p.c0 * Math.exp(-1.1 * p.size), hi: p.c0 * Math.exp(1.1 * p.size) };
+    case "multistep": { const l = [1, 3, 1.2, 4.8].map((m) => m * p.c0); return { lo: Math.min(...l), hi: Math.max(...l) }; }
+    case "piecewise": { const l = [0.05, 0.3, 0.08, 0.6, 0.15, 0.03, 0.2].map((m) => m * p.scale); return { lo: Math.min(...l), hi: Math.max(...l) }; }
+    case "draw": { const pts = (choice.points || []).map((c) => Math.min(Math.max(c, 0.01), 2)); return pts.length ? { lo: Math.min(...pts), hi: Math.max(...pts) } : null; }
+    default: return null;
+  }
+}
+
+/** What the band plate prints, from the program's kept times and bounds over [0, view]: the largest |db|/sqrt|dt|
+ * over all pairs, the largest move of the bound over any `span`, and the cost's largest change by a factor over any
+ * `span` (sampled every 0.005). */
+export function bandStats(ts, bounds, cost, view, span = 0.05) {
+  const idx = [];
+  ts.forEach((t, i) => { if (t <= view + 1e-9) idx.push(i); });
+  let ratio = 0;
+  for (let a = 0; a < idx.length; a++) for (let b = a + 1; b < idx.length; b++) {
+    const r = Math.abs(bounds[idx[b]] - bounds[idx[a]]) / Math.sqrt(ts[idx[b]] - ts[idx[a]]);
+    if (r > ratio) ratio = r;
+  }
+  const w = Math.round(span / (ts[1] - ts[0]));
+  let fall = 0, fallAt = 0;
+  for (let a = 0; a + w < idx.length; a++) { const d = Math.abs(bounds[idx[a + w]] - bounds[idx[a]]); if (d > fall) { fall = d; fallAt = ts[idx[a]]; } }
+  let cfac = 1, cAt = 0;
+  for (let t = 0; t <= view - span + 1e-9; t += 0.005) { const f = Math.max(cost(t + span) / cost(t), cost(t) / cost(t + span)); if (f > cfac) { cfac = f; cAt = t; } }
+  return { ratio, fall, fallAt, cfac, cAt };
+}
+
+/** The largest |left side - 1/4| over the kept times in [from, to] that are also on `on` (a list of times), and where. */
+export function worstResidual(out, from, to, on = null) {
+  const want = on ? new Set(on.map((t) => Math.round(t * 1e6))) : null;
+  let w = 0, at = NaN;
+  out.ts.forEach((t, i) => {
+    if (t < from - 1e-9 || t > to + 1e-9 || !Number.isFinite(out.lhs[i])) return;
+    if (want && !want.has(Math.round(t * 1e6))) return;
+    const e = Math.abs(out.lhs[i] - 0.25);
+    if (e > w) { w = e; at = t; } else if (Number.isNaN(at)) at = t;
+  });
+  return { w, at };
 }

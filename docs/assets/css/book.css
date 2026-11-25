@@ -437,6 +437,8 @@ details.answer > div { padding: 2px 14px 4px; }
 @media (min-width: 1024px) { .col .cmap.is-wide { margin-inline: calc((var(--measure) - min(var(--wide), 100vw - 6rem)) / 2); } }
 .cm-top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 10px 18px; margin-bottom: 10px; }
 .cm-switch .seg-row { border-color: var(--rule); }
+.cm-rows { display: flex; flex-wrap: wrap; gap: 6px 8px; }
+.cm-3d-tag { display: grid; place-items: center; padding: 0 8px; border-right: 1px solid var(--rule); color: var(--ink-2); background: var(--paper-2); font: 750 0.72rem/1 var(--sans); font-stretch: 80%; letter-spacing: 0.06em; }
 .cm-switch span { color: var(--ink-2); border-right-color: var(--rule); }
 .cm-switch input:checked + span { background: var(--ink); color: var(--paper); }
 .cm-switch input:hover:not(:checked) + span { color: var(--ink); }
@@ -518,6 +520,7 @@ details.answer > div { padding: 2px 14px 4px; }
 .cm-arcs svg path.fwd { stroke: var(--hot); stroke-dasharray: 3 3; }
 .cm-arcs svg path.up { stroke: var(--pm); stroke-width: 1.8; stroke-dasharray: none; }
 .cm-arcs svg path.down { stroke: var(--wb); stroke-width: 1.8; stroke-dasharray: none; }
+.cm-arcs svg path.fwd-lit { stroke-dasharray: 4 3; }
 .cm-arcs svg circle { fill: var(--ink-2); }
 .cm-arcs .astop { position: relative; z-index: 1; display: flex; align-items: center; height: 34px; padding-left: var(--g, 90px); }
 .cm-arcs .astop .node { padding: 4px 8px; min-height: 28px; font-size: 0.76rem; }
@@ -552,3 +555,6 @@ details.answer > div { padding: 2px 14px 4px; }
 .key-dim::before { border-top: 1.5px solid var(--print-dim); }
 .key-ex-thin::before { border-top: 1.5px solid var(--ex); opacity: 0.55; }
 .key-ink-dots::before { border-top: 3px dotted var(--print-ink); }
+.key-guide::before { border-top: 1.5px dashed var(--print-dim); }
+/* a schedule picker that shares a row with other controls */
+.pick-dial { flex: 1 1 14rem; }

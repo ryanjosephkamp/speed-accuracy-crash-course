@@ -1,13 +1,13 @@
 // Chapter 0's plates: the reader's schedule (the contents page's plate, mounted here too), a first guess on it, and
 // the shortest proof in the paper as a strip. The bounds come from the dynamic program in the worker; the flat-bound
 // curves from closed forms in kernel.js. Sentences come from say-ch00.js.
-import "./contents.js?v=3012045bec";
-import { B } from "./kernel.js?v=3012045bec";
-import { boundForCost, toDiscrete, belief } from "./model.js?v=3012045bec";
-import { costOf, deadlineOf, labelOf, PRESETS, VIEW, SPARE } from "./schedules-book.js?v=3012045bec";
-import { getChoice, solve, onVisible, liftReady, wireStrips } from "./book.js?v=3012045bec";
-import { frame, line, axes, svg, fmt, keepDrawn } from "./chart.js?v=3012045bec";
-import * as S from "./say-ch00.js?v=3012045bec";
+import "./contents.js?v=37a0cf8296";
+import { B } from "./kernel.js?v=37a0cf8296";
+import { boundForCost, toDiscrete, belief } from "./model.js?v=37a0cf8296";
+import { costOf, deadlineOf, labelOf, PRESETS, VIEW, SPARE } from "./schedules-book.js?v=37a0cf8296";
+import { getChoice, solve, onVisible, liftReady, wireStrips } from "./book.js?v=37a0cf8296";
+import { frame, line, axes, svg, fmt, keepDrawn } from "./chart.js?v=37a0cf8296";
+import * as S from "./say-ch00.js?v=37a0cf8296";
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const plate = (id) => document.getElementById("plate-" + id);
@@ -33,7 +33,7 @@ function hero() {
     const cost = costOf(choice), dl = deadlineOf(choice), view = dl ?? VIEW;
     const ts = range(0, view, 201);
     const cs = ts.map((t) => cost(t));
-    const pm = ts.map((t) => toDiscrete(boundForCost(cost(t)), DT));
+    const pm = ts.map((t) => (dl !== null && t >= dl - 1e-9 ? 0 : toDiscrete(boundForCost(cost(t)), DT)));
     const W = Math.max(280, Math.round(el.parentElement.clientWidth || 340)), H = Math.round(Math.min(330, Math.max(240, W * 0.62)));
     el.setAttribute("viewBox", `0 0 ${W} ${H}`); el.setAttribute("width", W); el.setAttribute("height", H);
     const split = Math.round(H * 0.36), l = 12, r = 10;
@@ -169,16 +169,17 @@ function flatPlate() {
       s += line(f, ys, ys.map(g), "dim") + line(f, ys.filter((y) => y <= b), V.filter((v, k) => ys[k] <= b), "ex");
       s += `<path class="dim" stroke-dasharray="3 3" d="M${f.sx(b).toFixed(1)} ${f.t}V${f.H - f.b}"/><text class="tag-ex" x="${(f.sx(b) - 4).toFixed(1)}" y="${f.t + 10}" text-anchor="end">b = B(c)</text>`;
       s += `<text class="tk" x="${(f.sx(0.6 * b) + 4).toFixed(1)}" y="${(f.sy(g(0.6 * b)) + 16).toFixed(1)}">decide now, g(y)</text>`;
-      s += `<text class="tag-ex" x="${(f.sx(0.05)).toFixed(1)}" y="${(f.sy(V[0]) - 7).toFixed(1)}">wait, V(y)</text>`;
-      chart.innerHTML = svg(f, s, `The value of deciding now and of waiting for the flat bound, at a cost of ${c}`);
-      reads.innerHTML = `<div><dt>Bound, B(c)</dt><dd>${fmt(b, 3)}</dd></div><div><dt>Value of waiting at y = 0</dt><dd>${fmt(V[0], 3)}</dd></div>`;
-      say.textContent = "Below the bound, waiting is worth more than deciding; at the bound, the two values meet.";
+      s += `<text class="tag-ex" x="${(f.sx(0.05)).toFixed(1)}" y="${(f.sy(V[0]) - 7).toFixed(1)}">continue, V(y)</text>`;
+      chart.innerHTML = svg(f, s, `The value of deciding now and of continuing until the flat bound, at a cost of ${c}`);
+      reads.innerHTML = `<div><dt>Bound, B(c)</dt><dd>${fmt(b, 3)}</dd></div><div><dt>Value at y = 0, continuing</dt><dd>${fmt(V[0], 3)}</dd></div>`;
+      say.textContent = "Below the bound, continuing is worth more than deciding; at the bound, the two values meet.";
     } else {
       const ys = range(0, Math.max(1.6 * b, b + 0.5), 161);
       const lhs = ys.map((y) => c * (y + 0.5 * Math.sinh(2 * y)));
       const f = frame(chart, { x: [0, ys[ys.length - 1]], y: [0, 1], aspect: 0.56, minH: 190, maxH: 270 });
       let s = axes(f, { yl: "cosh² y times the slope", xl: "evidence, y", grid: true });
-      s += line(f, ys, lhs, "ex");
+      const inside = ys.map((y) => y <= b), last = inside.lastIndexOf(true);
+      s += line(f, ys.slice(last), lhs.slice(last), "ex-thin") + line(f, ys.slice(0, last + 1), lhs.slice(0, last + 1), "ex");
       s += `<text class="tag-ex" x="${(f.W - f.r - 4).toFixed(1)}" y="${(f.sy(Math.min(0.95, lhs[lhs.length - 1])) + 14).toFixed(1)}" text-anchor="end">c (y + ½ sinh 2y)</text>`;
       if (step >= 2) {
         s += `<path class="dim" d="M${f.l} ${f.sy(0.5).toFixed(1)}H${f.W - f.r}"/><text class="tk" x="${f.l + 4}" y="${(f.sy(0.5) - 5).toFixed(1)}">cosh² y · g′(y) = ½</text>`;
@@ -188,9 +189,9 @@ function flatPlate() {
         say.textContent = S.flatSay(c, b);
       } else {
         reads.innerHTML = "";
-        say.textContent = "The left side grows with y; it does not depend on where the bound is.";
+        say.textContent = "Below the bound, this is cosh² y times the value's slope; past the bound, the value is g and the formula no longer applies (faint).";
       }
-      chart.innerHTML = svg(f, s, `cosh squared y times the slope of the value, at a cost of ${c}`);
+      chart.innerHTML = svg(f, s, `c times (y plus half of sinh 2y), which is cosh squared y times the slope of the value below the bound, continued past it faintly, at a cost of ${c}`);
     }
     liftReady(fig);
   };

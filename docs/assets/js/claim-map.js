@@ -1,18 +1,22 @@
-// The claim map: the paper's 50 claims and the 118 places one uses another, drawn four ways, with a switcher
+// The claim map: the paper's 50 claims and the 118 places one uses another, drawn seven ways, with a switcher
 // whose choice the reader's browser keeps. Focus (the default) shows one claim with what it uses above it and
 // what uses it below; Layers puts each claim below everything it uses; Outline lists the chapters with each
-// claim's links written out; Book path lists the claims in the book's order with each use drawn as an arc. On a
-// chapter's page, that chapter's claims are lit in every view and Focus opens on its main result.
+// claim's links written out; Book path lists the claims in the book's order with each use drawn as an arc. Cloud,
+// Tower, and Pages draw the map in 3D (claim-map-3d.js, loaded only when a reader picks one). On a chapter's page,
+// that chapter's claims are lit in every view and Focus opens on its main result.
 //
 //   mountMap(el, { data, chapter, focus, links })   data: book/content/map.json; links: { id: href } for built pages
 
-const VIEWS = [["focus", "Focus"], ["layers", "Layers"], ["outline", "Outline"], ["path", "Book path"]];
+const VIEWS = [["focus", "Focus"], ["layers", "Layers"], ["outline", "Outline"], ["path", "Book path"], ["cloud", "Cloud"], ["tower", "Tower"], ["pages", "Pages"]];
+const VIEWS_3D = ["cloud", "tower", "pages"];
 const KEY = "cc-map-view";
 const store = {
   get() { try { const v = localStorage.getItem(KEY); return VIEWS.some(([k]) => k === v) ? v : "focus"; } catch (e) { return "focus"; } },
   set(v) { try { localStorage.setItem(KEY, v); } catch (e) { /* private mode: the choice lasts this visit */ } },
 };
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+// "Section 4.1" for a number, "Sections 1, 8" for several, and the words themselves otherwise ("Abstract, 1")
+const secText = (x) => (/^[\d.]+$/.test(x) ? `Section ${x}` : /^[\d., ]+$/.test(x) ? `Sections ${x}` : String(x));
 const curve = (x1, y1, x2, y2) => { const my = (y1 + y2) / 2; return `M${x1.toFixed(1)},${y1.toFixed(1)} C${x1.toFixed(1)},${my.toFixed(1)} ${x2.toFixed(1)},${my.toFixed(1)} ${x2.toFixed(1)},${y2.toFixed(1)}`; };
 const rel = (el, box) => { const r = el.getBoundingClientRect(); return { x: r.left - box.left + r.width / 2, top: r.top - box.top, bot: r.bottom - box.top, mid: r.top - box.top + r.height / 2 }; };
 
@@ -36,8 +40,9 @@ export function mountMap(root, { data, chapter = null, focus = "thm:main", links
   root.classList.add("cmap");
   root.innerHTML = `
 <div class="cm-top">
-  <fieldset class="seg cm-switch"><legend>Map</legend><div class="seg-row">${VIEWS.map(([k, l]) =>
-    `<label><input type="radio" name="${uid}-view" value="${k}"><span>${l}</span></label>`).join("")}</div></fieldset>
+  <fieldset class="seg cm-switch"><legend>Map</legend><div class="cm-rows">${[VIEWS.filter(([k]) => !VIEWS_3D.includes(k)), VIEWS.filter(([k]) => VIEWS_3D.includes(k))].map((set, i) =>
+    `<div class="seg-row"${i ? ' aria-label="In 3D"' : ""}>${i ? '<span class="cm-3d-tag" aria-hidden="true">3D</span>' : ""}${set.map(([k, l]) =>
+    `<label><input type="radio" name="${uid}-view" value="${k}"><span>${l}</span></label>`).join("")}</div>`).join("")}</div></fieldset>
   <ul class="cm-key" aria-label="Key">
     <li><span class="dot s-definition"></span>definition</li><li><span class="dot s-proved"></span>proved</li>
     <li><span class="dot s-formal"></span>formal or conjectured</li><li><span class="dot s-numerical"></span>measured</li>
@@ -50,7 +55,7 @@ export function mountMap(root, { data, chapter = null, focus = "thm:main", links
   <div class="cm-hood"></div>
 </div>
 <div class="cm-view" data-view="layers">
-  <p class="cm-how">Each claim sits on a row below everything it uses, so the paper reads from the definitions down. Tap a claim to light what it rests on (slate) and what rests on it (green).</p>
+  <p class="cm-how">Each claim sits on a row below everything it uses, so the paper reads from the definitions down. Tap a claim to highlight what it rests on (slate) and what rests on it (green).</p>
   <div class="cm-layers"></div><p class="cm-info" aria-live="polite"></p>
 </div>
 <div class="cm-view" data-view="outline">
@@ -58,8 +63,20 @@ export function mountMap(root, { data, chapter = null, focus = "thm:main", links
   <div class="cm-outline"></div>
 </div>
 <div class="cm-view" data-view="path">
-  <p class="cm-how">The claims in the order the book teaches them, with each use drawn as an arc on the left. A dashed rust arc points forward: a claim that uses something taught later. Tap a claim to light its arcs.</p>
+  <p class="cm-how">The claims in the order the book teaches them, with each use drawn as an arc on the left. A dashed arc marks a use of something the book teaches later (rust until highlighted). Tap a claim to highlight its arcs.</p>
   <div class="cm-arcs"></div><p class="cm-info" aria-live="polite"></p>
+</div>
+<div class="cm-view" data-view="cloud">
+  <p class="cm-how">The claims in 3D, pulled together by their uses, so claims that share many uses gather; where a claim sits means nothing else. Drag sideways to turn it, pinch to zoom, and tap a claim to read it below.</p>
+  <div class="cm3"><p class="cm-info">Loading the 3D map…</p></div>
+</div>
+<div class="cm-view" data-view="tower">
+  <p class="cm-how">Each claim sits below everything it uses, as in Layers, with the chapters standing around a ring. Drag sideways to turn it, or tap a chapter's number at the foot to bring that chapter to the front.</p>
+  <div class="cm3"><p class="cm-info">Loading the 3D map…</p></div>
+</div>
+<div class="cm-view" data-view="pages">
+  <p class="cm-how">One page per chapter, chapter 1 at the back, with each page's claims set by layer. On the page in hand, the pages it uses are outlined in slate and the pages that use it in green; tap a page's number to take it in hand.</p>
+  <div class="cm3"><p class="cm-info">Loading the 3D map…</p></div>
 </div>`;
   const $ = (s) => root.querySelector(s);
   const views = root.querySelectorAll(".cm-view");
@@ -90,9 +107,9 @@ export function mountMap(root, { data, chapter = null, focus = "thm:main", links
       (Object.keys(farUp).length ? row(Object.keys(farUp).sort(byOrder), "far", "Two steps back") : "") +
       row(up.slice().sort(byOrder), "uses", "It uses") +
       `<div class="center-card${here(focus) ? " here" : ""}"><div class="k">${esc(n.kind)} · chapter ${n.ch} · ${esc(chTitle(n.ch))}</div><h3>${esc(n.name)}</h3>` +
-      `<p>Section ${esc(n.sec)} · page ${n.page} · ${esc(n.statusLabel)} · ${where(focus)}</p></div>` +
+      `<p>${esc(secText(n.sec))} · page ${n.page} · ${esc(n.statusLabel)} · ${where(focus)}</p></div>` +
       row(down.slice().sort(byOrder), "usedby", "Used by") +
-      (Object.keys(farDown).length ? row(Object.keys(farDown).sort(byOrder), "far", "Two steps on") : "");
+      (Object.keys(farDown).length ? row(Object.keys(farDown).sort(byOrder), "far", "Two steps forward") : "");
     drawFocus();
   }
   function drawFocus() {
@@ -120,7 +137,7 @@ export function mountMap(root, { data, chapter = null, focus = "thm:main", links
     const up = closure(id, deps), down = closure(id, uses);
     layers.classList.add("sel");
     layers.querySelectorAll(".node").forEach((b) => { const x = b.dataset.id; b.classList.toggle("on", x === id); b.classList.toggle("up", !!up[x]); b.classList.toggle("down", !!down[x]); });
-    linfo.innerHTML = `<strong>${esc(N[id].name)}</strong> rests on ${Object.keys(up).length} claims, and ${Object.keys(down).length} rest on it. ${where(id)}.`;
+    linfo.innerHTML = `<strong>${esc(N[id].name)}</strong> (${esc(N[id].statusLabel.toLowerCase())}) rests on ${Object.keys(up).length} claims, and ${Object.keys(down).length} rest on it. ${where(id)}.`;
     drawLayers();
   }
   function drawLayers() {
@@ -150,7 +167,7 @@ export function mountMap(root, { data, chapter = null, focus = "thm:main", links
           const n = N[id];
           const link = (x) => `<a href="#${oid(x)}" data-go="${x}">${esc(N[x].label)}${N[x].ch !== n.ch ? ` <span class="m">(ch. ${N[x].ch})</span>` : ""}</a>`;
           return `<div class="oitem" id="${oid(id)}"><div class="t"><span class="dot s-${n.status}"></span>${esc(n.name)}</div>` +
-            `<div class="m">${esc(n.kind)} · section ${esc(n.sec)} · page ${n.page} · ${esc(n.statusLabel)} · ${where(id)}</div>` +
+            `<div class="m">${esc(n.kind)} · ${esc(secText(n.sec).toLowerCase())} · page ${n.page} · ${esc(n.statusLabel)} · ${where(id)}</div>` +
             `<div class="ln2 uses"><span class="k">Uses</span>${deps[id].length ? deps[id].slice().sort(byOrder).map(link).join("") : `<span class="m">nothing in the map</span>`}</div>` +
             `<div class="ln2 usedby"><span class="k">Used by</span>${uses[id].length ? uses[id].slice().sort(byOrder).map(link).join("") : `<span class="m">nothing in the map</span>`}</div></div>`;
         }).join("") + `</details>`;
@@ -180,7 +197,7 @@ export function mountMap(root, { data, chapter = null, focus = "thm:main", links
     arcs.classList.add("sel");
     arcs.querySelectorAll(".node").forEach((b) => { const x = b.dataset.id; b.classList.toggle("on", x === id); b.classList.toggle("up", deps[id].includes(x)); b.classList.toggle("down", uses[id].includes(x)); });
     const fwd = deps[id].filter((x) => pos[x] > pos[id]).length;
-    ainfo.innerHTML = `<strong>${esc(N[id].name)}</strong> uses ${deps[id].length} claims${fwd ? ` (${fwd} taught later in the book)` : ""}, and ${uses[id].length} use it. ${where(id)}.`;
+    ainfo.innerHTML = `<strong>${esc(N[id].name)}</strong> (${esc(N[id].statusLabel.toLowerCase())}) uses ${deps[id].length} claims${fwd ? ` (${fwd} taught later in the book)` : ""}, and ${uses[id].length} use it. ${where(id)}.`;
     drawPath();
   }
   function drawPath() {
@@ -197,15 +214,26 @@ export function mountMap(root, { data, chapter = null, focus = "thm:main", links
       const a = P[a0], b = P[b0]; if (!a || !b) return;
       const y1 = a.mid, y2 = b.mid, bulge = Math.min(g - 10, 6 + Math.abs(y2 - y1) * 0.16);
       const d = `M${x0},${y1.toFixed(1)} C${(x0 - bulge).toFixed(1)},${y1.toFixed(1)} ${(x0 - bulge).toFixed(1)},${y2.toFixed(1)} ${x0},${y2.toFixed(1)}`;
-      if (b0 === asel) hot += `<path class="up" d="${d}"/>`;
-      else if (a0 === asel) hot += `<path class="down" d="${d}"/>`;
+      const fw = pos[a0] > pos[b0] ? " fwd-lit" : "";   // a forward use stays dashed when highlighted
+      if (b0 === asel) hot += `<path class="up${fw}" d="${d}"/>`;
+      else if (a0 === asel) hot += `<path class="down${fw}" d="${d}"/>`;
       else faint += `<path${pos[a0] > pos[b0] ? ' class="fwd"' : ""} d="${d}"/>`;
     });
     svg.innerHTML = faint + hot + dots;
   }
 
+  // ---- Cloud, Tower, and Pages: the 3D module loads the first time a reader picks one of them
+  const d3 = {};
+  function init3d(name) {
+    const box = root.querySelector(`[data-view="${name}"] .cm3`);
+    import("./claim-map-3d.js?v=37a0cf8296").then(({ mount3d }) => {
+      d3[name] = mount3d(box, { view: name, data: D, chapter, focus, where });
+      if (current === name) d3[name]?.resize();
+    }).catch((e) => { box.innerHTML = '<p class="plate-fail">The 3D map could not load. Focus, Layers, Outline, and Book path still work.</p>'; console.error(e); });
+  }
   const INIT = { focus: initFocus, layers: initLayers, outline: initOutline, path: initPath };
   const REDRAW = { focus: drawFocus, layers: drawLayers, path: drawPath };
+  VIEWS_3D.forEach((k) => { INIT[k] = () => init3d(k); REDRAW[k] = () => d3[k]?.resize(); });
   function show(name, remember) {
     current = name;
     radios.forEach((r) => { r.checked = r.value === name; });

@@ -18,11 +18,11 @@ export function guessTime(pmAt, view, deadline) {
 export function guessSay(guess, best, pm, t) {
   const at = `at time ${t.toFixed(2).replace(/\.?0+$/, "")}`;
   const gap = best - pm;
-  const vsPm = Math.abs(gap) < 0.005 ? "the same as the per-moment rule's to two decimals"
+  const vsPm = Math.abs(gap) < 0.005 ? `within 0.005 of the per-moment rule's ${f2(pm)}`
     : `${f2(Math.abs(gap))} ${gap < 0 ? "below" : "above"} the per-moment rule's ${f2(pm)}`;
   if (guess === null || !Number.isFinite(guess)) return `The best bound ${at} is ${f2(best)}, ${vsPm}.`;
   const miss = guess - best;
-  const how = Math.abs(miss) < 0.005 ? "right to two decimals" : `${f2(Math.abs(miss))} too ${miss > 0 ? "high" : "low"}`;
+  const how = Math.abs(miss) < 0.005 ? "within 0.005 of it" : `${f2(Math.abs(miss))} too ${miss > 0 ? "high" : "low"}`;
   return `You put the bound at ${f2(guess)} ${at}; the best bound there is ${f2(best)}, so you were ${how}. It is ${vsPm}.`;
 }
 

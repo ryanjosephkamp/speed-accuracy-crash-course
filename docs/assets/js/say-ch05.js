@@ -15,15 +15,18 @@ export function sci(x) {
   return `${sign}${m.toFixed(1)} × 10${String(e).split("").map((ch) => SUP[ch]).join("")}`;
 }
 
-export function heroLabel(t, bc, Bc, top) {
+/** Whether an expected cost and the cost now agree within 2% (the tolerance the sentences below name). */
+export const near = (a, b) => Math.abs(a - b) <= 0.02 * Math.abs(b);
+
+export function heroLabel(t, bc, Bc, top, L) {
   if (!Number.isFinite(bc)) return `At time ${t.toFixed(1)}: solving the dynamic program`;
-  const where = bc < Bc - 0.01 ? `below B(c) = ${f2(Bc)}` : bc > Bc + 0.01 ? `above B(c) = ${f2(Bc)}` : `where B(c) is`;
-  const cost = Number.isFinite(top) && top > 1.02 ? `the cost at decision runs up to ${top.toFixed(1)} times the cost now` : "the cost at decision is the cost now";
-  return `At time ${t.toFixed(1)}: ${cost}, so the area reaches ¼ at ${f2(bc)}, ${where}`;
+  const where = bc < Bc - 0.01 ? `below B(c) = ${f2(Bc)}` : bc > Bc + 0.01 ? `above B(c) = ${f2(Bc)}` : `within 0.01 of B(c) = ${f2(Bc)}`;
+  const cost = Number.isFinite(top) && top > 1.02 ? `the expected cost at decision runs up to ${top.toFixed(1)} times the cost now` : "the expected cost at decision is within 2% of the cost now";
+  return `At time ${t.toFixed(1)}: ${cost}, and the area (${f3(L)} on the grid) ends at ${f2(bc)}, ${where}`;
 }
 
-/** A ratio of costs: two decimals below 2, one above. */
-export const fold = (x) => (Number.isFinite(x) ? x.toFixed(x < 1.995 ? 2 : 1) : "–");
+/** A ratio of costs: two decimals below 2, one below 10, none above. */
+export const fold = (x) => (Number.isFinite(x) ? x.toFixed(x < 1.995 ? 2 : x < 9.95 ? 1 : 0) : "–");
 
 /** A time to two significant figures: 0.017, 0.0020, 0.00028. */
 export const sig = (x) => (Number.isFinite(x) && x > 0 ? (x >= 0.01 ? x.toFixed(3) : x.toPrecision(2)) : "–");
@@ -39,23 +42,26 @@ export function frozenSay(step, o) {
     const s = `Over this window, the frozen rule's reward is never above the value by more than ${sci(Math.max(o.gap, 0))} (rounding, and the choice forced at time 8, which a rule started later can run past), and it equals the value at time ${f2(o.t)}.`;
     return o.n ? s + ` The faint curves are the rule frozen at ${o.n} other times: the value is never below any of them and touches each at its own time.` : s;
   }
-  if (step === 2) return `From time ${f2(o.t)} and evidence ${o.y}, the decision ends ${f2(o.mean)} time units later on average, when the cost averages ${f3(o.Ec)}, against ${f3(o.c)} now. Moving the start changes only these two costs, so J′(t) = ${f4(o.c - o.Ec)}.`;
+  if (step === 2) return `From time ${f2(o.t)} and evidence ${o.y}, the decision ends ${f2(o.mean)} time units later on average, when the cost averages ${f3(o.Ec)}, against ${f3(o.c)} now. The rate at which the cost paid changes with the start involves only these two costs, so J′(t) = ${f4(o.c - o.Ec)}.`;
   if (step === 3) {
     const d = Math.max(Math.abs(o.Vt - o.Jt), Math.abs(o.Vt - o.ident), Math.abs(o.Jt - o.ident));
     return `The value's slope at time ${f2(o.t)} is ${f4(o.Vt)}, the frozen rule's is ${f4(o.Jt)}, and c(t) − E[c(t + τ*)] is ${f4(o.ident)}: they agree to within ${sci(d)}, a gap that comes from taking differences over the grid's time step of ${o.dt}.`;
   }
-  const more = o.u0 > o.c * 1.02 ? "decisions started far from the bound end later, after more of the rise, so they pay more at the end."
-    : o.u0 < o.c * 0.98 ? "decisions started far from the bound end later, when the cost is lower." : "the cost no longer changes, so the curvature term is the cost itself, as for a constant cost.";
+  const more = o.u0 > o.c * 1.02 ? "decisions started far from the bound end later, after more of the rise, so the expected cost when they end is higher."
+    : o.u0 < o.c * 0.98 ? "decisions started far from the bound end later, when the cost is lower." : "the expected cost at decision is within 2% of the cost now, so the curvature term is too; for a constant cost, the two would be equal.";
   return `At time ${f2(o.t)}, the expected cost at the moment of decision runs from ${f3(o.u0)} at evidence 0 to ${f3(o.ub)} just below the bound, against ${f3(o.c)} now: ${more}`;
 }
 
-export function frozenVerdict(guess, Vt, t, y) {
-  const sign = Math.abs(Vt) < 0.002 ? "same" : Vt < 0 ? "worse" : "better";
+/** The sign of V_t, with |V_t| < 0.002 counted as no difference. */
+export const slopeSign = (Vt) => (Math.abs(Vt) < 0.002 ? "same" : Vt < 0 ? "worse" : "better");
+
+export function frozenVerdict(guess, Vt, t, y, c, Ec) {
+  const sign = slopeSign(Vt);
   const lead = !guess ? "" : guess === sign ? "Right. " : "Not here. ";
-  const what = sign === "worse" ? "starting a little later is worse, because more of the decision would fall under the higher cost."
-    : sign === "better" ? "starting a little later is better, because more of the decision would fall under a lower cost."
-      : "starting a little later makes almost no difference: the expected cost at decision equals the cost now to within 0.002.";
-  return `${lead}At time ${f2(t)} from evidence ${y}, the value changes by ${f4(Vt)} per time unit of delay: ${what}`;
+  const what = sign === "worse" ? `starting a little later is worse. By the envelope identity, V_t = c(t) − E[c(t + τ*)], and the expected cost at the moment of decision, ${f3(Ec)}, is above the cost now, ${f3(c)}.`
+    : sign === "better" ? `starting a little later is better. By the envelope identity, V_t = c(t) − E[c(t + τ*)], and the expected cost at the moment of decision, ${f3(Ec)}, is below the cost now, ${f3(c)}.`
+      : `starting a little later makes almost no difference: the expected cost at the moment of decision, ${f3(Ec)}, is within 0.002 of the cost now, ${f3(c)}.`;
+  return `${lead}At time ${f2(t)} from evidence ${y}, the value changes by ${Math.abs(Vt) < 5e-5 ? "less than 0.0001" : f4(Vt)} per time unit of delay: ${what}`;
 }
 
 // ---- Proposition 3: regularity
@@ -76,22 +82,25 @@ export function regularSay(step, o) {
     const ok = o.all.filter((a) => Number.isFinite(a.median));
     const list = ok.map((a, i) => `${i === ok.length - 1 && ok.length > 1 ? "and " : ""}${sig(a.median)}${i === 0 ? " time units" : ""} from ε = ${a.e}`).join(ok.length > 2 ? ", " : " ");
     const falls = ok.length > 1 && ok.every((a, i) => i === 0 || a.median <= ok[i - 1].median);
-    return (list ? `Median crossing times: ${list}. ${falls ? "The closer the start, the sooner the path crosses." : ""}` : "Fewer than half the paths crossed in this time. ")
-      + " These are sampled paths against the computed bound; the proof's law of the iterated logarithm covers even the fastest rise (b) allows, which no sample can show.";
+    const none = o.all.filter((a) => !Number.isFinite(a.median)).map((a) => a.e);
+    let s = list ? `Half the 200 paths have crossed by ${list}.${falls ? " The closer the start, the sooner they cross." : ""}` : "";
+    if (none.length) s += `${s ? " " : ""}From ε = ${none.join(" and ")}, fewer than half cross by the end of the run.`;
+    return s + " Paths still below the bound at the end are counted as not crossed. These are sampled paths against the computed bound; the proof's law of the iterated logarithm covers even the fastest rise (b) allows, which no sample can show.";
   }
   const r = o.ratios, first = r[0], lastR = r[r.length - 1];
-  return `The chords' slopes W(t, b − ε)/ε fall from ${f4(first.r)} at ε = ${first.e} to ${f4(lastR.r)} at ε = ${lastR.e}, toward 0. That is smooth fit. On the grid, with evidence step ${o.h}, the value's slope in the last cell below the bound is ${f3(o.slope)}, against g′(b) = ${f3(o.gp)}.`;
+  const shrink = r.every((q, i) => i === 0 || q.r < r[i - 1].r);
+  return `On this grid, with evidence step ${o.h}, the chords' slopes W(t, b − ε)/ε ${shrink ? "shrink" : "go"} from ${f4(first.r)} at ε = ${f3(first.e)} to ${f4(lastR.r)} at ε = ${f3(lastR.e)}, measured from grid points to the grid's bound; in the model they tend to 0, which is smooth fit (Proposition 3(c)). In the last cell below the bound, V's slope is ${f3(o.slope)} and g's is ${f3(o.gp)}.`;
 }
 
 // ---- the Hölder band
 export function bandSay(ratio, C, fall, cfac) {
   const inside = ratio <= C ? `inside the C = ${f2(C)} the proposition allows` : `above the C = ${f2(C)} the proposition allows, so here the grid's bound is only a comparison`;
-  return `On this schedule, the computed bound never moves more than ${f2(ratio)} times the square root of the time between two moments, ${inside}. Its largest move in any 0.05 time units is ${f3(fall)}, while the cost changes up to ${fold(cfac)}-fold in 0.05.`;
+  return `On this schedule, sampled every 0.01 from 0 to 2.5 on the grid, the computed bound never moves more than ${f2(ratio)} times the square root of the time between two moments, ${inside}. Its largest move in any 0.05 time units is ${f3(fall)}, while the cost changes up to ${fold(cfac)}-fold in 0.05.`;
 }
 
 export function bandVerdict(guess, fall, cfac, C) {
   const lead = guess === "cont" ? "Right: " : guess === "jump" ? "No: " : "";
-  return `${lead}the bound can't jump. Proposition 3(b) caps any move at C√|Δt|, with C = ${f2(C)} here, so the bound is continuous however steep the cost. In 0.05 time units the cost changes up to ${fold(cfac)}-fold, and the bound moves at most ${f3(fall)}; the cap would allow ${f2(C * Math.sqrt(0.05))}, so it is far from tight.`;
+  return `${lead}the bound can't jump. Proposition 3(b) caps any move at C√|Δt|, with C = ${f2(C)} here, so the bound is continuous however steep the cost. On the grid, in 0.05 time units the cost changes up to ${fold(cfac)}-fold and the computed bound moves at most ${f3(fall)}; the cap would allow ${f2(C * Math.sqrt(0.05))}, so on this grid it is far from tight.`;
 }
 
 export const bandVerdictElse = () => "The answer is for Figure 1(a): pick it again to see it.";
@@ -107,25 +116,26 @@ export function standingNote(why, label) {
 // ---- Proposition 4: the area
 export function areaSay(step, o) {
   if (step === 0) return `At time ${f2(o.t)}, the expected cost at decision from evidence 0 is ${f3(o.u0)}, against ${f3(o.c)} now. Times 2 cosh² y, it is the slope of cosh² y V_y, which is 0 at y = 0.`;
-  if (step === 1) return `Up to z = ${f2(o.z)}, twice the area is ${f4(o.Rz)}. The dots, from differences of the program's value, are cosh² z V_y(t, z), within ${sci(o.gap)} of the curve.`;
-  if (step === 2) return `At the bound, ${f3(o.bc)}, twice the area is ${f4(o.R)}: the curve meets the line ½ there, because cosh² z g′(z) = ½ at every z and smooth fit makes V_y equal g′ at the bound.`;
-  const why = o.bc < o.Bc - 0.01 ? "the cost at decision is higher than the cost now, so the same area is reached sooner."
-    : o.bc > o.Bc + 0.01 ? "the cost at decision is lower than the cost now, so the same area is reached later." : "the cost at decision is the cost now, so the two bounds agree.";
-  return `So the area is ${f4(o.L)}, which is ¼ up to ${sci(o.L - 0.25)} from the grid. The bound is ${f3(o.bc)}, against the per-moment ${f3(o.Bc)}: ${why}`;
+  if (step === 1) return `Up to z = ${f2(o.z)}, the shaded area is ${f4(o.Rz)}. The dots, from differences of the program's value, are cosh² z V_y(t, z), within ${sci(o.gap)} of the curve.`;
+  if (step === 2) return `At the bound, ${f3(o.bc)}, the shaded area is ${f4(o.R)} on the grid. In the model it is exactly ½ there: cosh² z g′(z) = ½ at every z, and smooth fit makes V_y equal g′ at the bound.`;
+  const why = o.bc < o.Bc - 0.01 ? "the expected cost at decision is higher than the cost now, so the same area is reached sooner."
+    : o.bc > o.Bc + 0.01 ? "the expected cost at decision is lower than the cost now, so the same area is reached later." : "the expected cost at decision is close to the cost now, so the two bounds are within 0.01 of each other.";
+  return `So the area is ${f4(o.L)}, which differs from ¼ by ${sci(Math.abs(o.L - 0.25))} on the grid. The bound is ${f3(o.bc)}, against the per-moment ${f3(o.Bc)}: ${why}`;
 }
 
 // ---- the live check
+/** wf and wc: the largest |left side - 1/4| from 0 to 2.5 on the finer and the coarser grid (NaN until solved); zeros:
+ * how many of the times shown have a bound below the grid's first step, read as 0; fold: the cost's highest level over
+ * its lowest. */
 export function liveSay(o) {
-  if (o.constant) return `For a constant cost, the left side is c(b/2 + sinh 2b/4) at every time; on the grid with Δt ${o.dt} it is within ${sci(o.w)} of ¼.`;
-  let s = `For “${o.label}”, the left side stays within ${sci(o.w)} of ¼ from time 0 to 2.5 on the grid with Δt ${o.dt}`;
-  if (Number.isFinite(o.wo)) {
-    const fine = o.dt < o.dtOther ? o.w : o.wo, coarse = o.dt < o.dtOther ? o.wo : o.w;
-    s += `, against ${sci(o.wo)} with Δt ${o.dtOther}`;
-    s += fine < coarse ? ": the residual is smaller on the finer grid, so the grid is its main source." : ": the finer grid doesn't shrink it here.";
-  } else s += ".";
-  s += ` With the cost now in place of the cost at decision, the left side misses ¼ by up to ${f3(o.pm)}.`;
-  if (o.far && Number.isFinite(o.tail)) s += ` In the last time unit before the forced choice at ${o.horizon}, the left side falls away from ¼, by up to ${f3(o.tail)}: there the bound is the finite-horizon problem's, which the equation is not about.`;
-  return s;
+  const tail = o.far && Number.isFinite(o.tail) ? ` In the last time unit before the forced choice at ${o.horizon}, the left side moves away from ¼, by up to ${f3(o.tail)}: there the bound is the finite-horizon problem's, which the equation is not about.` : "";
+  const grids = Number.isFinite(o.wf) && Number.isFinite(o.wc)
+    ? ` Going from Δt 0.01 with h 0.02 to Δt 0.002 with h 0.005, with the same horizon, ${o.wf < o.wc ? "lowers" : "doesn't lower"} the largest residual, from ${sci(o.wc)} to ${sci(o.wf)}.` : "";
+  const steep = Number.isFinite(o.wf) && o.wf > 1.5e-3
+    ? ` On the finer grid, the residual is more than the 1.5 × 10⁻³ that the paper's test allows for its three schedules${Number.isFinite(o.fold) && o.fold > 4 ? `, which change by at most 4-fold; this one changes ${fold(o.fold)}-fold` : ""}.` : "";
+  const zeros = o.zeros > 0 ? ` At ${o.zeros} of the times shown, the bound is closer to 0 than the grid's first step and reads as 0, so there the left side shows the grid's limit, not the equation.` : "";
+  if (o.constant) return `For a constant cost, the left side is c(b/2 + sinh 2b/4); on the grid with Δt ${o.dt}, it is within ${sci(o.w)} of ¼ at every time shown from 0 to 2.5.${grids}${tail}`;
+  return `For “${o.label}”, the left side stays within ${sci(o.w)} of ¼ from time 0 to 2.5 on the grid with Δt ${o.dt}.${grids}${steep}${zeros} With the cost now in place of the cost at decision, the left side misses ¼ by up to ${f3(o.pm)}.${tail}`;
 }
 
 // ---- the remark on scale and speed

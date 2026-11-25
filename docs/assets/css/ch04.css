@@ -1,0 +1,17 @@
+/* Chapter 4: what the shared classes don't give. The band between the flat bounds for the lowest and the highest cost
+   is a neutral gray, so the reader's orange drawing and the ink bound stay apart from it; the stopping set is a faint
+   ink wash; the cost boxes of the comparison are dashed outlines in the cost's orange. */
+.chart .band-gray { fill: var(--print-dim); opacity: 0.16; stroke: none; }
+.chart .stop-fill { fill: var(--print-ink); opacity: 0.08; stroke: none; }
+.chart .ray { stroke: var(--accent-print); stroke-width: 3.2; fill: none; stroke-linecap: round; }
+.chart .box-lo, .chart .box-hi { fill: none; stroke: var(--accent-print); stroke-width: 1.2; stroke-dasharray: 3 3; }
+.chart .box-hi { opacity: 0.75; }
+.chart .dim-fill-soft { fill: var(--print-dim); opacity: 0.16; stroke: none; }
+.chart .ring { fill: var(--print); stroke: var(--print-dim); stroke-width: 1.6; }
+.key-band::before { height: 0.7em; border: 0; background: var(--print-dim); opacity: 0.35; vertical-align: -0.05em; }
+.key-ring::before { width: 0.62em; height: 0.62em; border: 1.6px solid var(--print-dim); border-radius: 50%; vertical-align: -0.02em; }
+.chart .tk-halo { fill: var(--print-dim); font-size: 11px; font-weight: 500; font-variant-numeric: tabular-nums; paint-order: stroke; stroke: var(--print); stroke-width: 3px; stroke-linejoin: round; }
+.chart .end-fill { fill: var(--accent-print); opacity: 0.38; stroke: none; }
+.chart .cone-fill { fill: var(--accent-print); opacity: 0.1; stroke: none; }
+.chart .path-after { stroke: var(--print-dim); stroke-width: 1; fill: none; opacity: 0.45; stroke-dasharray: 2 3; }
+.key-after::before { border-top: 1.5px dashed var(--print-dim); opacity: 0.6; }

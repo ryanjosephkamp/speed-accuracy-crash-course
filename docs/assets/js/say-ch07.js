@@ -2,7 +2,17 @@
 // without touching a value; tools/checks/ch07.mjs runs these on the plates' numbers.
 const f1 = (x) => x.toFixed(1), f2 = (x) => x.toFixed(2), f3 = (x) => x.toFixed(3);
 const pct = (x) => `${Math.round(x * 100)}%`;
-const sci = (x) => (Math.abs(x) >= 0.001 && Math.abs(x) < 1000 ? String(+x.toPrecision(2)) : x.toExponential(1));
+const SUP = { "-": "⁻", 0: "⁰", 1: "¹", 2: "²", 3: "³", 4: "⁴", 5: "⁵", 6: "⁶", 7: "⁷", 8: "⁸", 9: "⁹" };
+/** A number for a sentence: two significant digits, and powers of ten written as 10⁻⁴ (never 1.0e-4). */
+const sci = (x) => {
+  if (x === 0) return "0";
+  if (Math.abs(x) >= 0.001 && Math.abs(x) < 1000) return String(+x.toPrecision(2));
+  const e = Math.floor(Math.log10(Math.abs(x))), mant = +(Math.abs(x) / 10 ** e).toFixed(1);
+  const p = "10" + String(e).split("").map((c) => SUP[c]).join("");
+  return (x < 0 ? "−" : "") + (mant === 1 ? p : `${mant} × ${p}`);
+};
+/** The same form for a plate's own readings. */
+export const num = (x) => (Math.abs(x) >= 0.01 && Math.abs(x) < 1000 ? String(+x.toPrecision(2)) : sci(x));
 const frac = (eps) => (eps >= 1 ? "1" : `1/${Math.round(1 / eps)}`);
 const omegaText = (om) => (om >= 10 ? om.toFixed(0) : om >= 1 ? om.toFixed(1) : om.toFixed(2));
 
@@ -46,7 +56,7 @@ export function lookaheadVerdict(guess, mSmall, cSmall, decSmall) {
 export function lookaheadSay(c0, m, dec, maxM, maxC) {
   let s = `At c₀ = ${sci(c0)}, the bound looks ${f3(m)} time units ahead on average, and a decision from 0 takes ${f2(dec)}`;
   s += dec > m ? `, ${f1(dec / m)} times as long. ` : `. `;
-  s += `Over all costs, the scan finds the longest look-ahead, ${f3(maxM)}, at c₀ ≈ ${f3(maxC)}; that maximum is numerical, not proved.`;
+  s += `Over costs from 10⁻⁴ to 10, the scan finds the longest look-ahead, ${f3(maxM)}, at c₀ ≈ ${f3(maxC)}; that maximum is numerical, not proved.`;
   return s;
 }
 
@@ -57,7 +67,9 @@ export const MEAN_HEADS = [
   "Step 4: m(c₀) over all costs, with its limits ½ and 0, and the numerical maximum between.",
 ];
 
-export function shiftSay(label, gapPm, gapSh, avgPm, avgSh) {
+export function shiftSay(label, G, flat = false) {
+  const { maxPm: gapPm, maxSh: gapSh, avgPm, avgSh, apart } = G;
+  if (flat) return `${label}: the cost doesn't move, so the per-moment and shifted bounds coincide${apart < 1e-12 ? " exactly" : `, to within ${sci(apart)}`}. The program's bound is on average ${f3(avgPm)} from them, and at most ${f3(gapPm)}: the grid's step and the forced choice at the end of the program's horizon make that difference.`;
   let s = `${label}: over the window, the per-moment bound is on average ${f3(avgPm)} from the best bound and the shifted one ${f3(avgSh)}; their largest gaps are ${f3(gapPm)} and ${f3(gapSh)}. `;
   if (avgSh < avgPm * 0.9) s += "Here the shift helps on average.";
   else if (avgSh > avgPm * 1.1) s += "Here the shift does worse on average than no shift.";
@@ -67,7 +79,7 @@ export function shiftSay(label, gapPm, gapSh, avgPm, avgSh) {
 
 export function shiftNote(kind, label) {
   if (kind === "deadline") return "A deadline makes the cost infinite, so the shifted rule drops to 0 a look-ahead before it; the rule of thumb is for slow, nearly linear changes, so this comparison is outside it.";
-  if (kind === "constant") return "A constant cost doesn't move, so all three bounds coincide. Pick a schedule that moves.";
+  if (kind === "constant") return "A constant cost doesn't move, so the per-moment and shifted bounds coincide; the program's bound differs from them only through the grid and its forced choice. Pick a schedule that moves to compare the shift.";
   return `${label}: the best bound for your schedule as it is, with no scaling.`;
 }
 
@@ -75,7 +87,7 @@ export function shiftNote(kind, label) {
 
 export const HALF_HEADS = [
   "Step 1: the real and imaginary parts of r grow like √ω.",
-  "Step 2: tanh(r b₀) reaches 1 exponentially fast.",
+  "Step 2: tanh(r b₀) approaches 1 exponentially fast.",
   "Step 3: the gain falls along a line of slope −½, and the lead tends to 45°.",
   "Step 4: near s = 0, the kernel falls along a line of slope −½.",
   "Step 5: half an integration: slope −½, against −1 for an exponential kernel with the same mean.",
@@ -122,23 +134,37 @@ export function lossNote(kind, label, c0) {
   return `${label}: written around its cost at time 0, c(0) = ${f3(c0)}, as c(0) + ε(c(t) − c(0)).`;
 }
 
+const lossWords = (x, res) => (!(x > 1e-12) ? `no reward measurable on this grid (a scored difference of ${sci(x)})` : `${sci(x)} of reward${res ? "" : ", below what the grid resolves"}`);
 export function lossSay(eps, lossPm, lossFo, slopePm, slopeFo, resPm, resFo, foZero = false) {
-  let s = `At ε = ${frac(eps)}, the per-moment rule loses ${sci(lossPm)} of reward${resPm ? "" : " (below what the grid resolves)"}, and the first-order bound ${sci(lossFo)}${resFo ? "" : " (below what the grid resolves)"}. `;
+  let s = `At ε = ${frac(eps)}, the per-moment rule loses ${lossWords(lossPm, resPm)}, and the first-order bound ${lossWords(lossFo, resFo)}. `;
   if (foZero) s += "At this size the first-order bound falls to 0 for a while, where every decision is made at once: it is a small-change result. ";
   if (Number.isFinite(slopePm)) s += `Over its three smallest resolved sizes, the per-moment loss falls with a slope of ${f2(slopePm)} on these log axes${slopePm > 1.6 && slopePm < 2.6 ? ", close to the 2 of a second-order loss" : ""}. `;
   else s += "Fewer than three of the per-moment losses are resolved, too few to fit a slope. ";
-  if (Number.isFinite(slopeFo)) s += `The first-order bound's falls with a slope of ${f2(slopeFo)}${slopeFo > 2.6 ? ", faster than second order" : ""}.`;
+  if (Number.isFinite(slopeFo)) s += `The first-order bound's loss falls with a slope of ${f2(slopeFo)}${slopeFo > 2.6 ? ", faster than second order" : ""}.`;
   else s += "The first-order bound's loss reaches the grid's resolution too soon to fit a slope over three sizes.";
   return s;
 }
 
-export function conjSay(eps, ratioPm, resPm, latePm, ratioFo, resFo, lateFo) {
+export function conjSay(eps, ratioPm, resPm, latePm, ratioFo, resFo, lateFo, lossPm = 1, lossFo = 1) {
   let s = `Conjecture, at ε = ${frac(eps)}: `;
-  if (resPm && Number.isFinite(ratioPm)) s += `for the per-moment rule, the formula predicts ${f2(ratioPm)} times the scored loss`;
+  if (!(lossPm > 1e-12)) s += "the per-moment rule loses nothing measurable on this grid, so there is no ratio";
+  else if (resPm && Number.isFinite(ratioPm)) s += `for the per-moment rule, the formula predicts ${f2(ratioPm)} times the scored loss`;
   else s += "the per-moment rule's loss is below what the grid resolves, so the ratio means little";
   s += Number.isFinite(latePm) ? `, with ${pct(latePm)} of the prediction from the last 2 time units. ` : ". ";
-  if (resFo && Number.isFinite(ratioFo)) s += `For the first-order bound it predicts ${f2(ratioFo)} times its loss`;
-  else s += "The first-order bound's loss is below what the grid resolves";
-  s += Number.isFinite(lateFo) ? `, with ${pct(lateFo)} from the last 2 time units.` : ".";
+  s += "The conjecture doesn't cover the first-order bound, whose miss changes shape with ε; ";
+  if (!(lossFo > 1e-12)) s += "it loses nothing measurable here.";
+  else if (resFo && Number.isFinite(ratioFo)) s += `the same formula gives ${f2(ratioFo)} times its loss${Number.isFinite(lateFo) ? `, with ${pct(lateFo)} from the last 2 time units` : ""}.`;
+  else s += "its loss is below what the grid resolves.";
+  return s;
+}
+
+export function noLossNote() {
+  return "Neither rule loses any reward this grid can measure at any size of the change, so there is nothing to draw on log axes.";
+}
+
+export function lossState(horizon, centerWaits, kind) {
+  let s = `Time step 0.01, evidence step 0.02, a forced choice at time ${horizon}; the best policy is scored from the program's own stop set, so no rule can score above it on the grid.`;
+  if (kind === "conj") s += " The prediction leaves out the last grid time.";
+  if (centerWaits) s += " At some times the program waits at 0 but stops at the grid's first step; its bound is drawn between the two there (the paper's code reports 0).";
   return s;
 }
