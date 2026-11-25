@@ -35,29 +35,29 @@ MAP_LINKS = {"def:reward-cost": "earns", "asm:cost": "allowed", "def:value": "va
 # which groups of checks in tools/checks/ch03.mjs stand behind each plate
 CHECKS = {
     "earn": ["bill", "value", "words"], "allows": ["standing", "words"], "value": ["value", "words"],
-    "peak": ["flat", "words"], "routes": ["flat", "words"], "double": ["slope", "words"], "inverse": ["slope", "words"],
+    "peak": ["flat", "words"], "routes": ["flat", "words"], "double": ["slope", "flat", "words"], "inverse": ["slope", "flat", "words"],
 }
 
 PLATES = {
     "earn": {
         "title": "What one decision earns",
         "state": "computed",
-        "state_text": "Sampled in the page, beside the exact averages from the series",
-        "caption": r"""Top: one path of the evidence from 0, in Euler steps of 0.001 time units under $dX = \tanh(X)\,dt + dW$ (the decision maker's own view of the evidence, chapter 2), seeded (add `?seed=` to the address for another); it stops where $|X|$ first reaches the flat bound $\pm b$ (orange; drag it), checked against the bound moved in by $0.5826\sqrt{0.001}$. Middle: your schedule's cost, with this path's bill shaded. The averages are exact for continuous monitoring: the reward is $g(b)$ and the bill is $\int_0^\infty c(s)\,P_0(\tau_b > s)\,ds$, by the trapezoid rule on steps of 0.01 (finer for low bounds), with the chance of still being undecided from its series. After Show me: the averages against $b$, and the best bound that moves, $V(0, 0)$ from the dynamic program of the value plate. With a deadline, the choice is forced there, and its chance of being right comes from the density of the paths still open.""",
+        "state_text": "Sampled in the page, beside averages computed from the series",
+        "caption": r"""Top: one path of the evidence from 0, in Euler steps of 0.001 time units under $dX = \tanh(X)\,dt + dW$ (the decision maker's own view of the evidence, chapter 2), seeded (add `?seed=` to the address for another); it stops at the first check where $|X|$ reaches the flat bound $\pm b$ (orange; drag it) moved in by $0.5826\sqrt{0.001}$, and the dot and the path's chance of being right, $g(|X|)$, are at that check. Middle: your schedule's cost, with this path's bill shaded. The averages are for checking the evidence continuously, computed in the page: without a deadline, the reward is $g(b)$ and the bill is $\int_0^\infty c(s)\,P_0(\tau_b > s)\,ds$; with a deadline $T$, the reward is $g(b)\,P_0(\tau_b \le T) + \E_0[g(|X_T|);\ \tau_b > T]$ (by Simpson's rule over the density of the paths still open) and the bill is the integral to $T$. The bill's integral runs in steps of 0.01 to time 6 ($b^2/40$ for bounds below about 0.63) and 0.02 after, ends where the chance of still being undecided, from its series, falls below $10^{-10}$, takes $\log c$ as linear across each step, and puts a step end at each of a drawing's corners. After Show me: the averages against $b$, and the best bound that moves, $V(0, 0)$ from the dynamic program of the value plate (time step 0.01, evidence step 0.02, the choice forced at time 8.5 or at a deadline), which differs from them by the grid's checking as well as by moving; the sentence compares it with the best level held flat, scored on the same grid.""",
         "wide": True,
     },
     "allows": {
         "title": "Check your schedule",
         "state": "computed",
         "state_text": "Computed in the page from the schedule's formula",
-        "caption": r"""Your schedule's cost to time 10, on a log scale (orange), with the part the book draws shaded gray. Where the standing assumption holds, the dashed lines are the lowest and highest values the cost takes for all time: for the book's presets, sampled every 0.002 time units to time 70, by which each has settled or repeated; for a drawing, its lowest and highest points. The band for the bound, $B(c_{\max})$ to $B(c_{\min})$, is {{ref:lem:structure}}(c).""",
+        "caption": r"""Your schedule's cost to time 10, on a log scale (orange), with the part the book draws shaded gray. Where the standing assumption holds, the dashed lines are levels the cost stays between for all time, $c_{\min}$ and $c_{\max}$: the lowest and highest values it takes (for the book's presets, sampled every 0.002 time units to time 70, by which each has settled or repeated, and refined between samples; for a drawing, its lowest and highest points), rounded outward to two figures, so each level is a bound even where the cost only approaches it. The band for the bound, $B(c_{\max})$ to $B(c_{\min})$ from {{ref:lem:structure}}(c), is rounded outward too.""",
         "wide": False,
     },
     "value": {
         "title": "The value of waiting",
         "state": "computed",
         "state_text": "Computed in the page: a dynamic program on a grid",
-        "caption": r"""Top: your schedule's cost (log scale). Map: the value of waiting, $W = V - g$, over the start time and the evidence, darker where it is larger (scaled to the largest value on the map), from a dynamic program with time step 0.01 and evidence step 0.02, its choice forced 6 time units past the window or at the last moment you pick. The ink curve is the program's best bound, where $W$ reaches 0; the dashed curve is $B(c(t))$, moved in by $0.5826\sqrt{0.01}$ because the program checks the evidence every 0.01. Bottom, after Show me: at the time you pick, $V(t, y)$ (ink) above $g(y)$ (gray), with $W$ shaded between them.""",
+        "caption": r"""Top: your schedule's cost (log scale). Map: the value of waiting, $W = V - g$, over the start time and the evidence, darker where it is larger (scaled to the largest value on the map), from a dynamic program with time step 0.01 and evidence step 0.02, its choice forced 6 time units past the window or at the last moment you pick. The ink curve is the program's best bound, where $W$ reaches 0; the dashed curve is $B(c(t))$, moved in by $0.5826\sqrt{0.01}$ because the program checks the evidence every 0.01. At a deadline, both fall straight to 0. Where the program waits at $y = 0$ but decides one evidence step out, the page puts the bound between the two, where its deciding and waiting values cross; the paper's code reports 0 there. A tap is read at the nearest kept sample. Bottom, after Show me: at the time you pick, $V(t, y)$ (ink) above $g(y)$ (gray), with $W$ shaded between them.""",
         "wide": True,
     },
     "peak": {
@@ -71,14 +71,14 @@ PLATES = {
         "title": "Two routes, one equation",
         "state": "computed",
         "state_text": "Computed in the page from the closed forms",
-        "caption": r"""Each step at the cost you pick, for three trial levels, $0.7\,B(c)$, $B(c)$, and $1.3\,B(c)$. Steps 1 and 3: the value of waiting for a flat level $b$, $V_b(y) = g(b) - c\,(b\tanh b - y\tanh y)$ below $b$, beside $g(y)$ (gray); the dots mark where each meets $g$. Step 2: $\cosh^2 y\,V_b'(y)$, the same curve for every level, beside $\tfrac12$. Step 4: the reward of a flat bound and its two parts, with the three levels marked. Step 5: its slope $R'(b)$ (ink) and the bracket $\tfrac12 - c\,(b + \tfrac12\sinh 2b)$ (dashed).""",
+        "caption": r"""Each step at the cost you pick, for three trial levels, $0.7\,B(c)$, $B(c)$, and $1.3\,B(c)$. Steps 1 and 3: the value of following the flat rule at level $b$, $V_b(y) = g(b) - c\,(b\tanh b - y\tanh y)$ below $b$, beside $g(y)$ (gray); the dots mark where each meets $g$. Step 2: $\cosh^2 y\,V_b'(y)$, one curve below every level, each level's piece ending at its dot (above its level, that rule stops, and its value is $g$), beside $\tfrac12$. Step 4: the reward of a flat bound and its two parts, with the three levels marked. Step 5: its slope $R'(b)$ (ink) and the bracket $\tfrac12 - c\,(b + \tfrac12\sinh 2b)$ (dashed).""",
         "wide": False,
     },
     "double": {
         "title": "Double the cost",
         "state": "computed",
         "state_text": "Computed in the page from the closed forms",
-        "caption": r"""$B(c)$ on linear axes (ink), by Newton's method on $\sinh(2b) + 2b = 1/c$. After Show me: the tangent at the cost you pick, of slope $B'(c)$ (dashed), its value at $2c$ (hollow), and $B(2c)$ (filled). The difference quotient is $[B(c + h) - B(c - h)]/2h$ with $h = 10^{-4}c$. On log axes the tangent would show $c\,B'(c)/B(c)$ instead, so the plate keeps linear axes.""",
+        "caption": r"""$B(c)$ on linear axes (ink), by Newton's method on $\sinh(2b) + 2b = 1/c$. After Show me: the tangent at the cost you pick, of slope $B'(c)$ (dashed), its value at $2c$ (hollow), and $B(2c)$ (filled). The difference quotient is $[B(c + h) - B(c - h)]/2h$ with $h = 10^{-4}c$. On log axes, the tangent would show $c\,B'(c)/B(c)$ instead, so the plate keeps linear axes.""",
         "wide": False,
     },
     "inverse": {
@@ -95,9 +95,9 @@ STRIPS = {
         "plate": "routes",
         "steps": [
             (r"For a constant cost, the problem looks the same at every start time, so the decision maker stops once $Y$ reaches a flat level $b$. Below it, the value solves one equation.",
-             r"$\class{lit}{\Lop V = c}$ on $[0, b)$, with $V'(0) = 0$ at the reflecting center and $V(b) = g(b)$. For each trial level, $V_b(y) = g(b) - c\,(b\tanh b - y\tanh y)$ solves it, since $\Lop(y\tanh y) = 1$."),
-            (r"Multiply by $2\cosh^2 y$ and integrate once from the center: the slope no longer depends on the level.",
-             r"Since $(\cosh^2 y\,f')' = 2\cosh^2 y\,\Lop f$ for any smooth $f$, $(\cosh^2 y\,V')' = 2c\cosh^2 y$, so $\class{lit}{\cosh^2 y\,V'(y) = c\,(y + \tfrac12\sinh 2y)}$ for every $b$."),
+             r"$\class{lit}{\Lop V = c}$ on $[0, b)$, with $V'(0) = 0$ at the reflecting center and $V(b) = g(b)$. For each trial level, the value of following that flat rule, $V_b(y) = g(b) - c\,(b\tanh b - y\tanh y)$, solves it, since $\Lop(y\tanh y) = 1$."),
+            (r"Multiply by $2\cosh^2 y$ and integrate once from the center: below its own level, every rule has the same slope.",
+             r"Since $(\cosh^2 y\,f')' = 2\cosh^2 y\,\Lop f$ for any smooth $f$, $(\cosh^2 y\,V')' = 2c\cosh^2 y$, so $\class{lit}{\cosh^2 y\,V_b'(y) = c\,(y + \tfrac12\sinh 2y)}$ on $[0, b)$, for every $b$."),
             (r"Smooth fit picks the level: at the bound, the value meets $g$ with the same slope.",
              r"$V'(b) = g'(b) = \dfrac{1}{2\cosh^2 b}$ makes the left side of step 2 equal $\tfrac12$ at $y = b$: $c\,(b + \tfrac12\sinh 2b) = \tfrac12$, which is $\class{lit}{\sinh(2b) + 2b = 1/c}$. Its root is $B(c)$."),
             (r"The second route: a flat bound $b$ earns $g(b)$ on every decision and pays $c$ for each unit of its mean decision time, $b\tanh b$.",
@@ -133,11 +133,11 @@ $$\E\Bigl[\, g(|X_\tau|) - \int_0^\tau c(s)\,ds \Bigr].$$
 
 This is one decision, not a run of trials. The cost of time is given in advance; in a reward-rate setting it would depend on the policy itself, and the paper lists that case among its limitations.
 
-The plate runs one path on your schedule and stops it with the simplest rule there is, a flat bound: decide when $|X|$ first reaches $b$. Drag the bound up and down. A higher bound stops later, so the choice is right more often, and the shaded bill for time grows. The averages under the plate are exact. Every decision under a flat bound ends at $|X| = b$, so the average reward is $g(b)$; the average bill is the cost at each moment times the chance that the decision is still open then, $\int_0^\infty c(s)\,P_0(\tau_b > s)\,ds$, with that chance from the series of chapter 6.
+The plate runs one path on your schedule and stops it with the simplest rule there is, a flat bound: decide when $|X|$ first reaches $b$. Drag the bound up and down. A higher bound stops later, so the choice is right more often, and the shaded bill for time grows. The averages under the plate are for checking the evidence continuously, and the page computes them from formulas. Without a deadline, every decision under a flat bound ends at $|X| = b$, so the average reward is $g(b)$; the average bill is the cost at each moment times the chance that the decision is still open then, $\int_0^\infty c(s)\,P_0(\tau_b > s)\,ds$, with that chance from the series of chapter 6. With a deadline, the decisions still open there are forced to choose at whatever evidence they have, and the bill stops at the deadline.
 """),
             ("plate", "earn"),
             ("plain", r"""
-A flat bound is the best rule only when the cost is constant ([the flat bound](#flat), below). When the cost changes, the best bound moves with it. After Show me, the plate compares the best flat bound with the best bound that may move, both scored on the grid of the dynamic program in the value plate below.
+A flat bound is the best rule when the cost is constant ([the flat bound](#flat), below). When the cost changes, the best bound generally moves, and the paper gives no formula for it. After Show me, the plate compares the best level held flat with the best bound that may move, both on the grid of the dynamic program in the value plate below.
 """),
             ("exact", "232-238", "The paper's words"),
         ],
@@ -157,12 +157,12 @@ Check your schedule against it. The plate draws the cost to time 10, past the wi
 """),
             ("plate", "allows"),
             ("plain", r"""
-Three cases are worth keeping apart. The book's steps (Figure 1's rise and fall, the pulse, and the paper's multi-step and piecewise families) are logistic in time with scale 0.05, so they are continuous however steep they look: the assumption holds, and the exact equation of chapter 5 covers them. They lie outside {{ref:thm:main}} for a different reason, because the theorem is about small changes. A deadline makes the cost infinite after it, and the rising cost of Figure 1(c) has no upper level, so the assumption fails for both. The forced choice at time 10 that ends the paper's experiments is outside the theorems too: it is a last moment, and the theorems are stated with none. In all these cases, the paper says, its rules are heuristics motivated by the theorem, and it judges them by measurement (chapters 9 and 10).
+Three cases are worth keeping apart. The book's steps (Figure 1's rise and fall, the pulse, and the paper's multi-step and piecewise families, whose joins are logistic in $\log c$) are logistic in time with scale 0.05, so they are continuous however steep they look: the assumption holds, and the exact equation of chapter 5 covers them. They lie outside {{ref:thm:main}} for a different reason: the theorem is about the limit of small changes, and the paper counts large steps outside it. A deadline makes the cost infinite after it, and the rising cost of Figure 1(c) has no upper level, so the assumption fails for both. The forced choice at time 10 that ends the paper's main experiments (other runs use the horizons in {{ref:tab:params}}) is outside the theorems too: it is a last moment, and the theorems are stated with none. In all these cases, the paper says, its rules are heuristics motivated by the theorem, and it judges them by measurement (chapters 9 and 10).
 """),
             ("exact", "234-235|The cost of time|c_{\\max}$.", "The assumption, in the paper's model"),
             ("exact", "582-588", "What lies outside it, at the start of Section 5"),
             ("limits", r"""
-**What the assumption does, and what it doesn't.** It is a condition the proofs use, not a claim about how costs behave: the structure lemma's band, the regularity of the bound, the exact equation ({{ref:prop:exact}}), and {{ref:thm:main}} all assume it. It doesn't put every schedule under {{ref:thm:main}}, which also needs the change to be small. And a schedule outside it still has a best bound, which the dynamic program computes on its grid; what the paper doesn't give there is a proof about it.
+**What the assumption does, and what it doesn't.** It is a condition the proofs use, not a claim about how costs behave: the structure lemma's band, the regularity of the bound, the exact equation ({{ref:prop:exact}}), and {{ref:thm:main}} all assume it. It doesn't put every schedule under {{ref:thm:main}}, which also needs the change to be small. And the dynamic program still solves a schedule outside it on its grid, with a last moment; what the paper doesn't give there is a proof.
 """),
         ],
     },
@@ -181,9 +181,9 @@ The plate finds $V$ for your schedule by dynamic programming, the way the paper 
 """),
             ("plate", "value"),
             ("plain", r"""
-**Why there is no last moment.** The supremum runs over every stopping time, with no last moment to decide: the decision maker may wait as long as it likes, paying for every moment it waits. That is the infinite horizon, and the paper's theorems are stated on it. Three things come with it. For a constant cost the problem looks the same from every start time, so $V$ depends on $y$ alone and the best bound is flat, which is what makes the constant-cost answer below a single number. With a last moment, the value would depend on the time left, and the bound would fall toward 0 as that moment neared, as it does before a deadline: set the plate's last moment to time 2.5 to see it. And waiting forever never pays. The cost is at least $c_{\min} > 0$, so a rule whose mean decision time is infinite pays an infinite bill, and the paper only needs rules with $\E\tau < \infty$.
+**Why there is no last moment.** The supremum runs over every stopping time, with no last moment to decide: the decision maker may wait as long as it likes, paying for every moment it waits. That is the infinite horizon, and the paper's theorems are stated on it. Three things come with it. For a constant cost, the problem looks the same from every start time, so $V$ depends on $y$ alone and the best bound is flat, which is what makes the constant-cost answer below a single number. With a last moment, the value would depend on the time left, and the bound would fall toward 0 as that moment neared, as it does before a deadline: set the plate's last moment to time 2.5 to see it. And waiting forever never pays. The cost is at least $c_{\min} > 0$, so a rule whose mean decision time is infinite pays an infinite bill, and the paper only needs rules with $\E\tau < \infty$.
 
-A computer can't run to infinity. The paper's dynamic program forces a choice at time 10 for schedules without a deadline, and the paper measures what that does: at a constant cost of 0.02, the constant-cost bound loses {{HorizonFloor}} points per 100 trials against the optimum for that horizon. The book's solver forces the choice 6 time units past its window.
+A computer can't run to infinity. In the paper's main experiments, the dynamic program forces a choice at time 10 for schedules without a deadline (other runs use the horizons in {{ref:tab:params}}), and the paper measures what that does: at a constant cost of 0.02, the constant-cost bound loses {{HorizonFloor}} points per 100 trials against the optimum for that horizon. The book's solver forces the choice 6 time units past its window. That is an approximation too: the forced choice changes the bound inside the window, more as time gets cheaper and decisions run longer.
 """),
             ("exact", "246-250", "The paper's definition"),
             ("exact", "1267-1271|Throughout|is infinite.", "The standing facts, at the start of Appendix A"),
@@ -205,19 +205,19 @@ First a guess, on the second route.
 """),
             ("plate", "peak"),
             ("plain", r"""
-Now both routes, a step at a time. Chapter 0 draws the first route's integration on its own; here the plate follows three trial levels through both routes. The routes meet at the last step: the slope of the reward of a flat bound, $R'(b)$, is $g'(b)$ minus the slope at $y = b$ of the value of waiting for that level. So the reward peaks exactly where smooth fit holds.
+Now both routes, a step at a time. Chapter 0 draws the first route's integration on its own; here the plate follows three trial levels through both routes. The routes meet at the last step: the slope of the reward of a flat bound, $R'(b)$, is $g'(b)$ minus the slope at $y = b$ of $V_b$, the value of following the flat rule at level $b$. So the reward peaks exactly where smooth fit holds.
 """),
             ("strip", "routes"),
             ("exact", "252-262||mean decision time.", "The paper's derivation"),
             ("exact", "101-103|If every unit|bogacz2006}.", "And its introduction"),
             ("limits", r"""
-**Scope.** This is the answer for a constant cost. When the cost changes, the best bound isn't flat and has no formula. Chapter 5's exact equation reduces to this one at a constant cost, and chapter 6 expands around it for small changes.
+**Scope.** This is the answer for a constant cost. When the cost changes, the best bound generally moves, and the paper gives no formula for it. Chapter 5's exact equation reduces to this one at a constant cost, and chapter 6 expands around it for small changes.
 """),
         ],
     },
     {
         "id": "slope",
-        "title": "How the bound answers a cost",
+        "title": "How the bound changes with the cost",
         "blocks": [
             ("plain", r"""
 A higher cost of time means deciding sooner, on less evidence. How much sooner? Guess first.
@@ -228,9 +228,9 @@ Differentiating $\sinh(2B) + 2B = 1/c$ in $c$ gives the slope of the constant-co
 
 $$B'(c) = -\frac{1}{4c^2\cosh^2 B(c)}.$$
 
-It is negative at every cost, so a higher constant cost always means a lower bound. How much lower depends on the cost. When time is cheap, $\sinh 2b$ dominates the equation and $B(c)$ grows like $\tfrac12\log(1/c)$, so doubling the cost lowers the bound by about $\tfrac12\log 2$, whatever the cost. When time is expensive, $B(c) \approx 1/(4c)$, so doubling the cost halves the bound.
+It is negative at every cost, so a higher constant cost always means a lower bound. How much lower depends on the cost. When time is cheap, $\sinh 2b$ dominates the equation and $B(c)$ grows like $\tfrac12\log(1/c)$, so as $c \to 0$, the drop when the cost doubles tends to $\tfrac12\log 2$. When time is expensive, $B(c) \approx 1/(4c)$, so doubling the cost halves the bound.
 
-$B'(c_0)$ is not a fitted constant. In {{ref:thm:main}} it is the exact factor that turns a small change in the cost, averaged by the kernel, into a change in the bound (chapter 6). The derivation is implicit differentiation, in four steps.
+$B'(c_0)$ is not a fitted constant. In {{ref:thm:main}}, it is the exact factor that turns a small change in the cost, averaged by the kernel, into a change in the bound (chapter 6). The derivation is implicit differentiation, in four steps.
 """),
             ("strip", "inverse"),
             ("exact", "262-267|Differentiating", "The paper's equation {{ref:eq:Bprime}}"),
@@ -241,7 +241,7 @@ $B'(c_0)$ is not a fitted constant. In {{ref:thm:main}} it is the exact factor t
         "title": "Where this chapter sits",
         "blocks": [
             ("plain", r"""
-The paper's claims and the places one uses another, with this chapter's five printed heavier. They use chapter 2's posterior and filtered diffusion (for the reward) and its reflected process $Y$ (for the value and the flat bound). The constant-cost bound is the one the most claims use, eight of them: its slope (this chapter), the per-moment rule (chapter 1), the structure lemma and the cap that lets optimal stopping apply (chapter 4), the kernel and its two descriptions (chapter 6), and the limits and the second-order loss (chapter 7). The value function feeds the structure lemma and the paper's reference program (chapter 9). The standing assumption feeds the objective in this chapter, the exact equation (chapter 5), and {{ref:thm:main}} (chapter 6), and the slope $B'(c)$ feeds {{ref:thm:main}}.
+The paper's claims and the places one uses another, with this chapter's five shown in bold on gray cards. They use chapter 2's posterior and filtered diffusion (for the reward) and its reflected process $Y$ (for the value and the flat bound). Of this chapter's claims, the constant-cost bound is used the most, by eight: its slope (this chapter), the per-moment rule (chapter 1), the structure lemma and the cap that lets optimal stopping apply (chapter 4), the kernel and its two descriptions (chapter 6), and the limits and the second-order loss (chapter 7). The value function is used by the constant-cost bound (this chapter), the structure lemma (chapter 4), and the paper's reference program (chapter 9). The standing assumption is used by the objective in this chapter, the exact equation (chapter 5), and {{ref:thm:main}} (chapter 6), and the slope $B'(c)$ by {{ref:thm:main}}.
 """),
             ("map", "eq:constant-bound"),
         ],
@@ -258,7 +258,7 @@ The decision maker chooses the sign of $X_\tau$. If $X_\tau > 0$, it says $+1$, 
 """),
                 (r"How does this objective differ from maximizing a reward rate over many trials?",
                  r"""
-Here, the cost of time $c(t)$ is given in advance, and the decision maker optimizes one decision. In a reward-rate setting, the cost of time is itself set by the policy (time spent on this trial is time not spent on the next ones), which makes it a fixed-point problem. The paper names this as a limitation ({{claim:claim:limitations}}).
+Here, the cost of time $c(t)$ is given in advance, and the decision maker optimizes one decision. In a reward-rate setting, the cost of time is itself set by the policy (time spent on this trial is time not spent on the next ones). The paper names this as a limitation ({{claim:claim:limitations}}) and gives no model for it; the book's gloss is that the cost would then depend on the rule it is meant to choose, a fixed-point problem.
 """),
                 (r"Which of Figure 1's four schedules satisfy the assumption?",
                  r"""
@@ -286,7 +286,7 @@ As $c \to 0$, $\sinh 2b$ dominates and grows like $e^{2b}/2$, so $B(c)$ grows li
 """),
                 (r"What is the confidence at the bound, and why is it not the bound itself?",
                  r"""
-The bound is a level of evidence $X$, which is half the log odds. The confidence there is $g(B(c)) = 1/(1 + e^{-2B(c)})$. The paper states all its bounds on the evidence scale; a companion that quotes a probability must convert, and must not call the bound a probability.
+The bound is a level of evidence $X$, which is half the log odds. The confidence there is $g(B(c)) = 1/(1 + e^{-2B(c)})$. The paper states all its bounds on the evidence scale; a text that quotes a probability must convert, and must not call the bound a probability.
 """),
                 (r"Derive $B'(c)$.",
                  r"""
@@ -302,9 +302,9 @@ Differentiate $\sinh(2B) + 2B = 1/c$ in $c$: $(2\cosh 2B + 2)\,B' = -1/c^2$. Sin
                 (r"“The decision maker maximizes accuracy.”",
                  r"It maximizes accuracy minus the expected cost of the time spent. Accuracy alone has no best rule: a higher bound always does better, so the cost of time is what makes stopping worthwhile."),
                 (r"“The theorem needs a smooth cost.”",
-                 r"The exact equation and the convergence in {{ref:thm:main}} need only a continuous cost bounded between two positive constants. Smoothness of the change $\gamma$ (Hölder or Lipschitz) matters only for the rate."),
+                 r"The exact equation and the convergence in {{ref:thm:main}} need only a continuous cost bounded between two positive constants. Smoothness of the change $\gamma$ (Hölder or Lipschitz) matters for the rate, and uniform continuity for convergence uniformly over all time."),
                 (r"“The paper's steps are discontinuous, so its step experiments lie outside the assumption.”",
-                 r"The paper's steps are logistic in time (scale 0.05), so they are continuous and bounded and the exact equation holds for them. They lie outside the theorem because they are large, not because they jump."),
+                 r"The paper's steps are logistic in time (scale 0.05), so they are continuous and bounded, and the exact equation holds for them. They lie outside the theorem because they are large, not because they jump."),
                 (r"“$V(t, y)$ is the value of the trial.”",
                  r"It is the value from a start at time $t$ with evidence $y$. The value of a trial that starts at time 0 with no evidence is $V(0, 0)$."),
                 (r"“The constant-cost bound is a result of the paper.”",
