@@ -122,11 +122,21 @@ def table_rows(name):
     return _TABLE_ROWS[name]
 
 
+def cell_text(c):
+    """A generated table's cell as the page prints it: TeX's percent, an em dash for a missing entry (--- or a lone
+    --), an en dash for a range (0.999--1.000), and a minus sign for a leading hyphen before a digit."""
+    c = c.replace("\\%", "%").strip()
+    if c in ("---", "--"):
+        return "—"
+    c = c.replace("---", "—").replace("--", "–")
+    return re.sub(r"^-(?=\d)", "−", c)
+
+
 def table_cell(name, r, c):
     rows = table_rows(name)
     if not (1 <= r <= len(rows) and 1 <= c <= len(rows[r - 1])):
         fail(f"no cell {r},{c} in {name}")
-    return rows[r - 1][c - 1].replace("\\%", "%").replace("---", "—")
+    return cell_text(rows[r - 1][c - 1])
 
 
 def claim_ref(spec):
@@ -340,8 +350,8 @@ def table_html(label):
     num = LABELS[label]["num"]
     cap = figure_caption(label, "table")
     head = "".join(f"<th scope='col'>{html.escape(h)}</th>" for h in heads)
-    body = "".join("<tr>" + "".join((f"<th scope='row'>{inline(c.replace(chr(92) + '%', '%'))}</th>" if j == 0 else
-                                     f"<td>{inline(c.replace(chr(92) + '%', '%').replace('---', '—'))}</td>")
+    body = "".join("<tr>" + "".join((f"<th scope='row'>{inline(cell_text(c))}</th>" if j == 0 else
+                                     f"<td>{inline(cell_text(c))}</td>")
                                     for j, c in enumerate(r)) + "</tr>" for r in rows)
     for r in rows:
         if len(r) != len(heads):
