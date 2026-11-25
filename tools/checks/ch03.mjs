@@ -284,6 +284,21 @@ for (const c of [0.05, 0.1, 0.3]) {
     });
     check("value", `${choice.id} ${JSON.stringify(choice.params)}: at every kept row the bound is above 0 exactly where the program waits at y = 0 (W(t, 0) > 0)`, agree, bad || `${m.times.length} rows, ${below} with the bound below the first step`);
   }
+  // the value plate's sentence: on the grid, W = V - g never rises with the evidence at any kept row, for every preset
+  // at its defaults and the default drawing, with either last moment (a deadline sets its own)
+  {
+    let worst = 0, at = "", n = 0;
+    const choices = [...PRESETS.map(defaults), { id: "draw", points: defaultDrawing() }];
+    for (const choice of choices) for (const last of ["far", "window"]) {
+      const m = valueJob({ choice, last }); n++;
+      m.V.forEach((row, i) => row.forEach((v, j) => {
+        if (!j) return;
+        const rise = (v - m.gy[j]) - (row[j - 1] - m.gy[j - 1]);
+        if (rise > worst) { worst = rise; at = `${choice.id}, last ${last}, time ${m.times[i].toFixed(2)}, y ${m.ys[j].toFixed(2)}`; }
+      }));
+    }
+    check("value", "on the plate's grid, W = V - g never rises with y by more than 1e-9 at any kept row, for all ten presets at their defaults and the default drawing, with the last moment 6 past the window or at time 2.5", worst < 1e-9, at ? `largest rise ${worst.toExponential(1)} at ${at}` : `${n} runs, no rise`);
+  }
   {
     const m = valueJob({ choice: { id: "jump", params: { at: 0.2, factor: 32 } }, last: "far" }), i = m.times.findIndex((t) => Math.abs(t - 1) < 1e-9);
     check("value", "jump x32 at 0.2, time 1: where the paper's code reports 0, the page's bound lies between y = 0 and the first step, and the program waits at y = 0", M.belowFirstStep(m.rowB[i], m.h) && m.V[i][0] > m.gy[0], `bound ${m.rowB[i].toFixed(5)}, V(1, 0) ${m.V[i][0].toFixed(6)} vs g(0) 0.5`);

@@ -181,8 +181,8 @@ FIG1.forEach((p, k) => {
   let falling = true;
   for (let i = 1; i <= Math.round(T / DT); i++) if (!(r.exact[i] < r.exact[i - 1])) falling = false;
   const k2 = Math.round(0.2 / DT), dBest = r.exact[0] - r.exact[k2], dPm = r.pm[0] - r.pm[k2], c2 = costOf(fig1Choice("jump"))(0.2);
-  check("rise", "by t = 0.2, with the cost within 4% of 0.1, the best bound has come down more than three times as far as the per-moment bound (the text's claim), and it falls at every step to 0.4",
-    falling && c2 < 0.104 && dBest > 3 * dPm, `cost ${c2.toFixed(4)}; best down ${dBest.toFixed(3)}, per-moment down ${dPm.toFixed(3)}`);
+  check("rise", "by t = 0.2, with the cost within 4% of 0.1, the best bound has come down about eight times as far as the per-moment bound (the text's claim: between 7.5 and 8.5 times), and it falls at every step to 0.4",
+    falling && c2 < 0.104 && dBest > 7.5 * dPm && dBest < 8.5 * dPm, `cost ${c2.toFixed(4)}; best down ${dBest.toFixed(3)}, per-moment down ${dPm.toFixed(3)}`);
   check("rise", "t = 0.4 comes before the center of the rise at 0.5", T < fig1Choice("jump").params.at, `center ${fig1Choice("jump").params.at}`);
 }
 {
@@ -388,4 +388,7 @@ const BAD = /NaN|undefined|Infinity|null|infinite and infinite|between infinite|
     /c\(0\.3\) ≈ 0\.13, so the per-moment bound is B\(c\(0\.3\)\) ≈ 1\.201\./.test(r) && /between 0\.13 and 1\.6, and the rule uses none of it/.test(r)
     && /B\(c\(1\)\) ≈ 1\.026, with c\(1\) = 0\.17/.test(past) && /c\(0\.3\) ≈ 0\.12/.test(rounded), `${r} | ${past}`);
   check("words", "costs print to two significant figures", S.cf(0.1001) === "0.10" && S.cf(0.0917) === "0.092" && S.cf(1.4212) === "1.4" && S.cf(16) === "16", [0.1001, 0.0917, 1.4212, 16].map(S.cf).join(", "));
+  const flatCost = costOf({ id: "draw", points: Array(26).fill(0.1) }), c0 = flatCost(0);
+  const flatSay = S.ruleSay(0, c0, boundForCost(c0), ahead(flatCost, 0, null), null);
+  check("words", "a drawing held at 0.1 everywhere (its cost read back through logs, off 0.1 in the last binary digit) prints c(0) = 0.10, not ≈", /c\(0\) = 0\.10,/.test(flatSay), `c(0) - 0.1 = ${(c0 - 0.1).toExponential(1)}; ${flatSay.slice(0, 60)}…`);
 }

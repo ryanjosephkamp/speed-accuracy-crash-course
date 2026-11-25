@@ -88,7 +88,7 @@ const wIs = (w) => (wShown(w) === "< 0.001" ? "W < 0.001, though above 0" : `W =
  * over the map's samples, { t, W }, which is at y = 0. */
 export function valueVerdict(tap, best) {
   const where = `Of the map's samples, waiting is worth the most at time ${f2(best.t)} with no evidence, y = 0, where ${wIs(best.W)}.`;
-  const why = " At every time, W is largest at y = 0, where deciding is a coin flip, and the paper proves it never rises with the evidence (Lemma 1(a), chapter 4).";
+  const why = " On this grid, at every time, W is largest at y = 0, where deciding is a coin flip, and never rises with the evidence. The paper proves the same for the continuous model with no deadline, when the cost is continuous and stays between two positive levels (Lemma 1(a), chapter 4).";
   if (!tap) return where + why;
   return `You tapped near the sample at time ${f2(tap.t)}, evidence ${f2(tap.y)}, where ${wIs(tap.W)}. ` + where + why;
 }

@@ -271,7 +271,7 @@ function valuePlate() {
     <p class="fine" id="va-note"></p>
     <div class="chart-wrap" id="va-cost"></div>
     <div class="chart-wrap pad" id="va-map"></div>
-    <ul class="legend"><li><span class="key key-ex">Best bound</span></li><li><span class="key key-pm">B(c(t))</span></li><li><span class="key key-acc">Your tap</span></li><li>Shaded, after Show me: W = V − g</li></ul>
+    <ul class="legend"><li><span class="key key-ex">Best bound</span></li><li><span class="key key-pm">B(c(t)), moved in</span></li><li><span class="key key-acc">Your tap</span></li><li>Shaded, after Show me: W = V − g</li></ul>
     <div class="predict" style="margin-top:12px"><p>Where is waiting worth the most? Tap the map, then press Show me.</p>
       <div class="actions"><button class="btn btn-go" type="button" id="va-show">Show me</button></div>
       <p class="verdict" id="va-verdict" aria-live="polite"></p></div>
