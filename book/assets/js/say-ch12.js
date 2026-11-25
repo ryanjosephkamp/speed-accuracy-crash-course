@@ -43,9 +43,12 @@ export function waveSay(c0, omega, degrees, timeLead, gain, m) {
 }
 
 // ---- the argument, step by step -------------------------------------------------------------------------------
-export function gateSay(hit) {
+export const GATE_HEAD = "Step 1: the evidence reaches the moving bound ±b(t) at the same moment the gated evidence U·X reaches the matching fixed level, +a or −a, with a = 1.";
+/** sign: +1 when the path crosses at the upper level, -1 at the lower. */
+export function gateSay(hit, sign) {
   if (!Number.isFinite(hit)) return "This path doesn't reach the bound in the time shown.";
-  return `The evidence reaches the moving bound at time ${f3(hit)}, and the gated evidence U·X reaches the fixed level a at the same moment.`;
+  const up = sign > 0;
+  return `The evidence reaches the ${up ? "upper" : "lower"} bound, ${up ? "+" : "−"}b(t), at time ${f3(hit)}, and the gated evidence U·X reaches ${up ? "+a" : "−a"} at the same moment.`;
 }
 export function mirrorWaveSay(c0, degrees) {
   return `At c₀ = ${c0} and ω = 2, the urgency runs ${f1(degrees)}° ahead of the cost's wave, and the bound's move is the urgency's turned upside down: the bound falls before the cost rises.`;
@@ -64,14 +67,17 @@ export function phaseSay(c0, peak, m) {
 
 // ---- your schedule --------------------------------------------------------------------------------------------
 /** gFo, gPm: the largest gaps of the first-order and per-moment urgency from the best bound's, as shares of the
- * constant-cost urgency, at each size in EPS; k the size on show; holes: where the first-order bound is at or below 0;
+ * constant-cost urgency, at each size in EPS, both taken over the times where all three curves are defined; k the size
+ * on show; missing: at each size, how many of the total times are left out because a bound is at or below 0;
  * outside: a schedule outside the theorem (the rising cost). */
+/** Over which of the plate's times both gaps are taken. */
+export const overTimes = (used, total) => (used === total ? `over all ${total} times drawn` : `over the ${used} of ${total} times where all three curves are defined`);
 const gapText = (x) => (x >= 1 ? `up to ${f1(x)} times the constant cost's urgency` : x >= 0.001 ? `up to ${pct(x)} of the constant cost's urgency` : `less than 0.1% of the constant cost's urgency`);
-export function yoursSay(EPS, k, gFo, gPm, holes = false, outside = false) {
-  const last = EPS.length - 1;
+export function yoursSay(EPS, k, gFo, gPm, missing = [], outside = false, total = 0) {
+  const last = EPS.length - 1, miss = (j) => missing[j] || 0;
   let s = `At ${sizeText(EPS[k])}${k === last ? ", the smallest" : ""}, the first-order urgency is off the best bound's by ${gapText(gFo[k])}, and the per-moment urgency by ${gapText(gPm[k])}`;
-  s += holes ? `; where the first-order bound reaches 0 or below, it has no urgency, and the plate leaves a gap. ` : `. `;
-  if (k !== last) s += `At the smallest size, ${sizeText(EPS[last])}, the gaps are ${pct(gFo[last])} and ${pct(gPm[last])}. `;
+  s += miss(k) ? `, both over the ${total - miss(k)} of ${total} times where all three curves are defined: at the other ${miss(k)}, a bound is at or below 0 and has no urgency, and the plate leaves a gap. ` : `, at every time drawn. `;
+  if (k !== last) s += `At the smallest size, ${sizeText(EPS[last])}, the gaps are ${pct(gFo[last])} and ${pct(gPm[last])}${miss(last) ? `, over the ${total - miss(last)} times where all three are defined` : ""}. `;
   if (gFo[last] < gPm[last]) s += `There the first-order urgency, the one the prediction is about, is the closer of the two to the best bound's.`;
   else s += `Even there, on this grid, the first-order urgency is not the closer of the two to the best bound's.`;
   if (outside) s += ` The rising cost grows without bound, so it is outside the theorem: these gaps are a computation, with no theory behind them.`;
@@ -86,6 +92,7 @@ export function outsideNote(kind) {
 export function insideNote(label) {
   return `${label}: written as c₀ + εγ, with c₀ its average over time 0 to 2.5, at the size ε you pick.`;
 }
+export const DEADLINE_STATE = "Time step 0.01, evidence step 0.02, to the deadline. The program's bound is computed for checking every 0.01; the per-moment bound is moved in by 0.5826√0.01 for the same checking.";
 export function deadlineSay(tLast, deadline, ratio) {
   return `The best bound's urgency is ${f1(ratio)} times the per-moment one at time ${f2(tLast)}, the last moment the plate draws before the deadline at ${f2(deadline)}.`;
 }
@@ -109,11 +116,13 @@ export function trapSay(P, T) {
 
 // ---- what control would have to compute ----------------------------------------------------------------------
 export function controlSay(t, c0, m, med, q90, avg, pmNow) {
-  return `At time ${f2(t)}, the bound is the kernel's average of the constant-cost bounds ahead: ${f3(avg)}, against ${f3(pmNow)} for the cost at that moment alone. Half the weight falls within ${f2(med)} time units, 90% within ${f2(q90)}, and the mean is ${f3(m)} (at c₀ = ${c0}).`;
+  return `At time ${f2(t)}, the fixed-kernel approximation, the kernel's average of the constant-cost bounds ahead, is ${f3(avg)}, against ${f3(pmNow)} for the cost at that moment alone; to first order in the size of the change, it is the best bound. Half the weight falls within ${f2(med)} time units, 90% within ${f2(q90)}, and the mean is ${f3(m)} (at c₀ = ${c0}).`;
 }
+/** Under the reading of the kernel's weight past the chart's right edge. */
+export const PAST_EDGE = "of the kernel's weight, not drawn; the average uses all of it";
 
 // ---- what is new, and what isn't ------------------------------------------------------------------------------
-export const KINDS = [["credited", "Credited to others"], ["proved", "Proved in the paper"], ["new", "New, to the paper's knowledge"]];
+export const KINDS = [["credited", "Credited to others"], ["proved", "Proved here, not claimed as new"], ["new", "New, to the paper's knowledge"]];
 /** The self-test: each statement, the paper's answer (key; also: another answer the paper's words support), why,
  * and where main.tex says so (lines, and a phrase from those lines that a check finds there). */
 export const ITEMS = [
@@ -127,20 +136,20 @@ export const ITEMS = [
     key: "credited", also: "proved", why: "They appear, for smooth terminal losses, in Campbell and Engelund (2026). Their hypotheses exclude the 0-1 loss, which has a kink, so the paper proves them directly.",
     lines: [195, 199], quote: "appear, for smooth terminal losses, in recent work by" },
   { id: "exact", text: "The exact equation for the bound, for the drift-diffusion model's 0-1 loss.",
-    key: "proved", why: "The paper proves it directly and lists it among its contributions, but its sentences on what is new don't claim it: with smooth losses, Campbell and Engelund's identities and smooth fit would also give a relation like it.",
+    key: "proved", why: "The paper proves it directly and lists it among its contributions, but its sentences on what is new don't claim it. It notes that, in Campbell and Engelund's symmetric infinite-horizon setting with smooth losses, their identities and smooth fit would also give a relation like it.",
     lines: [1166, 1170], quote: "directly for the 0-1 loss and use it to prove the first-order theorem" },
   { id: "kernel", text: "The kernel made explicit, as a distribution of decision times, and its Laplace transform.",
-    key: "new", why: "The paper: “the kernel made explicit … and through its Laplace transform.”",
+    key: "new", proved: true, why: "The paper: “the kernel made explicit … and through its Laplace transform.”",
     lines: [1136, 1139], quote: "but the kernel made explicit" },
   { id: "theorem", text: "A proof of the first-order expansion for this model on an infinite horizon, with a rate for Hölder changes.",
-    key: "new", why: "Stojanovic's theorem covers finite cylinders; the paper proves the expansion outside them, on an infinite horizon, through an equation with no derivative of the bound.",
+    key: "new", proved: true, why: "Stojanovic's theorem covers finite cylinders; the paper proves the expansion outside them, on an infinite horizon, through an equation with no derivative of the bound.",
     lines: [1139, 1143], quote: "together with a proof of the expansion" },
   { id: "rule", text: "The weighted look-ahead rule.",
-    key: "new", why: "It is first-order exact near a constant cost (Proposition 13); on the paper's code, it is not faster than the dynamic program.",
+    key: "new", proved: true, why: "It is first-order exact near a constant cost (Proposition 13); on the paper's code, it is not faster than the dynamic program.",
     lines: [1170, 1172], quote: "rule, and the measurements are, to our knowledge, new here" },
-  { id: "anticipation", text: "The best bound moves before a known change in the cost of time.",
-    key: "credited", why: "Known before, qualitatively: Barendregt and colleagues (2022) find thresholds that anticipate a known drop in reward. What the paper claims, to its knowledge, is an analytic first-order form for small changes of general shape.",
-    lines: [1100, 1108], quote: "anticipate a known drop in reward" },
+  { id: "anticipation", text: "The best bound moves before a known change.",
+    key: "credited", why: "Known before, qualitatively: Drugowitsch and colleagues (2012) computed optimal bounds for time-varying costs by backward induction, and Barendregt and colleagues (2022) find thresholds that anticipate a known drop in reward. What the paper claims, to its knowledge, is an analytic first-order form for small changes of general shape in the cost of time.",
+    lines: [1096, 1108], quote: "anticipate a known drop in reward" },
 ];
 const KIND_WORD = Object.fromEntries(KINDS);
 
@@ -158,4 +167,4 @@ export function noveltyVerdict(marks) {
   if (over.length) s += ` ${over.length === 1 ? "One statement" : `${over.length} statements`} you marked new the paper credits to others or doesn't claim as new.`;
   return s + ` Every claim of novelty in the paper carries “to our knowledge.”`;
 }
-export const answerText = (item) => `${KIND_WORD[item.key]}${item.also ? ` (and ${KIND_WORD[item.also].toLowerCase()} for the 0-1 loss)` : ""}. ${item.why}`;
+export const answerText = (item) => `${KIND_WORD[item.key]}${item.also ? ` (and proved here for the 0-1 loss, not claimed as new)` : ""}${item.proved ? `, and proved in the paper` : ""}. ${item.why}`;
