@@ -3,12 +3,12 @@
 // computes it, and held to the paper's tables by tools/checks/ch10.mjs. What the page solves itself (a tapped schedule,
 // the reader's schedule, Table 9's shape on the page's grid) runs in ch10-worker.js with ch10-model.js. The words under
 // each plate come from say-ch10.js.
-import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, defaultDrawing } from "./schedules-book.js?v=e579ee3325";
-import { getChoice, setChoice, solve, onVisible, liftReady } from "./book.js?v=e579ee3325";
-import { frame, line, axes, svg, keepDrawn } from "./chart.js?v=e579ee3325";
-import { rng } from "./kernel.js?v=e579ee3325";
-import * as M from "./ch10-model.js?v=e579ee3325";
-import * as S from "./say-ch10.js?v=e579ee3325";
+import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, defaultDrawing } from "./schedules-book.js?v=e783c21d62";
+import { getChoice, setChoice, solve, onVisible, liftReady } from "./book.js?v=e783c21d62";
+import { frame, line, axes, svg, keepDrawn } from "./chart.js?v=e783c21d62";
+import { rng } from "./kernel.js?v=e783c21d62";
+import * as M from "./ch10-model.js?v=e783c21d62";
+import * as S from "./say-ch10.js?v=e783c21d62";
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const plate = (id) => document.getElementById("plate-" + id);
@@ -25,10 +25,10 @@ const tick3 = (v) => String(+v.toPrecision(3));
 
 // ---- the paper's data, loaded once when a plate first needs it ----------------------------------------------------------
 let DATA_P = null;
-const data = () => (DATA_P ||= import("./ch10-data.js?v=e579ee3325").then((m) => m.default));
+const data = () => (DATA_P ||= import("./ch10-data.js?v=e783c21d62").then((m) => m.default));
 
 // ---- the page's own runs, in chapter 10's worker -----------------------------------------------------------------------
-const WORKER = new URL("./ch10-worker.js?v=e579ee3325", import.meta.url);
+const WORKER = new URL("./ch10-worker.js?v=e783c21d62", import.meta.url);
 const RUNS = new Map();
 /** The program and the seven rules on the reader's schedule, once per schedule, shared by every plate that shows it. */
 function yoursFor(choice, onProgress) {
@@ -412,7 +412,7 @@ function yoursPlate() {
     run = null; draw(); table.innerHTML = ""; say.textContent = "";
     pick.value = choice.id;
     const dl = deadlineOf(choice);
-    note.textContent = isFlat(choice) ? "This cost doesn't change: every rule but the tuned constant gives the per-moment bound, and the losses show what the grid and the forced choice at t = 10 cost on their own."
+    note.textContent = isFlat(choice) ? "This cost doesn't change: every rule but the tuned constant gives the per-moment bound."
       : dl !== null ? `A forced choice at time ${dl.toFixed(2)}: the program and the scorer end there, as the paper's do. The averaged-cost rule is drawn as the paper's code computes it.`
         : choice.id === "rising" ? "The rising cost grows without bound; the paper's held-out families don't include one, and the page scores it the same way." : "";
     state.textContent = "Solving the program and seven rules on the page's grid…";

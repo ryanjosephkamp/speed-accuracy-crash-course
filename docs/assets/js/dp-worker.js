@@ -2,8 +2,8 @@
 // choice ({ id, params } or { id: "draw", points }) and is rebuilt here from the same module the page uses.
 //   { job: "bounds", choice, dt, h }            -> the best bound and the per-moment bound over the window
 //   { job: "scale", choice | wave, c0, eps, dt, h } -> bounds at c0 and at c0 + eps (c - c0) for each eps
-import { exactPolicy, boundForCost, toDiscrete } from "./model.js?v=e579ee3325";
-import { costOf, deadlineOf, VIEW, SPARE } from "./schedules-book.js?v=e579ee3325";
+import { exactPolicy, boundForCost, toDiscrete } from "./model.js?v=e783c21d62";
+import { costOf, deadlineOf, VIEW, SPARE } from "./schedules-book.js?v=e783c21d62";
 
 const EVERY = 2; // keep every second time step (0.02 time units) for the page
 

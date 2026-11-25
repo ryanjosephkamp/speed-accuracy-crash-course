@@ -57,8 +57,11 @@ export function twoSay(label, loss, deadline, added, stretches = []) {
     return s + gridNote(loss);
   }
   let s = `On ${label}, the weighted rule loses ${L(loss.wb)} points per 100 trials, the per-moment rule ${L(loss.pm)}, and the averaged-cost rule ${L(loss.avg)}. `;
+  const same = (a, b) => L(a) === L(b);   // equal as printed: no ranking from differences the reader can't see
   if (Math.max(Math.abs(loss.pm), Math.abs(loss.avg), Math.abs(loss.wb)) < 0.001) s += "All three are within a thousandth of a point of the program here.";
-  else if (loss.avg > loss.pm) s += "Here averaging the costs does worse than not looking ahead at all.";
+  else if (same(loss.pm, loss.avg) && same(loss.avg, loss.wb)) s += "The three losses are the same to the precision shown.";
+  else if (loss.avg > loss.pm && !same(loss.avg, loss.pm)) s += "Here averaging the costs does worse than not looking ahead at all.";
+  else if (same(loss.avg, loss.wb)) s += "Here averaging the costs and averaging the bounds lose the same to the precision shown.";
   else if (loss.avg < loss.wb) s += "Here averaging the costs loses less than averaging the bounds.";
   else s += "Here averaging the bounds loses the least of the three.";
   return s + gridNote(loss);

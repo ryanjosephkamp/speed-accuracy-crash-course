@@ -2,11 +2,11 @@
 // waiting from the dynamic program, the flat bound two ways, and how the bound answers a cost. The flat-bound numbers
 // come from closed forms and kernel.js's series (ch03-model.js), the value from the dynamic program in ch03-worker.js;
 // the words under each plate come from say-ch03.js.
-import * as M from "./ch03-model.js?v=e579ee3325";
-import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, VIEW, defaultDrawing } from "./schedules-book.js?v=e579ee3325";
-import { getChoice, setChoice, solve, onVisible, liftReady, seedParam, wireStrips } from "./book.js?v=e579ee3325";
-import { frame, line, area, axes, svg, fmt, keepDrawn, tags, ticks } from "./chart.js?v=e579ee3325";
-import * as S from "./say-ch03.js?v=e579ee3325";
+import * as M from "./ch03-model.js?v=e783c21d62";
+import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, VIEW, defaultDrawing } from "./schedules-book.js?v=e783c21d62";
+import { getChoice, setChoice, solve, onVisible, liftReady, seedParam, wireStrips } from "./book.js?v=e783c21d62";
+import { frame, line, area, axes, svg, fmt, keepDrawn, tags, ticks } from "./chart.js?v=e783c21d62";
+import * as S from "./say-ch03.js?v=e783c21d62";
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const plate = (id) => document.getElementById("plate-" + id);
@@ -16,7 +16,7 @@ const segHTML = (name, opts, cur, legend) => `<fieldset class="seg"><legend>${le
   `<label><input type="radio" name="${name}" value="${v}"${String(v) === String(cur) ? " checked" : ""}><span>${lbl}</span></label>`).join("")}</div></fieldset>`;
 const onSeg = (el, name, fn) => el.querySelectorAll(`input[name="${name}"]`).forEach((r) => r.addEventListener("change", () => fn(r.value)));
 const inRange = (v, lo, hi) => (v >= lo && v <= hi ? v : NaN);
-const WORKER = new URL("./ch03-worker.js?v=e579ee3325", import.meta.url);
+const WORKER = new URL("./ch03-worker.js?v=e783c21d62", import.meta.url);
 
 // ---- the reader's schedule, and the dynamic program's value for it (shared by the plates that need it)
 const keyOf = (choice) => JSON.stringify({ id: choice.id, params: choice.id === "draw" ? undefined : paramsOf(choice), points: choice.id === "draw" ? choice.points : undefined });

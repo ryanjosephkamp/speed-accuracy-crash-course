@@ -1,11 +1,11 @@
 // Chapter 6's two dynamic-program plates without their pages: what "Shrink the change" measures from the scale job's
 // reply, and what "Your schedule, scaled down" does with each selection and reply, shared by the page and its check so
 // both compute the same thing.
-import * as K from "./kernel.js?v=e579ee3325";
-import { costOf, deadlineOf, VIEW } from "./schedules-book.js?v=e579ee3325";
-import { line, frame, axes, ticks } from "./chart.js?v=e579ee3325";
-import { guideInRange, errorsVerdict, tooSmallVerdict } from "./say-ch06.js?v=e579ee3325";
-import { isFlat } from "./ch01-model.js?v=e579ee3325";
+import * as K from "./kernel.js?v=e783c21d62";
+import { costOf, deadlineOf, VIEW } from "./schedules-book.js?v=e783c21d62";
+import { line, frame, axes, ticks } from "./chart.js?v=e783c21d62";
+import { guideInRange, errorsVerdict, tooSmallVerdict } from "./say-ch06.js?v=e783c21d62";
+import { isFlat } from "./ch01-model.js?v=e783c21d62";
 
 // ---- "Shrink the change": a fixed sinusoid ----------------------------------------------------------------------
 

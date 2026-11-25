@@ -1,12 +1,12 @@
 // Chapter 6's plates. Every number drawn comes from kernel.js (the series, the closed forms, the sampler) or from
 // the dynamic program in the worker; the words under each plate come from the functions in say-ch06.js, which take
 // numbers and return sentences.
-import * as K from "./kernel.js?v=e579ee3325";
-import { labelOf, PRESETS, DRAW, paramsOf, VIEW, defaultDrawing } from "./schedules-book.js?v=e579ee3325";
-import { getChoice, setChoice, solve, onVisible, watchVisible, liftReady, calm, seedParam } from "./book.js?v=e579ee3325";
-import { frame, line, area, axes, svg, tags, fmt, keepDrawn } from "./chart.js?v=e579ee3325";
-import * as S from "./say-ch06.js?v=e579ee3325";
-import { SCALE, scaleJob, scaleGaps, YOURS_EPS, yoursPlateState, errorMarks, yoursVerdict, predictView, responseChart } from "./ch06-model.js?v=e579ee3325";
+import * as K from "./kernel.js?v=e783c21d62";
+import { labelOf, PRESETS, DRAW, paramsOf, VIEW, defaultDrawing } from "./schedules-book.js?v=e783c21d62";
+import { getChoice, setChoice, solve, onVisible, watchVisible, liftReady, calm, seedParam } from "./book.js?v=e783c21d62";
+import { frame, line, area, axes, svg, tags, fmt, keepDrawn } from "./chart.js?v=e783c21d62";
+import * as S from "./say-ch06.js?v=e783c21d62";
+import { SCALE, scaleJob, scaleGaps, YOURS_EPS, yoursPlateState, errorMarks, yoursVerdict, predictView, responseChart } from "./ch06-model.js?v=e783c21d62";
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const plate = (id) => document.getElementById("plate-" + id);

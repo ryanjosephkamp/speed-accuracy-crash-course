@@ -113,7 +113,7 @@ export function leadPeakSay(c0, peak) {
 // ---- the reward of a flat bound --------------------------------------------------------------------------------
 
 export function rewardVerdict(guess, ratioUp, ratioDown, c) {
-  const fact = `At c = ${c}, missing the peak by 0.2 loses ${f1(ratioUp)} times what missing by 0.1 loses above the peak, and ${f1(ratioDown)} times below it; twice the miss, squared, is 4.`;
+  const fact = `At c = ${c}, missing the peak by 0.2 loses ${f1(ratioUp)} times what missing by 0.1 loses above the peak, and ${f1(ratioDown)} times below it; doubling the miss multiplies a quadratic loss by 2² = 4.`;
   if (guess === "four") return "Right. " + fact;
   if (guess === "two") return "More than twice. " + fact;
   return "Not the same. " + fact;

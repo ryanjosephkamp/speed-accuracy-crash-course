@@ -1,7 +1,7 @@
 {
  "date": "2026-11-25",
- "total": 1418,
- "passed": 1418,
+ "total": 1419,
+ "passed": 1419,
  "results": [
   {
    "file": "book",
@@ -2988,9 +2988,9 @@
   {
    "file": "ch03",
    "plate": "value",
-   "name": "on the plate's grid, W = V - g never rises with y by more than 1e-9 at any kept row, for all ten presets at their defaults and the default drawing, with the last moment 6 past the window or at time 2.5",
+   "name": "on the plate's grid, over its kept times and evidence samples, W = V - g is finite and never rises with y by more than 1e-9, for the nine presets other than Deadline and the default drawing with the last moment 6 past the window and at time 2.5, and for Deadline once at its own forced choice (each run at the horizon asked for)",
    "ok": true,
-   "detail": "22 runs, no rise"
+   "detail": "21 runs; all finite; horizons as asked; no rise"
   },
   {
    "file": "ch03",
@@ -3450,7 +3450,7 @@
   {
    "file": "ch04",
    "plate": "later",
-   "name": "and reaches that rate to the precision shown (two decimals) just before the jump, from evidence 0, with the program's bound above 0 at both start times, 0.49 and 0.50 (the text says so)",
+   "name": "and reaches that rate to the precision shown (two decimals) just before the jump, from evidence 0, with the program's bound above 0 at both start times, 0.49 and 0.50, and the value falling from 0.49 to 0.50 (the text says so)",
    "ok": true,
    "detail": "1.4999986 at 0.49, evidence 0; the bounds at 0.49 and 0.50 are 0.245 and 0.097"
   },
@@ -5473,7 +5473,7 @@
   {
    "file": "ch07",
    "plate": "words",
-   "name": "the lead sentence says the lead rises above 45 degrees at c0 = 1 and stays below at 0.1, and never says it is capped",
+   "name": "the lead sentence says the lead rises above 45 degrees at c0 = 1 and stays below at 0.1, and contains neither \"at most 45\" nor \"up to an eighth\"",
    "ok": true,
    "detail": "At c₀ = 1, the lead rises above 45°, to 45.95° near ω = 66, falls back below 45° by ω = 115, and at ω = 10⁶, the highest frequency scanned, it is 44.993°, below 45° and rising."
   },
@@ -5501,7 +5501,7 @@
   {
    "file": "ch07",
    "plate": "words",
-   "name": "the reward plate's verdict at each cost it offers (0.02, 0.1, 0.5): the loss at a miss of 0.2 over the loss at 0.1, above and below the peak, both between 3.7 and 4.3, printed to one decimal, beside 4, twice the miss squared",
+   "name": "the reward plate's verdict at each cost it offers (0.02, 0.1, 0.5): the loss at a miss of 0.2 over the loss at 0.1, above and below the peak, both between 3.7 and 4.3, printed to one decimal, beside 4, the factor a quadratic loss gives when the miss doubles",
    "ok": true,
    "detail": "0.02: 3.758, 4.281; 0.1: 3.776, 4.238; 0.5: 3.860, 4.084"
   },
@@ -6309,6 +6309,13 @@
    "name": "chapter 8 calls Proposition 13 the rule's one guarantee about its bound, names Proposition 10 for its reward loss, and doesn't call Proposition 13 the only guarantee the rule has",
    "ok": true,
    "detail": "ch08.py"
+  },
+  {
+   "file": "ch08",
+   "plate": "words",
+   "name": "through the plate's own comparison: on Constant at 0.01, Smooth at 0.02 and size 0, and a drawing flat at 0.01, the sentence ranks no rule (the three print the same, or all are within a thousandth); on Wave at frequency 8 and size 0.6 it says averaging the costs loses less",
+   "ok": true,
+   "detail": "ost rule 0.0071. The three losses are the same to the precision shown. | ost rule 0.0054. The three losses are the same to the precision shown. | ost rule 0.0071. The three losses are the same to the precision shown. | 0.0030. Here averaging the costs loses less than averaging the bounds."
   },
   {
    "file": "ch08",
@@ -7629,9 +7636,9 @@
   {
    "file": "ch10",
    "plate": "edges",
-   "name": "Deadline on an odd time step (0.955) at the largest cost: every rule's loss, accuracy, time, and gap is finite, the curves end at the deadline's grid time and the sentences read cleanly",
+   "name": "Deadline on an odd time step (0.45) at the largest cost: every rule's loss, accuracy, time, and gap is finite, the curves end at the deadline's grid time and the sentences read cleanly",
    "ok": true,
-   "detail": "per-moment 0.0053, weighted 0.0020, tuned 0.0050; ends at 0.96; On Deadline on an odd time step (0.955) at the largest cost, on this page's grid, the per-…"
+   "detail": "per-moment 0.133, weighted 0.018, tuned 0.062; ends at 0.45; On Deadline on an odd time step (0.45) at the largest cost, on this page's grid, the per-m…"
   },
   {
    "file": "ch10",
@@ -7764,7 +7771,7 @@
    "plate": "words",
    "name": "a constant cost of 0.2, on the page's grid: the sentence on negative losses holds (the program's bound as scored earns less than the program's own value, 7 rules score above the former, and none above the latter)",
    "ok": true,
-   "detail": "value 0.99782732, bound as scored 0.72889611, best rule 0.72890226; negative: per_moment, weighted, weighted_one_pass, averaged_cost, shift_mean, shift_half, best_constant"
+   "detail": "value 0.72890429, bound as scored 0.72889611, best rule 0.72890226; negative: per_moment, weighted, weighted_one_pass, averaged_cost, shift_mean, shift_half, best_constant"
   },
   {
    "file": "ch10",
@@ -7778,7 +7785,7 @@
    "plate": "words",
    "name": "the Constant preset (0.1), on the page's grid: the sentence on negative losses holds (the program's bound as scored earns less than the program's own value, 1 rules score above the former, and none above the latter)",
    "ok": true,
-   "detail": "value 0.99891355, bound as scored 0.81877360, best rule 0.81877746; negative: best_constant"
+   "detail": "value 0.81877843, bound as scored 0.81877360, best rule 0.81877746; negative: best_constant"
   },
   {
    "file": "ch10",
@@ -8840,9 +8847,9 @@
   {
    "file": "ch12",
    "plate": "wave",
-   "name": "the plate's sentence: at c0 = 1, after its peak above 45 degrees, the lead falls back below 45 within step 5's scan (omega up to 3000)",
+   "name": "at c0 = 1, on a scan in log steps of 0.005, the lead is below 45 degrees again after its peak and before omega = 3000, the end of step 5's chart, and step 5's sentence says it falls back below 45°",
    "ok": true,
-   "detail": "below 45 from omega ≈ 115"
+   "detail": "below 45 from omega ≈ 115; asses 45°, to about 45.95° near ω = 65 (found numerically), and then falls back below 45°."
   },
   {
    "file": "ch12",
