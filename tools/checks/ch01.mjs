@@ -8,8 +8,8 @@ import { B } from "../../book/assets/js/kernel.js";
 import { boundForCost, toDiscrete, grid } from "../../book/assets/js/model.js";
 import { dropAt } from "../../book/assets/js/chart.js";
 import { costOf, deadlineOf, PRESETS, VIEW, SPARE, drawnCost } from "../../book/assets/js/schedules-book.js";
-import { FIG1, fig1Choice, fig1Of, threeRules, at, ahead, costStrip, isFlat, DT, H, SHIFT } from "../../book/assets/js/ch01-model.js";
-import { panel, nowMarks, points } from "../../book/assets/js/ch01-draw.js";
+import { FIG1, fig1Choice, fig1Of, threeRules, at, ahead, costStrip, isFlat, knotsOf, DT, H, CAP, SHIFT } from "../../book/assets/js/ch01-model.js";
+import { panel, nowMarks, points, panelReadOut, fifthNote } from "../../book/assets/js/ch01-draw.js";
 import { CHOICES, spec, costFromSpec, HORIZON } from "../validity/schedules.mjs";
 import * as S from "../../book/assets/js/say-ch01.js";
 import { check, table, ROOT, runWorker } from "./lib.mjs";
@@ -83,8 +83,12 @@ function bellman(cost, horizon, k0, dt = DT, h = H, cap = 5) {
 }
 {
   const sub = FIG.subStep, rows = [];
-  check("code", "the sub-step reference was run on the page's grid", sub.grid.dt === DT && sub.grid.h === H && sub.grid.horizon === VIEW + SPARE && sub.grid.view === VIEW,
-    `dt ${sub.grid.dt}, h ${sub.grid.h}, horizon ${sub.grid.horizon}`);
+  check("code", "the sub-step reference was run on the page's grid: time step, evidence step, evidence cap, horizon, and window", sub.grid.dt === DT && sub.grid.h === H && sub.grid.cap === CAP && sub.grid.horizon === VIEW + SPARE && sub.grid.view === VIEW,
+    `dt ${sub.grid.dt}, h ${sub.grid.h}, cap ${sub.grid.cap} (page ${CAP}), horizon ${sub.grid.horizon}, view ${sub.grid.view}`);
+  // the two named fixtures, each the schedule it is named for
+  const WANT = { jump32: { id: "jump", params: { at: 0.2, factor: 32 } }, ramp2: { id: "rising", params: { at: 0, rate: 2 } } };
+  const named = Object.keys(sub.cases).sort().join(",") === Object.keys(WANT).sort().join(",")
+    && Object.entries(WANT).every(([k, ch]) => sub.cases[k].choice.id === ch.id && Object.entries(ch.params).every(([q, v]) => sub.cases[k].choice.params[q] === v));
   for (const [name, cs] of Object.entries(sub.cases)) {
     const cost = costOf(cs.choice), r = threeRules(cost, null), tag = cs.exact;
     const act = bellman(cost, VIEW + SPARE, r.t.length - 1);
@@ -101,7 +105,8 @@ function bellman(cost, horizon, k0, dt = DT, h = H, cap = 5) {
     }
     rows.push({ ok: tag.length === r.t.length && cells > 0 && wrong === 0 && worst < 1e-6, text: `${name}: ${cells} cells where the tag reads 0 and the center waits (page between 0 and ${H}), ${other} others within ${worst.toExponential(1)}` });
   }
-  check("code", "below the grid's first step, the page departs from the tag's 0 exactly where the center waits, and matches the tag everywhere else (within 1e-6)", rows.every((x) => x.ok), rows.map((x) => x.text).join("; "));
+  check("code", "on the two tagged fixtures (the 32-fold jump at 0.2 and the ramp from 0 at rate 2), each with at least one such cell: below the grid's first step, the page departs from the tag's 0 exactly where the center waits, and matches the tag everywhere else (within 1e-6)",
+    named && rows.length === 2 && rows.every((x) => x.ok), `${named ? "both fixtures present" : `fixtures ${Object.keys(sub.cases).join(", ")}`}; ` + rows.map((x) => x.text).join("; "));
 }
 
 // ---- Figure 1 and Table 4 ---------------------------------------------------------------------------------------
@@ -157,7 +162,7 @@ FIG1.forEach((p, k) => {
       }
     });
   });
-  check("fig1", "for the four paper schedules, the page's rule curves sit 0.032 below the printed ones wherever neither is held at 0 (within 1e-4), and where one is held at 0, both are",
+  check("fig1", "for the four paper schedules, the page's rule curves sit the shift difference, 0.5826 (sqrt 0.01 - sqrt 0.002) = 0.0322 (the caption's 0.032, rounded), below the printed ones wherever neither is held at 0 (within 1e-4 of that difference), and where one is held at 0, both are",
     n > 1500 && worst < 1e-4 && held > 0 && mixed === 0, `${n} points within ${worst.toExponential(1)} of the shift difference; ${held} points 0 in both; ${mixed} mixed`);
 }
 
@@ -218,11 +223,12 @@ const KEYS = ["t", "cost", "exact", "pm", "wb", "pmShift", "wbShift"];
       && m.exact[n - 1] === 0 && at(m, "exact", dl) === 0 && at(m, "exact", +(dl - 0.01).toFixed(2)) === m.exact[n - 2] && m.exact[n - 2] > 0;
     rows.push({ ok, text: `T = ${dl}: ${n} of ${N} times, last ${m.t[n - 1].toFixed(2)}, ${m.exact[n - 2].toFixed(4)} just before, ${m.exact[n - 1]} at T` });
   }
-  // and without a deadline, every curve runs the whole window
-  const j = await ask(fig1Choice("jump")), nj = j.t.length;
-  const whole = j.ok && nj === Math.round(VIEW / DT) + 1 && KEYS.every((k) => j[k].length === nj) && ["exact", "wbShift", "pmShift"].every((k) => j[k].every(Number.isFinite));
-  check("fig1", "the chapter's worker replies to deadlines at 0.45, 0.95, 1, and 3 with every time to the forced choice, each curve the same length, the grid's own value just before it and 0 at it; and to the 16-fold rise with every curve over the whole window",
-    rows.every((x) => x.ok) && whole, rows.map((x) => x.text).join("; ") + `; rise: ${nj} times, all finite: ${whole}`);
+  // and without a deadline, every curve runs the whole window, at every 0.01 from 0 to 2.5
+  const j = await ask(fig1Choice("jump")), nj = j.t.length, NJ = Math.round(VIEW / DT) + 1;
+  const timeline = nj === NJ && j.t.every((x, i) => Math.abs(x - i * DT) < 1e-9) && Math.abs(j.t[nj - 1] - VIEW) < 1e-9;
+  const whole = j.ok && timeline && KEYS.every((k) => j[k].length === nj) && ["exact", "wbShift", "pmShift"].every((k) => j[k].every(Number.isFinite));
+  check("fig1", "the chapter's worker replies to deadlines at 0.45, 0.95, 1, and 3 with every time to the forced choice, each curve the same length, the grid's own value just before it and 0 at it; and to the 16-fold rise with every time every 0.01 from 0 to 2.5 and every curve over them",
+    rows.every((x) => x.ok) && whole, rows.map((x) => x.text).join("; ") + `; rise: ${nj} of ${NJ} times, on the 0.01 grid to ${j.t[nj - 1]}: ${timeline}, all finite: ${whole}`);
   // the read-out at t = 0.99 on panel (d) is the program's value there, not a line drawn across to the 0 at t = 1
   const d = await ask(fig1Choice("deadline"));
   check("fig1", "panel (d), read from the worker's reply at t = 0.99, gives the program's own values at 0.99", at(d, "exact", 0.99) === d.exact[99] && at(d, "wbShift", 0.99) === d.wbShift[99],
@@ -238,29 +244,54 @@ const KEYS = ["t", "cost", "exact", "pm", "wb", "pmShift", "wbShift"];
   });
   check("fig1", "panel (d) as drawn: the best bound and the weighted rule both run flat to t = 1 and drop straight down to 0 there", drops.every((x) => x.ok), drops.map((x) => x.text).join("; "));
   // the panels as drawn: the cost line holds the whole cost inside its strip, and the dot at a time sits on the line
-  const strips = [];
-  for (const ch of [{ id: "constant", params: { c: 1 } }, { id: "jump", params: { at: 0.2, factor: 32 } }, { id: "draw", points: Array.from({ length: 26 }, (_, i) => (i % 2 ? 2 : 0.5)) }]) {
-    const q = { cost: costOf(ch), dl: null, data: await ask(ch) };
-    const gg = panel(q, { x0: 0, y0: 0, w: 340, bh: 130, yTop: 2, selected: false, title: "x" });
-    const line = points(gg.paths.cost), T = 1.25, k = Math.round((T / VIEW) * 180);
+  // (the fifth panel's knots are passed as the plate passes them, so a drawing's path turns at each knot)
+  const strips = [], vertexAt = (line, x) => line.find(([px]) => Math.abs(px - x) < 0.051);
+  const sharp = Array(26).fill(0.01); sharp[2] = 2;
+  for (const [ch, T] of [[{ id: "constant", params: { c: 1 } }, 1.25], [{ id: "jump", params: { at: 0.2, factor: 32 } }, 1.25], [{ id: "draw", points: Array.from({ length: 26 }, (_, i) => (i % 2 ? 2 : 0.5)) }, 1.25], [{ id: "draw", points: sharp }, 0.2]]) {
+    const q = { cost: costOf(ch), dl: null, data: await ask(ch), knots: knotsOf(ch) };
+    const gg = panel(q, { x0: 0, y0: 0, w: 420, bh: 130, yTop: 2, selected: false, title: "x" });
+    const line = points(gg.paths.cost), X = +gg.sx(T).toFixed(1), v = vertexAt(line, X);
     const dot = +nowMarks(q, gg, T).match(/acc-dot" cx="[\d.]+" cy="([\d.]+)"/)[1];
-    const inside = line.every(([, y]) => y >= gg.cT - 1e-9 && y <= gg.cB + 1e-9), spread = Math.max(...line.map((v) => v[1])) - Math.min(...line.map((v) => v[1]));
-    strips.push({ ok: line.length === 181 && inside && Math.abs(line[k][1] - dot) < 0.11 && (ch.id === "constant" ? spread === 0 : spread > 0.5 * (gg.cB - gg.cT)),
-      text: `${ch.id}: line from ${Math.min(...line.map((v) => v[1]))} to ${Math.max(...line.map((v) => v[1]))} inside ${gg.cT}–${gg.cB}; at t = ${T} line ${line[k][1]}, dot ${dot}` });
+    const knots = ch.id === "draw" ? Array.from({ length: 26 }, (_, i) => i / 10).every((u) => vertexAt(line, +gg.sx(u).toFixed(1))) : true;
+    const inside = line.every(([, y]) => y >= gg.cT - 1e-9 && y <= gg.cB + 1e-9), spread = Math.max(...line.map((u) => u[1])) - Math.min(...line.map((u) => u[1]));
+    strips.push({ ok: line.length >= 181 && inside && knots && v && Math.abs(v[1] - dot) < 0.11 && (ch.id === "constant" ? spread === 0 : spread > 0.5 * (gg.cB - gg.cT)),
+      text: `${ch.id === "draw" ? (ch.points[2] === 2 && ch.points[3] === 0.01 ? "sharp knot" : "alternating drawing") : ch.id}: ${line.length} points from ${Math.min(...line.map((u) => u[1]))} to ${Math.max(...line.map((u) => u[1]))} inside ${gg.cT}–${gg.cB}; at t = ${T} line ${v?.[1]}, dot ${dot}${ch.id === "draw" ? `; a vertex at every knot: ${knots}` : ""}` });
   }
-  check("fig1", "the panels as drawn keep the cost line inside its strip on its own scale (a constant 1, a rise to 3.2, a drawing up to 2), with the dot at t = 1.25 on the line", strips.every((x) => x.ok), strips.map((x) => x.text).join("; "));
-  // a positive bound below the grid's first step shows as positive, in the tile and in the sentence
-  const ramp = { id: "rising", params: { at: 0, rate: 2 } }, rm = await ask(ramp), b193 = at(rm, "exact", 1.93), cost = costOf(ramp);
-  const say = S.panelSay({ name: "Yours", t: 1.93, c: cost(1.93), best: b193, pm: toDiscrete(boundForCost(cost(1.93)), DT), wb: at(rm, "wbShift", 1.93), next: ahead(cost, 1.93, null), dl: null });
-  check("words", "on a ramp from 0 at rate 2, the worker's bound at t = 1.93 is positive but below 0.001; the tile reads \"< 0.001\" and the sentence says the program still waits at the center",
-    b193 > 0 && b193 < 0.0005 && S.bf(b193) === "< 0.001" && /best bound is below 0\.001 but above 0 \(the program still waits at the center\)/.test(say) && S.bf(0) === "0.000", `${b193.toExponential(3)}: ${say}`);
+  check("fig1", "the panels as drawn keep the cost line inside its strip on its own scale (a constant 1, a rise to 3.2, a drawing alternating 0.5 and 2, and a drawing at 0.01 with one knot of 2 at t = 0.2), turn a drawing's path at each of its knots, and put the dot on the line (at t = 1.25, and at the sharp knot itself)", strips.every((x) => x.ok), strips.map((x) => x.text).join("; "));
+  // a positive bound below the grid's first step shows as positive, in the read-out's tile and its sentence, as the
+  // plate prints them (panelReadOut, whose tiles and sentence the plate assigns as they come)
+  const ramp = { id: "rising", params: { at: 0, rate: 2 } }, rm = await ask(ramp), b193 = at(rm, "exact", 1.93), b192 = at(rm, "exact", 1.92);
+  const yp = { cost: costOf(ramp), dl: null, data: rm }, r193 = panelReadOut(yp, 1.93, "Yours", false), r192 = panelReadOut(yp, 1.92, "Yours", false);
+  check("words", "the read-out on a ramp from 0 at rate 2: the worker's bound at t = 1.93 is positive and would round to 0.000, so the best-bound tile reads \"< 0.001\" and the sentence says the program still waits at the center; at t = 1.92 the bound rounds to 0.001 and reads so",
+    b193 > 0 && b193 < 0.0005 && r193.tiles.best === "< 0.001" && r193.html.includes("<dd>< 0.001</dd>") && /best bound is below 0\.001 but above 0 \(the program still waits at the center\)/.test(r193.say)
+    && b192 >= 0.0005 && b192 < 0.001 && r192.tiles.best === "0.001" && S.bf(0) === "0.000", `${b193.toExponential(3)}: tile ${r193.tiles.best}; ${r193.say} | ${b192.toExponential(3)}: tile ${r192.tiles.best}`);
 }
 {
-  const flat = [{ id: "constant", params: { c: 0.01 } }, { id: "smooth", params: { c0: 0.1, size: 0 } }, { id: "draw", points: Array(26).fill(0.01) }]
-    .map((ch) => isFlat(costOf(ch), VIEW + SPARE));
-  const varies = [{ id: "draw", points: Array.from({ length: 26 }, (_, i) => 0.01 + i * 0.000001) }, fig1Choice("jump")].map((ch) => isFlat(costOf(ch), VIEW + SPARE));
-  check("fig1", "the fifth panel calls a schedule flat by its cost, not its name: a constant, a smooth schedule of size 0, and a drawing of equal knots are flat; a drawing from 0.010000 to 0.010025 is not",
-    flat.every(Boolean) && varies.every((x) => !x), `flat ${flat.join(", ")}; varying ${varies.join(", ")}`);
+  // the note above the fifth panel, as the plate prints it (fifthNote): a cost that doesn't change gets the constant-cost
+  // note, whatever its preset is called, and a drawing whose knots differ at all does not
+  const same = /Your cost doesn't change, so B\(c\) is the best bound on an infinite horizon/;
+  const flatChoices = [["Constant 0.01", { id: "constant", params: { c: 0.01 } }], ["Smooth of size 0", { id: "smooth", params: { c0: 0.1, size: 0 } }],
+    ...[0.01, 0.02, 0.05, 0.07, 0.3, 0.5, 2].map((v) => [`a drawing of 26 knots at ${v}`, { id: "draw", points: Array(26).fill(v) }]),
+    ["a drawing at 0.005 and 0.01 (both 0.01 once clamped)", { id: "draw", points: Array.from({ length: 26 }, (_, i) => (i % 2 ? 0.005 : 0.01)) }]];
+  const varyChoices = [["a drawing from 0.010000 to 0.010025", { id: "draw", points: Array.from({ length: 26 }, (_, i) => 0.01 + i * 0.000001) }],
+    ["a drawing at 0.5 with its last knot 0.5000001", { id: "draw", points: Array.from({ length: 26 }, (_, i) => (i === 25 ? 0.5000001 : 0.5)) }], ["Figure 1(a)", fig1Choice("jump")]];
+  const flat = flatChoices.map(([name, ch]) => ({ name, ok: same.test(fifthNote(ch)) }));
+  const varies = varyChoices.map(([name, ch]) => ({ name, ok: !same.test(fifthNote(ch)) && !/doesn't change/.test(fifthNote(ch)) }));
+  check("fig1", "the note above the fifth panel calls a schedule's cost constant by the cost, not the preset's name: Constant, Smooth of size 0, and drawings of equal knots at 0.01, 0.02, 0.05, 0.07, 0.3, 0.5, and 2 (and one that is equal once clamped) get the constant-cost note; drawings from 0.010000 to 0.010025, or with one knot 0.5000001 among 0.5, and Figure 1(a) don't",
+    [...flat, ...varies].every((x) => x.ok), [...flat, ...varies].filter((x) => !x.ok).map((x) => x.name).join(", ") || `${flat.length} constant, ${varies.length} changing; ${fifthNote(varyChoices[0][1])}`);
+  // the helper on its own: the old sampled test disagreed with the knots at ordinary costs, from interpolation's last digit
+  const drift = costOf({ id: "draw", points: Array(26).fill(0.02) });
+  check("fig1", "isFlat, the helper the note uses: equal knots at 0.02 are flat although their interpolated costs differ in the last binary digit (time 0 against 0.02)", isFlat({ id: "draw", points: Array(26).fill(0.02) }, VIEW + SPARE) && drift(0) !== drift(0.02),
+    `${drift(0)} and ${drift(0.02)}`);
+}
+
+{
+  // the caption says what the tile does: "< 0.001" for a positive bound that would round to 0.000 (bf's cutoff, 0.0005),
+  // and a printed comparison for the fifth panel only when it is one of the four at the paper's values
+  const text = readFileSync(join(ROOT, "book/content/ch01.py"), "utf8");
+  check("words", "Figure 1's caption gives the tile's cutoff as rounding to 0.000 (0.0007 reads 0.001, 0.0004 reads < 0.001), and allows a printed comparison for the fifth panel when it is one of the four at the paper's values",
+    /such a bound that would round to 0\.000 reads "< 0\.001"/.test(text) && /has a printed curve to compare only when it is one of the four at the paper's values/.test(text) && !/no printed curve to compare\./.test(text)
+    && S.bf(0.0007) === "0.001" && S.bf(0.0004) === "< 0.001" && /This is Figure 1\(a\) itself/.test(fifthNote(fig1Choice("jump"))), "book/content/ch01.py");
 }
 
 // ---- the reader's schedule: which panel it is ------------------------------------------------------------------

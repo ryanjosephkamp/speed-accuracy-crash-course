@@ -186,6 +186,18 @@ export function unitsRange(values) {
   const pad = 0.04 * (hi - lo);
   return [lo < -2 ? lo - pad : -2, hi > 6 ? hi + pad : 6];
 }
+/** What the units plate's two charts draw, and the vertical range each passes to its frame: the raw chart over raw
+ * times 0 to rawT (the path, the drift line mu t, and the noise curve sigma sqrt t, 401 times each) and the paper's
+ * chart over 0 to 4 (the path, the line t, and the curve sqrt t). Each range is unitsRange of the values drawn. */
+export function unitsCharts(xp, DT, mu, sigma, rawT = 4) {
+  const ts = Array.from({ length: 401 }, (_, i) => (rawT * i) / 400), zs = rawSamples(xp, DT, mu, sigma, ts);
+  const drift = ts.map((t) => mu * t), noise = ts.map((t) => sigma * Math.sqrt(t));
+  const tp = Array.from({ length: 401 }, (_, i) => (4 * i) / 400), xs = tp.map((t) => pathAt(xp, DT, t)), sq = tp.map(Math.sqrt);
+  return {
+    raw: { ts, zs, drift, noise, y: unitsRange([...zs, ...drift, ...noise]) },
+    paper: { ts: tp, xs, line: tp, sqrt: sq, y: unitsRange([...xs, ...tp, ...sq]) },
+  };
+}
 
 /** The largest standardized miss over bins with at least 20 trials. For shares, the miss is measured in the
  * binomial standard error of the bin's exact share, sqrt(p(1 - p)/n); for the mean change over the next time unit,

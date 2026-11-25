@@ -80,6 +80,15 @@ export function sketchVerdict(drew, miss, outside, hasBand) {
   return s + (outside > 0 ? `, and ${pct(outside)} of it lies more than 0.002 outside the band.` : ", and all of it lies inside the band, to within 0.002.");
 }
 
+/** The band plate's sentence after Show me, from bandReveal's result r: for Constant the constant-cost note, then the
+ * band's measured distances (bandSay) where there is a band, or the bound's range (noBandSay) where there isn't; then
+ * the verdict on the drawing, with the band's 0.002 tolerance where there is a band. */
+export function revealSay(r, drew) {
+  const verdict = sketchVerdict(drew && r.cnt > 0, r.miss, r.outside, r.band);
+  if (r.band) return (r.kind === "constant" ? outsideNote("constant") + " " : "") + bandSay(r.st) + " " + verdict;
+  return noBandSay(r.lo, r.hi) + " " + verdict;
+}
+
 // ---- a higher cost, a lower bound
 export function compareSay(step, d) {
   if (step === 0) return `On this path, the decision lasts ${f2(d.tau)} time units. The same decision is charged ${f3(d.paid[0])} under the lowest cost, ${f3(d.paid[1])} under the schedule, and ${f3(d.paid[2])} under the highest.`;

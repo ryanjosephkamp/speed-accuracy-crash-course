@@ -6,6 +6,7 @@
 import { B, Bprime, survival, kappa, rng, OVERSHOOT } from "./kernel.js";
 import { belief, grid, score } from "./model.js";
 import { costOf, deadlineOf, paramsOf, DRAW_MIN, DRAW_MAX, VIEW } from "./schedules-book.js";
+import { dropAt } from "./chart.js";
 
 export { B, Bprime };
 export const g = (y) => belief(y);
@@ -356,6 +357,12 @@ export function valueSurface(cost, horizon, { dt = 0.01, h = 0.02, cap = 5, view
  * The paper's code reports 0 there. */
 export const belowFirstStep = (b, h) => Number.isFinite(b) && b > 0 && b < h;
 
+/** The value map's two plotted curves from the worker's value reply: the per-moment bound and the program's bound, each
+ * as dropAt draws it (flat to a deadline in view, then straight down to its 0), with a missing bound as NaN. */
+export function mapCurves(m) {
+  return { pm: dropAt(m.t, m.pm, m.deadline), b: dropAt(m.t, m.b.map((v) => (v === null ? NaN : v)), m.deadline) };
+}
+
 /** One path's outcome with the flat bound b: the first check at which |X| reaches b moved in by 0.5826 sqrt(dt), the
  * evidence there, and the chance the choice made there is right, g(|X|) at that check (not g(b): a check can land on
  * either side of b). With a deadline, a path still open there is forced at its last check before the deadline. cum is
@@ -372,12 +379,13 @@ function outcomeAt(path, b, cum, deadline) {
   const kk = path.x.length - 1; return { b, k: kk, tau: kk * path.dt, x: path.x[kk], side: 1, forced: false, right: NaN, bill: cum[kk], off: true };
 }
 
-/** The best flat bound on the dynamic program's own grid: the threshold x, held fixed and checked every dt, that
- * scores highest with model.js's score (the scorer the paper's code mirrors), with the choice forced at the horizon.
- * The search covers every threshold the grid can hold, (0, cap): each cell boundary (odd multiples of h/2) to 0.31,
- * where the scorer's interpolation changes slope, then every 0.05 to 3.5 and every 0.1 to the cap; a flat policy can
- * have more than one peak (a fast decision before a cost falls, or a slow one after it), so the three highest local
- * peaks of that scan are each refined by golden section between their neighbors. near, if given, is scored too. */
+/** The best flat bound on the dynamic program's own grid that a numerical search finds: the threshold x, held fixed and
+ * checked every dt, scored with model.js's score (the scorer the paper's code mirrors), with the choice forced at the
+ * horizon. The scan takes each cell boundary (odd multiples of h/2) to 0.31, where the scorer's interpolation changes
+ * slope, then every 0.05 to 3.5 and every 0.1 below the cap; a flat policy can have more than one peak (a fast decision
+ * before a cost falls, or a slow one after it), so the three highest local peaks of that scan are each refined by golden
+ * section between their neighbors. It doesn't score every threshold in (0, cap): between scanned points it can miss a
+ * higher score, and the result is the best it found. near, if given, is scored too. */
 export function bestFlatOnGrid(cost, horizon, { dt = 0.01, h = 0.02, cap = 5, near = null } = {}) {
   const steps = Math.round(horizon / dt);
   const ts = Float64Array.from({ length: steps + 1 }, (_, k) => k * dt);

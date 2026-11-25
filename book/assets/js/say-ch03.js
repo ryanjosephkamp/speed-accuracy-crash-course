@@ -34,9 +34,9 @@ export function earnVerdict({ b, mine, best, dp, flat, deadline }) {
   s += gap < 5e-4 ? ", so yours earns within 0.05 points per 100 decisions of it." : `, so yours earns ${pts(gap)} points per 100 decisions less.`;
   if (Number.isFinite(dp) && flat && Number.isFinite(flat.grid)) {
     const more = dp - flat.grid;
-    s += ` On the dynamic program's grid, which checks the evidence every 0.01 time units and forces the choice at time ${ft(flat.horizon)}, the best level held flat, ${f2(flat.gridX)}, earns ${f3(flat.grid)}`;
-    s += more >= 5e-4 ? `, and the best bound that moves with the cost earns ${f3(dp)}: ${pts(more)} points per 100 decisions more.`
-      : `, and the best bound that moves earns ${f3(dp)}: on this schedule, moving gains less than 0.05 points per 100 decisions.`;
+    s += ` On the dynamic program's grid, which checks the evidence every 0.01 time units and forces the choice at time ${ft(flat.horizon)}, the best level held flat that the page's numerical search found, ${f2(flat.gridX)}, earns ${f3(flat.grid)}`;
+    s += more >= 5e-4 ? `, and the best bound that moves with the cost earns ${f3(dp)}: ${pts(more)} points per 100 decisions more than that level.`
+      : `, and the best bound that moves earns ${f3(dp)}: on this schedule, moving gains less than 0.05 points per 100 decisions over that level.`;
   }
   return s;
 }
@@ -71,20 +71,40 @@ export function standingSay(st, label, ratio = 1) {
 
 // ---- the value of waiting ------------------------------------------------------------------------------------------
 
+/** A bound as the value plate prints it, on the slice's marker, in its tile, and in its sentence: "< 0.001" for a
+ * positive bound that would round to 0.000 (the program still waits at y = 0 there), three decimals below 0.1, and two
+ * above. */
+export const boundShown = (b) => (b > 0 && b < 0.0005 ? "< 0.001" : b < 0.1 ? f3(b) : f2(b));
+/** A value of waiting, W = V − g, as the value plate prints it: "< 0.001" for one above 0 (by more than rounding error,
+ * 1e-12) that would round to 0.000, three decimals otherwise. */
+export const wShown = (w) => (w > 1e-12 && w < 0.0005 ? "< 0.001" : f3(w));
+const wIs = (w) => (wShown(w) === "< 0.001" ? "W < 0.001, though above 0" : `W = ${wShown(w)}`);
+
 /** After Show me on the map. tap: the kept sample nearest the reader's tap, { t, y, W }, or null; best: the largest W
  * over the map's samples, { t, W }, which is at y = 0. */
 export function valueVerdict(tap, best) {
-  const where = `Of the map's samples, waiting is worth the most at time ${f2(best.t)} with no evidence, y = 0, where W = ${f3(best.W)}.`;
+  const where = `Of the map's samples, waiting is worth the most at time ${f2(best.t)} with no evidence, y = 0, where ${wIs(best.W)}.`;
   const why = " At every time, W is largest at y = 0, where deciding is a coin flip, and the paper proves it never rises with the evidence (Lemma 1(a), chapter 4).";
   if (!tap) return where + why;
-  return `You tapped near the sample at time ${f2(tap.t)}, evidence ${f2(tap.y)}, where W = ${f3(tap.W)}. ` + where + why;
+  return `You tapped near the sample at time ${f2(tap.t)}, evidence ${f2(tap.y)}, where ${wIs(tap.W)}. ` + where + why;
 }
 
-/** Under the slice: the values at y = 0 and where V meets g. forced: the time is the last moment itself. */
-export function sliceSay(t, b, V0, W0, forced = false) {
+/** Under the slice: the values at y = 0 and where V meets g. forced: the time is the last moment itself; h the grid's
+ * evidence step. A positive bound below h is one the page places between y = 0, where the program waits, and the first
+ * step, where it decides (model.js's rule; the paper's code reports 0 there). */
+export function sliceSay(t, b, V0, W0, forced = false, h = 0.02) {
   if (!(b > 0)) return forced ? `At time ${f2(t)}, the choice is forced: the bound is 0, and V = g at every y.`
     : `At time ${f2(t)}, the bound is 0: even at y = 0 the program decides at once, so V = g at every y.`;
-  return `At time ${f2(t)}, deciding at y = 0 is a coin flip, worth 0.5; the best rule from there earns V = ${f3(V0)}, so the chance to wait is worth W = ${f3(W0)}. The bound, ${b < 0.1 ? f3(b) : f2(b)}, is where deciding starts to beat waiting, read between the grid's evidence points; at the grid points above it, V = g.`;
+  const s = `At time ${f2(t)}, deciding at y = 0 is a coin flip, worth 0.5; the best rule from there earns V = ${f3(V0)}, so the chance to wait is worth ${wIs(W0)}. `;
+  if (b < h) return s + `The bound, ${boundShown(b)}, is below the grid's first evidence step, ${h}: the program still waits at y = 0 and decides at y = ${h}, and the bound is where deciding starts to beat waiting, read between the grid's evidence points 0 and ${h}; at the grid points above it, V = g.`;
+  return s + `The bound, ${boundShown(b)}, is where deciding starts to beat waiting, read between the grid's evidence points; at the grid points above it, V = g.`;
+}
+
+/** The value plate's state line, once the program has run: its grid, the forced-choice time it used, as set (ft), the
+ * rows it keeps, and the note on bounds below the first step when any are. m is the worker's value reply. */
+export function valueState(m, below) {
+  return `Dynamic program on a grid: time step ${m.dt}, evidence step ${m.h}, the choice forced at time ${ft(m.horizon)}. V is kept every 0.05 time units and every ${(m.ys[1] - m.ys[0]).toFixed(2)} in y.` +
+    (below ? " Where the program waits at y = 0 but decides one evidence step out, the page puts the bound between the two; the paper's code reports 0 there." : "");
 }
 
 export function lastNote(last, deadline) {
