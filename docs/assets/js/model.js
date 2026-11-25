@@ -201,7 +201,9 @@ export function exactPolicy(cost, horizon, dt = 0.01, h = 0.02, cap = 5) {
     for (let i = m + 1; i < n; i++) {
       const d = decide[i] - wait[i];
       if (d > 0) {
-        if (i === m + 1) { b = 0; break; }
+        // the first step out stops: the bound is below it. Where the center still waits, place it between the
+        // center and that step (the paper's code reports 0 here; the page follows its own Bellman step instead)
+        if (i === m + 1) { const dc = decide[m] - wait[m]; b = dc < 0 ? x[m] - (dc * (x[i] - x[m])) / (d - dc) : 0; break; }
         const dp = decide[i - 1] - wait[i - 1];
         b = x[i - 1] - (dp * (x[i] - x[i - 1])) / (d - dp);
         break;

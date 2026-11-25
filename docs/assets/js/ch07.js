@@ -1,12 +1,12 @@
 // Chapter 7's plates. Every number drawn comes from kernel.js (the series and the closed forms), ch07-model.js (the
 // series form of the transfer function, the scans, the closed forms behind the loss, and the forward computation),
 // the solver's workers, or the paper's Table 1; the words under each plate come from the functions in say-ch07.js.
-import * as K from "./kernel.js?v=37a0cf8296";
-import * as M from "./ch07-model.js?v=37a0cf8296";
-import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, VIEW, defaultDrawing } from "./schedules-book.js?v=37a0cf8296";
-import { getChoice, setChoice, solve, onVisible, watchVisible, liftReady, calm, seedParam, wireStrips } from "./book.js?v=37a0cf8296";
-import { frame, line, area, axes, svg, tags, fmt, keepDrawn } from "./chart.js?v=37a0cf8296";
-import * as S from "./say-ch07.js?v=37a0cf8296";
+import * as K from "./kernel.js?v=0648557a87";
+import * as M from "./ch07-model.js?v=0648557a87";
+import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, VIEW, defaultDrawing } from "./schedules-book.js?v=0648557a87";
+import { getChoice, setChoice, solve, onVisible, watchVisible, liftReady, calm, seedParam, wireStrips } from "./book.js?v=0648557a87";
+import { frame, line, area, axes, svg, tags, fmt, keepDrawn } from "./chart.js?v=0648557a87";
+import * as S from "./say-ch07.js?v=0648557a87";
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const plate = (id) => document.getElementById("plate-" + id);
@@ -436,7 +436,7 @@ function shiftPlate() {
   let choice = getChoice(), data = null;
   el.innerHTML = `<div class="controls">${pickerHTML("sh-pick")}</div><p class="fine" id="sh-note"></p>
     <div class="chart-wrap" id="sh-cost"></div><div class="chart-wrap" id="sh-chart"></div>
-    <ul class="legend"><li><span class="key key-ex">Best bound</span></li><li><span class="key key-pm">Per-moment</span></li><li><span class="key key-wbdot">Shifted by m(c(t))</span></li></ul>
+    <ul class="legend"><li><span class="key key-ex">Program's bound, as exported</span></li><li><span class="key key-pm">Per-moment</span></li><li><span class="key key-wbdot">Shifted by m(c(t))</span></li></ul>
     <dl class="reads" id="sh-reads"></dl><p class="say" id="sh-say"></p><p class="fine" id="sh-state" aria-live="polite"></p>`;
   const pick = $("#sh-pick", el), note = $("#sh-note", el), costEl = $("#sh-cost", el), chart = $("#sh-chart", el), reads = $("#sh-reads", el), say = $("#sh-say", el), state = $("#sh-state", el);
   wirePicker(pick);
@@ -453,7 +453,7 @@ function shiftPlate() {
     const f = frame(chart, { x: [0, view], y: [0, Math.max(...all) * 1.12], aspect: 0.48, minH: 190, maxH: 280 });
     let h = axes(f, { yl: "evidence bound", xl: "time", grid: true });
     h += line(f, t, pm, "pm") + line(f, t, sh, "wb-dots") + line(f, t, exact, "ex");
-    chart.innerHTML = svg(f, h, `For ${labelOf(choice)}: the best bound, the per-moment bound, and the per-moment bound shifted ahead by the mean look-ahead`);
+    chart.innerHTML = svg(f, h, `For ${labelOf(choice)}: the program's exported bound, the per-moment bound, and the per-moment bound shifted ahead by the mean look-ahead`);
     liftReady(fig);
   };
   const run = () => {
@@ -472,8 +472,9 @@ function shiftPlate() {
         <div class="k-wb"><dt>Shifted: average gap</dt><dd>${fmt(G.avgSh, 3)}<small>largest ${fmt(G.maxSh, 3)}</small></dd></div>
         <div><dt>Shift at time 0</dt><dd>${fmt(M.lookAheadClosed(cost(0)), 3)}<small>m(c(0)), time units</small></dd></div>`;
       say.textContent = S.shiftSay(labelOf(choice), G, flat);
-      const zero = m.exact.some((v, i) => v === 0 && (dl === null || t[i] < dl - 1e-9));
-      state.textContent = `Time step 0.01, evidence step 0.02, ${dl !== null ? "to the forced choice at the deadline" : "6 time units past the window"}; ${n} times shown, every 0.02 and the last one; gaps measured from the program's bound.${zero ? " Where the program's bound lies below the grid's first step, it reads as 0, as in the paper's code." : ""}`;
+      // a bound strictly between 0 and the grid's first step: the program waits at the center and decides one step out
+      const zero = m.exact.some((v, i) => v > 0 && v < 0.02 && (dl === null || t[i] < dl - 1e-9));
+      state.textContent = S.shiftState(dl !== null, n, zero);
       draw();
     }).catch((e) => { if (e.message !== "superseded") state.textContent = "The solver stopped: " + e.message; });
   };
@@ -723,7 +724,7 @@ let lossWorker = null, lossNext = 1;
 const lossPending = new Map(), lossCache = new Map();
 function getLossWorker() {
   if (lossWorker) return lossWorker;
-  lossWorker = new Worker(new URL("./ch07-worker.js?v=37a0cf8296", import.meta.url), { type: "module" });
+  lossWorker = new Worker(new URL("./ch07-worker.js?v=0648557a87", import.meta.url), { type: "module" });
   lossWorker.onmessage = (e) => {
     const m = e.data, p = lossPending.get(m.id);
     if (!p) return;
@@ -791,7 +792,7 @@ function lossPlate() {
       const xg = 1 / 45, yg = clampTo(fb, y0 * (xg / e0) ** 2);
       h += txt(fb.sx(xg) + 6, fb.sy(yg) + 15, "slope 2", "tk");
     }
-    h += `<path class="dim" stroke-dasharray="1 3" d="M${fb.l} ${P(fb.sy(floor10))}H${fb.W - fb.r}"/>` + txt(fb.W - fb.r, fb.sy(floor10) + 13, "ten times the grid's resolution", "tk", "end");
+    h += `<path class="dim" stroke-dasharray="1 3" d="M${fb.l} ${P(fb.sy(floor10))}H${fb.W - fb.r}"/>` + txt(fb.W - fb.r, fb.sy(floor10) + 13, "display cutoff, ten times the baseline", "tk", "end");
     h += line(fb, LOSS_EPS, lp.map((v) => (v > 0 ? v : NaN)), "pm") + line(fb, LOSS_EPS, lf.map((v) => (v > 0 ? v : NaN)), "wb-thin");
     const mark = (v, i, full, hollow) => { const y = v > 0 ? v : yLo; return dot(fb, LOSS_EPS[i], clampTo(fb, y), M.resolved(v, data.floor) ? full : hollow, i === k ? 5 : 3.5); };
     h += lp.map((v, i) => mark(v, i, "pm-dot", "ring-pm")).join("") + lf.map((v, i) => mark(v, i, "wb-dot", "ring-wb")).join("");
@@ -804,9 +805,9 @@ function lossPlate() {
     const rp = data.runs.map((r) => M.resolved(r.loss.pm, data.floor)), rf = data.runs.map((r) => M.resolved(r.loss.fo, data.floor));
     const sp = M.lastSlope(LOSS_EPS, data.runs.map((r) => r.loss.pm), rp), sf = M.lastSlope(LOSS_EPS, data.runs.map((r) => r.loss.fo), rf);
     const v = (x) => (Math.abs(x) < 1e-12 ? "0" : S.num(x));
-    reads.innerHTML = `<div class="k-pm"><dt>Per-moment loss</dt><dd>${v(run.loss.pm)}<small>slope, three smallest resolved: ${fmt(sp, 2)}</small></dd></div>
-      <div class="k-wb"><dt>First-order bound's loss</dt><dd>${v(run.loss.fo)}<small>slope, three smallest resolved: ${fmt(sf, 2)}</small></dd></div>
-      <div><dt>Grid's resolution</dt><dd>${S.num(data.floor)}<small>the per-moment loss at the constant cost c(0), all of it the grid's</small></dd></div>`;
+    reads.innerHTML = `<div class="k-pm"><dt>Per-moment loss</dt><dd>${v(run.loss.pm)}<small>slope, three smallest above the cutoff: ${fmt(sp, 2)}</small></dd></div>
+      <div class="k-wb"><dt>First-order bound's loss</dt><dd>${v(run.loss.fo)}<small>slope, three smallest above the cutoff: ${fmt(sf, 2)}</small></dd></div>
+      <div><dt>Baseline loss</dt><dd>${S.num(data.floor)}<small>the per-moment loss at the constant cost c(0), on this grid and horizon</small></dd></div>`;
     say.textContent = S.lossSay(run.eps, run.loss.pm, run.loss.fo, sp, sf, rp[k], rf[k], run.foZero);
   };
   const run = () => {
@@ -863,10 +864,10 @@ function conjPlate() {
     let h = axes(fb, { yl: "predicted ÷ scored", xl: "size of the change, ε", grid: true, xt: LOSS_EPS.slice().reverse(), fx: epsLabel });
     h += `<path class="guide" d="M${fb.l} ${P(fb.sy(1))}H${fb.W - fb.r}"/>` + txt(fb.l + 4, fb.sy(1) - 6, "1, the agreement line", "tk");
     const pts = (which, full, hollow, tagCls) => data.runs.map((r, i) => {
-      const v = ratio(r, which);
-      if (!Number.isFinite(v)) return "";
+      const v = ratio(r, which), mk = M.ratioMark(v, yMax);
+      if (mk === "none") return "";
       const cls = M.resolved(r.loss[which], data.floor) ? full : hollow;
-      if (v <= yMax) return dot(fb, LOSS_EPS[i], Math.max(0, v), cls, i === k ? 5 : 3.5);
+      if (mk === "dot") return dot(fb, LOSS_EPS[i], Math.max(0, v), cls, i === k ? 5 : 3.5);
       const X = fb.sx(LOSS_EPS[i]), Y = fb.sy(yMax);
       return arrowPx(X, Y + 12, X, Y - 2, tagCls === "tag-wb" ? "wb" : "pm", 5) + txt(X, Y + 24, fmt(v, 1), tagCls, "middle");
     }).join("");
@@ -879,9 +880,9 @@ function conjPlate() {
     if (!data) return;
     const run = data.runs[k], rp = M.resolved(run.loss.pm, data.floor), rf = M.resolved(run.loss.fo, data.floor);
     const v = (x) => (Math.abs(x) < 1e-12 ? "0" : S.num(x));
-    reads.innerHTML = `<div class="k-pm"><dt>Per-moment: predicted</dt><dd>${v(run.pred.pm)}<small>scored ${v(run.loss.pm)}${rp ? "" : ", not resolved"}</small></dd></div>
+    reads.innerHTML = `<div class="k-pm"><dt>Per-moment: predicted</dt><dd>${v(run.pred.pm)}<small>scored ${v(run.loss.pm)}${rp ? "" : ", below the cutoff"}</small></dd></div>
       <div class="k-pm"><dt>Ratio</dt><dd>${fmt(ratio(run, "pm"), 2)}<small>${fmt(run.late.pm * 100, 0)}% from the last 2 time units</small></dd></div>
-      <div class="k-wb"><dt>First-order: predicted</dt><dd>${v(run.pred.fo)}<small>scored ${v(run.loss.fo)}${rf ? "" : ", not resolved"}</small></dd></div>
+      <div class="k-wb"><dt>First-order: predicted</dt><dd>${v(run.pred.fo)}<small>scored ${v(run.loss.fo)}${rf ? "" : ", below the cutoff"}</small></dd></div>
       <div class="k-wb"><dt>Ratio</dt><dd>${fmt(ratio(run, "fo"), 2)}<small>${fmt(run.late.fo * 100, 0)}% from the last 2 time units</small></dd></div>`;
     say.textContent = S.conjSay(run.eps, ratio(run, "pm"), rp, run.late.pm, ratio(run, "fo"), rf, run.late.fo, run.loss.pm, run.loss.fo);
   };

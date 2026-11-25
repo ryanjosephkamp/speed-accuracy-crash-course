@@ -714,7 +714,7 @@ export function mount3d(el, { view, data, chapter = null, focus = "thm:main", wh
     const n = N[id];
     card.classList.toggle("here", !!book && n.ch === book);
     card.innerHTML = `<div class="k">${esc(n.kind)} · chapter ${n.ch} · ${esc(chTitle(n.ch))}</div><h3>${esc(n.name)}</h3>` +
-      `<p>Section ${esc(n.sec)} · page ${n.page} · ${esc(n.statusLabel)} · ${where(id)}</p>` + row(deps[id], "up", "It uses") + row(uses[id], "down", "Used by");
+      `<p>${esc(/^[\d.]+$/.test(n.sec) ? `Section ${n.sec}` : /^[\d., ]+$/.test(n.sec) ? `Sections ${n.sec}` : n.sec)} · page ${n.page} · ${esc(n.statusLabel)} · ${where(id)}</p>` + row(deps[id], "up", "It uses") + row(uses[id], "down", "Used by");
   };
   o.onMode = (flat) => {
     flatBtn.setAttribute("aria-pressed", String(flat)); d3Btn.setAttribute("aria-pressed", String(!flat));

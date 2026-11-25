@@ -36,14 +36,24 @@ export function heroLabel(t, share, bound) {
 
 // ---- average the costs, or the bounds
 
-/** codeUntil: the last time the paper's code keeps the averaged-cost bound above 0 (null if it never does). */
-export function twoSay(label, loss, deadline, added, codeUntil = null) {
+/** Plotted stretches [[first, last], ...] as words: "from 0.48 to 1.72", "at time 0.5", joined with "and". */
+export function stretchText(st) {
+  return st.map(([a, b]) => (Math.abs(b - a) < 1e-9 ? `at time ${f2(a)}` : `from ${f2(a)} to ${f2(b)}`)).join(" and ");
+}
+
+/** The paper's code's averaged-cost rule on a deadline, where it differs from the definition's 0. */
+function codeText(stretches, avgCodeLoss) {
+  return ` The paper's code builds each time's kernel for that time's cost, and its kernels end at 14/λ₁; where that kernel ends before the deadline, the code averages only finite costs. Here its averaged-cost bound is above 0 at the plotted times ${stretchText(stretches)}, and it loses ${lossText(avgCodeLoss)}.`;
+}
+
+/** stretches: where the paper's code keeps the averaged-cost bound above 0 on a deadline (empty if nowhere). */
+export function twoSay(label, loss, deadline, added, stretches = []) {
   const L = lossText;
   if (deadline !== null) {
-    let s = `With ${added ? "a deadline added" : "the deadline"} at ${+deadline.toFixed(2)}, the averaged-cost rule's bound is 0 throughout: it decides at once and loses ${L(loss.avg)} points per 100 trials. ` +
-      `The weighted rule's bound comes down toward the deadline and loses ${L(loss.wb)}; the per-moment rule loses ${L(loss.pm)}. ` +
+    let s = `With ${added ? "a deadline added" : "the deadline"} at ${+deadline.toFixed(2)}, the averaged-cost rule's bound, by its definition, is 0 throughout: it decides at once and loses ${L(loss.avg)} points per 100 trials. ` +
+      `The weighted rule's bound stays above 0 until the deadline and loses ${L(loss.wb)}; the per-moment rule loses ${L(loss.pm)}. ` +
       "On a deadline the paper treats both rules as heuristics and measures them.";
-    if (codeUntil !== null) s += ` The paper's code, whose kernels end at 14/λ₁, keeps a finite averaged-cost bound until time ${f2(codeUntil)} here and loses ${L(loss.avgCode)}.`;
+    if (stretches.length) s += codeText(stretches, loss.avgCode);
     return s + gridNote(loss);
   }
   let s = `On ${label}, the weighted rule loses ${L(loss.wb)} points per 100 trials, the per-moment rule ${L(loss.pm)}, and the averaged-cost rule ${L(loss.avg)}. `;
@@ -54,11 +64,11 @@ export function twoSay(label, loss, deadline, added, codeUntil = null) {
   return s + gridNote(loss);
 }
 
-export function twoVerdict(guess, hasDeadline, codeUntil = null) {
+export function twoVerdict(guess, hasDeadline, stretches = []) {
   if (!guess) return "";
   if (!hasDeadline) return "Now add a deadline to see.";
-  const code = codeUntil === null ? "" : ` The paper's code, whose kernels stop at 14/λ₁, holds a finite bound until time ${f2(codeUntil)} here, then drops: that is the rule as computed, not as defined.`;
-  if (guess === "zero") return "Right, by the paper's definition: its bound is 0 from the start. The kernel puts weight past the deadline at every earlier time, and the average of a cost that is infinite there is infinite. The weighted rule's bound comes down smoothly instead." + code;
+  const code = stretches.length ? ` The paper's code, whose kernel for each time's cost ends at 14/λ₁, gives a bound above 0 at the plotted times ${stretchText(stretches)} here: that is the rule as computed, not as defined.` : "";
+  if (guess === "zero") return "Right, by the paper's definition: its bound is 0 from the start. The kernel puts weight past the deadline at every earlier time, and the average of a cost that is infinite there is infinite. The weighted rule's bound stays above 0 until the deadline instead." + code;
   if (guess === "smooth") return "That is what the weighted rule does. The averaged-cost rule, by its definition, drops to 0 at once: the kernel puts weight past the deadline, where the cost is infinite, so the average is infinite from the start." + code;
   return "By the paper's definition it doesn't wait for the deadline: its bound is 0 from the start, because at every earlier time the kernel puts weight past the deadline, and the average of a cost that is infinite there is infinite." + code;
 }
@@ -120,7 +130,7 @@ export function p13Say(step, d) {
   if (step === 1) return `Each kernel integrates to 1, so its change in the level has as much area above zero as below: ${(d.above).toFixed(4)} above and ${(d.below).toFixed(4)} below, at b₀.`;
   if (step === 2) return `At ε = ${pct(d.eps)}, the steepest secant slope between neighboring levels on I is ${f3(d.slope)}. Divided by ε, it runs from ${f3(d.ratios[0])} at the largest of the four sizes to ${f3(d.ratios[d.ratios.length - 1])} at the smallest, as a slope of order ε would.`;
   if (step === 3) return `At ε = ${pct(d.eps)}, Algorithm 1's output is within ${g3(d.err)} of b₀ + εβ. Divided by ε², that runs from ${f3(d.ratios[0])} at the largest of the four sizes to ${f3(d.ratios[d.ratios.length - 1])} at the smallest, as a second-order difference would; the proposition proves it for the equation's exact solution.`;
-  if (step === 4) return `Divided by ε, Algorithm 1's move is within ${g3(d.wb)} of β at ε = ${pct(d.eps)}, while the per-moment rule's misses β by ${f3(d.pm)}; over the four sizes that gap runs from ${f3(d.pms[0])} to ${f3(d.pms[d.pms.length - 1])}.`;
+  if (step === 4) return `Divided by ε, Algorithm 1's move is within ${g3(d.wb)} of β at ε = ${pct(d.eps)}, against ${f3(d.pm)} for the per-moment rule's; over the four sizes, its gap runs from ${f3(d.wbs[0])} to ${f3(d.wbs[d.wbs.length - 1])} and the per-moment rule's from ${f3(d.pms[0])} to ${f3(d.pms[d.pms.length - 1])}.`;
   return `At the frequencies sampled from 0.5 to 20, |1 − w̃(−iω)| is at least ${f3(d.min)}; it is 0 at ω = 0.`;
 }
 
@@ -141,16 +151,25 @@ export function rootsVerdict(guess, roots) {
 
 export function rootsSay(b, Tb, start, end) {
   const d = Tb - b;
-  const fit = Math.abs(d) < 0.005 ? "so this level about fits"
-    : d > 0 ? "higher than the level, so it doesn't fit" : "lower than the level, so it doesn't fit";
+  const fit = Math.abs(d) < 1e-6 ? "so this level fits, to within 10⁻⁶"
+    : `${num(Math.abs(d))} ${d > 0 ? "above" : "below"} the level, so it doesn't fit`;
   return `At the level ${f3(b)}, the per-moment bounds ahead average to ${f3(Tb)}, ${fit}. ` +
     `The 30 damped updates from the per-moment bound, ${f3(start)}, end at ${f3(end)}.`;
 }
 
 /** The local test for the ideal damped update b <- (b + T(b))/2 at a crossing where T has slope s: its own slope is
- * (1 + s)/2, so it moves toward the crossing when -3 < s < 1. */
+ * (1 + s)/2, so it moves toward the crossing when -3 < s < 1 and away when s < -3 or s > 1; at s = -3 or 1 the linear
+ * test decides nothing. */
 export function rootRole(slope) {
-  return `slope ${slope.toFixed(2)}: ${slope > -3 && slope < 1 ? "damped updates move toward it" : "damped updates move away"}`;
+  const verdict = slope > -3 && slope < 1 ? "damped updates move toward it" : slope < -3 || slope > 1 ? "damped updates move away" : "the linear test decides nothing";
+  return `slope ${slope.toFixed(2)}: ${verdict}`;
+}
+
+/** Said under the first plate when the program's exported bound reads 0 before the forced choice while the program
+ * still waits at the center. */
+export function gridZeroNote(count) {
+  if (!count) return "";
+  return ` At ${count} of the grid's times before the forced choice, the ink curve reads 0 although the program still waits at 0 evidence: deciding beats waiting already at the grid's first step above 0, 0.02, so the bound the program exports, as the paper's code does, is 0 there. The losses are measured against this exported bound, scored like the rules.`;
 }
 
 // ---- Algorithm 1, one step at a time

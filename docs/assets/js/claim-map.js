@@ -75,7 +75,7 @@ export function mountMap(root, { data, chapter = null, focus = "thm:main", links
   <div class="cm3"><p class="cm-info">Loading the 3D map…</p></div>
 </div>
 <div class="cm-view" data-view="pages">
-  <p class="cm-how">One page per chapter, chapter 1 at the back, with each page's claims set by layer. On the page in hand, the pages it uses are outlined in slate and the pages that use it in green; tap a page's number to take it in hand.</p>
+  <p class="cm-how">One page per chapter, chapter 1 at the back, with each page's claims set by layer. On the page in hand, the number badges of the pages it uses turn slate and of the pages that use it green (slate wins where links run both ways); tap a page's number to take it in hand.</p>
   <div class="cm3"><p class="cm-info">Loading the 3D map…</p></div>
 </div>`;
   const $ = (s) => root.querySelector(s);
@@ -226,7 +226,7 @@ export function mountMap(root, { data, chapter = null, focus = "thm:main", links
   const d3 = {};
   function init3d(name) {
     const box = root.querySelector(`[data-view="${name}"] .cm3`);
-    import("./claim-map-3d.js?v=37a0cf8296").then(({ mount3d }) => {
+    import("./claim-map-3d.js?v=0648557a87").then(({ mount3d }) => {
       d3[name] = mount3d(box, { view: name, data: D, chapter, focus, where });
       if (current === name) d3[name]?.resize();
     }).catch((e) => { box.innerHTML = '<p class="plate-fail">The 3D map could not load. Focus, Layers, Outline, and Book path still work.</p>'; console.error(e); });

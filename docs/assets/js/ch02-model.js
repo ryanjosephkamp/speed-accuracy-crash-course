@@ -170,3 +170,69 @@ export function innovation(x, dt) {
   for (let i = 1; i < x.length; i++) { drift += Math.tanh(x[i - 1]) * dt; w[i] = x[i] - x[0] - drift; }
   return w;
 }
+
+// ---------------------------------------------------------------- what the plates draw and print
+/** A path stored at steps of DT, read at time tp by linear interpolation between its steps. */
+export function pathAt(xp, DT, tp) {
+  const u = tp / DT, k = Math.min(xp.length - 2, Math.max(0, Math.floor(u))), f = u - k;
+  return xp[k] * (1 - f) + xp[k + 1] * f;
+}
+/** The units plate's raw path: Z(t) = (sigma^2/mu) x(mu^2 t / sigma^2) at the raw times ts, x read by pathAt. */
+export const rawSamples = (xp, DT, mu, sigma, ts) => ts.map((t) => ((sigma * sigma) / mu) * pathAt(xp, DT, ((mu * mu) / (sigma * sigma)) * t));
+/** A vertical range for the units plate: at least -2 to 6, widened to hold every value drawn, so nothing is clipped. */
+export function unitsRange(values) {
+  const fin = values.filter(Number.isFinite);
+  const lo = Math.min(-2, ...fin), hi = Math.max(6, ...fin);
+  const pad = 0.04 * (hi - lo);
+  return [lo < -2 ? lo - pad : -2, hi > 6 ? hi + pad : 6];
+}
+
+/** The largest standardized miss over bins with at least 20 trials. For shares, the miss is measured in the
+ * binomial standard error of the bin's exact share, sqrt(p(1 - p)/n); for the mean change over the next time unit,
+ * in the bin's sample standard error. Returns the miss and how many bins entered. */
+export function largestMiss(bs, t, kind) {
+  let z = 0, k = 0;
+  for (const o of bs) {
+    if (o.n < 20) continue;
+    k++;
+    const p = binShare(o.a, o.b, t);
+    const miss = kind === "share" ? Math.abs(o.share - p) / Math.sqrt((p * (1 - p)) / o.n) : Math.abs(o.mean - (2 * p - 1)) / o.meanSE;
+    if (Number.isFinite(miss)) z = Math.max(z, miss);
+  }
+  return { z, k };
+}
+
+/** The innovation's statistics over trials from the true model (H = +1 or -1, then X = H t + W), computed from
+ * the evidence alone on steps of dt to time T: the variance of W-bar_T, and the correlation of W-bar_T - W-bar_{T/2}
+ * with tanh X_{T/2}. add(R, count) runs count more trials; the plate calls it in slices, the checks in one go. */
+export function innovationRun(T = 2, dt = 0.01, keep = 40) {
+  const n = Math.round(T / dt), show = [];
+  const acc = { k: 0, s1: 0, s2: 0, a: 0, b: 0, ab: 0, aa: 0, bb: 0 };
+  return {
+    T, n, show, acc,
+    ts: Array.from({ length: n + 1 }, (_, i) => i * dt),
+    add(R, count) {
+      for (let j = 0; j < count; j++) {
+        const H = R.next() < 0.5 ? 1 : -1;
+        const x = evidence(H, 0, increments(R, n, dt), dt), w = innovation(x, dt);
+        if (acc.k < keep) show.push(w);
+        const end = w[n], inc = w[n] - w[n / 2], th = Math.tanh(x[n / 2]);
+        acc.s1 += end; acc.s2 += end * end; acc.a += inc; acc.b += th; acc.ab += inc * th; acc.aa += inc * inc; acc.bb += th * th;
+        acc.k++;
+      }
+    },
+    summary() {
+      const { k: K, s1, s2, a, b, ab, aa, bb } = acc, m = s1 / K, v = s2 / K - m * m;
+      const cov = ab / K - (a / K) * (b / K), sa = Math.sqrt(aa / K - (a / K) ** 2), sb = Math.sqrt(bb / K - (b / K) ** 2);
+      return { v, vSE: v * Math.sqrt(2 / (K - 1)), r: cov / (sa * sb), rSE: 1 / Math.sqrt(K), K };
+    },
+  };
+}
+
+/** Steps on which the sign of x on the grid changes, counting a step away from 0 (sign 0) as a change; these are
+ * the steps on which the grid's Tanaka increment can be positive. */
+export function signSteps(x) {
+  let c = 0;
+  for (let i = 0; i < x.length - 1; i++) if (Math.sign(x[i + 1]) !== Math.sign(x[i])) c++;
+  return c;
+}

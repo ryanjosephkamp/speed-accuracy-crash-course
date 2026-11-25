@@ -42,21 +42,30 @@ export function bracketSay(eps, pathGap, egap) {
   return `With a band of ±${f3(eps)}, the two fixed levels are hit ${f3(pathGap)} time units apart on this path; on average the gap is ${f3(egap)}, so it shrinks in proportion to ε.`;
 }
 
-const ORDER = ["not at all", "like ε", "like ε²", "faster than ε²"];
-const near = (x) => (x < 0.5 ? 0 : x < 1.5 ? 1 : x < 2.5 ? 2 : 3);
+const ORDER = ["not at all", "like ε", "like ε²"];
 const pctE = (e) => (e >= 0.1 ? Math.round(e * 100) + "%" : (e * 100).toFixed(1) + "%");
-/** The verdict under the error chart. fit: { pm, fo } with { slope, from, to } (the sizes fitted) or null when fewer
- * than two sizes clear the grid's floor; floor: that floor; outside: the schedule is outside the theorem. */
-export function ordersVerdict(guess, fit, floor, outside = false) {
-  const part = (f, who) => (f ? `the ${who} error falls with a slope of ${f2(f.slope)} (${ORDER[near(f.slope)]}) from ${pctE(f.from)} down to ${pctE(f.to)}`
-    : `the ${who} error is at this grid's floor at every size but the largest, so no slope is fitted`);
-  let s = `On this grid, ${part(fit.pm, "per-moment")}, and ${part(fit.fo, "first-order")}. Below that, the errors reach the grid's floor, about ${floor.toExponential(0)}, which a finer grid lowers. `;
-  if (outside) return s + "The rising cost grows without bound, so it is outside the theorem: these slopes are measurements on this grid, with no theory to compare them with.";
-  s += "The theory: the per-moment error is of order ε, and the corrected one is o(ε), and O(ε²) for a Lipschitz change like this one.";
+
+/** The per-moment error over the first-order error at each size where both are positive. */
+export function errorRatios(ePm, eFo) {
+  const r = ePm.map((p, k) => (eFo[k] > 0 && p > 0 ? p / eFo[k] : null)).filter((x) => x !== null);
+  return r.length ? { lo: Math.min(...r), hi: Math.max(...r), n: r.length, smaller: r.filter((x) => x > 1).length } : { lo: null, hi: null, n: 0, smaller: 0 };
+}
+
+/** The verdict under the error chart: what the chart measured, size by size, and the theory's rates as theory. */
+export function errorsVerdict(guess, ePm, eFo, EPS, outside = false) {
+  const r = errorRatios(ePm, eFo), all = r.smaller === r.n && r.n === EPS.length;
+  let s = all
+    ? `At every size from ${pctE(EPS[0])} to ${pctE(EPS[EPS.length - 1])}, the first-order error is smaller than the per-moment error, by a factor of ${f2(r.lo)} to ${f2(r.hi)}. `
+    : `The first-order error is the smaller of the two at ${r.smaller} of the ${EPS.length} sizes. `;
+  s += "Both also carry the grid's own error, which doesn't shrink with ε, so the slopes on this chart aren't a test of the theory's rates. ";
+  if (outside) return s + "The rising cost grows without bound, so the theorem says nothing about it: these are measurements on this grid only.";
+  s += "The theory, for a bounded Lipschitz change like this one: the per-moment error is of order ε, and the corrected one is O(ε²).";
   if (guess.pm === null && guess.fo === null) return s;
   const right = (guess.pm === 1) + (guess.fo === 2);
   return (right === 2 ? "Both guesses match the theory. " : right === 1 ? "One guess matches the theory. " : "Neither guess matches the theory. ") + s;
 }
+
+export const tooSmallSay = () => "This change is too small for the grid to show either error: every error is below 10⁻⁷. Pick a schedule that moves more.";
 
 export function outsideNote(kind) {
   if (kind === "deadline") return "A deadline makes the cost infinite at the deadline, so it isn't a small change of a constant cost and the theorem says nothing about it. The plate doesn't run on it; pick another schedule to compare the shortcuts.";
@@ -72,20 +81,4 @@ export function insideNote(label) {
 export function zText(z) {
   const a = Math.abs(z);
   return `${a.toFixed(1)} standard errors from the runs' mean${a > 2 ? "; if the sampling error were normal and the runs unbiased, a gap over 2 would come about one time in twenty" : ""}`;
-}
-
-/** The grid's floor for the error chart: the first-order error at the smallest size, where the grid's own error
- * dominates (halving the grid lowers it). */
-export const gridFloor = (eFo) => Math.max(eFo[eFo.length - 1], 1e-12);
-
-/** The least-squares slope of log error against log size, over the three smallest sizes whose error is at least
- * four times the floor (the theory's rates are about small sizes); null when fewer than two clear it. Returns
- * { slope, from, to } with the largest and smallest size used. */
-export function fitAbove(eps, err, floor) {
-  const k = eps.map((e, i) => i).filter((i) => err[i] >= 4 * floor).slice(-3);
-  if (k.length < 2) return null;
-  const xs = k.map((i) => Math.log10(eps[i])), ys = k.map((i) => Math.log10(err[i]));
-  const mx = xs.reduce((a, b) => a + b) / xs.length, my = ys.reduce((a, b) => a + b) / ys.length;
-  let num = 0, den = 0; xs.forEach((x, i) => { num += (x - mx) * (ys[i] - my); den += (x - mx) ** 2; });
-  return { slope: num / den, from: eps[k[0]], to: eps[k[k.length - 1]] };
 }

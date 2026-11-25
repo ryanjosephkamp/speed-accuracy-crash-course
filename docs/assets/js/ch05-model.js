@@ -15,7 +15,7 @@
 // tools/checks/ch05.mjs compares the bounds with model.js's exactPolicy and the left side with the paper's own test,
 // tests/test_exact_equation.py, on its grid, cases, and tolerances.
 
-import { boundForCost } from "./model.js?v=37a0cf8296";
+import { boundForCost } from "./model.js?v=0648557a87";
 
 export const OVERSHOOT = 0.5826; // -zeta(1/2) / sqrt(2 pi): the continuous bound sits this many sqrt(dt) outside the grid's
 
@@ -305,15 +305,49 @@ export function bandStats(ts, bounds, cost, view, span = 0.05) {
   return { ratio, fall, fallAt, cfac, cAt };
 }
 
-/** The largest |left side - 1/4| over the kept times in [from, to] that are also on `on` (a list of times), and where. */
-export function worstResidual(out, from, to, on = null) {
-  const want = on ? new Set(on.map((t) => Math.round(t * 1e6))) : null;
-  let w = 0, at = NaN;
-  out.ts.forEach((t, i) => {
-    if (t < from - 1e-9 || t > to + 1e-9 || !Number.isFinite(out.lhs[i])) return;
-    if (want && !want.has(Math.round(t * 1e6))) return;
+/** The largest |left side - 1/4| over the kept times in [from, to], or over the times listed in `on`; with
+ * resolvedOnly, times whose bound reads 0 (below the grid's first step) are left out and counted in `skipped`. n counts
+ * the pairs compared, and missing the asked-for times with no finite left side, so a caller can tell that nothing was
+ * silently dropped. */
+export function worstResidual(out, from, to, on = null, resolvedOnly = false) {
+  const at0 = new Map();
+  out.ts.forEach((t, i) => at0.set(Math.round(t * 1e6), i));
+  const times = on ?? out.ts.filter((t) => t >= from - 1e-9 && t <= to + 1e-9);
+  let w = 0, at = NaN, n = 0, missing = 0, skipped = 0;
+  for (const t of times) {
+    if (t < from - 1e-9 || t > to + 1e-9) continue;
+    const i = at0.get(Math.round(t * 1e6));
+    if (i === undefined || !Number.isFinite(out.lhs[i])) { missing++; continue; }
+    if (resolvedOnly && out.bounds[i] === 0) { skipped++; continue; }
+    n++;
     const e = Math.abs(out.lhs[i] - 0.25);
-    if (e > w) { w = e; at = t; } else if (Number.isNaN(at)) at = t;
-  });
-  return { w, at };
+    if (n === 1 || e > w) { w = e; at = t; }
+  }
+  return { w, at, n, missing, skipped };
+}
+
+/** What the live plate reports for the grid on show (m), with the two grids' runs (either may be null): the window
+ * shown (0 to `view`, or to the forced choice when `far`), how many of its times have a bound that reads 0, the largest
+ * residual over the times whose bound is resolved, the two grids' largest residuals over the times both resolve, the
+ * per-moment version's largest miss over resolved times, the largest miss in the last time unit before the forced
+ * choice, and the cost's range over its run, as a ratio. */
+export function liveSummary(m, fine, coarse, far, view) {
+  const X = far ? m.horizon : view;
+  let zeros = 0, nWin = 0;
+  m.ts.forEach((t, k) => { if (far ? t < X - 1e-9 : t <= X + 1e-9) { nWin++; if (m.bounds[k] === 0) zeros++; } });
+  const w = worstResidual(m, 0, view, null, true);
+  let wf = NaN, wc = NaN, nBoth = 0;
+  const nView = m.ts.filter((t) => t <= view + 1e-9).length;
+  if (fine && coarse) {
+    const key = (t) => Math.round(t * 1e6), fb = new Map();
+    fine.ts.forEach((t, i) => fb.set(key(t), fine.bounds[i]));
+    const on = coarse.ts.filter((t, i) => t <= view + 1e-9 && coarse.bounds[i] !== 0 && fb.has(key(t)) && fb.get(key(t)) !== 0);
+    nBoth = on.length;
+    if (nBoth) { wf = worstResidual(fine, 0, view, on).w; wc = worstResidual(coarse, 0, view, on).w; }
+  }
+  let pm = 0;
+  m.ts.forEach((t, k) => { if (t <= view + 1e-9 && Number.isFinite(m.pm[k]) && m.bounds[k] !== 0) pm = Math.max(pm, Math.abs(m.pm[k] - 0.25)); });
+  let tail = 0;
+  m.ts.forEach((t, i) => { if (t >= m.horizon - 1 && Number.isFinite(m.lhs[i])) tail = Math.max(tail, Math.abs(m.lhs[i] - 0.25)); });
+  return { X, zeros, nWin, nView, w: w.w, at: w.at, skipped: w.skipped, wf, wc, nBoth, pm, tail, fold: m.cMax / m.cMin };
 }

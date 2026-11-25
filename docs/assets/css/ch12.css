@@ -1,0 +1,11 @@
+/* Chapter 12: the self-test on what is new. Each statement, its three answers, and, once shown, the paper's answer. */
+.nv-list { margin: 0 0 14px; padding-left: 1.4em; }
+.nv-list > li { margin: 0 0 14px; padding-bottom: 12px; border-bottom: 1px solid var(--print-line); }
+.nv-list > li:last-child { border-bottom: 0; }
+.nv-q { margin: 0 0 8px; color: var(--print-ink); font: 400 0.98rem/1.45 var(--serif); }
+.nv-list .seg legend { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.nv-a { margin: 8px 0 0; color: var(--print-ink); font: 400 0.9rem/1.45 var(--serif); }
+.nv-a b { font: 700 0.84rem/1.3 var(--sans); font-stretch: 86%; }
+.nv-a[data-right="true"] b { color: var(--wb); }
+.nv-a[data-right="false"] b { color: var(--accent-print); }
+.nv-src { display: block; margin-top: 3px; color: var(--print-dim); font: 500 0.74rem/1.3 var(--sans); font-stretch: 90%; }

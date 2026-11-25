@@ -1,0 +1,16 @@
+/* Appendix A: the hero's chain of results, in the claim map's colors: what a result uses in slate and what uses it in
+   green, and each dot marked by status as the map marks it. Nothing else the shared classes don't give. */
+.chart .arc { stroke: var(--print-line); stroke-width: 1; fill: none; }
+.chart .arc-up { stroke: var(--pm); stroke-width: 1.8; fill: none; }
+.chart .arc-down { stroke: var(--wb); stroke-width: 1.8; fill: none; }
+.chart .nd { fill: var(--print-dim); font-size: 11px; font-weight: 500; font-stretch: 90%; }
+.chart .nd.on { fill: var(--print-ink); font-weight: 760; }
+.chart .nd.up, .chart .k-up { fill: var(--pm); font-weight: 650; }
+.chart .nd.down, .chart .k-down { fill: var(--wb); font-weight: 650; }
+.chart .nd-dot { fill: var(--print-ink); stroke: var(--print); stroke-width: 1; }
+.chart .nd-dot.s-cited, .chart .nd-dot.s-computed { fill: var(--pm); }
+.chart .nd-dot.s-formal, .chart .nd-dot.s-conjecture { fill: var(--accent-print); }
+.chart .nd-dot.s-numerical { fill: var(--wb); }
+.chart .nd-dot.s-definition { fill: var(--print); stroke: var(--print-dim); stroke-width: 1.3; }
+/* the appendix has no live plates, so the hero's list of them stays hidden */
+.hero-foot .chips:not(:has(a)) { display: none; }

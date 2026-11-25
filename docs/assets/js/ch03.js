@@ -2,11 +2,11 @@
 // waiting from the dynamic program, the flat bound two ways, and how the bound answers a cost. The flat-bound numbers
 // come from closed forms and kernel.js's series (ch03-model.js), the value from the dynamic program in ch03-worker.js;
 // the words under each plate come from say-ch03.js.
-import * as M from "./ch03-model.js?v=37a0cf8296";
-import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, VIEW, defaultDrawing } from "./schedules-book.js?v=37a0cf8296";
-import { getChoice, setChoice, solve, onVisible, liftReady, seedParam, wireStrips } from "./book.js?v=37a0cf8296";
-import { frame, line, area, axes, svg, fmt, keepDrawn, tags, ticks } from "./chart.js?v=37a0cf8296";
-import * as S from "./say-ch03.js?v=37a0cf8296";
+import * as M from "./ch03-model.js?v=0648557a87";
+import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, VIEW, defaultDrawing } from "./schedules-book.js?v=0648557a87";
+import { getChoice, setChoice, solve, onVisible, liftReady, seedParam, wireStrips } from "./book.js?v=0648557a87";
+import { frame, line, area, axes, svg, fmt, keepDrawn, tags, ticks, dropAt } from "./chart.js?v=0648557a87";
+import * as S from "./say-ch03.js?v=0648557a87";
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const plate = (id) => document.getElementById("plate-" + id);
@@ -16,7 +16,7 @@ const segHTML = (name, opts, cur, legend) => `<fieldset class="seg"><legend>${le
   `<label><input type="radio" name="${name}" value="${v}"${String(v) === String(cur) ? " checked" : ""}><span>${lbl}</span></label>`).join("")}</div></fieldset>`;
 const onSeg = (el, name, fn) => el.querySelectorAll(`input[name="${name}"]`).forEach((r) => r.addEventListener("change", () => fn(r.value)));
 const inRange = (v, lo, hi) => (v >= lo && v <= hi ? v : NaN);
-const WORKER = new URL("./ch03-worker.js?v=37a0cf8296", import.meta.url);
+const WORKER = new URL("./ch03-worker.js?v=0648557a87", import.meta.url);
 
 // ---- the reader's schedule, and the dynamic program's value for it (shared by the plates that need it)
 const keyOf = (choice) => JSON.stringify({ id: choice.id, params: choice.id === "draw" ? undefined : paramsOf(choice), points: choice.id === "draw" ? choice.points : undefined });
@@ -25,6 +25,12 @@ function valueFor(choice, last = "far", progress = null) {
   const k = keyOf(choice) + "|" + last;
   if (!VALUES.has(k)) VALUES.set(k, solve({ job: "value", choice, last }, { worker: WORKER, progress }).catch((e) => { VALUES.delete(k); throw e; }));
   return VALUES.get(k);
+}
+const FLATS = new Map();
+function flatFor(choice) {
+  const k = keyOf(choice);
+  if (!FLATS.has(k)) FLATS.set(k, solve({ job: "flat", choice }, { worker: WORKER }).catch((e) => { FLATS.delete(k); throw e; }));
+  return FLATS.get(k);
 }
 const pickerHTML = (id) => {
   const groups = [...new Set(PRESETS.map((p) => p.group))];
@@ -84,7 +90,7 @@ function earnPlate() {
   const fig = plate("earn"), el = rootOf("earn");
   if (!el) return;
   let b = 0.8, seed = seedParam(2026), runs = 0, path = null, cum = null, tTop = 2.5, shown = false;
-  let choice, cost, dl, dp = NaN, flatGrid = NaN, best = null, curve = null;
+  let choice, cost, dl, dp = NaN, flat = null, best = null, curve = null;
   el.innerHTML = `<div class="controls"><label class="dial"><span class="ctl-key">Flat bound, b</span><output id="ea-out"></output>
       <input type="range" id="ea-b" min="0.05" max="3" step="0.01" value="${b}" aria-label="Flat bound b"></label>
       <div class="actions"><button class="btn" type="button" id="ea-path">Another path</button></div></div>
@@ -104,13 +110,7 @@ function earnPlate() {
     tTop = Math.min(8, Math.max(VIEW, (k3 < 0 ? path.x.length : k3) * path.dt * 1.04));
     cum = M.cumulativeCost(dl !== null ? (t) => (t <= dl ? cost(t) : cost(dl)) : cost, path.x.length, path.dt);
   };
-  /** This path's outcome with the bound b (forced at a deadline). */
-  const outcome = () => {
-    const k = M.decideAt(path, b), kT = dl !== null ? Math.round(dl / path.dt) : Infinity;
-    if (k >= 0 && k <= kT) return { b, k, tau: k * path.dt, side: Math.sign(path.x[k]) || 1, forced: false, right: M.g(b), bill: cum[k] };
-    if (dl !== null) { const kk = Math.min(kT, path.x.length - 1); const xT = path.x[kk]; return { b, k: kk, tau: dl, forced: true, deadline: dl, xT, right: M.g(Math.abs(xT)), bill: cum[kk] }; }
-    const kk = path.x.length - 1; return { b, k: kk, tau: kk * path.dt, side: 1, forced: false, right: M.g(b), bill: cum[kk], off: true };
-  };
+  const outcome = () => M.pathOutcome(path, b, cum, dl);
   const drawPath = (o) => {
     const view = dl !== null ? dl * 1.15 : Math.max(tTop, o.off ? tTop : Math.min(o.tau * 1.03, 40));
     const f = frame(xEl, { x: [0, view], y: [-3.15, 3.15], aspect: 0.52, minH: 190, maxH: 280 });
@@ -125,7 +125,7 @@ function earnPlate() {
     const xl = dl !== null ? f.sx(dl) - 6 : f.W - f.r - 2;
     s += `<text class="tag-acc" x="${xl.toFixed(1)}" y="${(f.sy(b) - 6).toFixed(1)}" text-anchor="end">+b = ${fmt(b, 2)}</text><text class="tag-acc" x="${xl.toFixed(1)}" y="${(f.sy(-b) + 15).toFixed(1)}" text-anchor="end">−b</text>`;
     if (dl !== null) s += `<path class="acc" stroke-dasharray="3 3" d="M${f.sx(dl).toFixed(1)} ${f.t}V${f.H - f.b}"/><text class="tag-acc" x="${(f.sx(dl) - 6).toFixed(1)}" y="${f.H - f.b - 6}" text-anchor="end">deadline</text>`;
-    if (o.tau <= view) s += `<circle class="ink-dot" cx="${f.sx(o.tau).toFixed(1)}" cy="${f.sy(o.forced ? o.xT : o.side * b).toFixed(1)}" r="4.5"/>`;
+    if (o.tau <= view && !o.off) s += `<circle class="ink-dot" cx="${f.sx(o.tau).toFixed(1)}" cy="${f.sy(o.x).toFixed(1)}" r="4.5"/>`;
     s += `<rect class="hit" x="${f.l}" y="${f.t}" width="${f.W - f.l - f.r}" height="${f.H - f.t - f.b}"/>`;
     xEl.innerHTML = svg(f, s, `One path of the evidence, stopped where it first reaches the flat bound ${fmt(b, 2)}`);
     xEl._f = f;
@@ -145,7 +145,8 @@ function earnPlate() {
     cEl.innerHTML = svg(f, s, `The cost of time for ${labelOf(choice)}, with the area paid up to the decision shaded`);
   };
   const drawCurve = () => {
-    if (!shown || !curve) { curveEl.hidden = true; key.hidden = true; return; }
+    if (!shown) { curveEl.hidden = true; key.hidden = true; return; }
+    if (!curve) { curveEl.hidden = true; key.hidden = true; verdict.textContent = "Computing the best flat bound…"; return; }
     curveEl.hidden = false; key.hidden = false;
     const f = frame(curveEl, { x: [0, 3], y: [0, 1.02], aspect: 0.52, minH: 190, maxH: 270 });
     let s = axes(f, { yl: "on average, per decision", xl: "flat bound, b", grid: true });
@@ -157,7 +158,7 @@ function earnPlate() {
     s += `<text class="tag-ex" x="${(f.sx(best.b) + (f.sx(best.b) > f.W * 0.6 ? -6 : 6)).toFixed(1)}" y="${f.t + 12}" text-anchor="${f.sx(best.b) > f.W * 0.6 ? "end" : "start"}">best flat ${fmt(best.b, 2)}</text>`;
     s += `<path class="dim" stroke-dasharray="2 3" d="M${f.sx(best.b).toFixed(1)} ${f.t}V${f.sy(best.net).toFixed(1)}"/>`;
     curveEl.innerHTML = svg(f, s, "Average chance of being right, bill, and net reward against the flat bound, with the reader's bound and the best");
-    verdict.textContent = S.earnVerdict({ b, mine, best, dp, flatGrid, deadline: dl });
+    verdict.textContent = S.earnVerdict({ b, mine, best, dp, flat, deadline: dl });
   };
   const draw = () => {
     out.textContent = fmt(b, 2);
@@ -165,8 +166,8 @@ function earnPlate() {
     const view = drawPath(o);
     drawCost(o, view);
     const avg = M.flatOnSchedule(cost, b, dl);
-    reads.innerHTML = `<div><dt>This path</dt><dd>${o.off ? "–" : fmt(o.tau, 2)}<small>${o.forced ? "forced at the deadline" : "time it decides"}; nets ${fmt(o.right - o.bill, 3)}</small></dd></div>
-      <div><dt>Average chance right</dt><dd>${fmt(avg.reward, 3)}<small>${dl !== null ? `g(b) = ${fmt(M.g(b), 3)}, less for forced choices` : "g(b): every decision ends at |X| = b"}</small></dd></div>
+    reads.innerHTML = `<div><dt>This path</dt><dd>${o.off ? "–" : fmt(o.tau, 2)}<small>${o.off ? "still open" : `${o.forced ? "forced at the deadline" : "time it decides"}; right with chance ${fmt(o.right, 3)}, nets ${fmt(o.right - o.bill, 3)}`}</small></dd></div>
+      <div><dt>Average chance right</dt><dd>${fmt(avg.reward, 3)}<small>${dl !== null ? `g(b) = ${fmt(M.g(b), 3)} for decisions at the bound, less for forced ones` : "g(b), checking the evidence continuously"}</small></dd></div>
       <div><dt>Average bill</dt><dd>${fmt(avg.bill, 3)}<small>∫ c(s) P(still open at s) ds</small></dd></div>
       <div class="k-acc"><dt>Average net</dt><dd>${fmt(avg.net, 3)}<small>for your bound</small></dd></div>`;
     say.textContent = o.off ? "This path hasn't reached the bound within 40 time units; press Another path." : S.pathSay(o);
@@ -174,20 +175,16 @@ function earnPlate() {
     liftReady(fig);
   };
   const reset = () => {
-    choice = getChoice(); cost = costOf(choice); dl = deadlineOf(choice); dp = NaN; flatGrid = NaN;
-    best = M.bestFlat(cost, dl);
-    curve = null;
+    choice = getChoice(); cost = costOf(choice); dl = deadlineOf(choice); dp = NaN; flat = null;
+    best = null; curve = null;
     note.textContent = dl !== null ? `${labelOf(choice)}: the cost is infinite past time ${S.fc(dl)}, so every decision must end by then; a path still open there is forced to choose.`
       : `${labelOf(choice)}: the shaded area is what this path pays for its time.`;
     newPath();
-    if (shown) computeCurve();
     draw();
     const k = keyOf(choice);
-    valueFor(choice, "far").then((m) => { if (keyOf(choice) === k) { dp = m.v00; flatGrid = m.flat ? m.flat.grid : NaN; drawCurve(); } }).catch(() => {});
-  };
-  const computeCurve = () => {
-    const bs = range(0.05, 3, 60), os = bs.map((v) => M.flatOnSchedule(cost, v, dl));
-    curve = { b: bs, reward: os.map((o) => o.reward), bill: os.map((o) => o.bill), net: os.map((o) => o.net) };
+    valueFor(choice, "far").then((m) => { if (keyOf(choice) === k) { dp = m.v00; drawCurve(); } }).catch(() => {});
+    flatFor(choice).then((m) => { if (keyOf(choice) === k) { flat = m; best = { b: m.b, net: m.net, reward: m.reward, bill: m.bill }; curve = m.curve; drawCurve(); } })
+      .catch((e) => { if (keyOf(choice) === k && shown) verdict.textContent = "The solver stopped: " + e.message; });
   };
   inp.addEventListener("input", () => { b = +inp.value; draw(); });
   let down = false;
@@ -197,7 +194,7 @@ function earnPlate() {
   const up = () => { down = false; };
   xEl.addEventListener("pointerup", up); xEl.addEventListener("pointercancel", up);
   $("#ea-path", el).addEventListener("click", () => { runs++; newPath(); draw(); });
-  $("#ea-show", el).addEventListener("click", () => { shown = true; computeCurve(); draw(); });
+  $("#ea-show", el).addEventListener("click", () => { shown = true; draw(); });
   window.addEventListener("cc-schedule", reset);
   reset();
   keepDrawn(xEl, draw);
@@ -228,17 +225,18 @@ function allowsPlate() {
     const win = ts.filter((t) => t <= VIEW).map((t) => cost(t)).filter(Number.isFinite);
     const wMin = Math.min(...win), wMax = Math.max(...win);
     const fin = cs.filter((v) => Number.isFinite(v) && v > 0);
-    const lo = Math.min(...fin, st.lo > 0 ? st.lo : Infinity), hi = Math.max(...fin, Number.isFinite(st.hi) ? st.hi : 0);
+    const P = M.printedLevels(st);
+    const lo = Math.min(...fin, P.lo > 0 ? P.lo : Infinity), hi = Math.max(...fin, Number.isFinite(P.hi) ? P.hi : 0);
     const yLo = Math.max(lo / 2.2, wMin / 60), yHi = Math.min(Math.max(hi * 2.2, dl !== null ? wMax * 8 : 0), wMax * 60);
     const f = frame(chart, { x: [0, T], y: [yLo, yHi], ylog: true, aspect: 0.5, minH: 190, maxH: 280 });
     let s = axes(f, { yl: "cost of time, c(t)", xl: "time", grid: true });
     s += `<rect class="dim-fill" style="opacity:0.12" x="${f.l}" y="${f.t}" width="${(f.sx(VIEW) - f.l).toFixed(1)}" height="${f.H - f.t - f.b}"/>`;
     s += `<text class="tk" x="${(f.sx(VIEW) + 4).toFixed(1)}" y="${dl !== null ? f.H - f.b - 6 : f.t + 12}">${isDraw ? "the drawing ends" : "the book's window ends"}</text>`;
     if (ok) {
-      s += `<rect class="band" x="${f.l}" y="${f.sy(st.hi).toFixed(1)}" width="${f.W - f.l - f.r}" height="${Math.max(1, f.sy(st.lo) - f.sy(st.hi)).toFixed(1)}"/>`;
-      s += `<path class="guide" d="M${f.l} ${f.sy(st.hi).toFixed(1)}H${f.W - f.r}M${f.l} ${f.sy(st.lo).toFixed(1)}H${f.W - f.r}"/>`;
-      s += `<text class="tag-acc" x="${f.W - f.r - 2}" y="${(f.sy(st.hi) - 5).toFixed(1)}" text-anchor="end">c_max ${S.fc(st.hi)}</text>`;
-      s += `<text class="tag-acc" x="${f.W - f.r - 2}" y="${(f.sy(st.lo) + 15).toFixed(1)}" text-anchor="end">c_min ${S.fc(st.lo)}</text>`;
+      s += `<rect class="band" x="${f.l}" y="${f.sy(P.hi).toFixed(1)}" width="${f.W - f.l - f.r}" height="${Math.max(1, f.sy(P.lo) - f.sy(P.hi)).toFixed(1)}"/>`;
+      s += `<path class="guide" d="M${f.l} ${f.sy(P.hi).toFixed(1)}H${f.W - f.r}M${f.l} ${f.sy(P.lo).toFixed(1)}H${f.W - f.r}"/>`;
+      s += `<text class="tag-acc" x="${f.W - f.r - 2}" y="${(f.sy(P.hi) - 5).toFixed(1)}" text-anchor="end">c_max ${S.fc(P.hi)}</text>`;
+      s += `<text class="tag-acc" x="${f.W - f.r - 2}" y="${(f.sy(P.lo) + 15).toFixed(1)}" text-anchor="end">c_min ${S.fc(P.lo)}</text>`;
     }
     s += line(f, ts, cs.map((v) => (v > yLo / 1.3 && v < yHi * 1.3 ? v : NaN)), "cost");
     if (dl !== null) {
@@ -252,10 +250,10 @@ function allowsPlate() {
     chart.innerHTML = svg(f, s, `The cost of time for ${labelOf(choice)} to time 10, on a log scale, ${ok ? "with the two levels it stays between" : "which the standing assumption doesn't allow"}`);
     const why = st.kind === "deadline" ? "infinite after the deadline" : isDraw ? "straight lines in log c" : st.kind === "step" ? "logistic steps" : st.kind === "rising" ? "a ramp" : "a smooth formula";
     reads.innerHTML = `<div class="${st.continuous ? "" : "k-acc"}"><dt>Continuous</dt><dd>${st.continuous ? "Yes" : "No"}<small>${why}</small></dd></div>
-      <div class="${st.lo > 0 ? "" : "k-acc"}"><dt>Lower level, c_min</dt><dd>${st.lo > 0 ? S.fc(st.lo) : "None"}<small>${st.lo > 0 ? "the cost never goes below it" : "the cost falls toward 0"}</small></dd></div>
-      <div class="${Number.isFinite(st.hi) ? "" : "k-acc"}"><dt>Upper level, c_max</dt><dd>${Number.isFinite(st.hi) ? S.fc(st.hi) : "None"}<small>${Number.isFinite(st.hi) ? "the cost never goes above it" : "no finite level holds for all time"}</small></dd></div>
-      ${ok ? `<div><dt>Band for the bound</dt><dd>${fmt(M.B(st.hi), 2)} to ${fmt(M.B(st.lo), 2)}<small>B(c_max) to B(c_min), Lemma 1(c)</small></dd></div>` : ""}`;
-    say.textContent = S.standingSay(st, isDraw ? "Your drawing" : labelOf(choice), isDraw ? M.steepest(choice) : 1);
+      <div class="${P.lo > 0 ? "" : "k-acc"}"><dt>Lower level, c_min</dt><dd>${P.lo > 0 ? S.fc(P.lo) : "None"}<small>${P.lo > 0 ? "the cost stays at or above it" : "the cost falls toward 0"}</small></dd></div>
+      <div class="${Number.isFinite(P.hi) ? "" : "k-acc"}"><dt>Upper level, c_max</dt><dd>${Number.isFinite(P.hi) ? S.fc(P.hi) : "None"}<small>${Number.isFinite(P.hi) ? "the cost stays at or below it" : "no finite level holds for all time"}</small></dd></div>
+      ${ok ? `<div><dt>Band for the bound</dt><dd>${P.bandLo.toFixed(2)} to ${P.bandHi.toFixed(2)}<small>B(c_max) to B(c_min), Lemma 1(c), rounded outward</small></dd></div>` : ""}`;
+    say.textContent = S.standingSay({ ...st, lo: P.lo, hi: P.hi }, isDraw ? "Your drawing" : labelOf(choice), isDraw ? M.steepest(choice) : 1);
     liftReady(fig);
   };
   pick.addEventListener("change", () => { choice = choiceFromPick(pick.value); setChoice(choice); });
@@ -288,7 +286,8 @@ function valuePlate() {
   const W = (i, j) => data.V[i][j] - data.gy[j];
   const yTopOf = () => { const fin = data.b.filter((v) => v !== null); return Math.min(3.2, Math.max(0.6, Math.max(...fin, ...data.pm) * 1.25 + 0.1)); };
   const bestW = () => { let bi = 0, bv = -1; for (let i = 0; i < data.times.length; i++) { const w = W(i, 0); if (w > bv) { bv = w; bi = i; } } return { i: bi, t: data.times[bi], W: bv }; };
-  const near = (t, y) => { const i = Math.max(0, Math.min(data.times.length - 1, Math.round(t / 0.05))), j = Math.max(0, Math.min(data.ys.length - 1, Math.round(y / (data.ys[1] - data.ys[0])))); return { i, j }; };
+  // a tap is snapped to the nearest kept sample, and its W is read from the data on show (so it follows a re-solve)
+  const tapAt = () => { if (!guess || !data) return null; const n = M.nearestSample(data.times, data.ys, guess.t, guess.y); return { ...n, W: Math.max(0, W(n.i, n.j)) }; };
   const drawCost = () => {
     const cost = costOf(choice), dl = deadlineOf(choice), view = dl !== null ? Math.min(dl, VIEW) : VIEW;
     const ts = range(0, view, 201), cs = ts.map((t) => cost(t)), fin = cs.filter(Number.isFinite);
@@ -315,7 +314,8 @@ function valuePlate() {
       }
     }
     s += axes(f, { yl: "evidence, y = |x|", xl: "start time, t", grid: !shown });
-    s += line(f, data.t, data.pm, "pm") + line(f, data.t, data.b.map((v) => (v === null ? NaN : v)), "ex");
+    const [tp, pp] = dropAt(data.t, data.pm, data.deadline), [tb, bb] = dropAt(data.t, data.b.map((v) => (v === null ? NaN : v)), data.deadline);
+    s += line(f, tp, pp, "pm") + line(f, tb, bb, "ex");
     if (!shown) {
       s += `<text class="tk" x="${(f.l + 8).toFixed(1)}" y="${(f.H - f.b - 10).toFixed(1)}">wait</text><text class="tk" x="${(f.l + 8).toFixed(1)}" y="${f.t + 12}">decide at once</text>`;
     } else {
@@ -324,7 +324,8 @@ function valuePlate() {
       s += `<circle class="ink-dot" cx="${f.sx(bw.t).toFixed(1)}" cy="${f.sy(0).toFixed(1)}" r="5"/>`;
       s += `<text class="tag-ex" x="${(f.sx(bw.t) + (f.sx(bw.t) > f.W * 0.6 ? -7 : 7)).toFixed(1)}" y="${(f.sy(0) - 9).toFixed(1)}" text-anchor="${f.sx(bw.t) > f.W * 0.6 ? "end" : "start"}">most: ${fmt(bw.W, 3)}</text>`;
     }
-    if (guess) s += `<circle class="acc-dot" cx="${f.sx(guess.t).toFixed(1)}" cy="${f.sy(guess.y).toFixed(1)}" r="5.5"/>`;
+    const tap = tapAt();
+    if (tap) s += `<circle class="acc-dot" cx="${f.sx(tap.t).toFixed(1)}" cy="${f.sy(tap.y).toFixed(1)}" r="5.5"/>`;
     s += `<rect class="hit" x="${f.l}" y="${f.t}" width="${f.W - f.l - f.r}" height="${f.H - f.t - f.b}"/>`;
     mapEl.innerHTML = svg(f, s, shown ? `The value of waiting over start time and evidence for ${labelOf(choice)}, darker where it is larger, with the best bound` : `The best bound for ${labelOf(choice)} over start time, with the region below it where the decision maker waits`);
     mapEl._f = f;
@@ -340,25 +341,27 @@ function valuePlate() {
     for (let k = ys.length - 1; k >= 0; k--) d += "L" + f.sx(ys[k]).toFixed(1) + " " + f.sy(gy[k]).toFixed(1);
     s += `<path class="w-fill" d="${d}Z"/>`;
     s += line(f, ys, gy, "dim") + line(f, ys, V, "ex");
-    const kb = data.t.findIndex((x) => x >= t - 1e-9), bt = kb >= 0 ? data.b[kb] : null;
-    if (bt !== null && bt > 0) s += `<path class="dim" stroke-dasharray="3 3" d="M${f.sx(bt).toFixed(1)} ${f.t}V${f.H - f.b}"/><text class="tag-ex" x="${(f.sx(bt) + 5).toFixed(1)}" y="${f.t + 12}">bound ${fmt(bt, 2)}</text>`;
-    s += `<text class="tag-ex" x="${(f.sx(0) + 6).toFixed(1)}" y="${(f.sy(V[0]) - 7).toFixed(1)}">V(t, y)</text>`;
+    const bt = data.rowB[i];
+    const bd = (v) => fmt(v, v < 0.1 ? 3 : 2);
+    if (bt !== null && bt > 0) s += `<path class="dim" stroke-dasharray="3 3" d="M${f.sx(bt).toFixed(1)} ${f.t}V${f.H - f.b}"/><text class="tag-ex" x="${(f.sx(bt) + 5).toFixed(1)}" y="${f.t + 12}">bound ${bd(bt)}</text>`;
+    if (V[0] - gy[0] > 0.03) s += `<text class="tag-ex" x="${(f.sx(0) + 6).toFixed(1)}" y="${(f.sy(V[0]) - 7).toFixed(1)}">V(t, y)</text>`;
     const gx = Math.max(0.12 * yTop, 0.15 * (bt || yTop));
     s += `<text class="tk" x="${f.sx(gx).toFixed(1)}" y="${(f.sy(M.g(gx)) + 18).toFixed(1)}">g(y), deciding now</text>`;
     sliceEl.innerHTML = svg(f, s, `The value V(t, y) at time ${t.toFixed(2)} beside the reward for deciding now, with the gap between them shaded`);
     const W0 = data.V[i][0] - data.gy[0], bw = bestW();
     reads.innerHTML = `<div><dt>V(t, 0)</dt><dd>${fmt(data.V[i][0], 3)}<small>the best a decision from y = 0 earns</small></dd></div>
       <div><dt>W(t, 0)</dt><dd>${fmt(W0, 3)}<small>V − g at y = 0</small></dd></div>
-      <div><dt>Bound at t</dt><dd>${bt === null ? "–" : fmt(bt, 2)}<small>where W reaches 0</small></dd></div>
-      <div><dt>Largest W</dt><dd>${fmt(bw.W, 3)}<small>at time ${bw.t.toFixed(2)}, y = 0</small></dd></div>`;
-    say.textContent = S.sliceSay(t, bt ?? 0, data.V[i][0], W0);
+      <div><dt>Bound at t</dt><dd>${bt === null ? "–" : bd(bt)}<small>where W reaches 0</small></dd></div>
+      <div><dt>Largest W</dt><dd>${fmt(bw.W, 3)}<small>of the map's samples: time ${bw.t.toFixed(2)}, y = 0</small></dd></div>`;
+    say.textContent = S.sliceSay(t, bt ?? 0, data.V[i][0], W0, Math.abs(t - data.horizon) < 1e-9);
   };
   const drawAll = () => { drawCost(); drawMap(); drawSlice(); if (data) liftReady(fig); };
   const reveal = () => {
     shown = true; after.hidden = false;
     const bw = bestW();
-    tSel = guess ? data.times[near(guess.t, guess.y).i] : bw.t;
-    verdict.textContent = S.valueVerdict(guess, { t: bw.t, W: bw.W });
+    const tap = tapAt();
+    tSel = tap ? tap.t : bw.t;
+    verdict.textContent = S.valueVerdict(tap, { t: bw.t, W: bw.W });
     tIn.value = tSel; drawAll();
   };
   const run = () => {
@@ -372,7 +375,8 @@ function valuePlate() {
     valueFor(choice, dl !== null ? "far" : last, (p) => { if (wanted === k) state.textContent = `Solving the dynamic program… ${Math.round(p * 100)}%`; }).then((m) => {
       if (wanted !== k) return;
       data = m;
-      state.textContent = `Dynamic program on a grid: time step ${m.dt}, evidence step ${m.h}, the choice forced at time ${S.fc(m.horizon)}. V is kept every 0.05 time units and every ${(m.ys[1] - m.ys[0]).toFixed(2)} in y.`;
+      state.textContent = `Dynamic program on a grid: time step ${m.dt}, evidence step ${m.h}, the choice forced at time ${S.fc(m.horizon)}. V is kept every 0.05 time units and every ${(m.ys[1] - m.ys[0]).toFixed(2)} in y.` +
+        (m.b.some((v) => M.belowFirstStep(v, m.h)) ? ` Where the program waits at y = 0 but decides one evidence step out, the page puts the bound between the two; the paper's code reports 0 there.` : "");
       tSel = Math.min(tSel, m.view);
       if (shown) reveal(); else drawAll();
     }).catch((e) => { if (wanted === k) state.textContent = "The solver stopped: " + e.message; });
@@ -381,9 +385,9 @@ function valuePlate() {
     if (!data || !mapEl._f) return;
     const f = mapEl._f, r = mapEl.getBoundingClientRect();
     const t = Math.max(0, Math.min(data.view, f.ix(((e.clientX - r.left) / r.width) * f.W))), y = Math.max(0, Math.min(yTopOf(), f.iy(((e.clientY - r.top) / r.height) * f.H)));
-    const { i, j } = near(t, y);
-    guess = { t, y, W: Math.max(0, W(i, j)) };
-    if (shown) { tSel = data.times[i]; tIn.value = tSel; verdict.textContent = S.valueVerdict(guess, bestW()); }
+    guess = { t, y };
+    const tap = tapAt();
+    if (shown) { tSel = tap.t; tIn.value = tSel; verdict.textContent = S.valueVerdict(tap, bestW()); }
     drawAll();
   });
   tIn.addEventListener("input", () => { tSel = +tIn.value; drawCost(); drawMap(); drawSlice(); });
@@ -486,17 +490,19 @@ function routesPlate() {
         s += `<text class="${k === 1 && step === 2 ? "tag-ex" : "tag-acc"}" x="${(x - 6).toFixed(1)}" y="${(y - 9).toFixed(1)}" text-anchor="end">${step === 2 ? ["corner", "smooth fit", "dips under g"][k] : `b = ${fmt(b, 2)}`}</text>`;
       });
       s += `<text class="tk" x="${(f.W - f.r).toFixed(1)}" y="${(f.sy(M.g(X)) + 16).toFixed(1)}" text-anchor="end">g(y)</text>`;
-      label = "Values of waiting for three flat levels beside the reward for deciding now";
+      label = "The values of following three flat rules, beside the reward for deciding now";
       reads.innerHTML = `<div><dt>B(c)</dt><dd>${fmt(bc, 3)}</dd></div>` + (step === 2 ? `<div><dt>Slopes at B</dt><dd>${fmt(M.flatValueSlope(bc, c), 4)}<small>V′(B) and g′(B) = ${fmt(M.gPrime(bc), 4)}</small></dd></div>` : `<div><dt>Levels tried</dt><dd>${levels.map((b) => fmt(b, 2)).join(", ")}</dd></div>`);
     } else if (step === 1) {
-      const ys = range(0, X, 161), q = ys.map((y) => inRange(c * (y + 0.5 * Math.sinh(2 * y)), 0, 1.25));
+      // each level's piece runs from 0 to its own level (its dot); above it that rule stops, and its value is g
+      const ys = range(0, levels[2], 161), q = ys.map((y) => inRange(c * (y + 0.5 * Math.sinh(2 * y)), 0, 1.25));
       f = frame(chart, { x: [0, X], y: [0, 1.2], aspect: 0.56, minH: 200, maxH: 290 });
       s = axes(f, { yl: "cosh² y times the slope", xl: "evidence, y", grid: true });
       s += `<path class="dim" d="M${f.l} ${f.sy(0.5).toFixed(1)}H${f.W - f.r}"/><text class="tk" x="${f.l + 4}" y="${(f.sy(0.5) - 6).toFixed(1)}">cosh² y · g′(y) = ½</text>`;
       s += line(f, ys, q, "ex");
       levels.forEach((b, k) => { const v = c * (b + 0.5 * Math.sinh(2 * b)); if (v <= 1.2) s += `<circle class="${k === 1 ? "ink-dot" : "acc-dot"}" cx="${f.sx(b).toFixed(1)}" cy="${f.sy(v).toFixed(1)}" r="${k === 1 ? 4.5 : 3.5}"/>`; });
       s += `<text class="tag-ex" x="${(f.sx(X * 0.5)).toFixed(1)}" y="${(f.sy(Math.min(1.1, c * (X * 0.5 + 0.5 * Math.sinh(X)))) - 10).toFixed(1)}" text-anchor="end">c (y + ½ sinh 2y)</text>`;
-      label = "cosh squared y times the slope of the value, the same curve for every level, against the line one half";
+      s += `<text class="tk" x="${(f.W - f.r).toFixed(1)}" y="${(f.H - f.b - 8).toFixed(1)}" text-anchor="end">each level's piece ends at its dot</text>`;
+      label = "cosh squared y times the slope of each flat rule's value, one curve below every level, against the line one half";
       reads.innerHTML = `<div><dt>B(c)</dt><dd>${fmt(bc, 3)}</dd></div><div><dt>The curve at B</dt><dd>${fmt(c * (bc + 0.5 * Math.sinh(2 * bc)), 4)}<small>½ there, by step 3</small></dd></div>`;
     } else if (step === 3) {
       const bs = range(0, X, 161);
@@ -577,7 +583,7 @@ function doublePlate() {
       reads.innerHTML = `<div><dt>B(c)</dt><dd>${fmt(b1, 3)}</dd></div>
         <div><dt>B′(c)</dt><dd>${fmt(bp, 3)}<small>difference quotient ${fmt(fd(at), 3)}</small></dd></div>
         <div><dt>B(2c)</dt><dd>${fmt(b2, 3)}<small>${Math.round((100 * b2) / b1)}% of B(c)</small></dd></div>`;
-      say.textContent = S.slideSay(at, b1, bp, b2);
+      say.textContent = S.slideSay(at, b1, bp, b2, M.B(at + 0.01));
       liftReady(fig);
     }
   };

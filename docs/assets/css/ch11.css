@@ -1,0 +1,11 @@
+/* Chapter 11: what the shared classes can't give. The plug-in rule (unknown reliability) is a dotted ink line, set
+   apart from the program's solid ink; the bars of Table 10 take each rule's own color. */
+.chart .plug { stroke: var(--print-ink); stroke-width: 2.2; stroke-dasharray: 0.5 4; stroke-linecap: round; fill: none; opacity: 0.8; }
+.key-plug::before { border-top: 3px dotted var(--print-ink); opacity: 0.8; }
+.chart .bar-pm { fill: var(--pm); opacity: 0.85; }
+.chart .bar-wb { fill: var(--wb); }
+.chart .bar-plug { fill: var(--print-ink); opacity: 0.55; }
+.chart .bar-dim { fill: var(--print-dim); opacity: 0.45; }
+/* the indifference point x*: a dotted gray line, apart from the dashed equal-reward bounds */
+.chart .xstar { stroke: var(--print-dim); stroke-width: 1.3; stroke-dasharray: 1 3; stroke-linecap: round; fill: none; }
+.key-xstar::before { border-top: 2px dotted var(--print-dim); }

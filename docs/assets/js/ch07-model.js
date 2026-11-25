@@ -3,8 +3,8 @@
 // waiting value at a constant cost, the time spent past the bound), and the forward computation that scores a rule
 // and gives its decision times, for the losses on the reader's schedule. tools/checks/ch07.mjs holds these to the
 // paper's generated numbers and to model.js.
-import * as K from "./kernel.js?v=37a0cf8296";
-import { boundForCost, toDiscrete, belief } from "./model.js?v=37a0cf8296";
+import * as K from "./kernel.js?v=0648557a87";
+import { boundForCost, toDiscrete, belief } from "./model.js?v=0648557a87";
 
 /** The paper's Table 1 (tab_sinusoid at the tag), c0 = 0.1 and eps = 0.01: omega, then the swing and the lead in
  * degrees for the closed form, the dynamic program, and the weighted look-ahead. Checked cell by cell against
@@ -196,10 +196,10 @@ export const hitMean = (y, z) => z * Math.tanh(z) - y * Math.tanh(y);
 
 /** The program on the evidence grid, model.js's exactPolicy step for step, keeping what it decides at every node with
  * x >= 0 (the problem is symmetric): stop[k (m + 1) + i] is 1 where deciding beats waiting at time ts[k] and node
- * x = i h. Also its value at the start, and two readings of its bound: exactPolicy's (the first stopping node past
- * 0, interpolated, and 0 when that node is the first one, as the paper's backward_induction_x reports it) and one
- * that interpolates between the center and the first node when the center still waits. At a high cost the first
- * node can stop while the center waits; the stop set keeps that choice, and the policy is scored from it. */
+ * x = i h. Also its value at the start and its bound as exactPolicy exports it: the first stopping node past 0,
+ * interpolated, and, when that node is the grid's first step and the center still waits, a point between the two.
+ * paperZero[k] marks those steps: the paper's backward_induction_x reports 0 there. The policy is scored from the
+ * stop set. (best is the same array as bounds, kept for the callers that read it.) */
 export function gridProgram(cost, horizon, dt = 0.01, h = 0.02, cap = 5) {
   const steps = Math.round(horizon / dt);
   const ts = Float64Array.from({ length: steps + 1 }, (_, k) => k * dt);
@@ -208,7 +208,7 @@ export function gridProgram(cost, horizon, dt = 0.01, h = 0.02, cap = 5) {
   const decide = Float64Array.from(g, (gi) => Math.max(gi, 1 - gi));
   let v = Float64Array.from(decide);
   const wait = new Float64Array(n);
-  const bounds = new Float64Array(steps + 1), best = new Float64Array(steps + 1);
+  const bounds = new Float64Array(steps + 1), paperZero = new Uint8Array(steps + 1);
   const stop = new Uint8Array((steps + 1) * (m + 1));
   stop.fill(1, steps * (m + 1));
   for (let k = steps - 1; k >= 0; k--) {
@@ -223,23 +223,21 @@ export function gridProgram(cost, horizon, dt = 0.01, h = 0.02, cap = 5) {
       }
       wait[i] = g[i] * up + (1 - g[i]) * down - ck;
     }
-    let b = Infinity, bb = Infinity;
+    let b = Infinity;
     for (let i = m + 1; i < n; i++) {
       const d = decide[i] - wait[i];
       if (d > 0) {
         const dp = decide[i - 1] - wait[i - 1];
-        const lin = x[i - 1] - (dp * (x[i] - x[i - 1])) / (d - dp);
-        b = i === m + 1 ? 0 : lin;
-        bb = i === m + 1 && dp >= 0 ? 0 : lin;
+        b = i === m + 1 && dp >= 0 ? 0 : x[i - 1] - (dp * (x[i] - x[i - 1])) / (d - dp);
+        if (i === m + 1 && dp < 0) paperZero[k] = 1;
         break;
       }
     }
     bounds[k] = b > cap ? Infinity : b;
-    best[k] = bb > cap ? Infinity : bb;
     for (let i = m; i < n; i++) stop[k * (m + 1) + (i - m)] = decide[i] >= wait[i] ? 1 : 0;
     for (let i = 0; i < n; i++) v[i] = Math.max(decide[i], wait[i]);
   }
-  return { ts, bounds, best, stop, m, value: v[m], dt };
+  return { ts, bounds, best: bounds, paperZero, stop, m, value: v[m], dt };
 }
 
 function grid(dt, h, cap) {
@@ -344,9 +342,9 @@ export const LOSS_HORIZON = 14;
  * policy, the per-moment rule, and the first-order bound b0 + eps beta(t) (clipped at 0), each scored by the forward
  * computation, with each rule's loss and Conjecture 11's prediction for it. The rules' bounds are evidence bounds
  * checked every dt (moved in by the monitoring shift, as the solver's worker does); the program is scored from its
- * own stop set, so the reference is the program's own value and no rule can score above it on the grid. The grid's
- * resolution is the per-moment rule's loss at the constant cost c0: 0 in the continuous problem, so all of it is
- * the grid's. */
+ * own stop set, so the reference is the program's own value, the best any policy on this grid can score. The
+ * baseline (floor) is the per-moment rule's loss at the constant cost c0 on this grid with this forced choice: 0 in
+ * the continuous problem on an infinite horizon, so it measures the grid and the horizon together. */
 export function lossRun(cost, EPS, { horizon = LOSS_HORIZON, view = 2.5, dt = 0.01, h = 0.02, every = 2, progress = null } = {}) {
   const c0 = cost(0);
   const gamma = (t) => cost(t) - c0;
@@ -372,7 +370,7 @@ export function lossRun(cost, EPS, { horizon = LOSS_HORIZON, view = 2.5, dt = 0.
     // the share of the prediction from the last 2 time units before the forced choice
     const late = (P) => { let k0 = 0; while (k0 < N - 1 && ts[k0] <= horizon - 2) k0++; const before = k0 > 0 ? P.cum[k0 - 1] : 0; return P.pred > 0 ? (P.pred - before) / P.pred : NaN; };
     let foZero = false, centerWaits = 0;
-    for (let k = 0; k < N - 1; k++) { if (fo[k] <= 0) foZero = true; if (dp.bounds[k] === 0 && dp.best[k] > 0) centerWaits++; }
+    for (let k = 0; k < N - 1; k++) { if (fo[k] <= 0) foZero = true; if (dp.paperZero[k]) centerWaits++; }
     runs.push({
       eps, Rdp,
       loss: { pm: Rdp - Fp.reward, fo: Rdp - Ff.reward },
@@ -390,6 +388,10 @@ export function lossRun(cost, EPS, { horizon = LOSS_HORIZON, view = 2.5, dt = 0.
 /** The top of the ratio chart's axis: 2, or the largest ratio rounded up, at most 8. */
 export const ratioAxisTop = (ratios) => Math.min(8, Math.max(2, Math.ceil(Math.max(0, ...ratios) * 1.1)));
 
+/** How the ratio chart draws a ratio: a dot on the axis, an arrow with its value at the top past the axis, or not at
+ * all when there is no ratio. */
+export const ratioMark = (v, top) => (!Number.isFinite(v) ? "none" : v <= top ? "dot" : "arrow");
+
 /** Whether a schedule is flat: within a relative 1e-9 of its cost at time 0 at every 0.01 up to the horizon. */
 export function isFlat(cost, horizon = LOSS_HORIZON) {
   const c0 = cost(0);
@@ -398,8 +400,8 @@ export function isFlat(cost, horizon = LOSS_HORIZON) {
   return true;
 }
 
-/** A display rule, not an error bound: a loss counts as resolved by the grid when it is at least ten times the grid's
- * resolution (the per-moment rule's loss at the constant cost, all of it the grid's). */
+/** A display cutoff, not an error bound: a loss is drawn as a filled dot when it is at least ten times the baseline
+ * (the per-moment rule's loss at the constant cost, on this grid and horizon). */
 export const resolved = (loss, floor) => Number.isFinite(loss) && loss >= 10 * floor;
 
 /** The slope of log y against log x over the n smallest x where keep[i] holds (least squares), where the order of a

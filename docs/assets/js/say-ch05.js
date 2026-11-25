@@ -25,6 +25,21 @@ export function heroLabel(t, bc, Bc, top, L) {
   return `At time ${t.toFixed(1)}: ${cost}, and the area (${f3(L)} on the grid) ends at ${f2(bc)}, ${where}`;
 }
 
+/** "1 time", "182 times". */
+export const count = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
+/** A cost bound printed to three significant figures, rounded down (lo) or up (hi), so the printed interval holds the
+ * true one. */
+export function outward(x, up) {
+  if (!(x > 0) || !Number.isFinite(x)) return "–";
+  const unit = 10 ** (Math.floor(Math.log10(x)) - 2), k = x / unit;
+  const r = up ? Math.ceil(k - 1e-9) : Math.floor(k + 1e-9);
+  return String(+(r * unit).toPrecision(3));
+}
+
+/** The hero chart's second label line: the areas are 1/4 in the model; the green one's value on the grid. */
+export const heroChartLabel = (L) => (Number.isFinite(L) ? `areas about ¼; the green one is ${L.toFixed(3)} on the grid` : "areas about ¼");
+
 /** A ratio of costs: two decimals below 2, one below 10, none above. */
 export const fold = (x) => (Number.isFinite(x) ? x.toFixed(x < 1.995 ? 2 : x < 9.95 ? 1 : 0) : "–");
 
@@ -89,7 +104,7 @@ export function regularSay(step, o) {
   }
   const r = o.ratios, first = r[0], lastR = r[r.length - 1];
   const shrink = r.every((q, i) => i === 0 || q.r < r[i - 1].r);
-  return `On this grid, with evidence step ${o.h}, the chords' slopes W(t, b − ε)/ε ${shrink ? "shrink" : "go"} from ${f4(first.r)} at ε = ${f3(first.e)} to ${f4(lastR.r)} at ε = ${f3(lastR.e)}, measured from grid points to the grid's bound; in the model they tend to 0, which is smooth fit (Proposition 3(c)). In the last cell below the bound, V's slope is ${f3(o.slope)} and g's is ${f3(o.gp)}.`;
+  return `On this grid, with evidence step ${o.h}, the sizes of the chords' slopes, W(t, b − ε)/ε, ${shrink ? "shrink" : "go"} from ${f4(first.r)} at ε = ${f3(first.e)} to ${f4(lastR.r)} at ε = ${f3(lastR.e)}, measured from grid points to the grid's bound; in the model they tend to 0, which is smooth fit (Proposition 3(c)). In the last cell below the bound, V's slope is ${f3(o.slope)} and g's is ${f3(o.gp)}.`;
 }
 
 // ---- the Hölder band
@@ -130,10 +145,10 @@ export function areaSay(step, o) {
 export function liveSay(o) {
   const tail = o.far && Number.isFinite(o.tail) ? ` In the last time unit before the forced choice at ${o.horizon}, the left side moves away from ¼, by up to ${f3(o.tail)}: there the bound is the finite-horizon problem's, which the equation is not about.` : "";
   const grids = Number.isFinite(o.wf) && Number.isFinite(o.wc)
-    ? ` Going from Δt 0.01 with h 0.02 to Δt 0.002 with h 0.005, with the same horizon, ${o.wf < o.wc ? "lowers" : "doesn't lower"} the largest residual, from ${sci(o.wc)} to ${sci(o.wf)}.` : "";
+    ? ` Going from Δt 0.01 with h 0.02 to Δt 0.002 with h 0.005, with the same horizon, ${o.wf < o.wc ? "lowers" : "doesn't lower"} the largest residual${o.restricted ? " at the times both grids resolve" : ""}, from ${sci(o.wc)} to ${sci(o.wf)}.` : "";
   const steep = Number.isFinite(o.wf) && o.wf > 1.5e-3
-    ? ` On the finer grid, the residual is more than the 1.5 × 10⁻³ that the paper's test allows for its three schedules${Number.isFinite(o.fold) && o.fold > 4 ? `, which change by at most 4-fold; this one changes ${fold(o.fold)}-fold` : ""}.` : "";
-  const zeros = o.zeros > 0 ? ` At ${o.zeros} of the times shown, the bound is closer to 0 than the grid's first step and reads as 0, so there the left side shows the grid's limit, not the equation.` : "";
+    ? ` On the finer grid, the residual is more than the 1.5 × 10⁻³ that the paper's test allows for its three schedules${Number.isFinite(o.fold) && o.fold > 4 ? `, which change by at most 4-fold; this one's cost changes ${fold(o.fold)}-fold up to time ${o.horizon}` : ""}.` : "";
+  const zeros = o.zeros > 0 ? ` At ${o.zeros}${Number.isFinite(o.nWin) && Number.isFinite(o.X) ? ` of the ${o.nWin} times from 0 to ${o.X}${o.far ? ", before the forced choice," : ""} (every 0.01)` : " of the times shown"}, the bound on this grid is closer to 0 than the grid's first step and reads as 0. Those times are gaps in the charts and are left out of the residuals above; there the left side shows the grid's limit, not the equation.` : "";
   if (o.constant) return `For a constant cost, the left side is c(b/2 + sinh 2b/4); on the grid with Δt ${o.dt}, it is within ${sci(o.w)} of ¼ at every time shown from 0 to 2.5.${grids}${tail}`;
   return `For “${o.label}”, the left side stays within ${sci(o.w)} of ¼ from time 0 to 2.5 on the grid with Δt ${o.dt}.${grids}${steep}${zeros} With the cost now in place of the cost at decision, the left side misses ¼ by up to ${f3(o.pm)}.${tail}`;
 }

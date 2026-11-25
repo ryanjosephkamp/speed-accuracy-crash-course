@@ -69,11 +69,17 @@ export const MEAN_HEADS = [
 
 export function shiftSay(label, G, flat = false) {
   const { maxPm: gapPm, maxSh: gapSh, avgPm, avgSh, apart } = G;
-  if (flat) return `${label}: the cost doesn't move, so the per-moment and shifted bounds coincide${apart < 1e-12 ? " exactly" : `, to within ${sci(apart)}`}. The program's bound is on average ${f3(avgPm)} from them, and at most ${f3(gapPm)}: the grid's step and the forced choice at the end of the program's horizon make that difference.`;
-  let s = `${label}: over the window, the per-moment bound is on average ${f3(avgPm)} from the best bound and the shifted one ${f3(avgSh)}; their largest gaps are ${f3(gapPm)} and ${f3(gapSh)}. `;
+  if (flat) return `${label}: the cost doesn't move, so the per-moment and shifted bounds coincide${apart < 1e-12 ? " exactly" : `, to within ${sci(apart)}`}. The program's exported bound is on average ${f3(avgPm)} from them, and at most ${f3(gapPm)}: the grid's step and the forced choice at the end of the program's horizon make that difference.`;
+  let s = `${label}: over the window, the per-moment bound is on average ${f3(avgPm)} from the program's exported bound and the shifted one ${f3(avgSh)}; their largest gaps are ${f3(gapPm)} and ${f3(gapSh)}. `;
   if (avgSh < avgPm * 0.9) s += "Here the shift helps on average.";
   else if (avgSh > avgPm * 1.1) s += "Here the shift does worse on average than no shift.";
   else s += "Here the shift makes little difference on average.";
+  return s;
+}
+
+export function shiftState(deadline, n, zero) {
+  let s = `Time step 0.01, evidence step 0.02, ${deadline ? "run to the forced choice at the deadline" : "run to 6 time units past the window"}; ${n} times shown, every 0.02 and the last one; gaps measured from the program's exported bound.`;
+  if (zero) s += " Where the program waits at 0 but decides at the grid's first step, its bound is placed between the two, below 0.02; the paper's code reports 0 there.";
   return s;
 }
 
@@ -117,7 +123,7 @@ export function rewardSay(c, delta, loss, cd2) {
 export const BAND_HEADS = [
   "Step 1: whatever the bound does inside the band, the decision comes between two fixed hitting times.",
   "Step 2: the waiting value at the constant cost touches 0 at the bound like a parabola.",
-  "Step 3: the waiting value left in the band and the time spent above the bound both shrink like D².",
+  "Step 3: the waiting value left in the band and the expected time spent above the bound both shrink like D².",
   "Step 4: the gap between the two fixed hitting times shrinks like D, so ε times it shrinks like ε².",
 ];
 
@@ -134,14 +140,14 @@ export function lossNote(kind, label, c0) {
   return `${label}: written around its cost at time 0, c(0) = ${f3(c0)}, as c(0) + ε(c(t) − c(0)).`;
 }
 
-const lossWords = (x, res) => (!(x > 1e-12) ? `no reward measurable on this grid (a scored difference of ${sci(x)})` : `${sci(x)} of reward${res ? "" : ", below what the grid resolves"}`);
+const lossWords = (x, res) => (!(x > 1e-12) ? `no reward measurable on this grid (a scored difference of ${sci(x)})` : `${sci(x)} of reward${res ? "" : ", below the display cutoff"}`);
 export function lossSay(eps, lossPm, lossFo, slopePm, slopeFo, resPm, resFo, foZero = false) {
   let s = `At ε = ${frac(eps)}, the per-moment rule loses ${lossWords(lossPm, resPm)}, and the first-order bound ${lossWords(lossFo, resFo)}. `;
   if (foZero) s += "At this size the first-order bound falls to 0 for a while, where every decision is made at once: it is a small-change result. ";
-  if (Number.isFinite(slopePm)) s += `Over its three smallest resolved sizes, the per-moment loss falls with a slope of ${f2(slopePm)} on these log axes${slopePm > 1.6 && slopePm < 2.6 ? ", close to the 2 of a second-order loss" : ""}. `;
-  else s += "Fewer than three of the per-moment losses are resolved, too few to fit a slope. ";
+  if (Number.isFinite(slopePm)) s += `Over its three smallest sizes above the display cutoff, the per-moment loss falls with a slope of ${f2(slopePm)} on these log axes${slopePm > 1.6 && slopePm < 2.6 ? ", close to the 2 of a second-order loss" : ""}. `;
+  else s += "Fewer than three of the per-moment losses are above the display cutoff, too few to fit a slope. ";
   if (Number.isFinite(slopeFo)) s += `The first-order bound's loss falls with a slope of ${f2(slopeFo)}${slopeFo > 2.6 ? ", faster than second order" : ""}.`;
-  else s += "The first-order bound's loss reaches the grid's resolution too soon to fit a slope over three sizes.";
+  else s += "The first-order bound's loss falls below the display cutoff too soon to fit a slope over three sizes.";
   return s;
 }
 
@@ -149,12 +155,12 @@ export function conjSay(eps, ratioPm, resPm, latePm, ratioFo, resFo, lateFo, los
   let s = `Conjecture, at ε = ${frac(eps)}: `;
   if (!(lossPm > 1e-12)) s += "the per-moment rule loses nothing measurable on this grid, so there is no ratio";
   else if (resPm && Number.isFinite(ratioPm)) s += `for the per-moment rule, the formula predicts ${f2(ratioPm)} times the scored loss`;
-  else s += "the per-moment rule's loss is below what the grid resolves, so the ratio means little";
+  else s += "the per-moment rule's loss is below the display cutoff, so the ratio means little";
   s += Number.isFinite(latePm) ? `, with ${pct(latePm)} of the prediction from the last 2 time units. ` : ". ";
   s += "The conjecture doesn't cover the first-order bound, whose miss changes shape with ε; ";
   if (!(lossFo > 1e-12)) s += "it loses nothing measurable here.";
   else if (resFo && Number.isFinite(ratioFo)) s += `the same formula gives ${f2(ratioFo)} times its loss${Number.isFinite(lateFo) ? `, with ${pct(lateFo)} from the last 2 time units` : ""}.`;
-  else s += "its loss is below what the grid resolves.";
+  else s += "its loss is below the display cutoff.";
   return s;
 }
 
@@ -165,6 +171,6 @@ export function noLossNote() {
 export function lossState(horizon, centerWaits, kind) {
   let s = `Time step 0.01, evidence step 0.02, a forced choice at time ${horizon}; the best policy is scored from the program's own stop set, so no rule can score above it on the grid.`;
   if (kind === "conj") s += " The prediction leaves out the last grid time.";
-  if (centerWaits) s += " At some times the program waits at 0 but stops at the grid's first step; its bound is drawn between the two there (the paper's code reports 0).";
+  if (centerWaits) s += " At some times the program waits at 0 but decides at the grid's first step; its bound is placed between the two there, and the paper's code reports 0.";
   return s;
 }

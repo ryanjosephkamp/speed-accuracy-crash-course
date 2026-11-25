@@ -1,8 +1,8 @@
 // Chapter 7's worker: the losses on the reader's schedule, off the page's thread. A schedule arrives as the saved
 // choice ({ id, params } or { id: "draw", points }) and is rebuilt here from the module the page uses.
 //   { job: "loss", choice, eps } -> lossRun's result (ch07-model.js), with progress messages
-import { costOf } from "./schedules-book.js?v=37a0cf8296";
-import { lossRun } from "./ch07-model.js?v=37a0cf8296";
+import { costOf } from "./schedules-book.js?v=0648557a87";
+import { lossRun } from "./ch07-model.js?v=0648557a87";
 
 self.onmessage = (e) => {
   const m = e.data;

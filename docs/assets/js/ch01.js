@@ -2,12 +2,12 @@
 // 16-fold rise, and Figure 1 rebuilt live with the reader's schedule as a fifth panel. The best bound and the weighted
 // look-ahead come from ch01-model.js in ch01-worker.js (the dynamic program and Algorithm 1, from model.js); the
 // per-moment bound is B(c(t)) from model.js's table. The words under each plate come from say-ch01.js.
-import { boundForCost, toDiscrete } from "./model.js?v=37a0cf8296";
-import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, defaultDrawing, VIEW } from "./schedules-book.js?v=37a0cf8296";
-import { getChoice, setChoice, solve, onVisible, watchVisible, liftReady, calm } from "./book.js?v=37a0cf8296";
-import { frame, line, axes, svg, fmt, keepDrawn } from "./chart.js?v=37a0cf8296";
-import { FIG1, fig1Choice, fig1Of, at, ahead, DT, SHIFT } from "./ch01-model.js?v=37a0cf8296";
-import * as S from "./say-ch01.js?v=37a0cf8296";
+import { boundForCost, toDiscrete } from "./model.js?v=0648557a87";
+import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, defaultDrawing, VIEW, SPARE } from "./schedules-book.js?v=0648557a87";
+import { getChoice, setChoice, solve, onVisible, watchVisible, liftReady, calm } from "./book.js?v=0648557a87";
+import { frame, line, axes, svg, fmt, keepDrawn, ticks, dropAt } from "./chart.js?v=0648557a87";
+import { FIG1, fig1Choice, fig1Of, at, ahead, costStrip, DT, SHIFT } from "./ch01-model.js?v=0648557a87";
+import * as S from "./say-ch01.js?v=0648557a87";
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const plate = (id) => document.getElementById("plate-" + id);
@@ -34,7 +34,7 @@ function follow(pick, onChange) {
 const fail = (id, e) => { const r = rootOf(id); if (r) r.innerHTML = `<p class="plate-fail">The live plate could not start: ${String(e.message).replace(/[<>&]/g, "")}</p>`; console.error(e); };
 
 // ---------------------------------------------------------------- the solver: one schedule's three bounds, shared
-const WORKER = new URL("./ch01-worker.js?v=37a0cf8296", import.meta.url);
+const WORKER = new URL("./ch01-worker.js?v=0648557a87", import.meta.url);
 const SOLVED = new Map();
 function three(choice, progress = null) {
   const k = JSON.stringify(choice);
@@ -106,13 +106,22 @@ function rulePlate() {
     <dl class="reads" id="ru-reads"></dl><p class="say" id="ru-say"></p>`;
   const pick = $("#ru-pick", el), inp = $("#ru-t", el), out = $("#ru-out", el), costEl = $("#ru-cost", el), boundEl = $("#ru-bound", el), lensEl = $("#ru-lens", el);
   const reads = $("#ru-reads", el), say = $("#ru-say", el);
-  let cost, dl, ts, cs, pm, cLo, cHi, yTop, xLo, xHi;
+  let cost, dl, X, ts, cs, pm, cLo, cHi, yTop, xLo, xHi;
   const setup = () => {
     pick.value = choice.id;
     cost = costOf(choice); dl = deadlineOf(choice);
-    ts = range(0, VIEW, 251);
-    cs = ts.map((u) => (dl !== null && u > dl + 1e-9 ? Infinity : cost(u)));
-    pm = cs.map((c) => boundForCost(c));
+    // the window reaches past a deadline, so the drop to B(infinity) = 0 is on the chart
+    X = Math.max(VIEW, dl !== null ? dl + 0.5 : 0);
+    inp.max = String(X); if (t > X) t = X;
+    const grid = range(0, X, 251);
+    if (dl === null) { ts = grid; cs = ts.map(cost); pm = cs.map((c) => boundForCost(c)); }
+    else {
+      // up to and at the deadline the cost is finite; just after it, infinite: the bound falls straight down there
+      const before = [...grid.filter((u) => u < dl - 1e-9), dl], after = grid.filter((u) => u > dl + 1e-9);
+      ts = [...before, dl, ...after];
+      cs = [...before.map(cost), Infinity, ...after.map(() => Infinity)];
+      pm = [...before.map((u) => boundForCost(cost(u))), 0, ...after.map(() => 0)];
+    }
     const fc = finite(cs);
     cLo = Math.min(...fc); cHi = Math.max(...fc);
     xLo = Math.max(0.004, Math.min(cLo / 2, 0.05)); xHi = Math.min(8, Math.max(cHi * 2, 0.5));
@@ -123,14 +132,14 @@ function rulePlate() {
     out.textContent = t.toFixed(2);
     const c = costAt(t), b = boundForCost(c), past = !Number.isFinite(c);
     // the cost over time
-    const fc = frame(costEl, { x: [0, VIEW], y: [cLo / 1.6, cHi * 1.6], ylog: true, aspect: 0.22, minH: 92, maxH: 130, b: 22 });
+    const fc = frame(costEl, { x: [0, X], y: [cLo / 1.6, cHi * 1.6], ylog: true, aspect: 0.22, minH: 92, maxH: 130, b: 22 });
     let g = axes(fc, { yl: "cost of time, c(t)", grid: true }) + line(fc, ts, cs, "cost");
-    if (dl !== null) g += `<path class="acc" stroke-dasharray="3 3" d="M${fc.sx(dl).toFixed(1)} ${fc.t - 4}V${fc.H - fc.b}"/><text class="tag-acc" x="${(fc.sx(dl) + 4).toFixed(1)}" y="${fc.t + 8}">forced choice</text>`;
+    if (dl !== null) g += `<path class="acc" stroke-dasharray="3 3" d="M${fc.sx(dl).toFixed(1)} ${fc.t - 4}V${fc.H - fc.b}"/><text class="tag-acc" x="${(fc.sx(dl) + (fc.sx(dl) + 84 > fc.W - fc.r ? -4 : 4)).toFixed(1)}" y="${fc.t + 8}" text-anchor="${fc.sx(dl) + 84 > fc.W - fc.r ? "end" : "start"}">forced choice</text>`;
     g += `<path class="dim" stroke-dasharray="2 3" d="M${fc.sx(t).toFixed(1)} ${fc.t}V${fc.H - fc.b}"/>`;
     if (!past) g += `<circle class="acc-dot" cx="${fc.sx(t).toFixed(1)}" cy="${fc.sy(c).toFixed(1)}" r="4.5"/>`;
     costEl.innerHTML = svg(fc, g, `The cost of time for ${labelOf(choice)}, on a log scale, with time ${t.toFixed(2)} marked`);
     // the per-moment bound over time
-    const fb = frame(boundEl, { x: [0, VIEW], y: [0, yTop], aspect: 0.4, minH: 160, maxH: 240 });
+    const fb = frame(boundEl, { x: [0, X], y: [0, yTop], aspect: 0.4, minH: 160, maxH: 240 });
     let h = axes(fb, { yl: "per-moment bound, B(c(t))", xl: "time", grid: true }) + line(fb, ts, pm, "pm");
     h += `<path class="dim" stroke-dasharray="2 3" d="M${fb.sx(t).toFixed(1)} ${fb.t}V${fb.H - fb.b}"/>`;
     h += `<path class="pm-guide" d="M${fb.l} ${fb.sy(b).toFixed(1)}H${fb.sx(t).toFixed(1)}"/><circle class="pm-dot" cx="${fb.sx(t).toFixed(1)}" cy="${fb.sy(b).toFixed(1)}" r="4.5"/>`;
@@ -152,8 +161,7 @@ function rulePlate() {
     lensEl.innerHTML = svg(fl, k, `The constant-cost bound B(c) against the cost, with the costs your schedule reaches shaded and the cost at time ${t.toFixed(2)} read through it`);
     reads.innerHTML = `<div class="k-acc"><dt>Cost at time ${t.toFixed(2)}</dt><dd>${S.cf(c)}</dd></div>
       <div class="k-pm"><dt>Per-moment bound</dt><dd>${fmt(b, 3)}<small>B(c(t)), for checking continuously</small></dd></div>`;
-    const next = past ? null : ahead(costAt, t, dl);
-    say.textContent = S.ruleSay(t, past ? cost(Math.min(t, dl)) : c, past ? boundForCost(cost(dl)) : b, next, dl);
+    say.textContent = S.ruleSay(t, past ? cost(dl) : c, past ? boundForCost(cost(dl)) : b, ahead(costAt, t, dl), dl);
     liftReady(fig);
   };
   const loop = (now) => {
@@ -161,7 +169,7 @@ function rulePlate() {
     if (!auto || !visible) return;
     if (!t0) t0 = now;
     const ph = ((now - t0) / 11000) % 1;
-    t = Math.round(VIEW * (0.5 - 0.5 * Math.cos(2 * Math.PI * ph)) * 100) / 100;
+    t = Math.round(X * (0.5 - 0.5 * Math.cos(2 * Math.PI * ph)) * 100) / 100;
     inp.value = t; draw();
     raf = requestAnimationFrame(loop);
   };
@@ -209,14 +217,14 @@ function risePlate() {
       const bT = bestT();
       if (guess !== null) s += `<path class="miss" d="M${X0.toFixed(1)} ${f.sy(guess).toFixed(1)}V${f.sy(bT).toFixed(1)}"/>`;
       s += `<circle class="ink-dot" cx="${X0.toFixed(1)}" cy="${f.sy(bT).toFixed(1)}" r="4.5"/>`;
-      s += `<text class="tag-ex" x="${(X0 - 8).toFixed(1)}" y="${(f.sy(bT) + 4).toFixed(1)}" text-anchor="end">best ${fmt(bT)}</text>`;
+      s += `<text class="tag-ex" x="${(X0 - 8).toFixed(1)}" y="${(f.sy(bT) + 4).toFixed(1)}" text-anchor="end">best ${fmt(bT, 3)}</text>`;
     }
     s += `<circle class="pm-dot" cx="${X0.toFixed(1)}" cy="${f.sy(pmT).toFixed(1)}" r="4"/>`;
     const gy = guess ?? +inp.value;
     s += `<circle class="acc-dot" cx="${X0.toFixed(1)}" cy="${f.sy(gy).toFixed(1)}" r="${guess === null ? 7 : 6}" style="opacity:${guess === null ? 0.55 : 1}"/>`;
     if (guess === null) s += `<text class="tag-acc" x="${(X0 + 11).toFixed(1)}" y="${(f.sy(gy) + 4).toFixed(1)}">drag me</text>`;
     else s += `<text class="tag-acc" x="${(X0 + 10).toFixed(1)}" y="${(f.sy(gy) + 4).toFixed(1)}">you ${fmt(guess)}</text>`;
-    s += `<text class="tag-pm" x="${(X0 + 10).toFixed(1)}" y="${(f.sy(pmT) + (Math.abs(f.sy(pmT) - f.sy(gy)) < 16 ? (f.sy(pmT) > f.sy(gy) ? 16 : -10) : 4)).toFixed(1)}">per-moment ${fmt(pmT)}</text>`;
+    s += `<text class="tag-pm" x="${(X0 + 10).toFixed(1)}" y="${(f.sy(pmT) + (Math.abs(f.sy(pmT) - f.sy(gy)) < 16 ? (f.sy(pmT) > f.sy(gy) ? 16 : -10) : 4)).toFixed(1)}">per-moment ${fmt(pmT, 3)}</text>`;
     s += `<rect class="hit" x="${f.l}" y="${f.t}" width="${f.W - f.l - f.r}" height="${f.H - f.t - f.b}"/>`;
     boundEl.innerHTML = svg(f, s, shown ? "Your guess beside the best bound and the per-moment bound, on the 16-fold rise" : "The per-moment bound on the 16-fold rise, and a marker for your guess at time 0.4");
     boundEl._f = f;
@@ -225,9 +233,9 @@ function risePlate() {
     shown = true; drawBound();
     const bT = bestT();
     reads.innerHTML = `<div class="k-acc"><dt>Your guess</dt><dd>${guess === null ? "–" : fmt(guess)}</dd></div>
-      <div><dt>Best bound</dt><dd>${fmt(bT)}<small>at time ${T}</small></dd></div>
-      <div class="k-pm"><dt>Per-moment</dt><dd>${fmt(pmT)}<small>at time ${T}</small></dd></div>
-      <div class="k-acc"><dt>Your miss</dt><dd>${guess === null ? "–" : fmt(Math.abs(guess - Math.round(bT * 100) / 100))}</dd></div>`;
+      <div><dt>Best bound</dt><dd>${fmt(bT, 3)}<small>at time ${T}</small></dd></div>
+      <div class="k-pm"><dt>Per-moment</dt><dd>${fmt(pmT, 3)}<small>at time ${T}</small></dd></div>
+      <div class="k-acc"><dt>Your miss</dt><dd>${guess === null ? "–" : fmt(Math.abs(guess - bT), 3)}</dd></div>`;
     say.textContent = S.riseSay(guess, bT, pmT, T, cost(T), c0, c1);
     liftReady(fig);
   };
@@ -253,7 +261,7 @@ function risePlate() {
   state.textContent = "Solving the dynamic program…";
   three(choice).then((r) => {
     result = r;
-    state.textContent = "Time step 0.01, evidence step 0.02; the program runs 6 time units past the window.";
+    state.textContent = `Time step ${DT}, evidence step 0.02; the program runs to t = ${VIEW + SPARE}, 6 time units past the book's window of ${VIEW}, where the choice is forced.`;
     if (waiting) { waiting = false; reveal(); }
   }).catch((e) => { state.textContent = "The solver stopped: " + e.message; });
   keepDrawn(costEl, drawCost); keepDrawn(boundEl, drawBound);
@@ -290,34 +298,36 @@ function figurePlate() {
     const view = p.dl ?? VIEW, l = 28, r = 6, cH = Math.round(Math.min(40, Math.max(28, bh * 0.26)));
     const sx = (u) => x0 + l + (u / view) * (w - l - r);
     const cT = y0 + ROWS.title + 4, cB = cT + cH, bT = cB + ROWS.gap + 4, bB = bT + bh;
-    const tsC = range(0, view, 181), csC = tsC.map(p.cost).filter(Number.isFinite);
-    const lo = Math.log(Math.min(...csC) / 1.35), hi = Math.log(Math.max(...csC) * 1.35);
-    const syC = (c) => cB - ((Math.log(c) - lo) / (hi - lo)) * (cB - cT);
-    const syB = (b) => bB - (b / yTop) * (bB - bT);
-    const path = (xs, ys, sy) => { let d = "", pen = false; xs.forEach((x, k) => { const v = ys[k]; if (!Number.isFinite(v) || v === null) { pen = false; return; } d += (pen ? "L" : "M") + sx(x).toFixed(1) + " " + sy(Math.min(v, yTop * 1.02)).toFixed(1); pen = true; }); return d; };
+    // the cost and the bounds have their own scales: the cost strip is log c over the schedule's own range, and only
+    // the bounds are held to the panel's bound scale
+    const tsC = range(0, view, 181), strip = costStrip(p.cost, view);
+    const syC = (c) => cB - strip.y(c) * (cB - cT);
+    const syB = (b) => bB - (Math.min(b, yTop * 1.02) / yTop) * (bB - bT);
+    const path = (xs, ys, sy) => { let d = "", pen = false; xs.forEach((x, k) => { const v = ys[k]; if (v === null || !Number.isFinite(v)) { pen = false; return; } d += (pen ? "L" : "M") + sx(x).toFixed(1) + " " + sy(v).toFixed(1); pen = true; }); return d; };
     let s = "";
     if (selected) s += `<rect class="panel-sel" x="${x0}" y="${y0}" width="${w}" height="${bB + 20 - y0}"/>`;
     s += `<text class="lab${selected ? " sel" : ""}" x="${x0 + 4}" y="${y0 + 11}">${title}</text>`;
     s += `<path class="ax" d="M${x0 + l} ${cB}H${x0 + w - r}M${x0 + l} ${bB}H${x0 + w - r}M${x0 + l} ${bT}V${bB}"/>`;
     s += `<path class="cost" d="${path(tsC, tsC.map(p.cost), syC)}"/>`;
-    for (const v of [0, 0.5, 1, 1.5, 2, 2.5].filter((v) => v <= yTop)) {
+    for (const v of ticks(0, yTop / 1.02, 4)) {
       s += `<path class="grid" d="M${x0 + l} ${syB(v).toFixed(1)}H${x0 + w - r}"/>`;
-      if (v === Math.round(v) || bh > 130) s += `<text class="tk" x="${x0 + l - 5}" y="${(syB(v) + 3.5).toFixed(1)}" text-anchor="end">${v}</text>`;
+      s += `<text class="tk" x="${x0 + l - 5}" y="${(syB(v) + 3.5).toFixed(1)}" text-anchor="end">${v}</text>`;
     }
-    const xt = view <= 1.01 ? [0, 0.5, 1] : [0, 1, 2];
+    const xt = ticks(0, view, 3);
     for (const v of xt) s += `<path class="ax" d="M${sx(v).toFixed(1)} ${bB}v4"/><text class="tk" x="${sx(v).toFixed(1)}" y="${bB + 15}" text-anchor="middle">${v}</text>`;
     if (p.dl !== null) s += `<path class="acc" stroke-dasharray="3 3" d="M${sx(p.dl).toFixed(1)} ${cT}V${bB}"/>`;
     const tsP = range(0, view, 251);
     s += `<path class="pm" d="${path(tsP, tsP.map((u) => pmShifted(p.cost, u)), syB)}"/>`;
     if (p.data) {
-      s += `<path class="wb" d="${path(p.data.t, p.data.wbShift, syB)}"/>`;
-      s += `<path class="ex" d="${path(p.data.t, p.data.exact, syB)}"/>`;
+      // at a deadline the program's bound and the weighted rule's are 0: flat up to it, then straight down
+      s += `<path class="wb" d="${path(...dropAt(p.data.t, p.data.wbShift, p.dl), syB)}"/>`;
+      s += `<path class="ex" d="${path(...dropAt(p.data.t, p.data.exact, p.dl), syB)}"/>`;
     } else s += `<text class="tk" x="${(x0 + l + (w - l - r) / 2).toFixed(1)}" y="${((bT + bB) / 2).toFixed(1)}" text-anchor="middle">solving…</text>`;
     return { s, sx, syC, syB, cT, bB, view, hit: { x: x0, y: y0, w, h: bB + 20 - y0 } };
   };
   /** The time line and the dots at time t, for one panel. */
   const now = (p, g) => {
-    if (t > g.view + 1e-9) return `<text class="tk" x="${(g.sx(g.view) - 3).toFixed(1)}" y="${(g.cT + 9).toFixed(1)}" text-anchor="end">past the deadline</text>`;
+    if (t > g.view + 1e-9) return `<text class="tk" x="${(g.sx(g.view) - 3).toFixed(1)}" y="${(g.cT + 9).toFixed(1)}" text-anchor="end">${p.dl !== null ? "past the deadline" : "past the window"}</text>`;
     const X = g.sx(t).toFixed(1), c = p.cost(t);
     let s = `<path class="dim" stroke-dasharray="2 3" d="M${X} ${g.cT}V${g.bB}"/>`;
     if (Number.isFinite(c)) s += `<circle class="acc-dot" cx="${X}" cy="${g.syC(c).toFixed(1)}" r="3.2"/>`;
@@ -368,16 +378,18 @@ function figurePlate() {
     const p = sel === 4 ? yours : panels[sel];
     const name = sel === 4 ? `Your schedule (${labelOf(choice)})` : `(${p.letter}) ${p.short}`;
     if (!p.data) { reads.innerHTML = ""; say.textContent = `${name}: solving…`; return; }
-    const past = p.dl !== null && t > p.dl + 1e-9;
-    const c = past ? Infinity : p.cost(t), best = past ? NaN : at(p.data, "exact", t), pm = past ? NaN : pmShifted(p.cost, t), wb = past ? NaN : at(p.data, "wbShift", t);
+    const view = p.dl ?? VIEW, past = t > view + 1e-9;
+    const c = past ? NaN : p.cost(t), best = past ? NaN : at(p.data, "exact", t), pm = past ? NaN : pmShifted(p.cost, t), wb = past ? NaN : at(p.data, "wbShift", t);
     reads.innerHTML = `<div class="k-acc"><dt>Cost at ${t.toFixed(2)}</dt><dd>${past ? "–" : S.cf(c)}</dd></div>
-      <div><dt>Best bound</dt><dd>${fmt(best)}</dd></div><div class="k-pm"><dt>Per-moment</dt><dd>${fmt(pm)}</dd></div><div class="k-wb"><dt>Weighted</dt><dd>${fmt(wb)}</dd></div>`;
-    say.textContent = S.panelSay({ name, t, c, best, pm, wb, next: past ? null : ahead(p.cost, t, p.dl), dl: p.dl });
+      <div><dt>Best bound</dt><dd>${fmt(best, 3)}</dd></div><div class="k-pm"><dt>Per-moment</dt><dd>${fmt(pm, 3)}</dd></div><div class="k-wb"><dt>Weighted</dt><dd>${fmt(wb, 3)}</dd></div>`;
+    say.textContent = past && p.dl === null ? S.beyondSay(name, t, view) : S.panelSay({ name, t, c, best, pm, wb, next: ahead(p.cost, t, p.dl), dl: p.dl });
   };
   const choose = (k) => { sel = k; setSeg(el, "f1-sel", k); drawFour(); drawYours(); };
   const setupYours = () => {
     pick.value = choice.id;
     yours.choice = choice; yours.cost = costOf(choice); yours.dl = deadlineOf(choice); yours.data = null;
+    // the time line reaches the end of every panel, a late deadline included
+    inp.max = String(Math.max(VIEW, yours.dl ?? 0)); if (t > +inp.max) { t = +inp.max; inp.value = t; }
     const f = fig1Of(choice);
     note.textContent = S.yoursNote({ label: labelOf(choice), kind: yours.dl !== null ? "deadline" : choice.id === "constant" ? "constant" : "other", letter: f?.letter, same: f?.same, dl: yours.dl });
     drawYours();
@@ -410,7 +422,7 @@ function figurePlate() {
   panels.forEach((p) => three(p.choice).then((r) => {
     p.data = r; done++;
     state.textContent = done < 4 ? `Solving the dynamic program and the rules… ${done} of 4`
-      : `Time step ${DT}, evidence step 0.02, rules moved in by ${fmt(SHIFT, 3)}; the program runs 6 time units past the window, or to the deadline.`;
+      : `Time step ${DT}, evidence step 0.02, rules moved in by ${fmt(SHIFT, 3)}; the program runs to t = ${VIEW + SPARE}, 6 time units past the book's window of ${VIEW}, or to the deadline.`;
     drawFour(); liftReady(fig);
   }).catch((e) => { state.textContent = "The solver stopped: " + e.message; }));
 }

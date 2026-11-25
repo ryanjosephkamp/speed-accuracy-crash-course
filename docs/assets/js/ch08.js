@@ -2,13 +2,13 @@
 // fixed points the rule's equation asks for), model.js (the constant-cost bound, the binned kernels, the dynamic
 // program and its scorer), or kernel.js (the kernel's series and transform); the heavy work runs in ch08-worker.js.
 // The words under each plate come from say-ch08.js, which takes numbers and returns sentences.
-import * as K from "./kernel.js?v=37a0cf8296";
-import { boundForCost, kernelForBound, toDiscrete } from "./model.js?v=37a0cf8296";
-import { PRESETS, DRAW, paramsOf, labelOf, defaultDrawing, deadlineOf, VIEW } from "./schedules-book.js?v=37a0cf8296";
-import { getChoice, setChoice, onVisible, watchVisible, liftReady, calm } from "./book.js?v=37a0cf8296";
-import { frame, line, area, axes, svg, fmt, keepDrawn } from "./chart.js?v=37a0cf8296";
-import { weightedHistory, mapExact, scheduleFor, spikeCost, shareExact, codeUntil, P13, levelDerivative } from "./ch08-rule.js?v=37a0cf8296";
-import * as S from "./say-ch08.js?v=37a0cf8296";
+import * as K from "./kernel.js?v=0648557a87";
+import { boundForCost, kernelForBound, toDiscrete } from "./model.js?v=0648557a87";
+import { PRESETS, DRAW, paramsOf, labelOf, defaultDrawing, deadlineOf, VIEW } from "./schedules-book.js?v=0648557a87";
+import { getChoice, setChoice, onVisible, watchVisible, liftReady, calm } from "./book.js?v=0648557a87";
+import { frame, line, area, axes, svg, fmt, keepDrawn } from "./chart.js?v=0648557a87";
+import { weightedHistory, mapExact, scheduleFor, spikeCost, shareExact, codeStretches, P13, levelDerivative } from "./ch08-rule.js?v=0648557a87";
+import * as S from "./say-ch08.js?v=0648557a87";
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const plate = (id) => document.getElementById("plate-" + id);
@@ -46,7 +46,7 @@ let worker = null, nextId = 1;
 const pending = new Map(), latest = new Map();
 function work(job, { key = null, progress = null } = {}) {
   if (!worker) {
-    worker = new Worker(new URL("./ch08-worker.js?v=37a0cf8296", import.meta.url), { type: "module" });
+    worker = new Worker(new URL("./ch08-worker.js?v=0648557a87", import.meta.url), { type: "module" });
     worker.onmessage = (e) => {
       const m = e.data, p = pending.get(m.id);
       if (!p) return;
@@ -161,7 +161,7 @@ function twoPlate() {
       <div class="actions" style="margin-top:8px"><button class="btn btn-go" type="button" id="tw-show">Show me</button></div>
       <p class="verdict" id="tw-verdict" aria-live="polite"></p></div>
     <div class="chart-wrap" id="tw-cost"></div><div class="chart-wrap" id="tw-bound"></div>
-    <ul class="legend"><li><span class="key key-ex">Best bound</span></li><li><span class="key key-pm">Per-moment</span></li><li><span class="key key-avg">Averaged cost</span></li><li><span class="key key-wb">Weighted</span></li><li id="tw-codekey" hidden><span class="key key-avg-code">Averaged cost, as the paper's code computes it</span></li></ul>
+    <ul class="legend"><li><span class="key key-ex">Program's bound</span></li><li><span class="key key-pm">Per-moment</span></li><li><span class="key key-avg">Averaged cost</span></li><li><span class="key key-wb">Weighted</span></li><li id="tw-codekey" hidden><span class="key key-avg-code">Averaged cost, as the paper's code computes it</span></li></ul>
     <dl class="reads" id="tw-reads"></dl><p class="say" id="tw-say"></p><p class="fine" id="tw-state" aria-live="polite"></p>`;
   const pick = $("#tw-pick", el), note = $("#tw-note", el), costEl = $("#tw-cost", el), boundEl = $("#tw-bound", el);
   const reads = $("#tw-reads", el), say = $("#tw-say", el), state = $("#tw-state", el), verdict = $("#tw-verdict", el), codeKey = $("#tw-codekey", el);
@@ -174,18 +174,18 @@ function twoPlate() {
     const top = finiteMax(ex, pm, avg, wb) * 1.12;
     const f = frame(boundEl, { x: [0, r.view], y: [0, Math.max(0.4, top)], aspect: 0.46, minH: 170, maxH: 280 });
     let g = axes(f, { yl: "bound (evidence)", xl: "time", grid: true });
-    const until = codeUntil(r);
-    if (until !== null) g += line(f, r.t, shift(r.avgCode), "avg-code");
+    const st = codeStretches(r);
+    if (st.length) g += line(f, r.t, shift(r.avgCode), "avg-code");
     g += line(f, r.t, avg, "avg") + line(f, r.t, pm, "pm") + line(f, r.t, wb, "wb") + line(f, r.t, ex, "ex");
-    codeKey.hidden = until === null;
+    codeKey.hidden = !st.length;
     if (dl !== null) g += deadlineMark(f, dl);
     boundEl.innerHTML = svg(f, g, `For ${labelOf(choice)}: the best bound, the per-moment rule, the averaged-cost rule, and the weighted rule`);
     const L = S.lossText;
     reads.innerHTML = `<div class="k-pm"><dt>Per-moment loss</dt><dd>${L(r.loss.pm)}<small>points per 100 trials</small></dd></div>
-      <div class="k-avg"><dt>Averaged-cost loss</dt><dd>${L(r.loss.avg)}<small>${until !== null ? `by its definition; ${L(r.loss.avgCode)} as the paper's code computes it` : "points per 100 trials"}</small></dd></div>
+      <div class="k-avg"><dt>Averaged-cost loss</dt><dd>${L(r.loss.avg)}<small>${st.length ? `by its definition; ${L(r.loss.avgCode)} as the paper's code computes it` : "points per 100 trials"}</small></dd></div>
       <div class="k-wb"><dt>Weighted loss</dt><dd>${L(r.loss.wb)}<small>points per 100 trials</small></dd></div>`;
-    say.textContent = S.twoSay(labelOf(choice), r.loss, dl, dl !== null && !r.own, until);
-    verdict.textContent = S.twoVerdict(guess, dl !== null, until);
+    say.textContent = S.twoSay(labelOf(choice), r.loss, dl, dl !== null && !r.own, st);
+    verdict.textContent = S.twoVerdict(guess, dl !== null, st);
     liftReady(fig);
   };
   const run = () => {
@@ -200,17 +200,17 @@ function twoPlate() {
     rulesFor(c, a, (p) => { state.textContent = `Solving the dynamic program and the rules… ${Math.round(p * 100)}%`; }).then((r) => {
       if (c !== choice || a !== (deadlineOf(choice) !== null ? null : add)) return;
       data = r;
-      state.textContent = `Time step 0.01, evidence step 0.02; the program runs ${r.deadline !== null ? "to the deadline" : "6 time units past the window"}.`;
+      state.textContent = `Time step 0.01, evidence step 0.02; the program runs ${r.deadline !== null ? "to the deadline" : "6 time units past the window"}.${S.gridZeroNote(r.gridZero)}`;
       draw();
     }).catch((e) => stopped(state, e));
   };
   keepDrawn(boundEl, draw);
   follow(pick, (c) => { choice = c; run(); });
   onSeg(el, "tw-dl", (v) => { add = v === "none" ? null : +v; run(); });
-  onSeg(el, "tw-guess", (v) => { guess = v; verdict.textContent = S.twoVerdict(guess, data ? data.deadline !== null : own() !== null || add !== null, data ? codeUntil(data) : null); });
+  onSeg(el, "tw-guess", (v) => { guess = v; verdict.textContent = S.twoVerdict(guess, data ? data.deadline !== null : own() !== null || add !== null, data ? codeStretches(data) : []); });
   $("#tw-show", el).addEventListener("click", () => {
     if (own() === null && add === null) { add = 1.5; setSeg(el, "tw-dl", 1.5); run(); }
-    else verdict.textContent = S.twoVerdict(guess || "zero", true, data ? codeUntil(data) : null);
+    else verdict.textContent = S.twoVerdict(guess || "zero", true, data ? codeStretches(data) : []);
   });
   run();
 }
@@ -404,9 +404,9 @@ function contractionPlate() {
       g += line(f, r.ts, pm, "pm") + line(f, r.ts, r.beta, "ex", 'stroke-dasharray="2 3"') + line(f, r.ts, wb, "wb");
       A.innerHTML = svg(f, g, "The weighted and per-moment rules' moves divided by epsilon, beside the first-order term of the best bound");
       legend.innerHTML = keyList([["key-wb", "Weighted, ÷ ε"], ["key-beta", "β, the best bound's first-order term"], ["key-pm", "Per-moment, ÷ ε"]]);
-      head.textContent = "Step 5: Algorithm 1's move sits on β; the per-moment rule's doesn't, at any of these four sizes.";
+      head.textContent = "Step 5: at each of these four sizes, Algorithm 1's move is closer to β than the per-moment rule's; the readings give both gaps.";
       reads.innerHTML = `<div class="k-wb"><dt>Weighted, largest gap to β</dt><dd>${fmt(r.errW / r.eps, 4)}</dd></div><div class="k-pm"><dt>Per-moment, largest gap</dt><dd>${fmt(r.errPm / r.eps, 3)}<small>${runs.map((x) => fmt(x.errPm / x.eps, 3)).join(", ")} across the sizes</small></dd></div>`;
-      say.textContent = S.p13Say(4, { eps: r.eps, wb: r.errW / r.eps, pm: r.errPm / r.eps, pms: runs.map((x) => x.errPm / x.eps) });
+      say.textContent = S.p13Say(4, { eps: r.eps, wb: r.errW / r.eps, pm: r.errPm / r.eps, pms: runs.map((x) => x.errPm / x.eps), wbs: runs.map((x) => x.errW / x.eps) });
     }
     liftReady(fig);
   };
@@ -450,7 +450,7 @@ function contractionPlate() {
   onSeg(el, "p13-eps", (v) => { sel = +v; draw(); });
   keepDrawn(A, draw);
   work({ job: "prop13" }, { progress: (p) => { state.textContent = `Computing the four sizes… ${Math.round(p * 4)} of 4`; } }).then((m) => {
-    runs = m.runs; state.textContent = "Kernels from 4000 terms of the series in 240 bins; the rule from 30 damped updates."; draw();
+    runs = m.runs; state.textContent = "The map from each level's kernel, weighted on 2400 steps of delay by its exact cumulative weight; the rule from Algorithm 1 (240 bins, 30 damped updates)."; draw();
   }).catch((e) => stopped(state, e));
 }
 
@@ -500,7 +500,7 @@ function rootsPlate() {
     kerEl.innerHTML = svg(fk, h, `The kernel for the level ${fmt(b, 3)} over the delay, beside the per-moment bounds ahead`);
     const rs = reveal ? data.roots.map((q) => `${fmt(q.b, 3)}`).join(", ") : "?";
     reads.innerHTML = `<div class="k-acc"><dt>Your level</dt><dd>${fmt(b, 3)}</dd></div><div class="k-wb"><dt>Its average</dt><dd>${fmt(Tb, 3)}</dd></div>
-      <div><dt>Levels that fit</dt><dd>${rs}<small>${reveal ? data.roots.map((q) => S.rootRole(q.slope)).join("; ") : "guess first, or show me"}</small></dd></div>`;
+      <div><dt>Crossings found</dt><dd>${rs}<small>${reveal ? data.roots.map((q) => S.rootRole(q.slope)).join("; ") : "guess first, or show me"}</small></dd></div>`;
     say.textContent = S.rootsSay(b, Tb, data.start, data.end);
     if (reveal) verdict.textContent = S.rootsVerdict(guess, data.roots);
     liftReady(fig);
@@ -515,7 +515,7 @@ function rootsPlate() {
     state.textContent = "Averaging for each level…";
     work({ job: "roots", choice: source === "spike" ? null : choice, t }, { key: "roots" }).then((m) => {
       data = m; bin.max = String(m.hi.toFixed(3)); if (b > m.hi) b = m.hi / 2; bin.value = b;
-      state.textContent = `Levels 0.01 to ${fmt(m.hi, 2)}; each level's own kernel from 4000 terms of its series.`;
+      state.textContent = `Searched at 160 levels from 0.01 to ${fmt(m.hi, 2)}; each level's kernel weighted on 2400 steps of delay by its exact cumulative weight.`;
       draw();
     }).catch((e) => stopped(state, e));
   };
@@ -616,7 +616,7 @@ function algorithmPlate() {
       g += line(f, r.t, pm, "pm") + line(f, r.t, r.wb, "wb-thin") + line(f, r.t, wb, "wb") + line(f, r.t, ex, "ex");
       const k = nearest(r.t, tk);
       g += `<path class="dim" stroke-dasharray="2 3" d="M${f.sx(tk).toFixed(1)} ${f.t}V${f.H - f.b}"/><circle class="wb-dot" cx="${f.sx(r.t[k]).toFixed(1)}" cy="${f.sy(wb[k]).toFixed(1)}" r="4.5"/>`;
-      label = "The rule over the window before and after the shift for checking every 0.01, beside the dynamic program"; items = [["key-ex", "Best bound"], ["key-wb", "Weighted, moved in"], ["key-faint", "Before the shift"], ["key-pm", "Per-moment, moved in"]];
+      label = "The rule over the window before and after the shift for checking every 0.01, beside the dynamic program"; items = [["key-ex", "Program's bound"], ["key-wb", "Weighted, moved in"], ["key-faint", "Before the shift"], ["key-pm", "Per-moment, moved in"]];
       const sh = SHIFT;
       reads.innerHTML = `<div class="k-wb"><dt>Shift, Δt = 0.01</dt><dd>${fmt(sh, 3)}</dd></div><div><dt>At the paper's Δt = 0.002</dt><dd>${fmt(0.5826 * Math.sqrt(0.002), 3)}</dd></div><div class="k-wb"><dt>Rule at tₖ</dt><dd>${fmt(wb[k], 3)}</dd></div>`;
       say.textContent = S.algoSay(4, { shift: sh, t: r.t[k], x: wb[k], ex: ex[k] });
@@ -632,7 +632,7 @@ function algorithmPlate() {
     local = null; data = null; draw();
     state.textContent = "Solving the dynamic program for the last step…";
     const c = choice;
-    rulesFor(c, null).then((r) => { if (c !== choice) return; data = r; state.textContent = "Kernels from 4000 terms of their series in 240 bins, cached by level; the program on a grid of 0.01 by 0.02."; if (step === 4) draw(); })
+    rulesFor(c, null).then((r) => { if (c !== choice) return; data = r; state.textContent = `Kernels from 4000 terms of their series in 240 bins, cached by level; the program on a grid of 0.01 by 0.02.${S.gridZeroNote(r.gridZero)}`; if (step === 4) draw(); })
       .catch((e) => stopped(state, e));
   };
   follow(pick, (c) => { choice = c; run(); });

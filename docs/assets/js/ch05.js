@@ -2,12 +2,12 @@
 // ch05-model.js, run in this chapter's worker (ch05-worker.js), or from closed forms; the frozen rule of the envelope
 // identity is worked out here, on the worker's bound, in about 10 ms. The words under each plate come from the
 // functions in say-ch05.js, which take numbers and return sentences.
-import { frozenRule, belief, B, testStep, areaTo, wAt, chords, halfCrossed, bandStats, worstResidual } from "./ch05-model.js?v=37a0cf8296";
-import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, VIEW, defaultDrawing } from "./schedules-book.js?v=37a0cf8296";
-import { getChoice, setChoice, onVisible, watchVisible, liftReady, calm, seedParam } from "./book.js?v=37a0cf8296";
-import { rng, meanLookAhead, meanDecisionTime } from "./kernel.js?v=37a0cf8296";
-import { frame, line, area, axes, svg, fmt, keepDrawn } from "./chart.js?v=37a0cf8296";
-import * as S from "./say-ch05.js?v=37a0cf8296";
+import { frozenRule, belief, B, testStep, areaTo, wAt, chords, halfCrossed, bandStats, liveSummary } from "./ch05-model.js?v=0648557a87";
+import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, VIEW, defaultDrawing } from "./schedules-book.js?v=0648557a87";
+import { getChoice, setChoice, onVisible, watchVisible, liftReady, calm, seedParam } from "./book.js?v=0648557a87";
+import { rng, meanLookAhead, meanDecisionTime } from "./kernel.js?v=0648557a87";
+import { frame, line, area, axes, svg, fmt, keepDrawn } from "./chart.js?v=0648557a87";
+import * as S from "./say-ch05.js?v=0648557a87";
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const plate = (id) => document.getElementById("plate-" + id);
@@ -27,7 +27,7 @@ let worker = null, nextId = 1;
 const pending = new Map();
 function work(job, progress = null) {
   if (!worker) {
-    worker = new Worker(new URL("./ch05-worker.js?v=37a0cf8296", import.meta.url), { type: "module" });
+    worker = new Worker(new URL("./ch05-worker.js?v=0648557a87", import.meta.url), { type: "module" });
     worker.onmessage = (e) => {
       const m = e.data, p = pending.get(m.id);
       if (!p) return;
@@ -151,10 +151,10 @@ function hero() {
     s += `<path class="cost" d="${ts.map((t, k) => (k ? "L" : "M") + ftx(t).toFixed(1) + " " + fty(testStep(t)).toFixed(1)).join("")}"/>`;
     s += `<path class="dim" stroke-dasharray="2 3" d="M${ftx(a.t).toFixed(1)} ${fT.t - 2}V${fT.H}"/><circle class="acc-dot" cx="${ftx(a.t).toFixed(1)}" cy="${fty(a.c).toFixed(1)}" r="4"/>`;
     // the two integrands, against the evidence y
-    const fB = { W, H, l: 12, r: 10, t: split + 30, b: 22 };
+    const fB = { W, H, l: 12, r: 10, t: split + 42, b: 22 };
     const yMax = 1.45, vMax = vTop();
     const bx = (v) => fB.l + (v / yMax) * (W - fB.l - fB.r), by = (v) => fB.t + (1 - Math.min(v, vMax) / vMax) * (H - fB.t - fB.b);
-    s += `<text class="lab" x="${fB.l}" y="${fB.t - 12}">at that time: cosh² y × cost, from 0 to the bound; areas of ¼</text>`;
+    s += `<text class="lab" x="${fB.l}" y="${fB.t - 26}">at that time: cosh² y × cost, from 0 to each bound;</text><text class="lab" x="${fB.l}" y="${fB.t - 12}">${S.heroChartLabel(a.L)}</text>`;
     s += `<path class="ax" d="M${fB.l} ${H - fB.b}H${W - fB.r}"/>`;
     const ys = range(0, a.Bc, 80);
     s += `<path class="pm" d="${ys.map((y, k) => (k ? "L" : "M") + bx(y).toFixed(1) + " " + by(a.c * Math.cosh(y) ** 2).toFixed(1)).join("")}L${bx(a.Bc).toFixed(1)} ${by(0).toFixed(1)}"/>`;
@@ -580,7 +580,7 @@ function bandPlate() {
     g += line(f, T, pm, "pm") + line(f, T, bc, "ex");
     g += dot(f, t0, b0, "acc-dot", 4.5);
     chart.innerHTML = svg(f, g, `The best bound for ${mode === "fig" ? "Figure 1(a)" : labelOf(choice)}, with the band the Hölder bound allows around the anchor at time ${t0.toFixed(2)}`);
-    reads.innerHTML = `<div class="k-acc"><dt>Hölder constant C</dt><dd>${fmt(st.C, 2)}<small>√((c_max − c_min)/c_min), with the cost between ${fmt(st.cMin, 3)} and ${fmt(st.cMax, 3)} for all time, from its formula</small></dd></div>
+    reads.innerHTML = `<div class="k-acc"><dt>Hölder constant C</dt><dd>${fmt(st.C, 2)}<small>√((c_max − c_min)/c_min), with the cost between ${S.outward(st.cMin, false)} and ${S.outward(st.cMax, true)} for all time (from its formula, rounded outward)</small></dd></div>
       <div><dt>Bound's largest |Δb|/√|Δt|</dt><dd>${fmt(st.ratio, 2)}<small>on the grid, over 0 to 2.5, every 0.01</small></dd></div>
       <div><dt>Bound's largest move in 0.05</dt><dd>${fmt(st.fall, 3)}<small>on the grid, from time ${fmt(st.fallAt, 2)}; the band allows ${fmt(st.C * Math.sqrt(0.05), 2)}</small></dd></div>
       <div class="k-acc"><dt>Cost's largest change in 0.05</dt><dd>${S.fold(st.cfac)}-fold<small>from time ${fmt(st.cAt, 2)}</small></dd></div>`;
@@ -747,8 +747,11 @@ function livePlate() {
     if (!m) { mainEl.innerHTML = ""; resEl.innerHTML = ""; return; }
     const X = far ? m.horizon : VIEW;
     const idx = m.ts.map((t, i) => (t <= X - (far ? m.dt : 0) + 1e-9 && Number.isFinite(m.lhs[i]) ? i : -1)).filter((i) => i >= 0);
-    const T = idx.map((i) => m.ts[i]), L = idx.map((i) => m.lhs[i]), P = idx.map((i) => m.pm[i]);
-    const lo = Math.min(0.24, ...L, ...P), hi = Math.max(0.26, ...L, ...P), pad = (hi - lo) * 0.08;
+    // times whose bound reads 0 (below the grid's first step) are left as gaps: there the left side isn't a reading of the equation
+    const ok = (mm, i) => mm.bounds[i] !== 0;
+    const T = idx.map((i) => m.ts[i]), L = idx.map((i) => (ok(m, i) ? m.lhs[i] : NaN)), P = idx.map((i) => (ok(m, i) ? m.pm[i] : NaN));
+    const fin = [...L, ...P].filter(Number.isFinite);
+    const lo = Math.min(0.24, ...fin), hi = Math.max(0.26, ...fin), pad = (hi - lo) * 0.08;
     const f = frame(mainEl, { x: [0, X], y: [lo - pad, hi + pad], aspect: 0.46, minH: 180, maxH: 270, l: 46 });
     let g = axes(f, { yl: "left side of the equation", xl: "time", grid: true });
     g += hline(f, 0.25, "ex-thin", 'stroke-dasharray="5 4"') + text(f.W - f.r, f.sy(0.25) - 5, "¼", "tag-ex", "end");
@@ -756,10 +759,10 @@ function livePlate() {
     if (!far) g += vline(f, tm, "acc", 'stroke-dasharray="2 3"');
     mainEl.innerHTML = svg(f, g, `The left side of the exact equation over time for ${labelOf(choice)}, against one quarter, with the per-moment version`);
     // the residual, for both grids when both are in
-    const r = (mm) => { const ii = mm.ts.map((t, i) => (t <= X - (far ? mm.dt : 0) + 1e-9 && Number.isFinite(mm.lhs[i]) ? i : -1)).filter((i) => i >= 0); return { T: ii.map((i) => mm.ts[i]), R: ii.map((i) => mm.lhs[i] - 0.25) }; };
+    const r = (mm) => { const ii = mm.ts.map((t, i) => (t <= X - (far ? mm.dt : 0) + 1e-9 && Number.isFinite(mm.lhs[i]) ? i : -1)).filter((i) => i >= 0); return { T: ii.map((i) => mm.ts[i]), R: ii.map((i) => (ok(mm, i) ? mm.lhs[i] - 0.25 : NaN)) }; };
     const other = res[grid === "fine" ? "coarse" : "fine"];
     const a = r(m), b = other && other !== m ? r(other) : null;
-    const lim = Math.max(1e-4, ...a.R.map(Math.abs), ...(b ? b.R.map(Math.abs) : [])) * 1.15;
+    const lim = Math.max(1e-4, ...[...a.R, ...(b ? b.R : [])].filter(Number.isFinite).map(Math.abs)) * 1.15;
     const fr = frame(resEl, { x: [0, X], y: [-lim, lim], aspect: 0.26, minH: 110, maxH: 160, l: 52 });
     const sc = lim < 0.01 ? 1000 : 1;
     let h = axes(fr, { yl: sc === 1000 ? "left side − ¼, in thousandths" : "left side − ¼", grid: true, zero: true, fy: (v) => String(+(v * sc).toFixed(sc === 1000 ? 2 : 3)) });
@@ -773,30 +776,35 @@ function livePlate() {
     tout.textContent = tm.toFixed(2);
     if (!m) { areaEl.innerHTML = ""; return; }
     const s = m.snaps[Math.max(0, Math.min(m.snaps.length - 1, Math.round(tm / 0.05)))];
-    const bc = s.b + m.shift, c = costOf(choice)(s.t);
-    const xs = [], fs = [];
-    for (let j = 0; j < s.x.length && s.x[j] < bc; j++) { xs.push(s.x[j]); fs.push(Math.cosh(s.x[j]) ** 2 * s.u[j]); }
-    const j = Math.min(s.u.length - 2, Math.floor(bc / m.h)), ub = s.u[j] + (s.u[j + 1] - s.u[j]) * (bc / m.h - j);
-    xs.push(bc); fs.push(Math.cosh(bc) ** 2 * ub);
-    const pmv = xs.map((x) => c * Math.cosh(x) ** 2);
-    const top = Math.max(...fs, ...pmv) * 1.12;
-    const f = frame(areaEl, { x: [0, Math.max(bc * 1.12, 0.2)], y: [0, top], aspect: 0.4, minH: 160, maxH: 230 });
-    let g = axes(f, { yl: `at time ${s.t.toFixed(2)}: cosh² y × cost`, xl: "evidence y", grid: true });
-    g += area(f, xs, fs, 0, "wb-fill") + line(f, xs, pmv, "pm") + line(f, xs, fs, "wb");
-    g += vline(f, bc, "bound-line", 'stroke-dasharray="3 3"') + text(f.sx(bc) - 4, f.t + 10, "b(t)", "tag-ex", "end");
-    areaEl.innerHTML = svg(f, g, `At time ${s.t.toFixed(2)}, cosh squared times the expected cost at decision from 0 to the bound, shaded, beside cosh squared times the cost now`);
+    const bc = s.b + m.shift, c = costOf(choice)(s.t), resolved = s.b !== 0;
     const i = m.ts.findIndex((t) => Math.abs(t - s.t) < 1e-9);
-    const w = worstResidual(m, 0, VIEW), wo = (() => { const o = res[grid === "fine" ? "coarse" : "fine"]; return o && o !== m ? worstResidual(o, 0, VIEW) : null; })();
-    const zeros = m.ts.filter((t, k) => t <= VIEW + 1e-9 && m.bounds[k] === 0).length;
-    let pmw = 0; m.ts.forEach((t, k) => { if (t <= VIEW + 1e-9 && Number.isFinite(m.pm[k])) pmw = Math.max(pmw, Math.abs(m.pm[k] - 0.25)); });
-    reads.innerHTML = `<div class="k-wb"><dt>Area at time ${s.t.toFixed(2)}</dt><dd>${fmt(m.lhs[i], 4)}<small>bound ${fmt(bc, 3)}</small></dd></div>
-      <div><dt>Largest residual, 0 to 2.5</dt><dd>${S.sci(w.w)}<small>at time ${fmt(w.at, 2)}, on Δt ${m.dt}${wo ? `; ${S.sci(wo.w)} on Δt ${grid === "fine" ? 0.01 : 0.002}` : ""}</small></dd></div>
-      <div class="k-pm"><dt>Cost now in its place</dt><dd>${fmt(pmw, 3)}<small>its largest miss of ¼</small></dd></div>`;
-    say.textContent = S.liveSay({ label: labelOf(choice), dt: m.dt, w: w.w, wf: res.fine ? worstResidual(res.fine, 0, VIEW).w : NaN, wc: res.coarse ? worstResidual(res.coarse, 0, VIEW).w : NaN,
-      pm: pmw, far, tail: far ? tailMiss(m) : NaN, horizon: m.horizon, constant: choice.id === "constant", zeros, fold: m.gHi / m.gLo });
+    if (resolved) {
+      const xs = [], fs = [];
+      for (let j = 0; j < s.x.length && s.x[j] < bc; j++) { xs.push(s.x[j]); fs.push(Math.cosh(s.x[j]) ** 2 * s.u[j]); }
+      const j = Math.min(s.u.length - 2, Math.floor(bc / m.h)), ub = s.u[j] + (s.u[j + 1] - s.u[j]) * (bc / m.h - j);
+      xs.push(bc); fs.push(Math.cosh(bc) ** 2 * ub);
+      const pmv = xs.map((x) => c * Math.cosh(x) ** 2);
+      const top = Math.max(...fs, ...pmv) * 1.12;
+      const f = frame(areaEl, { x: [0, Math.max(bc * 1.12, 0.2)], y: [0, top], aspect: 0.4, minH: 160, maxH: 230 });
+      let g = axes(f, { yl: `at time ${s.t.toFixed(2)}: cosh² y × cost`, xl: "evidence y", grid: true });
+      g += area(f, xs, fs, 0, "wb-fill") + line(f, xs, pmv, "pm") + line(f, xs, fs, "wb");
+      g += vline(f, bc, "bound-line", 'stroke-dasharray="3 3"') + text(f.sx(bc) - 4, f.t + 10, "b(t)", "tag-ex", "end");
+      areaEl.innerHTML = svg(f, g, `At time ${s.t.toFixed(2)}, cosh squared times the expected cost at decision from 0 to the bound, shaded, beside cosh squared times the cost now`);
+    } else {
+      const f = frame(areaEl, { x: [0, 0.2], y: [0, 1], aspect: 0.4, minH: 160, maxH: 230 });
+      let g = axes(f, { yl: `at time ${s.t.toFixed(2)}`, xl: "evidence y", grid: false, yt: [] });
+      g += text(f.W / 2, (f.t + f.H - f.b) / 2 - 8, "the bound is below the grid's first step", "tk", "middle") + text(f.W / 2, (f.t + f.H - f.b) / 2 + 8, "and reads as 0: no area to draw", "tk", "middle");
+      areaEl.innerHTML = svg(f, g, `At time ${s.t.toFixed(2)}, the bound is below the grid's first step and reads as 0, so the area isn't drawn`);
+    }
+    const sum = liveSummary(m, res.fine, res.coarse, far, VIEW);
+    const other = res[grid === "fine" ? "coarse" : "fine"];
+    reads.innerHTML = `<div class="k-wb"><dt>Area at time ${s.t.toFixed(2)}</dt>${resolved ? `<dd>${fmt(m.lhs[i], 4)}<small>bound ${fmt(bc, 3)}</small></dd>` : `<dd>–<small>unresolved: the bound reads 0, below the grid's first step</small></dd>`}</div>
+      <div><dt>Largest residual, 0 to 2.5</dt><dd>${S.sci(sum.w)}<small>at time ${fmt(sum.at, 2)}, on Δt ${m.dt}${sum.skipped ? `, leaving out the ${S.count(sum.skipped, "time")} where the bound reads 0` : ""}${other && Number.isFinite(sum.wf) ? `; ${S.sci(grid === "fine" ? sum.wc : sum.wf)} on Δt ${grid === "fine" ? 0.01 : 0.002} at the times both grids resolve` : ""}</small></dd></div>
+      <div class="k-pm"><dt>Cost now in its place</dt><dd>${fmt(sum.pm, 3)}<small>its largest miss of ¼</small></dd></div>`;
+    say.textContent = S.liveSay({ label: labelOf(choice), dt: m.dt, w: sum.w, wf: sum.wf, wc: sum.wc, pm: sum.pm, far, tail: far ? sum.tail : NaN, horizon: m.horizon,
+      constant: choice.id === "constant", zeros: sum.zeros, nWin: sum.nWin, X: sum.X, fold: sum.fold, restricted: sum.nBoth < sum.nView });
     liftReady(fig);
   };
-  const tailMiss = (m) => { let w = 0; m.ts.forEach((t, i) => { if (t >= m.horizon - 1 && Number.isFinite(m.lhs[i])) w = Math.max(w, Math.abs(m.lhs[i] - 0.25)); }); return w; };
   const drawAll = () => { drawCost(); drawMain(); drawArea(); };
   const run = () => {
     res = { coarse: null, fine: null };

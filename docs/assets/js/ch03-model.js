@@ -3,9 +3,9 @@
 // the constant-cost problem (the value of a flat bound, the reward g(b) - c b tanh b and its slope), the standing
 // assumption checked on a schedule, and the dynamic program with its value V(t, y) kept on a grid. The page, the
 // worker, and tools/checks/ch03.mjs all import it.
-import { B, Bprime, survival, kappa, rng, OVERSHOOT } from "./kernel.js?v=37a0cf8296";
-import { belief, grid } from "./model.js?v=37a0cf8296";
-import { costOf, deadlineOf, paramsOf, DRAW_MIN, DRAW_MAX, VIEW } from "./schedules-book.js?v=37a0cf8296";
+import { B, Bprime, survival, kappa, rng, OVERSHOOT } from "./kernel.js?v=0648557a87";
+import { belief, grid, score } from "./model.js?v=0648557a87";
+import { costOf, deadlineOf, paramsOf, DRAW_MIN, DRAW_MAX, VIEW } from "./schedules-book.js?v=0648557a87";
 
 export { B, Bprime };
 export const g = (y) => belief(y);
@@ -49,18 +49,41 @@ export function argmax(f, lo, hi, n = 60, tol = 1e-9) {
 // ---- a flat bound on any schedule ----------------------------------------------------------------------------
 
 /** The times the bill is integrated over, to a deadline or until the chance of still being undecided is below 1e-10
- * (its slowest term, from the series): every 0.01 to time 6 (finer than any step in the book's schedules), or every
- * b²/40 for a low bound, whose decisions take about b² time units; then every 0.02. */
+ * (its slowest term, from the series): every 0.01 to time 6, or every b²/40 for a low bound, whose decisions take
+ * about b² time units; then every 0.02. A drawing's corners (every 0.1 to time 2.5) are always step ends. */
+export const BILL = { fine: 0.01, coarse: 0.02, switchAt: 6, cut: 1e-10 };
 function billTimes(b, deadline) {
   const k0 = kappa(0, b), lam = (1 + k0 * k0) / 2, a0 = (2 * k0 * Math.cosh(b)) / (b * (1 + k0 * k0));
-  const far = Math.log(Math.max(a0, 1) / 1e-10) / lam;
+  const far = Math.log(Math.max(a0, 1) / BILL.cut) / lam;
   const end = deadline === null ? far : Math.min(deadline, far);
-  const fine = Math.min(0.01, (b * b) / 40), n1 = Math.ceil(Math.min(end, 6) / fine);
+  const fine = Math.min(BILL.fine, (b * b) / 40), n1 = Math.ceil(Math.min(end, BILL.switchAt) / fine);
   const out = [];
   for (let i = 0; i < n1; i++) out.push(Math.min(i * fine, end));
-  if (end > 6) for (let s = 6; s < end - 1e-12; s += 0.02) out.push(s);
+  if (end > BILL.switchAt) for (let s = BILL.switchAt; s < end - 1e-12; s += BILL.coarse) out.push(s);
+  for (let k = 1; k <= 25 && k / 10 < end; k++) out.push(k / 10);
   out.push(end);
-  return out;
+  out.sort((x, y) => x - y);
+  return out.filter((v, i) => i === 0 || v - out[i - 1] > 1e-12);
+}
+
+/** The integral over one step of length h of c(s) S(s), with log c linear across the step (exact for a drawing, whose
+ * log c is linear between its corners) and S quadratic through its values at the step's ends and middle:
+ * c0 h int_0^1 e^{xv} S(v) dv with x = log(c1/c0), by the moments int_0^1 v^k e^{xv} dv (series for small x). */
+function stepIntegral(c0, c1, S0, Sm, S1, h) {
+  const a1 = 4 * Sm - S1 - 3 * S0, a2 = 2 * S1 + 2 * S0 - 4 * Sm;     // S(v) = S0 + a1 v + a2 v^2 on [0, 1]
+  if (!(c0 > 0) || !(c1 > 0)) return h * (c0 * S0 + 4 * (0.5 * (c0 + c1)) * Sm + c1 * S1) / 6;
+  const x = Math.log(c1 / c0);
+  let E0, E1, E2;
+  if (Math.abs(x) < 0.05) {
+    const x2 = x * x, x3 = x2 * x, x4 = x3 * x;
+    E0 = 1 + x / 2 + x2 / 6 + x3 / 24 + x4 / 120;
+    E1 = 1 / 2 + x / 3 + x2 / 8 + x3 / 30 + x4 / 144;
+    E2 = 1 / 3 + x / 4 + x2 / 10 + x3 / 36 + x4 / 168;
+  } else {
+    const ex = Math.exp(x);
+    E0 = (ex - 1) / x; E1 = (ex * (x - 1) + 1) / (x * x); E2 = (ex * (x * x - 2 * x + 2) - 2) / (x * x * x);
+  }
+  return c0 * h * (S0 * E0 + a1 * E1 + a2 * E2);
 }
 
 /** P_0(tau_b > s) at s = 0 and after, from the series (1 at s = 0). */
@@ -80,16 +103,25 @@ export function openDensity(y, T, b) {
 
 /** What a flat bound b earns on a schedule, under continuous monitoring, from evidence 0. Without a deadline, every
  * decision ends at |X| = b, so the reward is g(b), and the bill is the integral of c(s) P_0(tau_b > s) ds. With a
- * deadline T, the decisions still open at T are forced there: the reward adds E[g(|X_T|); tau_b > T], and the bill
- * runs to T. Returns { reward, bill, net, open } with open the chance a decision is still open at T (0 without). */
+ * deadline T, the decisions still open at T are forced there: the reward is g(b) P(tau_b <= T) + E[g(|X_T|); tau_b > T],
+ * and the bill runs to T. Numerically: the bill on billTimes's steps by stepIntegral, the forced term by Simpson's rule. Returns { reward, bill, net, open } with open the chance a decision is still open at T (0 without). */
 export function flatOnSchedule(cost, b, deadline = null) {
   const ts = billTimes(b, deadline);
-  let bill = 0, prev = cost(ts[0]) * still(ts[0], b);
+  const at = (t) => cost(deadline !== null ? Math.min(t, deadline - 1e-9) : t);
+  // a step is halved, up to 8 times, while log c at its middle is more than 1e-6 off the straight line between its
+  // ends (a drawing never is, between corners; a logistic step is, near its middle)
+  const seg = (a, z, ca, cz, Sa, Sz, depth) => {
+    const m = 0.5 * (a + z), cm = at(m), Sm = still(m, b);
+    if (depth < 8 && ca > 0 && cz > 0 && Math.abs(Math.log(cm) - 0.5 * (Math.log(ca) + Math.log(cz))) > 1e-6) {
+      return seg(a, m, ca, cm, Sa, Sm, depth + 1) + seg(m, z, cm, cz, Sm, Sz, depth + 1);
+    }
+    return stepIntegral(ca, cz, Sa, Sm, Sz, z - a);
+  };
+  let bill = 0, c0 = at(ts[0]), S0 = still(ts[0], b);
   for (let i = 1; i < ts.length; i++) {
-    const t = deadline !== null ? Math.min(ts[i], deadline - 1e-9) : ts[i];
-    const v = cost(t) * still(ts[i], b);
-    bill += 0.5 * (prev + v) * (ts[i] - ts[i - 1]);
-    prev = v;
+    const c1 = at(ts[i]), S1 = still(ts[i], b);
+    bill += seg(ts[i - 1], ts[i], c0, c1, S0, S1, 0);
+    c0 = c1; S0 = S1;
   }
   if (deadline === null) return { reward: g(b), bill, net: g(b) - bill, open: 0 };
   const open = still(deadline, b);
@@ -180,9 +212,12 @@ function sampledLevels(choice) {
   const key = JSON.stringify([choice.id, paramsOf(choice)]);
   if (LEVELS.has(key)) return LEVELS.get(key);
   const cost = costOf(choice);
-  let lo = Infinity, hi = 0;
-  for (let i = 0; i <= LEVELS_UNTIL * 500; i++) { const v = cost(i / 500); lo = Math.min(lo, v); hi = Math.max(hi, v); }
-  const out = { lo, hi };
+  let lo = Infinity, hi = 0, iLo = 0, iHi = 0;
+  const N = LEVELS_UNTIL * 500;
+  for (let i = 0; i <= N; i++) { const v = cost(i / 500); if (v < lo) { lo = v; iLo = i; } if (v > hi) { hi = v; iHi = i; } }
+  // the extremes between samples: golden-section search over the two steps around each sampled extreme
+  const refine = (i, sign) => { const a = Math.max(0, i - 1) / 500, b = Math.min(N, i + 1) / 500; return sign * argmax((t) => sign * cost(t), a, b, 9, 1e-12).f; };
+  const out = { lo: Math.min(lo, refine(iLo, -1)), hi: Math.max(hi, refine(iHi, 1)) };
   LEVELS.set(key, out);
   return out;
 }
@@ -195,7 +230,8 @@ export function standing(choice, tail = "flat") {
   const p = paramsOf(choice);
   const lv = () => sampledLevels(choice);
   switch (choice.id) {
-    case "jump": case "fall": case "pulse": case "multistep": case "piecewise": return { continuous: true, ...lv(), kind: "step" };
+    case "jump": case "fall": case "pulse": return { continuous: true, ...lv(), kind: "step" };
+    case "multistep": case "piecewise": return { continuous: true, ...lv(), kind: "step", joins: "log" };
     case "wave": case "smooth": return { continuous: true, ...lv(), kind: "smooth" };
     case "constant": return { continuous: true, lo: p.c, hi: p.c, kind: "constant" };
     case "rising": return { continuous: true, lo: lv().lo, hi: Infinity, kind: "rising" };
@@ -213,6 +249,27 @@ export function standing(choice, tail = "flat") {
     }
     default: return { continuous: true, lo: NaN, hi: NaN, kind: "unknown" };
   }
+}
+
+/** x rounded to two significant figures, outward: down for a lower level (dir < 0), up for an upper one, so the
+ * printed level still bounds the cost. A value that rounds onto itself (0.1 for 0.1) stays. */
+export function outward(x, dir) {
+  if (!(x > 0) || !Number.isFinite(x)) return x;
+  const step = 10 ** (Math.floor(Math.log10(x)) - 1);
+  let r = Math.round(x / step) * step;
+  if (dir < 0 && r > x * (1 + 1e-12)) r -= step;
+  if (dir > 0 && r < x * (1 - 1e-12)) r += step;
+  return +r.toPrecision(2);
+}
+/** A number rounded to d decimals, outward (dir < 0 down, dir > 0 up). */
+export const outwardTo = (x, d, dir) => { const k = 10 ** d, r = Math.round(x * k) / k; return dir < 0 ? (r > x + 1e-12 ? r - 1 / k : r) : (r < x - 1e-12 ? r + 1 / k : r); };
+
+/** The levels the plate prints: the schedule's lowest and highest values rounded outward, and the band they give the
+ * bound by Lemma 1(c), B(c_max) to B(c_min), rounded outward to two decimals. */
+export function printedLevels(st) {
+  const lo = st.lo > 0 ? outward(st.lo, -1) : st.lo, hi = Number.isFinite(st.hi) ? outward(st.hi, 1) : st.hi;
+  const ok = holds(st);
+  return { lo, hi, bandLo: ok ? outwardTo(B(hi), 2, -1) : NaN, bandHi: ok ? outwardTo(B(lo), 2, 1) : NaN };
 }
 
 /** Whether the standing assumption holds: continuous, and between two positive constants. */
@@ -275,7 +332,9 @@ export function valueSurface(cost, horizon, { dt = 0.01, h = 0.02, cap = 5, view
     for (let i = m + 1; i < n; i++) {
       const d = decide[i] - wait[i];
       if (d > 0) {
-        if (i === m + 1) { b = 0; break; }
+        // the first step out stops: where the center still waits, the bound lies between the two (model.js's rule;
+        // the paper's code reports 0 there)
+        if (i === m + 1) { const dc = decide[m] - wait[m]; b = dc < 0 ? x[m] - (dc * (x[i] - x[m])) / (d - dc) : 0; break; }
         const dp = decide[i - 1] - wait[i - 1];
         b = x[i - 1] - (dp * (x[i] - x[i - 1])) / (d - dp);
         break;
@@ -288,7 +347,45 @@ export function valueSurface(cost, horizon, { dt = 0.01, h = 0.02, cap = 5, view
   }
   snapTimes.reverse(); snaps.reverse();
   const gy = Float64Array.from(ys, (y) => belief(y));
-  return { dt, h, ys, gy, times: snapTimes, V: snaps, bounds, v00: v[m], shift: OVERSHOOT * Math.sqrt(dt) };
+  // the bound at each kept row: its own step, not a neighbor's
+  const rowBounds = snapTimes.map((t) => bounds[Math.round(t / dt)]);
+  return { dt, h, ys, gy, times: snapTimes, V: snaps, rowBounds, bounds, v00: v[m], shift: OVERSHOOT * Math.sqrt(dt) };
+}
+
+/** The grid's bound is below its first step (0 < b < h): the program waits at the center and stops one step out.
+ * The paper's code reports 0 there. */
+export const belowFirstStep = (b, h) => Number.isFinite(b) && b > 0 && b < h;
+
+/** One path's outcome with the flat bound b: the first check at which |X| reaches b moved in by 0.5826 sqrt(dt), the
+ * evidence there, and the chance the choice made there is right, g(|X|) at that check (not g(b): a check can land on
+ * either side of b). With a deadline, a path still open there is forced at its last check before the deadline. cum is
+ * cumulativeCost on the path's steps. */
+export function pathOutcome(path, b, cum, deadline = null) {
+  const k = decideAt(path, b), kT = deadline !== null ? Math.round(deadline / path.dt) : Infinity;
+  if (k >= 0 && k <= kT) { const x = path.x[k]; return { b, k, tau: k * path.dt, x, side: Math.sign(x) || 1, forced: false, right: g(Math.abs(x)), bill: cum[k] }; }
+  if (deadline !== null) { const kk = Math.min(kT, path.x.length - 1), x = path.x[kk]; return { b, k: kk, tau: kk * path.dt, x, xT: x, side: Math.sign(x) || 1, forced: true, deadline, right: g(Math.abs(x)), bill: cum[kk] }; }
+  const kk = path.x.length - 1; return { b, k: kk, tau: kk * path.dt, x: path.x[kk], side: 1, forced: false, right: NaN, bill: cum[kk], off: true };
+}
+
+/** The best flat bound on the dynamic program's own grid: the threshold x, held fixed and checked every dt, that
+ * scores highest with model.js's score (the scorer the paper's code mirrors), with the choice forced at the horizon.
+ * Searched by golden section within 0.15 of the continuous best moved in by the grid's shift. */
+export function bestFlatOnGrid(cost, horizon, { dt = 0.01, h = 0.02, cap = 5, near = null } = {}) {
+  const steps = Math.round(horizon / dt);
+  const ts = Float64Array.from({ length: steps + 1 }, (_, k) => k * dt);
+  const memo = new Map();
+  const at = (x) => { const k = x.toFixed(9); if (!memo.has(k)) memo.set(k, score(Float64Array.from(ts, () => x), ts, cost, h, cap).reward); return memo.get(k); };
+  const x0 = near ?? 1;
+  const { x } = argmax(at, Math.max(0.005, x0 - 0.15), Math.min(cap, x0 + 0.15), 7, 1e-4);
+  return { x, reward: at(x), shifted: at(x0), x0 };
+}
+
+/** The kept sample nearest a tap on the value map: its row (time) and column (evidence), with their coordinates. */
+export function nearestSample(times, ys, t, y) {
+  let i = 0, j = 0;
+  times.forEach((v, k) => { if (Math.abs(v - t) < Math.abs(times[i] - t)) i = k; });
+  ys.forEach((v, k) => { if (Math.abs(v - y) < Math.abs(ys[j] - y)) j = k; });
+  return { i, j, t: times[i], y: ys[j] };
 }
 
 /** The deadline of a choice, if it has one. */
