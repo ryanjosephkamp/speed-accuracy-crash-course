@@ -3,7 +3,8 @@
 //     the best policy with the choice forced 6 time units past the window ("far", standing in for no last moment),
 //     at the window's end, time 2.5 ("window"), or at a deadline; V(t, y) every 0.05 time units over the window for
 //     y from 0 to 3.2 every 0.04, with the bound at each of those rows; the bound and the per-moment bound every 0.02
-//     to plot, always ending on the window's end or a deadline's forced choice; and V(0, 0)
+//     to plot, always ending on the window's end or a deadline's forced choice (with the last check before a deadline
+//     kept, so the drop starts from it); and V(0, 0)
 //   { job: "flat", choice, dt, h }
 //     the best flat bound on the same grid and horizon as "far" (or to a deadline), scored as the program's policy is,
 //     beside the continuous best and the earn plate's curve of averages: a like-for-like comparison of a bound held flat
@@ -27,7 +28,10 @@ export function valueJob(m, progress = null) {
     b.push(Number.isFinite(out.bounds[k]) ? out.bounds[k] : null);
     pm.push(dl !== null && tk >= dl - 1e-9 ? 0 : toDiscrete(boundForCost(cost(tk)), dt));
   };
-  for (let k = 0; k <= kEnd; k += every) push(k);
+  // at a deadline in view, the last check before it is always kept, so the drop is drawn from that check's bound
+  const atDeadline = dl !== null && dl <= VIEW + 1e-9 && kEnd >= 1;
+  for (let k = 0; k < (atDeadline ? kEnd - 1 : kEnd + 1); k += every) push(k);
+  if (atDeadline) push(kEnd - 1);
   if (Math.round(t[t.length - 1] / dt) !== kEnd) push(kEnd);
   return { horizon, view, deadline: dl, dt, h, ys: Array.from(out.ys), gy: Array.from(out.gy), times: out.times,
     V: out.V.map((r) => Array.from(r)), rowB: out.rowBounds.map((v) => (Number.isFinite(v) ? v : null)), t, b, pm, v00: out.v00, shift: out.shift };

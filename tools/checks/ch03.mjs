@@ -13,6 +13,7 @@ import { costOf, PRESETS, defaultDrawing, VIEW, SPARE } from "../../book/assets/
 import { CHOICES, spec, costFromSpec } from "../validity/schedules.mjs";
 import * as S from "../../book/assets/js/say-ch03.js";
 import { check, N, asPrinted, ROOT } from "./lib.mjs";
+import { dropAt } from "../../book/assets/js/chart.js";
 
 const REF = JSON.parse(readFileSync(join(ROOT, "tools/validity/ch03.json"), "utf8"));
 const SRC = JSON.parse(readFileSync(join(ROOT, "paper/SOURCE.json"), "utf8"));
@@ -302,28 +303,38 @@ for (const c of [0.05, 0.1, 0.3]) {
     const n = M.nearestSample(m.times, m.ys, 0.663, 0.27), s = S.valueVerdict({ ...n, W: m.V[n.i][n.j] - m.gy[n.j] }, { t: 0, W: 0.21 });
     check("words", "a tap at (0.663, 0.27) is read and printed at the nearest kept sample, (0.65, 0.28)", Math.abs(n.t - 0.65) < 1e-9 && Math.abs(n.y - 0.28) < 1e-9 && /time 0\.65, evidence 0\.28/.test(s), s.slice(0, 80) + "…");
   }
-  // the best flat level on the program's own grid, against a scan, and below V(0, 0)
-  for (const choice of [{ id: "draw", points: defaultDrawing().map(() => 2) }, { id: "jump", params: { at: 0.5, factor: 16 } }, { id: "deadline", params: { at: 1, c: 0.1 } }]) {
+  // the best flat level on the program's own grid, against an independent scan of every level the grid can hold,
+  // and below V(0, 0); the drawing that is 2 to time 0.2 and 0.01 after has two peaks, far apart
+  const twoPeaks = { id: "draw", points: Array.from({ length: 26 }, (_, i) => (i <= 2 ? 2 : 0.01)) };
+  for (const [choice, step] of [[twoPeaks, 0.01], [{ id: "draw", points: defaultDrawing().map(() => 2) }, 0.05], [{ id: "jump", params: { at: 0.5, factor: 16 } }, 0.05], [{ id: "deadline", params: { at: 1, c: 0.1 } }, 0.05]]) {
     const f = flatJob({ choice }), cost = costOf(choice), H = f.horizon, ts = Float64Array.from({ length: Math.round(H / 0.01) + 1 }, (_, k) => k * 0.01);
     let scan = -Infinity, at = 0;
-    for (let x = f.gridX - 0.05; x <= f.gridX + 0.05 + 1e-12; x += 0.0025) { if (x <= 0) continue; const v = score(Float64Array.from(ts, () => x), ts, cost, 0.02, 5).reward; if (v > scan) { scan = v; at = x; } }
+    for (let x = step; x < 5 - 1e-9; x += step) { const v = score(Float64Array.from(ts, () => x), ts, cost, 0.02, 5).reward; if (v > scan) { scan = v; at = x; } }
     const v00 = valueJob({ choice, last: "far" }).v00;
-    check("bill", `${choice.id}: the best level held flat on the program's grid beats a scan of levels within 0.05 of it (to 1e-6), beats the continuous best moved in, and earns no more than V(0, 0)`,
-      f.grid >= scan - 1e-6 && f.grid >= f.shifted - 1e-12 && v00 >= f.grid - 1e-9, `level ${f.gridX.toFixed(4)} earns ${f.grid.toFixed(6)}; scan best ${scan.toFixed(6)} at ${at.toFixed(4)}; moved-in ${f.shifted.toFixed(6)}; V(0, 0) ${v00.toFixed(6)}`);
+    check("bill", `${choice.id === "draw" && choice.points[3] === 0.01 ? "a drawing at 2 to time 0.2, then 0.01" : choice.id}: the best level held flat on the program's grid scores at least every level in a scan of (0, 5) every ${step} (to 1e-7), at least the continuous best moved in, and no more than V(0, 0)`,
+      f.grid >= scan - 1e-7 && f.grid >= f.shifted - 1e-12 && v00 >= f.grid - 1e-9, `level ${f.gridX.toFixed(4)} earns ${f.grid.toFixed(7)}; scan best ${scan.toFixed(7)} at ${at.toFixed(3)}; moved-in ${f.shifted.toFixed(6)}; V(0, 0) ${v00.toFixed(6)}`);
+    if (choice === twoPeaks) {
+      const s0 = S.earnVerdict({ b: 2.5, mine: M.flatOnSchedule(cost, 2.5), best: { b: f.b, net: f.net }, dp: v00, flat: f, deadline: null });
+      const gain = (100 * (v00 - f.grid)).toFixed(1), at07 = score(Float64Array.from(ts, () => 0.07), ts, cost, 0.02, 5).reward;
+      check("bill", "that drawing: the best level held flat on the grid is the fast one, near 0.07, not the slow one near the continuous best, and the printed gain from moving uses it", f.gridX < 0.2 && f.grid >= at07 - 1e-12 && s0.includes(`${gain} points per 100 decisions more`) && +gain <= 100 * (v00 - at07) + 1e-9,
+        `level ${f.gridX.toFixed(4)}, ${f.grid.toFixed(7)} vs ${at07.toFixed(7)} at 0.07; printed gain ${gain} points`);
+    }
   }
   // the bill on steep schedules, against a fine midpoint rule with the same series
   {
     const alt = { id: "draw", points: Array.from({ length: 26 }, (_, i) => (i % 2 ? 2 : 0.01)) };
     const cases = [[alt, 1], [alt, 0.3], [alt, 2.2], [{ id: "jump", params: { at: 0.2, factor: 32 } }, 0.6], [{ id: "pulse", params: { at: 0.2, factor: 32 } }, 1], [{ id: "wave", params: { omega: 8, size: 0.6 } }, 1.2]];
-    let worst = 0, where = "";
+    let worst = 0, where = "", printed = true, pwhere = "";
     for (const [choice, b] of cases) {
       const cost = costOf(choice), o = M.flatOnSchedule(cost, b);
       const end = Math.log(1 / 1e-12) / ((1 + (Math.PI / (2 * b)) ** 2) / 2) + 1, hh = Math.min(5e-5, (b * b) / 2000);
       let ref = 0; for (let s0 = hh / 2; s0 < end; s0 += hh) ref += cost(s0) * K.survival(0, s0, b) * hh;
       const d = Math.abs(o.bill - ref);
       if (d > worst) { worst = d; where = `${choice.id} at b = ${b}: ${o.bill.toFixed(7)} vs ${ref.toFixed(7)}`; }
+      for (const [mine, theirs] of [[o.bill, ref], [o.net, M.g(b) - ref]]) if (mine.toFixed(3) !== theirs.toFixed(3)) { printed = false; pwhere = `${choice.id} at b = ${b}: ${mine.toFixed(3)} vs ${theirs.toFixed(3)}`; }
     }
-    check("bill", "on steep schedules (a drawing alternating 0.01 and 2, x32 steps, a fast wave), the bill matches a midpoint rule with steps of 5e-5 or finer (within 2e-6, so three printed decimals hold)", worst < 2e-6, where);
+    check("bill", "on steep schedules (a drawing alternating 0.01 and 2, x32 steps, a fast wave), the bill matches a midpoint rule with steps of 5e-5 or finer, within 2e-6", worst < 2e-6, where);
+    check("bill", "on the same six cases, the printed bill and net, to three decimals, are those of the fine midpoint rule", printed, pwhere || "the same");
   }
   // one path's outcome: the chance of being right at the check where it stops, g(|X|), not g(b)
   {
@@ -332,7 +343,9 @@ for (const c of [0.05, 0.1, 0.3]) {
     check("bill", "the default path at b = 0.05: its chance of being right is g(|X|) at the check where it stops, which differs from g(b), and the sentence prints it", Math.abs(o.right - M.g(Math.abs(path.x[o.k]))) < 1e-15 && Math.abs(o.right - M.g(0.05)) > 5e-4 && s.includes(o.right.toFixed(3)),
       `X = ${o.x.toFixed(5)} at time ${o.tau.toFixed(3)}: g(|X|) = ${o.right.toFixed(5)} vs g(b) = ${M.g(0.05).toFixed(5)}`);
     const d = M.pathOutcome(path, 3, cum, 0.45);
-    check("bill", "a path still open at a deadline is forced at its last check before it, at its own evidence", d.forced && d.k === 450 && d.right === M.g(Math.abs(path.x[450])), `forced at step ${d.k}, X = ${d.x.toFixed(4)}`);
+    const ds = S.pathSay(d), os = S.pathSay(o);
+    check("bill", "a path still open at a deadline of 0.45 is forced at the deadline's own check, step 450, at its own evidence, and the sentence says so", d.forced && d.k === 450 && d.right === M.g(Math.abs(path.x[450])) && /at the deadline, time 0\.45/.test(ds) && !/before the deadline/.test(ds), `forced at step ${d.k}, X = ${d.x.toFixed(4)}: ${ds.slice(0, 60)}…`);
+    check("bill", "the default path at b = 0.05: the sentence gives its check time to three decimals and names the moved-in threshold", os.includes(`time ${o.tau.toFixed(3)}`) && o.tau.toFixed(3) === "0.006" && os.includes(`moved in by ${o.shift.toFixed(3)}`), os.slice(0, 110) + "…");
   }
   // the reader's bound against the best flat bound, by what it earns
   {
@@ -365,5 +378,33 @@ for (const c of [0.05, 0.1, 0.3]) {
     check("words", "a guess 0.009 from the peak is called within 0.01, not right to two decimals", /within 0\.01/.test(near) && !/two decimals/.test(near), near.slice(0, 60));
     const dl = S.standingSay(M.standing({ id: "deadline", params: { at: 1, c: 0.1 } }), "Deadline");
     check("words", "the deadline verdict points to the measurement chapters, not a section number", /chapters 9 and 10/.test(dl) && !/Section/.test(dl), dl.slice(-80));
+  }
+}
+
+// ---- round 3: deadlines printed as set, the last check before a deadline, the threshold's wording, the axis -------
+{
+  const { valueJob } = await import("../../book/assets/js/ch03-worker.js");
+  for (const at of [2.35, 2.55, 0.45, 3]) {
+    const m = valueJob({ choice: { id: "deadline", params: { at, c: 0.1 } }, last: "far" }), note = S.lastNote("far", m.deadline);
+    const state = `the choice forced at time ${S.ft(m.horizon)}`;
+    check("value", `a deadline at ${at}: the note and the solver line print the forced-choice time as ${at}, the time the program used${at > 2.5 ? ", and say the map stops at the window's end" : ""}`,
+      m.horizon === at && S.ft(m.horizon) === String(at) && note.includes(`time ${at},`) && state.includes(`time ${at}`) && (at > 2.5 ? /stop at 2\.5/.test(note) && Math.abs(m.t[m.t.length - 1] - 2.5) < 1e-9 : true),
+      `${note.slice(0, 90)}…`);
+  }
+  {
+    const m = valueJob({ choice: { id: "deadline", params: { at: 0.8, c: 0.1 } }, last: "far" }), n = m.t.length;
+    const vs = M.valueSurface(costOf({ id: "deadline", params: { at: 0.8, c: 0.1 } }), 0.8, { view: 0.8 });
+    const [xs, ys] = dropAt(m.t, m.b, m.deadline);
+    check("value", "a deadline at 0.8: the plotted bound keeps the last check before it, 0.79, and the drop is drawn from that check's bound",
+      Math.abs(m.t[n - 2] - 0.79) < 1e-9 && m.b[n - 2] === vs.bounds[79] && ys[ys.length - 2] === vs.bounds[79] && xs[xs.length - 2] === 0.8 && ys[ys.length - 1] === 0,
+      `0.79: ${m.b[n - 2].toFixed(4)} (the program's ${vs.bounds[79].toFixed(4)}); 0.78: ${m.b[n - 3].toFixed(4)}`);
+  }
+  {
+    const s0 = S.sliceSay(1, 0.01814, 0.508359, 0.008359);
+    check("words", "a bound below the first grid step is described as where deciding starts to beat waiting, read between grid points, with V = g only at the grid points above it", /between the grid's evidence points/.test(s0) && /at the grid points above it, V = g/.test(s0) && !/equal above it/.test(s0), s0.slice(-150));
+    let ok = true, d = "";
+    for (const c of [0.03, 0.1, 0.3, 1]) { const B0 = M.B(c), lv = [0.7, 1, 1.3].map((k) => k * B0), top = M.slopeAxisTop(c, lv); for (const b of lv) { const v = c * (b + 0.5 * Math.sinh(2 * b)); if (v > top) { ok = false; d = `c = ${c}: dot at ${v.toFixed(3)} above ${top.toFixed(3)}`; } } }
+    check("flat", "step 2 of the routes strip: at each selectable cost (0.03 to 1), the axis reaches every trial level's dot", ok, d || `at 0.03 the axis reaches ${M.slopeAxisTop(0.03, [0.7, 1, 1.3].map((k) => k * M.B(0.03))).toFixed(3)}`);
+    check("words", "slider values print as set: a cost of 0.105 is 0.105, a deadline of 2.55 is 2.55", S.ft(0.105) === "0.105" && S.ft(2.55) === "2.55" && S.ft(0.1) === "0.1", `${S.ft(0.105)}, ${S.ft(2.55)}`);
   }
 }
