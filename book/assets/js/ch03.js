@@ -5,7 +5,7 @@
 import * as M from "./ch03-model.js";
 import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, VIEW, defaultDrawing } from "./schedules-book.js";
 import { getChoice, setChoice, solve, onVisible, liftReady, seedParam, wireStrips } from "./book.js";
-import { frame, line, area, axes, svg, fmt, keepDrawn, tags, ticks, dropAt } from "./chart.js";
+import { frame, line, area, axes, svg, fmt, keepDrawn, tags, ticks } from "./chart.js";
 import * as S from "./say-ch03.js";
 
 const $ = (sel, el = document) => el.querySelector(sel);
@@ -314,15 +314,15 @@ function valuePlate() {
       }
     }
     s += axes(f, { yl: "evidence, y = |x|", xl: "start time, t", grid: !shown });
-    const [tp, pp] = dropAt(data.t, data.pm, data.deadline), [tb, bb] = dropAt(data.t, data.b.map((v) => (v === null ? NaN : v)), data.deadline);
-    s += line(f, tp, pp, "pm") + line(f, tb, bb, "ex");
+    const cv = M.mapCurves(data);
+    s += line(f, ...cv.pm, "pm") + line(f, ...cv.b, "ex");
     if (!shown) {
       s += `<text class="tk" x="${(f.l + 8).toFixed(1)}" y="${(f.H - f.b - 10).toFixed(1)}">wait</text><text class="tk" x="${(f.l + 8).toFixed(1)}" y="${f.t + 12}">decide at once</text>`;
     } else {
       const bw = bestW();
       s += `<path class="dim" stroke-dasharray="2 3" d="M${f.sx(tSel).toFixed(1)} ${f.t}V${f.H - f.b}"/>`;
       s += `<circle class="ink-dot" cx="${f.sx(bw.t).toFixed(1)}" cy="${f.sy(0).toFixed(1)}" r="5"/>`;
-      s += `<text class="tag-ex" x="${(f.sx(bw.t) + (f.sx(bw.t) > f.W * 0.6 ? -7 : 7)).toFixed(1)}" y="${(f.sy(0) - 9).toFixed(1)}" text-anchor="${f.sx(bw.t) > f.W * 0.6 ? "end" : "start"}">most: ${fmt(bw.W, 3)}</text>`;
+      s += `<text class="tag-ex" x="${(f.sx(bw.t) + (f.sx(bw.t) > f.W * 0.6 ? -7 : 7)).toFixed(1)}" y="${(f.sy(0) - 9).toFixed(1)}" text-anchor="${f.sx(bw.t) > f.W * 0.6 ? "end" : "start"}">most: ${S.wShown(bw.W)}</text>`;
     }
     const tap = tapAt();
     if (tap) s += `<circle class="acc-dot" cx="${f.sx(tap.t).toFixed(1)}" cy="${f.sy(tap.y).toFixed(1)}" r="5.5"/>`;
@@ -342,18 +342,17 @@ function valuePlate() {
     s += `<path class="w-fill" d="${d}Z"/>`;
     s += line(f, ys, gy, "dim") + line(f, ys, V, "ex");
     const bt = data.rowB[i];
-    const bd = (v) => fmt(v, v < 0.1 ? 3 : 2);
-    if (bt !== null && bt > 0) s += `<path class="dim" stroke-dasharray="3 3" d="M${f.sx(bt).toFixed(1)} ${f.t}V${f.H - f.b}"/><text class="tag-ex" x="${(f.sx(bt) + 5).toFixed(1)}" y="${f.t + 12}">threshold ${bd(bt)}</text>`;
+    if (bt !== null && bt > 0) s += `<path class="dim" stroke-dasharray="3 3" d="M${f.sx(bt).toFixed(1)} ${f.t}V${f.H - f.b}"/><text class="tag-ex" x="${(f.sx(bt) + 5).toFixed(1)}" y="${f.t + 12}">threshold ${S.boundShown(bt)}</text>`;
     if (V[0] - gy[0] > 0.03) s += `<text class="tag-ex" x="${(f.sx(0) + 6).toFixed(1)}" y="${(f.sy(V[0]) - 7).toFixed(1)}">V(t, y)</text>`;
     const gx = Math.max(0.12 * yTop, 0.15 * (bt || yTop));
     s += `<text class="tk" x="${f.sx(gx).toFixed(1)}" y="${(f.sy(M.g(gx)) + 18).toFixed(1)}">g(y), deciding now</text>`;
     sliceEl.innerHTML = svg(f, s, `The value V(t, y) at time ${t.toFixed(2)} beside the reward for deciding now, with the gap between them shaded`);
     const W0 = data.V[i][0] - data.gy[0], bw = bestW();
     reads.innerHTML = `<div><dt>V(t, 0)</dt><dd>${fmt(data.V[i][0], 3)}<small>the best a decision from y = 0 earns</small></dd></div>
-      <div><dt>W(t, 0)</dt><dd>${fmt(W0, 3)}<small>V − g at y = 0</small></dd></div>
-      <div><dt>Bound at t</dt><dd>${bt === null ? "–" : bd(bt)}<small>deciding starts to beat waiting, between grid points</small></dd></div>
-      <div><dt>Largest W</dt><dd>${fmt(bw.W, 3)}<small>of the map's samples: time ${bw.t.toFixed(2)}, y = 0</small></dd></div>`;
-    say.textContent = S.sliceSay(t, bt ?? 0, data.V[i][0], W0, Math.abs(t - data.horizon) < 1e-9);
+      <div><dt>W(t, 0)</dt><dd>${S.wShown(W0)}<small>V − g at y = 0</small></dd></div>
+      <div><dt>Bound at t</dt><dd>${bt === null ? "–" : S.boundShown(bt)}<small>deciding starts to beat waiting, between grid points</small></dd></div>
+      <div><dt>Largest W</dt><dd>${S.wShown(bw.W)}<small>of the map's samples: time ${bw.t.toFixed(2)}, y = 0</small></dd></div>`;
+    say.textContent = S.sliceSay(t, bt ?? 0, data.V[i][0], W0, Math.abs(t - data.horizon) < 1e-9, data.h);
   };
   const drawAll = () => { drawCost(); drawMap(); drawSlice(); if (data) liftReady(fig); };
   const reveal = () => {
@@ -375,8 +374,7 @@ function valuePlate() {
     valueFor(choice, dl !== null ? "far" : last, (p) => { if (wanted === k) state.textContent = `Solving the dynamic program… ${Math.round(p * 100)}%`; }).then((m) => {
       if (wanted !== k) return;
       data = m;
-      state.textContent = `Dynamic program on a grid: time step ${m.dt}, evidence step ${m.h}, the choice forced at time ${S.ft(m.horizon)}. V is kept every 0.05 time units and every ${(m.ys[1] - m.ys[0]).toFixed(2)} in y.` +
-        (m.b.some((v) => M.belowFirstStep(v, m.h)) ? ` Where the program waits at y = 0 but decides one evidence step out, the page puts the bound between the two; the paper's code reports 0 there.` : "");
+      state.textContent = S.valueState(m, m.b.some((v) => M.belowFirstStep(v, m.h)));
       tSel = Math.min(tSel, m.view);
       if (shown) reveal(); else drawAll();
     }).catch((e) => { if (wanted === k) state.textContent = "The solver stopped: " + e.message; });
