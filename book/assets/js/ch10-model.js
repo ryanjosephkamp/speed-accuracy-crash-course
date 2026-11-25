@@ -132,21 +132,17 @@ export function fminbound(func, x1, x2, xatol = 1e-5, maxfun = 500) {
  * between the rule's bound and the program's, both capped at 4, at the grid times before min(4, deadline). The
  * continuous rules are moved in by 0.5826 sqrt(dt); the tuned constant is a single evidence bound searched on
  * [0.02, 4] with tolerance 0.005. Returns the thinned curves (every `every`-th grid time up to `view`, or to the forced
- * choice) for drawing. */
-export function runRules(cost, deadline, { rules = RULES, dt = PAGE_GRID.dt, h = PAGE_GRID.h, cap = PAGE_GRID.cap, view = 4, every = 2, progress = null } = {}) {
+ * choice) for drawing, and with `raw` every grid time's bounds as well. */
+export function runRules(cost, deadline, { rules = RULES, dt = PAGE_GRID.dt, h = PAGE_GRID.h, cap = PAGE_GRID.cap, view = 4, every = 2, progress = null, raw = false } = {}) {
   const horizon = deadline ?? HORIZON;
   const ex = exactPolicy(cost, horizon, dt, h, cap);
   const ts = Array.from(ex.ts);
   progress?.(0.2);
   const sc = (x) => score(x, ts, cost, h, cap);
   const best = sc(ex.bounds);
-  const early = horizon < 4 ? horizon : 4;
-  const capped = (v) => Math.min(v, 4);
   const outcome = (x) => {
     const o = sc(x);
-    let dx = 0;
-    for (let k = 0; k < ts.length && ts[k] < early; k++) dx = Math.max(dx, Math.abs(capped(x[k]) - capped(ex.bounds[k])));
-    return { loss: 100 * (best.reward - o.reward), p: o.p, rt: o.rt, maxDx: dx };
+    return { loss: 100 * (best.reward - o.reward), p: o.p, rt: o.rt, maxDx: maxGap(ts, x, ex.bounds, horizon) };
   };
   const shift = (a) => Float64Array.from(a, (b) => toDiscrete(b, dt));
   const cont = {};
@@ -177,12 +173,42 @@ export function runRules(cost, deadline, { rules = RULES, dt = PAGE_GRID.dt, h =
   for (let k = 0; k <= last; k += every) keep.push(k);
   if (keep[keep.length - 1] !== last) keep.push(last);
   const pick = (a) => keep.map((k) => (Number.isFinite(a[k]) ? a[k] : null));
+  // for the checks: every grid time, the program's bound, and each rule's bound as scored
+  if (raw) out.raw = { ts, exact: Array.from(ex.bounds), rules: Object.fromEntries(rules.map((k) => [k, Array.from(out.rules[k].bound)])) };
   out.t = keep.map((k) => ts[k]);
   out.cost = keep.map((k) => { const c = cost(ts[k]); return Number.isFinite(c) ? c : null; });
   out.exactBound = pick(ex.bounds);
   for (const k of rules) { out.rules[k].curve = pick(out.rules[k].bound); delete out.rules[k].bound; }
   return out;
 }
+
+/** The largest bound gap of one rule, as the paper measures it (held_out.py): |min(x, 4) - min(x_ex, 4)| at the grid
+ * times before min(4, horizon), against the given reference bounds (the program's own, or another code's). */
+export function maxGap(ts, x, xEx, horizon) {
+  const early = Math.min(4, horizon);
+  let d = 0;
+  for (let k = 0; k < ts.length && ts[k] < early; k++) d = Math.max(d, Math.abs(Math.min(x[k], 4) - Math.min(xEx[k], 4)));
+  return d;
+}
+
+/** The gap curves the share plate draws: each rule's bound minus the program's, both capped at 4, at the drawn times
+ * before min(4, deadline), the times the paper's gap statistic covers. A deadline's forced choice is left out: there
+ * every undecided trial chooses, whatever either threshold is. */
+export function gapCurves(run) {
+  const end = Math.min(4, run.horizon), t = [], pm = [], wb = [];
+  run.t.forEach((x, i) => {
+    if (x >= end - 1e-9) return;
+    const e = run.exactBound[i], a = run.rules.per_moment.curve[i], b = run.rules.weighted.curve[i];
+    t.push(x);
+    pm.push(a === null || e === null ? NaN : Math.min(a, 4) - Math.min(e, 4));
+    wb.push(b === null || e === null ? NaN : Math.min(b, 4) - Math.min(e, 4));
+  });
+  return { t, pm, wb, end, forced: run.deadline !== null && run.deadline < 4 ? run.t[run.t.length - 1] : null };
+}
+
+/** The held-out plate's guess line, weighted loss = k times per-moment loss with k = 1 - guess; a guess of 100% has no
+ * line on log axes (k = 0), so it gives null. */
+export const guessSlope = (g) => (g >= 1 - 1e-12 ? null : 1 - g);
 
 // ---- Table 9's shape ------------------------------------------------------------------------------------------------
 

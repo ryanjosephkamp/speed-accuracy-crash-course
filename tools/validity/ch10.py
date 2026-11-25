@@ -28,6 +28,8 @@ tools/validity/ch10.json, for the checks:
   to it;
 - "pageGrid": the paper's code run on the page's grid (dt 0.01, h 0.02, bounds capped at 5) with the paper's
   horizon (a forced choice at t = 10, or at the deadline): the exact policy's reward, accuracy, and decision time,
+  its evidence bound at every grid time before min(4, deadline) ("early", where the bound gap is measured; null
+  above the cap),
   and the seven rules of experiments/held_out.py (its own cheap_policies and mean_look_ahead, read from its
   source; the tuned constant searched as experiments/common.py's best_fixed does, with the page grid's scorer),
   on the book's presets (each read from the same log-cost table as tools/validity/schedules.mjs gives the page's
@@ -250,7 +252,8 @@ def main():
             o = score(x)
             return dict(loss=100 * (ex.reward - o.reward), p=o.p_correct, rt=o.mean_rt,
                         max_dx=float(np.max(np.abs(np.minimum(x, 4) - np.minimum(x_ex, 4))[early])))
-        out = dict(exact=dict(reward=ex.reward, p=ex.p_correct, rt=ex.mean_rt))
+        out = dict(exact=dict(reward=ex.reward, p=ex.p_correct, rt=ex.mean_rt),
+                   early=[None if not np.isfinite(v) else g(float(v), 12) for v in x_ex[early]])
         for k, gb in cheap_policies(s, ts).items():
             out[k] = outcome(to_x(gb))
         from scipy.optimize import minimize_scalar
