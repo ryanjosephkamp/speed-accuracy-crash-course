@@ -196,10 +196,10 @@ export const hitMean = (y, z) => z * Math.tanh(z) - y * Math.tanh(y);
 
 /** The program on the evidence grid, model.js's exactPolicy step for step, keeping what it decides at every node with
  * x >= 0 (the problem is symmetric): stop[k (m + 1) + i] is 1 where deciding beats waiting at time ts[k] and node
- * x = i h. Also its value at the start, and two readings of its bound: exactPolicy's (the first stopping node past
- * 0, interpolated, and 0 when that node is the first one, as the paper's backward_induction_x reports it) and one
- * that interpolates between the center and the first node when the center still waits. At a high cost the first
- * node can stop while the center waits; the stop set keeps that choice, and the policy is scored from it. */
+ * x = i h. Also its value at the start and its bound as exactPolicy exports it: the first stopping node past 0,
+ * interpolated, and, when that node is the grid's first step and the center still waits, a point between the two.
+ * paperZero[k] marks those steps: the paper's backward_induction_x reports 0 there. The policy is scored from the
+ * stop set. (best is the same array as bounds, kept for the callers that read it.) */
 export function gridProgram(cost, horizon, dt = 0.01, h = 0.02, cap = 5) {
   const steps = Math.round(horizon / dt);
   const ts = Float64Array.from({ length: steps + 1 }, (_, k) => k * dt);
@@ -208,7 +208,7 @@ export function gridProgram(cost, horizon, dt = 0.01, h = 0.02, cap = 5) {
   const decide = Float64Array.from(g, (gi) => Math.max(gi, 1 - gi));
   let v = Float64Array.from(decide);
   const wait = new Float64Array(n);
-  const bounds = new Float64Array(steps + 1), best = new Float64Array(steps + 1);
+  const bounds = new Float64Array(steps + 1), paperZero = new Uint8Array(steps + 1);
   const stop = new Uint8Array((steps + 1) * (m + 1));
   stop.fill(1, steps * (m + 1));
   for (let k = steps - 1; k >= 0; k--) {
@@ -223,23 +223,21 @@ export function gridProgram(cost, horizon, dt = 0.01, h = 0.02, cap = 5) {
       }
       wait[i] = g[i] * up + (1 - g[i]) * down - ck;
     }
-    let b = Infinity, bb = Infinity;
+    let b = Infinity;
     for (let i = m + 1; i < n; i++) {
       const d = decide[i] - wait[i];
       if (d > 0) {
         const dp = decide[i - 1] - wait[i - 1];
-        const lin = x[i - 1] - (dp * (x[i] - x[i - 1])) / (d - dp);
-        b = i === m + 1 ? 0 : lin;
-        bb = i === m + 1 && dp >= 0 ? 0 : lin;
+        b = i === m + 1 && dp >= 0 ? 0 : x[i - 1] - (dp * (x[i] - x[i - 1])) / (d - dp);
+        if (i === m + 1 && dp < 0) paperZero[k] = 1;
         break;
       }
     }
     bounds[k] = b > cap ? Infinity : b;
-    best[k] = bb > cap ? Infinity : bb;
     for (let i = m; i < n; i++) stop[k * (m + 1) + (i - m)] = decide[i] >= wait[i] ? 1 : 0;
     for (let i = 0; i < n; i++) v[i] = Math.max(decide[i], wait[i]);
   }
-  return { ts, bounds, best, stop, m, value: v[m], dt };
+  return { ts, bounds, best: bounds, paperZero, stop, m, value: v[m], dt };
 }
 
 function grid(dt, h, cap) {
@@ -372,7 +370,7 @@ export function lossRun(cost, EPS, { horizon = LOSS_HORIZON, view = 2.5, dt = 0.
     // the share of the prediction from the last 2 time units before the forced choice
     const late = (P) => { let k0 = 0; while (k0 < N - 1 && ts[k0] <= horizon - 2) k0++; const before = k0 > 0 ? P.cum[k0 - 1] : 0; return P.pred > 0 ? (P.pred - before) / P.pred : NaN; };
     let foZero = false, centerWaits = 0;
-    for (let k = 0; k < N - 1; k++) { if (fo[k] <= 0) foZero = true; if (dp.bounds[k] === 0 && dp.best[k] > 0) centerWaits++; }
+    for (let k = 0; k < N - 1; k++) { if (fo[k] <= 0) foZero = true; if (dp.paperZero[k]) centerWaits++; }
     runs.push({
       eps, Rdp,
       loss: { pm: Rdp - Fp.reward, fo: Rdp - Ff.reward },

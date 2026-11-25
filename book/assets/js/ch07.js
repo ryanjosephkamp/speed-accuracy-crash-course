@@ -472,7 +472,8 @@ function shiftPlate() {
         <div class="k-wb"><dt>Shifted: average gap</dt><dd>${fmt(G.avgSh, 3)}<small>largest ${fmt(G.maxSh, 3)}</small></dd></div>
         <div><dt>Shift at time 0</dt><dd>${fmt(M.lookAheadClosed(cost(0)), 3)}<small>m(c(0)), time units</small></dd></div>`;
       say.textContent = S.shiftSay(labelOf(choice), G, flat);
-      const zero = m.exact.some((v, i) => v === 0 && (dl === null || t[i] < dl - 1e-9));
+      // a bound strictly between 0 and the grid's first step: the program waits at the center and decides one step out
+      const zero = m.exact.some((v, i) => v > 0 && v < 0.02 && (dl === null || t[i] < dl - 1e-9));
       state.textContent = S.shiftState(dl !== null, n, zero);
       draw();
     }).catch((e) => { if (e.message !== "superseded") state.textContent = "The solver stopped: " + e.message; });
