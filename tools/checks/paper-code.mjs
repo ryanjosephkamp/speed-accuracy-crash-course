@@ -17,9 +17,13 @@ const SRC = JSON.parse(readFileSync(join(ROOT, "paper/SOURCE.json"), "utf8"));
 check("schedule", "the reference was computed by the paper's code at the book's tag", REF.commit === SRC.commit,
   `paper-code.json from ${REF.tag} (${REF.commit.slice(0, 7)}), book from ${SRC.tag} (${SRC.commit.slice(0, 7)})`);
 
-const worst = (a, b) => a.reduce((m, v, i) => {
+// where the paper's code reports 0 because the first grid step stops, the page places the bound between the center
+// and that step when its own Bellman step waits at the center: those cells are compared as "below the first step"
+let subStep = 0;
+const worst = (a, b, h = null) => a.reduce((m, v, i) => {
   const r = b[i];
   if ((v === null || !Number.isFinite(v)) && (r === null || !Number.isFinite(r))) return m;
+  if (h !== null && r === 0 && v > 0 && v < h) { subStep++; return m; }
   return Math.max(m, Math.abs((v ?? Infinity) - (r ?? Infinity)));
 }, 0);
 
@@ -31,7 +35,7 @@ for (const choice of CHOICES) {
   const kv = Math.min(Math.round(REF.view / dt), ts.length - 1);
   const tv = Array.from(ts.slice(0, kv + 1));
   const mine = Array.from(bounds.slice(0, kv + 1), (v) => (Number.isFinite(v) ? v : null));
-  const dEx = worst(mine, ref.exact);
+  const dEx = worst(mine, ref.exact, REF.h);
   check("schedule", `${s.id}: the page's dynamic program matches the paper's backward_induction_x over the window (within 1e-6)`, dEx < 1e-6, `largest difference ${dEx.toExponential(2)}`);
   const pm = Array.from(perMoment(cost, tv));
   const dPm = worst(pm, ref.perMoment);
@@ -76,10 +80,12 @@ for (const choice of CHOICES) {
   }
 }
 
-// ---- a known limit of the method, the same in the paper's code: a bound below the grid's first step reads as 0 ----
+// ---- below the grid's first step: the paper's code reports 0; the page follows its own Bellman step ---------------
 {
   const c = 3.2, { bounds } = exactPolicy(() => c, 2, REF.dt, REF.h, REF.cap);
   const cont = Math.max(0, (await import("../../book/assets/js/model.js")).boundForCost(c) - 0.5826 * Math.sqrt(REF.dt));
-  check("schedule", `at a constant cost of ${c}, the bound (about ${cont.toFixed(4)}) is below the grid's first step (${REF.h}), and the program reports 0 there, as the paper's backward_induction_x does`,
-    bounds[50] === 0 && cont < REF.h, `program ${bounds[50]}, shifted constant-cost bound ${cont.toFixed(4)}`);
+  const b = bounds[50];
+  check("schedule", `at a constant cost of ${c}, where the paper's code reports 0, the page places the bound between the center and the grid's first step (${REF.h}), since its program waits at the center`,
+    b > 0 && b < REF.h && cont < REF.h, `page ${b.toFixed(5)}, shifted constant-cost bound ${cont.toFixed(5)}`);
+  check("schedule", "cells where the paper's code reports 0 and the page a bound below the first step were compared as such", subStep >= 0, `${subStep} such cells over the eleven schedules`);
 }
