@@ -107,6 +107,8 @@ for (const c of COSTS) {
     }
   }
   check("wave", "the lead in time falls with frequency and stays below m(c0), and the phase stays in (0, 90) degrees, over omega from 0.05 to 3000 at the plates' costs", bad === 0, `${n} points, ${bad} bad`);
+  const dips = (c) => { let prev = -1, dip = false; for (let lo = Math.log10(0.05); lo <= Math.log10(3000); lo += 0.002) { const d = K.transfer(c, 10 ** lo).lead; if (d < prev - 1e-9) dip = true; prev = d; } return dip; };
+  check("wave", "the phase in degrees rises steadily over omega from 0.05 to 3000 at c0 = 0.03 and 0.1, and dips on the way at 0.3 and 1, as the text says", !dips(0.03) && !dips(0.1) && dips(0.3) && dips(1), `dips: 0.03 ${dips(0.03)}, 0.1 ${dips(0.1)}, 0.3 ${dips(0.3)}, 1 ${dips(1)}`);
   const scan = (c) => { let best = { lead: -1, omega: 0 }; for (let lo = -2; lo <= 5; lo += 0.005) { const w = 10 ** lo, dd = K.transfer(c, w).lead; if (dd > best.lead) best = { lead: dd, omega: w }; } return best; };
   const p1 = scan(1), p01 = scan(0.1), p003 = scan(0.03);
   check("wave", "step 5's scan: at c0 = 1 the lead passes 45 degrees (about 46, near omega = 66); at 0.1 and 0.03 it stays below", p1.lead > 45.5 && p1.lead < 46.5 && p1.omega > 40 && p1.omega < 100 && p01.lead < 45 && p003.lead < 45, `${p1.lead.toFixed(3)} at ${p1.omega.toFixed(1)}; ${p01.lead.toFixed(3)}; ${p003.lead.toFixed(3)}`);
@@ -127,6 +129,20 @@ for (const c of COSTS) {
     if (k === p.xs.length - 1 && p.hit > p.ts[k - 1] - 1e-12 && p.hit <= p.ts[k] + 1e-12) same++;
   }
   check("gate", "on 300 seeded paths, U·X reaches the fixed level a at the same step as X reaches b(t), and the hitting time lies in that step", same === n && n > 280, `${same} of ${n} paths`);
+  // the drawn paths: every fifth step, then the one crossing, at the upper or the lower level, on both charts
+  let drawnOk = 0, lower = 0, m2 = 0, lowerSay = "";
+  for (let s = 0; s < 300; s++) {
+    const p = M.gatePath(bnd, K.rng(5000 + s)); if (!Number.isFinite(p.hit)) continue; m2++;
+    const d = M.gateDisplay(p, bnd), k = d.ts.length - 1, last = p.xs.length - 1;
+    const between = p.hit >= p.ts[last - 1] - 1e-12 && p.hit <= p.ts[last] + 1e-12 && d.ts[k - 1] < p.hit;
+    const onLevel = Math.abs(d.xs[k] - p.sign * bnd(p.hit)) < 1e-12 && Math.abs(d.gated[k] - p.sign) < 1e-12 && d.gated.slice(0, k).every((v) => Math.abs(v) < 1);
+    const sayOk = p.sign > 0 ? /upper bound, \+b\(t\)/.test(S.gateSay(p.hit, p.sign)) && /reaches \+a/.test(S.gateSay(p.hit, p.sign)) : /lower bound, −b\(t\)/.test(S.gateSay(p.hit, p.sign)) && /reaches −a/.test(S.gateSay(p.hit, p.sign));
+    if (between && onLevel && sayOk) drawnOk++;
+    if (p.sign < 0) { lower++; lowerSay = S.gateSay(p.hit, p.sign); }
+  }
+  check("gate", "on 300 seeded paths, both charts draw the same crossing, at the signed level (+b and +a, or −b and −a) and between the two straddling steps, and the sentence names the level", drawnOk === m2 && lower > 0, `${drawnOk} of ${m2} paths; ${lower} at the lower level: ${lowerSay}`);
+  const neg = M.gatePath(bnd, K.rng(25 + 12));
+  check("gate", "the path for ?seed=25 crosses at the lower level, and the plate says so", neg.sign === -1 && /lower bound/.test(S.gateSay(neg.hit, neg.sign)) && /−a/.test(S.gateSay(neg.hit, neg.sign)), `hit ${neg.hit.toFixed(4)}, sign ${neg.sign}`);
   // to first order, U/U0 = b0/b falls along its tangent 2 - b/b0
   check("gate", "a/b and its tangent at b0 differ at second order (a 1% move of the bound: within 1.1e-4)", Math.abs(1 / 0.99 - (2 - 0.99)) < 1.1e-4 && Math.abs(1 / 1.01 - (2 - 1.01)) < 1.1e-4, `${(1 / 0.99 - 1.01).toExponential(2)}`);
 }
@@ -146,6 +162,13 @@ for (const c of COSTS) {
   check("control", "for a constant cost, the average of the bounds is the constant-cost bound (within 1e-9)", COSTS.every((c) => Math.abs(M.averagedBound(() => c, 1, c) - K.B(c)) < 1e-9), COSTS.map((c) => (M.averagedBound(() => c, 1, c) - K.B(c)).toExponential(1)).join(", "));
 }
 
+{
+  const say = S.controlSay(2, 0.1, 0.546, 0.23, 1.53, 1.3, 1.34);
+  check("control", "the control sentence names the fixed-kernel approximation and says it is the best bound only to first order", /fixed-kernel approximation/.test(say) && /to first order in the size of the change, it is the best bound/.test(say) && !/the bound is the kernel's average/.test(say), say);
+  const past = 1 - M.kernelCdf(0.6, 0.03), m = K.meanLookAhead(0.03);
+  check("control", "at c0 = 0.03 and t = 4, the window holds 0.6 time units ahead: the plate's reading puts about 29% of the weight past its edge, and the mean, 0.618 ahead, lies past it (marked by an arrow)", Math.abs(past - 0.2948) < 0.005 && Math.round(past * 100) === 29 && /the average uses all of it/.test(S.PAST_EDGE) && 4 + m > 4.6, `${(past * 100).toFixed(2)}% past; mean at ${(4 + m).toFixed(3)}`);
+}
+
 // ---- the urgency on the reader's schedule, run as the page runs it -----------------------------------------------------
 // the worker's scale job: the program at c0 and at c0 + eps (c - c0) for each eps, kept every second step over the window
 const EPS = [1, 0.25, 0.0625];
@@ -163,10 +186,21 @@ function scaleJob(cost, c0) {
     const cost = costOf(p.choice), c0 = avg(cost), m = scaleJob(cost, c0);
     const { u, gFo, gPm } = M.urgencies(m.t, m.b0, m.runs, cost, c0, EPS);
     const L = EPS.length - 1, finite = u.every((x) => x.best.every((v) => Number.isFinite(v) && v > 0));
-    const say = S.yoursSay(EPS, L, gFo, gPm, u[L].holes, p.id === "rising");
+    const say = S.yoursSay(EPS, L, gFo, gPm, u.map((x) => x.total - x.used), p.id === "rising", u[L].total);
     check("yours", `${p.id}: at the smallest size the first-order urgency is closer to the best bound's than the per-moment urgency, and the best bound's urgency is finite`, gFo[L] < gPm[L] && finite && !u[L].holes && /is the closer of the two/.test(say) && !/not the closer/.test(say),
       `gaps at ${EPS.join(", ")}: first order ${gFo.map((g) => g.toExponential(1)).join(", ")}; per-moment ${gPm.map((g) => g.toExponential(1)).join(", ")}`);
   }
+  {
+    // a drawing at 0.01, then 2 from time 2: at full size the first-order bound falls to 0 or below at some times
+    const choice = { id: "draw", points: DRAW_TIMES.map((t, i) => (i < 20 ? 0.01 : 2)) }, cost = costOf(choice), c0 = avg(cost), m = scaleJob(cost, c0);
+    const { u, gFo, gPm } = M.urgencies(m.t, m.b0, m.runs, cost, c0, EPS), x = u[0];
+    const joint = m.t.map((_, i) => Number.isFinite(x.best[i]) && Number.isFinite(x.fo[i]) && Number.isFinite(x.pm[i]));
+    const g1 = Math.max(0, ...x.fo.map((v, i) => (joint[i] ? Math.abs(v - x.best[i]) : 0))), g2 = Math.max(0, ...x.pm.map((v, i) => (joint[i] ? Math.abs(v - x.best[i]) : 0)));
+    const say = S.yoursSay(EPS, 0, gFo, gPm, u.map((v) => v.total - v.used), false, x.total);
+    check("yours", "a drawing with a first-order bound at or below 0: both gaps are taken over the same times, where all three are defined, and the sentence and readings say how many", x.holes && x.used < x.total && x.used === joint.filter(Boolean).length && g1 === gFo[0] && g2 === gPm[0] &&
+      say.includes(`both over the ${x.used} of ${x.total} times where all three curves are defined`) && S.overTimes(x.used, x.total).includes(`${x.used} of ${x.total}`), `${x.used} of ${x.total} times; ${say}`);
+  }
+  check("yours", "the deadline's state line says the program's bound is computed for discrete checking and only the per-moment bound is moved in", /program's bound is computed for checking every 0.01/.test(S.DEADLINE_STATE) && /per-moment bound is moved in by 0.5826/.test(S.DEADLINE_STATE) && !/the bounds are moved in/.test(S.DEADLINE_STATE), S.DEADLINE_STATE);
   // a deadline, on an even and on an odd time step: the plate stops short of the deadline, where the bound is above 0
   for (const at of [1, 1.05, 0.45]) {
     const choice = { id: "deadline", params: { at, c: 0.1 } }, cost = costOf(choice), dl = deadlineOf(choice);
@@ -189,11 +223,32 @@ function scaleJob(cost, c0) {
   const count = (k) => S.ITEMS.filter((it) => it.key === k).length;
   check("novelty", "the key: the technique, the convolution form, the identities, and anticipation credited; the exact equation proved; the kernel, the infinite-horizon proof, and the rule new", count("credited") === 4 && count("proved") === 1 && count("new") === 3 &&
     ["technique", "convolution", "identities", "anticipation"].every((id) => S.ITEMS.find((it) => it.id === id).key === "credited") && S.ITEMS.find((it) => it.id === "exact").key === "proved", S.ITEMS.map((it) => `${it.id}: ${it.key}`).join(", "));
+  const proved = S.ITEMS.filter((it) => it.proved).map((it) => it.id).sort().join();
+  check("novelty", "the middle answer is “Proved here, not claimed as new”; the kernel, the theorem, and the rule answer “new” and say they are proved in the paper too", S.KINDS[1][1] === "Proved here, not claimed as new" && proved === "kernel,rule,theorem" &&
+    S.ITEMS.filter((it) => it.proved).every((it) => /, and proved in the paper\./.test(S.answerText(it)) && !S.marksRight(it, "proved") && S.marksRight(it, "new")) && S.marksRight(S.ITEMS.find((it) => it.id === "identities"), "proved"), proved);
+  const ant = S.ITEMS.find((it) => it.id === "anticipation"), ex = S.ITEMS.find((it) => it.id === "exact");
+  check("novelty", "the anticipation item credits Drugowitsch and colleagues (2012) and Barendregt and colleagues (2022), both in its lines, and doesn't call a reward drop a change in the cost of time", /Drugowitsch/.test(ant.why) && /Barendregt/.test(ant.why) && !/cost of time/.test(ant.text) &&
+    flat(ant.lines[0], ant.lines[1]).includes("drugowitsch2012") && flat(ant.lines[0], ant.lines[1]).includes("barendregt2022"), ant.text);
+  check("novelty", "the exact equation's answer gives the paper's note, not a reason the paper doesn't state", !/because/.test(ex.why) && /symmetric infinite-horizon setting/.test(ex.why), ex.why);
   const all = S.ITEMS.map((it) => it.text + " " + S.answerText(it)).join(" ");
   check("novelty", "no statement or answer calls the rule fast or optimal, or drops the qualifier from a claim of novelty", !/\bfast\b|(?<!not )faster|\boptimal rule\b|\bfirst to\b/i.test(all) && S.ITEMS.filter((it) => it.key === "new").every((it) => /knowledge/.test(S.answerText(it))), "checked");
   // the paper's novelty sentences, in the paper's words: the exact equation is not among what they call new
   const intro = flat(195, 201), rel2 = flat(1136, 1143), smooth = flat(1170, 1172);
   check("novelty", "the paper's three sentences on what is new each say “to our knowledge” and none lists the exact equation", [intro, rel2, smooth].every((s) => /to our knowledge/.test(s.replace(/\s+/g, " ")) || /to our\s+knowledge/.test(s)) && ![intro, rel2, smooth].some((s) => /exact equation[^.]*new/.test(s)), "lines 195–201, 1136–1143, 1170–1172");
+}
+
+{
+  const text = readFileSync(join(ROOT, "book/content/ch12.py"), "utf8");
+  const gone = ["fit to one observer", "no one has run", "summed exactly", "falls at every frequency", "rises toward $45^\\circ$", "because Campbell", "the drift, the noise, and the bound", "drift, noise, and bound", "A test needs", "Every result of the paper that the book quotes", "The book reads every number", "the bound at that moment is the average"];
+  const left = gone.filter((g) => text.includes(g));
+  check("words", "the chapter's text drops the phrasings the audits found too strong", left.length === 0, left.length ? left.join("; ") : `${gone.length} phrases absent`);
+  const kept = ["mean observer's fit", "the noise fixed at variance 1 per second", "could test it", "background, not in the paper", "relative tolerance of $10^{-5}$", "proved in the paper but not claimed as new", "fixed-kernel approximation", "at frequencies sampled from 0.05 to 3,000", "cut off after at most 4,000 terms"];
+  const missing = kept.filter((k) => !text.includes(k));
+  check("words", "the chapter's text carries the audits' corrections (the mean observer, the fixed noise, could, the background note, the typed tolerance, the categories, the approximation, the sampled range, the cutoff)", missing.length === 0, missing.length ? missing.join("; ") : `${kept.length} phrases present`);
+  check("words", "the caption's 4,000-term cutoff is the code's", /export function excessMean\(a, c0, terms = 4000\)/.test(readFileSync(join(ROOT, "book/assets/js/ch12-model.js"), "utf8")) && /terms = 4000/.test(K.meanLookAhead.toString()), "excessMean and meanLookAhead default to 4,000 terms");
+  const tex = readFileSync(join(ROOT, "paper/main.tex"), "utf8").split("\n").slice(1078, 1080).join(" ");
+  check("words", "the typed tolerance the text quotes is in main.tex (line 1079, Section 7.2)", /relative tolerance of \$10\^\{-5\}\$/.test(tex), tex.slice(0, 90));
+  check("words", "the degree axis holds every guess the slider allows (0 to 90 degrees)", [0, 30, 50, 51, 75, 90].every((g) => M.degreeAxisTop(g) >= g) && M.degreeAxisTop(NaN) === 50 && M.degreeAxisTop(40) === 50, [0, 50, 51, 90].map((g) => M.degreeAxisTop(g)).join(", "));
 }
 
 // ---- the sentences ------------------------------------------------------------------------------------------------
@@ -207,8 +262,8 @@ function scaleJob(cost, c0) {
     const say = [
       S.heroLabel(i % 4 === 0 ? "ramp" : [0.5, 1, 2][i % 3], 50 + 200 * u(), 20 + 25 * u(), u()),
       S.rampVerdict(i % 5 ? u() * 1.2 : NaN, u(), m, 10 * u()), S.rampSay(c, 0.1 + 20 * u(), m * (0.3 + 0.7 * u()), m, m * 0.4),
-      S.waveSay(c, 10 ** (3 * u() - 1), 50 * u(), u(), u(), m), S.gateSay(i % 7 ? 3 * u() : NaN), S.mirrorSay(c, K.B(c)), S.mirrorWaveSay(c, 40 * u()), S.linearSay(c, m),
-      S.phaseSay(c, { lead: 44 + 3 * u(), omega: 10 ** (4 * u()) }, m), S.yoursSay(EPS, i % 3, gF, gP, i % 2 === 0, i % 5 === 0), S.outsideNote(["deadline", "constant", "rising"][i % 3]),
+      S.waveSay(c, 10 ** (3 * u() - 1), 50 * u(), u(), u(), m), S.gateSay(i % 7 ? 3 * u() : NaN, i % 2 ? 1 : -1), S.mirrorSay(c, K.B(c)), S.mirrorWaveSay(c, 40 * u()), S.linearSay(c, m),
+      S.phaseSay(c, { lead: 44 + 3 * u(), omega: 10 ** (4 * u()) }, m), S.yoursSay(EPS, i % 3, gF, gP, [0, i % 2 ? 0 : 7, 0], i % 5 === 0, 126), S.overTimes(100 + (i % 27), 126), S.outsideNote(["deadline", "constant", "rising"][i % 3]),
       S.insideNote("Wave"), S.deadlineSay(u(), 1 + u(), 1 + 5 * u()), S.msVerdict(i % 3 ? 600 * u() : NaN, i % 4 ? 90 * u() : NaN, P.leadMs, P.waves[1].deg, P.waves[1].ms),
       S.msSay(P), S.trapSay(P, T), S.controlSay(4 * u(), c, m, m * 0.4, m * 2.5, u() + 0.5, u() + 0.5), S.noveltyVerdict(marks),
     ];
@@ -227,7 +282,7 @@ function scaleJob(cost, c0) {
   for (const c of COSTS) { const m = K.meanLookAhead(c), med = M.kernelQuantile(0.5, c); for (let lL = -1; lL <= 1.3; lL += 0.1) { const L = 10 ** lL, lead = M.rampLead(L, c), s = S.rampSay(c, L, lead, m, med); if (/is slow next/.test(s) !== ((m - lead) / m <= 0.05)) wrong++; } }
   check("words", "the ramp sentence calls a ramp slow exactly when its lead is within 5% of the mean look-ahead", wrong === 0, `${wrong} wrong`);
   check("words", "the wave sentence flags a lead above 45 degrees only when there is one", /above 45°/.test(S.waveSay(1, 66, K.transfer(1, 66).lead, 0.01, 0.3, 0.04)) && !/above 45°/.test(S.waveSay(0.1, 8, K.transfer(0.1, 8).lead, 0.08, 0.36, 0.546)), S.waveSay(1, 66, K.transfer(1, 66).lead, 0.01, 0.3, 0.04));
-  const ys = S.yoursSay(EPS, 0, [0.5, 0.1, 0.02], [0.3, 0.08, 0.03], true, true);
+  const ys = S.yoursSay(EPS, 0, [0.5, 0.1, 0.02], [0.3, 0.08, 0.03], [33, 0, 0], true, 126);
   const big = S.yoursSay(EPS, 0, [84, 0.2, 0.007], [0.12, 0.03, 0.008]);
   check("words", "the schedule sentence calls the first order the closer only when its gap is smaller, flags the rising cost and gaps, and writes a gap over 100% as a multiple", /is the closer of the two/.test(ys) && /outside the theorem/.test(ys) && /leaves a gap/.test(ys) && /not the closer/.test(S.yoursSay(EPS, 0, [0.5, 0.1, 0.05], [0.3, 0.08, 0.03])) && /84\.0 times the constant cost's urgency/.test(big) && !/\d{3,}%/.test(big), big);
   const nv = S.noveltyVerdict({ technique: "new", convolution: "credited", exact: "proved", identities: "proved" });
