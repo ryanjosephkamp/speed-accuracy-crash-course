@@ -70,10 +70,15 @@ export function bandSay(st) {
 }
 
 const STEP = 0.02;   // the program's evidence step
+/** A positive bound below the grid's first evidence step, with enough decimals (three to six) that the printed number
+ * is below the step too, so a sentence comparing it with the step stays true; "just below" the step if six aren't. */
+const belowStep = (b, step) => { for (let d = 3; d <= 6; d++) { const s = b.toFixed(d); if (+s < step) return s; } return `just below ${step}`; };
 /** A bound as the band plate prints it, in its tile and its sentence: "< 0.001" for a positive bound that would round
- * to 0.000, three decimals below the grid's first evidence step (where the page places a bound between y = 0, where
- * the program waits, and that step), and two decimals otherwise. Only a bound of exactly 0 prints as 0.00. */
-export const boundText = (b) => (b > 0 && b < 0.0005 ? "< 0.001" : b > 0 && b < STEP ? f3(b) : f2(b));
+ * to 0.000, at least three decimals below the grid's first evidence step (where the page places a bound between y = 0,
+ * where the program waits, and that step) and never as much as the step, and two decimals otherwise. Only a bound of
+ * exactly 0 prints as 0.00. bound3 is the same with three decimals from the step up, for the band's tile. */
+export const boundText = (b) => (b > 0 && b < 0.0005 ? "< 0.001" : b > 0 && b < STEP ? belowStep(b, STEP) : f2(b));
+export const bound3 = (b) => (b > 0 && b < 0.0005 ? "< 0.001" : b > 0 && b < STEP ? belowStep(b, STEP) : f3(b));
 /** The tile for a schedule without a band: the bound's range over the window, from bandReveal's result. */
 export const rangeTile = (r) => `${boundText(r.lo)} to ${boundText(r.hi)}`;
 /** The sentence for a schedule without a band: the bound's range over the window, and what its lowest value means.

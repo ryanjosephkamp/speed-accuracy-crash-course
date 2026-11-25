@@ -298,7 +298,7 @@ function bandPlate() {
     const r = M.bandReveal({ kind, sketch, view, data, flats, cost, dl, ext });
     if (r.band) {
       const st = r.st;
-      reads.innerHTML = `<div><dt>Band on the grid</dt><dd>${fmt(st.dn, 3)} to ${fmt(st.up, 3)}<small>the constant-cost programs' bounds at time 0</small></dd></div>
+      reads.innerHTML = `<div><dt>Band on the grid</dt><dd>${S.bound3(st.dn)} to ${S.bound3(st.up)}<small>the constant-cost programs' bounds at time 0</small></dd></div>
         <div><dt>Closest to the lower edge</dt><dd>${fmt(st.gapDn, 3)}<small>at time ${fmt(st.atDn, 2)}</small></dd></div>
         <div><dt>Closest to the upper edge</dt><dd>${fmt(st.gapUp, 3)}<small>at time ${fmt(st.atUp, 2)}</small></dd></div>
         <div><dt>Continuous edges, moved in</dt><dd>${fmt(st.shiftGap, 3)}<small>largest distance from the band's edges</small></dd></div>
