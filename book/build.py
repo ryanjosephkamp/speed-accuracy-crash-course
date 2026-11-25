@@ -547,7 +547,7 @@ def shell(*, title, desc, body, depth, leaf, current, bar_title, thumbs_html, sc
 </main>
 {turn}
 <footer class="foot"><div class="foot-inner">
-<p class="src-line">Built against version {PAPER_VERSION} of the paper. <a href="{PAPER_SRC}">Its source</a>. <a href="{PAPER_PDF}">Read the paper</a>.</p>
+<p class="src-line">Built against version {PAPER_VERSION} of the paper. <a href="{PAPER_SRC}">The paper's code and figures</a>. <a href="{PAPER_PDF}">Read the paper</a>.</p>
 {CREDIT}
 </div></footer>
 <script src="{a}assets/js/thumb-index.js" defer></script>

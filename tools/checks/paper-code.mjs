@@ -62,11 +62,16 @@ for (const choice of CHOICES) {
   const ask = (choice) => runWorker("../../book/assets/js/dp-worker.js", { job: "bounds", choice });
   for (const choice of CHOICES) {
     const s = spec(choice), ref = REF.schedules[s.id], m = await ask(choice);
-    const ok = !!(m && m.ok && Array.isArray(m.t) && m.t.length > 50 && m.exact.length === m.t.length && m.pm.length === m.t.length);
+    // the expected times: every 0.02 up to the window's end (or the deadline), and the forced choice itself
+    const end = s.kind === "deadline" ? s.at : REF.view, want = [];
+    for (let k = 0; k * 0.02 <= end + 1e-9; k++) want.push(+(k * 0.02).toFixed(10));
+    if (Math.abs(want[want.length - 1] - end) > 1e-9) want.push(end);
+    const ok = !!(m && m.ok && Array.isArray(m.t) && m.t.length === want.length && m.t.every((t, i) => Math.abs(t - want[i]) < 1e-9)
+      && m.exact.length === m.t.length && m.pm.length === m.t.length);
     let worst = 0, pairs = 0;
     if (ok) m.t.forEach((t, i) => {
       const k = Math.round(t / REF.dt), r = ref.exact[k], v = m.exact[i];
-      if (r === null && v === null) return;          // both off the grid's cap: the same, and counted
+      if (r === null && v === null) { pairs++; return; }   // both off the grid's cap: the same, and counted
       if (Number.isFinite(r) && Number.isFinite(v)) { worst = Math.max(worst, Math.abs(r - v)); pairs++; }
     });
     check("schedule", `${s.id}: the page's worker returns the reference bound at every time it plots (within 1e-6)`, ok && pairs === m.t.length && worst < 1e-6,
@@ -87,5 +92,5 @@ for (const choice of CHOICES) {
   const b = bounds[50];
   check("schedule", `at a constant cost of ${c}, where the paper's code reports 0, the page places the bound between the center and the grid's first step (${REF.h}), since its program waits at the center`,
     b > 0 && b < REF.h && cont < REF.h, `page ${b.toFixed(5)}, shifted constant-cost bound ${cont.toFixed(5)}`);
-  check("schedule", "cells where the paper's code reports 0 and the page a bound below the first step were compared as such", subStep >= 0, `${subStep} such cells over the eleven schedules`);
+  check("schedule", "the eleven schedules at their starting settings never reach a bound below the grid's first step (so every cell was compared to 1e-6; the cost-3.2 case above shows the rule)", subStep === 0, `${subStep} such cells`);
 }

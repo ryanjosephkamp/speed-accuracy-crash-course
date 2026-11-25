@@ -57,20 +57,29 @@ export function errorsVerdict(guess, ePm, eFo, EPS, outside = false) {
   let s = all
     ? `At every size from ${pctE(EPS[0])} to ${pctE(EPS[EPS.length - 1])}, the first-order error is smaller than the per-moment error, by a factor of ${f2(r.lo)} to ${f2(r.hi)}. `
     : `The first-order error is the smaller of the two at ${r.smaller} of the ${EPS.length} sizes. `;
-  s += "Both also carry the grid's own error, which doesn't shrink with ε, so the slopes on this chart aren't a test of the theory's rates. ";
+  s += "Both also carry numerical error from the grid, the finite horizon, and the kernel's series; subtracting the constant-cost run cancels only the part the two runs share, and what remains can change with ε, so the slopes on this chart aren't a test of the theory's rates. ";
   if (outside) return s + "The rising cost grows without bound, so the theorem says nothing about it: these are measurements on this grid only.";
-  s += "The theory, for a bounded Lipschitz change like this one: the per-moment error is of order ε, and the corrected one is O(ε²).";
+  s += "The theory, for a bounded Lipschitz change like this one: the per-moment error is of order ε (divided by ε, it tends to a nonzero function of time), and the corrected one is at most of order ε².";
   if (guess.pm === null && guess.fo === null) return s;
   const right = (guess.pm === 1) + (guess.fo === 2);
   return (right === 2 ? "Both guesses match the theory. " : right === 1 ? "One guess matches the theory. " : "Neither guess matches the theory. ") + s;
 }
 
-export const tooSmallSay = () => "This change is too small for the grid to show either error: every error is below 10⁻⁷. Pick a schedule that moves more.";
+export const tooSmallSay = (largest) => `Every error here is below 10⁻⁷, the smallest this chart displays (the largest is ${Number(largest).toExponential(1)}). Pick a schedule that moves more.`;
+
+/** A guide y = ya (x / xa)^p on log axes, clipped to x in [xLo, xHi] and y in [yLo, yHi] so its slope stays true;
+ * null when no part of it is inside. */
+export function guideInRange(xa, ya, p, xLo, xHi, yLo, yHi) {
+  const xAt = (y) => xa * (y / ya) ** (1 / p);
+  let a = Math.max(xLo, Math.min(xAt(yLo), xAt(yHi))), b = Math.min(xHi, Math.max(xAt(yLo), xAt(yHi)));
+  if (!(a < b)) return null;
+  return [[a, b], [ya * (a / xa) ** p, ya * (b / xa) ** p]];
+}
 
 export function outsideNote(kind) {
   if (kind === "deadline") return "A deadline makes the cost infinite at the deadline, so it isn't a small change of a constant cost and the theorem says nothing about it. The plate doesn't run on it; pick another schedule to compare the shortcuts.";
   if (kind === "constant") return "This cost doesn't change, so there is nothing to shrink: every rule gives the constant-cost bound. Pick a schedule that moves.";
-  return "A rising cost grows without bound, so it is outside the theorem, which needs a bounded change. The page computes it, and the slopes are measurements only.";
+  return "A rising cost grows without bound, so it is outside the theorem, which needs a bounded change. The page computes it and compares the two errors, with no theory question.";
 }
 
 export function insideNote(label) {

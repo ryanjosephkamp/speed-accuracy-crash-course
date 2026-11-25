@@ -82,7 +82,7 @@ function build() {
     for (let i = 0; i < t.length; i++) { const d = Math.abs(exact[i] - pm[i]); if (Number.isFinite(d) && d > g) { g = d; gi = i; } }
     reads.innerHTML = `<div><dt>Best bound at time 0</dt><dd>${fmt(exact[0])}</dd></div>
       <div class="k-pm"><dt>Per-moment at time 0</dt><dd>${fmt(pm[0])}</dd></div>
-      <div><dt>Largest gap between them</dt><dd>${fmt(g)}<small>at time ${fmt(t[gi])}</small></dd></div>`;
+      <div><dt>Largest gap at the solver's times</dt><dd>${fmt(g)}<small>at time ${fmt(t[gi])}</small></dd></div>`;
     liftReady(fig);
   }
 

@@ -137,6 +137,8 @@ for (const row of SIN) {
   for (const c of cases) {
     const { m, ePm, eFo } = await run(c.choice);
     const yr = errorRange(ePm, eFo), r = S.errorRatios(ePm, eFo);
+    const full = m && m.ok && m.t.length === 126 && Math.abs(m.t[125] - 2.5) < 1e-9 && m.b0.length === 126 && m.runs.every((x) => x.length === 126 && x.every(Number.isFinite));
+    check("yours", `${c.id}: the worker returns all 126 times from 0 to 2.5, a constant-cost run, and six complete runs`, full, m ? `${m.t.length} times, last ${m.t[m.t.length - 1]}` : "no reply");
     const say = S.errorsVerdict({ pm: null, fo: null }, ePm, eFo, EPS, c.id === "rising");
     const claimed = /At every size/.test(say), truly = r.n === EPS.length && r.smaller === EPS.length;
     check("yours", `${c.id}: the worker's reply is complete, the chart's range is ordered, and the sentence's "every size" holds exactly when it is true`,
@@ -146,8 +148,15 @@ for (const row of SIN) {
   // a change too small for the grid: no chart, and a sentence that says why
   const near = { id: "draw", points: Array.from({ length: 26 }, (_, i) => 2 - (1e-5 * i) / 25) };
   const n = await run(near);
-  check("yours", "a nearly flat drawing (2 to 1.99999): no log chart is drawn, and the plate says the change is too small", errorRange(n.ePm, n.eFo) === null && /too small/.test(S.tooSmallSay()),
+  check("yours", "a nearly flat drawing (2 to 1.99999): no log chart is drawn, and the plate gives the largest error and says it is below what the chart displays", errorRange(n.ePm, n.eFo) === null && /below 10⁻⁷, the smallest this chart displays \(the largest is 2\.6e-8\)/.test(S.tooSmallSay(Math.max(...n.ePm, ...n.eFo))),
     `largest error ${Math.max(...n.ePm, ...n.eFo).toExponential(2)}`);
   const v = S.errorsVerdict({ pm: null, fo: null }, [1e-2, 5e-3], [1e-3, 3e-4], [1, 0.5], true);
   check("words", "on the rising cost, the verdict calls the errors measurements and says the theorem doesn't cover it", /says nothing about it/.test(v) && /measurements/.test(v) && !/O\(ε²\)\./.test(v), v);
+}
+
+// ---- the error chart's guides keep their slope when clipped to the plot ------------------------------------------
+{
+  const seg = S.guideInRange(1, 1e-2, 2, 1 / 32, 1, 1e-4, 1);
+  const slope = seg ? Math.log(seg[1][1] / seg[1][0]) / Math.log(seg[0][1] / seg[0][0]) : NaN;
+  check("yours", "a slope-2 guide clipped to the plot keeps slope 2 and stays inside it", seg && Math.abs(slope - 2) < 1e-12 && seg[1].every((y) => y >= 1e-4 * (1 - 1e-12) && y <= 1), `slope ${slope}, from ${seg?.[0].map((x) => x.toExponential(2)).join(" to ")}`);
 }
