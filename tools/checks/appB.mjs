@@ -65,53 +65,80 @@ for (const c of [STOPS[0], 0.1, STOPS[STOPS.length - 1]]) {
       const b0 = M.boundAt(r, T, 0), s = S.horizonSay(c, T, M.LONG, binf, d1, d2, b0);
       n++;
       if (bad(s)) wrong.push(`${c}, ${T}: ${s}`);
+      const far = (t) => !(Math.abs(M.boundAt(r, T, t) - binf) <= M.EPS[0]);
       if (T > d1 + 1e-9) {
-        // "within 0.001 of that value from t = 0 up to, but not at, t = T - d1": every step before it, and not at it
+        // "the earliest check where it is more than 0.001 from that value is at t = T - d1; every check before it is within 0.001"
         const qEnd = Math.round((T - d1) / M.DT);
-        for (let q = 0; q < qEnd; q++) if (!(Math.abs(M.boundAt(r, T, q * M.DT) - binf) <= M.EPS[0])) { wrong.push(`${c}, ${T}, t = ${q * M.DT}`); break; }
-        if (Math.abs(M.boundAt(r, T, qEnd * M.DT) - binf) <= M.EPS[0]) wrong.push(`${c}, ${T}: within at T - d1`);
-        if (!s.includes("within 0.001 of that value from t = 0 up to, but not at, t = ")) wrong.push(`${c}, ${T}: branch`);
-      } else if (!s.includes("reaches back")) wrong.push(`${c}, ${T}: branch`);
+        for (let q = 0; q < qEnd; q++) if (far(q * M.DT)) { wrong.push(`${c}, ${T}, t = ${q * M.DT}`); break; }
+        if (!far(qEnd * M.DT)) wrong.push(`${c}, ${T}: within at T - d1`);
+        if (!s.includes(`the earliest check where it is more than 0.001 from that value is at t = ${+(T - d1).toFixed(2)}; every check before it is within 0.001.`)) wrong.push(`${c}, ${T}: branch`);
+      } else {
+        // "more than 0.001 from that value at every check from t = 0 on", and the printed gap at t = 0 is above 0.001
+        for (let q = 0; q * M.DT <= T + 1e-9; q++) if (!far(q * M.DT)) { wrong.push(`${c}, ${T}, t = ${q * M.DT}: within`); break; }
+        const m = s.match(/the bound is [\d.]+, ([\d.]+) below it\.$/);
+        if (!s.includes("more than 0.001 from that value at every check from t = 0 on") || !m || !(+m[1] > 0.001)) wrong.push(`${c}, ${T}: ${s.slice(-60)}`);
+      }
     }
   }
-  check("words", `the horizon plate's sentence, at every cost stop and forced choice on the sliders (${n}), has no NaN, undefined, Infinity, or null, and its "within 0.001 from t = 0 up to, but not at, T - d" holds at every step before T - d and fails at T - d`, !wrong.length, wrong.slice(0, 3).join("; "));
+  check("words", `the horizon plate's sentence, at every cost stop and forced choice on the sliders (${n}), has no NaN, undefined, Infinity, or null; where it names the earliest check more than 0.001 away, every check before it is within 0.001 and that one isn't; where it says every check from t = 0 is more than 0.001 away, each is, and the printed gap at t = 0 is above 0.001`, !wrong.length, wrong.slice(0, 3).join("; "));
 }
 
 // ---- the bins plate ----------------------------------------------------------------------------------------------
 for (const [cs, row] of Object.entries(P.costs)) {
   const c = +cs;
-  const out = M.BINS.map((n) => ({ n, v: M.valueIteration(c, n), p: row.beliefs[String(n)] }));
-  const worst = Math.max(...out.map((o) => Math.abs(o.v.gb - o.p.gb)));
-  check("bins", `at a cost of ${c}, the page's belief-grid bound for each of the six numbers of bins matches known.value_iteration within 1e-9, after the same number of iterations`,
-    worst < 1e-9 && out.every((o) => o.v.it === o.p.it), `largest difference ${worst.toExponential(2)}; iterations ${out.map((o) => o.v.it).join(", ")}`);
+  const out = M.BINS.map((n) => ({ n, v: M.beliefBackward(c, n), s: M.beliefBackward(c, n, P.short), p: row.beliefs[String(n)] }));
+  const worst = Math.max(...out.map((o) => Math.max(Math.abs(o.v.gb - o.p.gb), Math.abs(o.s.gb - o.p.short))));
+  check("bins", `at a cost of ${c}, the page's belief-grid bound at the start, with the choice forced at ${M.LONG} and at ${P.short}, for each of the six numbers of bins, matches known.backward_induction's within 1e-9`,
+    worst < 1e-9, `largest difference ${worst.toExponential(2)}`);
 }
-const BELIEF = new Map(STOPS.map((c) => [c, M.BINS.map((n) => ({ n, ...M.valueIteration(c, n) }))]));
+const BELIEF = new Map(STOPS.map((c) => [c, M.BINS.map((n) => ({ n, ...M.beliefBackward(c, n) }))]));
 const XE = (c) => { const b = RUNS.get(c).bTg; return b[b.length - 1]; };
 {
-  const c = 0.02, rows = BELIEF.get(c), xe = XE(c), r100 = rows.find((r) => r.n === 100), r800 = rows.find((r) => r.n === 800);
-  const gap = M.binGap(r100.x, r100.xb);
-  check("bins", "the text at 0.02: with 100 bins, the bins around the bound are more than 0.1 apart and the bound is more than 0.1 from the evidence grid's; with 800, within 0.005",
-    gap > 0.1 && Math.abs(r100.xb - xe) > 0.1 && Math.abs(r800.xb - xe) < 0.005, `gap ${gap.toFixed(3)}; ${r100.xb.toFixed(3)} and ${r800.xb.toFixed(4)} vs ${xe.toFixed(4)}`);
+  const c = 0.02, rows = BELIEF.get(c), xe = XE(c), few = rows.filter((r) => r.n <= 100);
+  check("bins", "the text at 0.02: the belief grid's bound with 25, 50, and 100 bins is each more than 0.1 below the evidence grid's",
+    few.length === 3 && few.every((r) => r.xb < xe - 0.1), few.map((r) => `${r.n}: ${(r.xb - xe).toFixed(4)}`).join(", "));
+  const d800 = STOPS.map((c) => Math.abs(BELIEF.get(c).find((r) => r.n === 800).xb - XE(c)));
+  check("bins", "the text: at every cost stop, the belief grid with 800 bins is within 0.01 of the evidence grid's bound, both with 30 time units left", d800.every((d) => d < 0.01), `largest ${Math.max(...d800).toFixed(4)}`);
   const hi = STOPS.filter((c) => c >= 0.1);
   const d50 = hi.map((c) => Math.abs(BELIEF.get(c).find((r) => r.n === 50).xb - XE(c)));
   check("bins", "the text: at every cost stop from 0.1 to 1, the belief grid with 50 bins is within 0.01 of the evidence grid's bound", d50.every((d) => d < 0.01), `largest ${Math.max(...d50).toFixed(4)}`);
   const below = STOPS.every((c) => XE(c) < M.boundForCost(c));
   check("bins", "the text: at every cost stop, the evidence grid's bound is below B(c)", below, "");
-  const p = "Equal bins in belief are not equal in evidence. Near a belief of $\\tfrac12$, a bin of width $1/n$ covers about $2/n$ of evidence; near a belief of 0.99, about $50/n$.";
+  const p = "so a small bin of width $1/n$ near a belief $g$ covers about $1/\\bigl(2n\\,g(1 - g)\\bigr)$ of evidence: about $2/n$ near $\\tfrac12$ and about $50/n$ near 0.99.";
   const span = (g) => 1 / (2 * g * (1 - g));
-  check("words", "the text's bin widths: a belief bin of width 1/n covers about 2/n of evidence at 1/2 and about 50/n at 0.99 (the slope of the evidence in the belief)",
+  check("words", "the text's bin widths: the slope of the evidence in the belief, 1/(2g(1 - g)), is 2 at 1/2 and rounds to 51 at 0.99, and the text says 2/n and about 50/n",
     readFileSync(join(ROOT, "book/content/appB.py"), "utf8").includes(p) && span(0.5) === 2 && Math.round(span(0.99)) === 51, `${span(0.5)}, ${span(0.99).toFixed(2)}`);
 }
 {
   let n = 0, wrong = [];
   for (const c of STOPS) {
     for (const r of BELIEF.get(c)) {
-      const s = S.binsSay(c, r.n, r.xb, XE(c), M.boundForCost(c), M.binGap(r.x, r.xb));
+      const xe = XE(c), s = S.binsSay(c, r.n, M.LONG, r.xb, xe, M.boundForCost(c), M.binGap(r.x, r.xb));
       n++;
-      if (bad(s) || !Number.isFinite(r.xb) || !(r.xb > 0)) wrong.push(`${c}, ${r.n}: ${s}`);
+      if (bad(s) || !Number.isFinite(r.xb) || !(r.xb > 0)) { wrong.push(`${c}, ${r.n}: ${s}`); continue; }
+      // the printed bounds differ whenever the printed difference isn't "within 0.000001"
+      const m = s.match(/bound is ([\d.]+) in evidence, (.+?) the evidence grid's \(([\d.]+)\)/);
+      if (!m || (!m[2].startsWith("within") && m[1] === m[3])) wrong.push(`${c}, ${r.n}: ${m ? m[0] : s}`);
     }
   }
-  check("words", `the bins plate's sentence at every cost stop and number of bins (${n}) has no NaN, undefined, Infinity, or null, and every bound there is finite and positive`, !wrong.length, wrong.slice(0, 2).join("; "));
+  check("words", `the bins plate's sentence at every cost stop and number of bins (${n}) has no NaN, undefined, Infinity, or null, every bound there is finite and positive, and its two printed bounds differ whenever it prints a difference`, !wrong.length, wrong.slice(0, 2).join("; "));
+}
+
+// ---- the plates' solve state: the answer on show and the cost it was solved at -------------------------------------
+{
+  const st = M.solveState(), log = [];
+  const g1 = st.ask();
+  log.push(st.take(g1, 0.1, { v: "a" }) && st.get().c === 0.1);
+  const g2 = st.ask();                         // a new cost: nothing from the old one is on show
+  log.push(st.get() === null);
+  log.push(st.take(g1, 0.1, { v: "late" }) === false && st.get() === null);   // a late answer for the old cost
+  log.push(st.live(g2) && !st.live(g1));
+  log.push(st.take(g2, 1, { v: "b" }) && st.get().c === 1 && st.get().v === "b");
+  check("state", "the solve-state helper both plates draw from: asking for a new cost drops the answer on show, a late answer for an older ask is refused, and the answer on show carries the cost it was solved at", log.every(Boolean), log.join(", "));
+  const src = readFileSync(join(ROOT, "book/assets/js/appB.js"), "utf8");
+  const ok = /S\.horizonSay\(r\.c,/.test(src) && /S\.binsSay\(data\.c,/.test(src) && !/S\.(horizonSay|binsSay)\(COSTS/.test(src)
+    && /const r = st\.get\(\);/.test(src) && /const data = st\.get\(\);/.test(src) && (src.match(/st\.take\(g, c, m\)/g) || []).length === 2;
+  check("state", "appB.js's source: both plates draw from the solve state, take answers through it with the cost they asked for, and pass the shown answer's cost (not the slider's) to their sentences", ok, "");
 }
 
 // ---- the sentences on random and edge inputs ---------------------------------------------------------------------
@@ -122,10 +149,10 @@ const XE = (c) => { const b = RUNS.get(c).bTg; return b[b.length - 1]; };
   for (let i = 0; i < 5000; i++) {
     const c = STOPS[Math.floor(rnd() * STOPS.length)], T = 2 + 0.5 * Math.floor(rnd() * 37), binf = 3 * rnd(), d1 = 15 * rnd(), d2 = d1 * rnd(), b0 = binf * rnd();
     const xb = [Infinity, 0, 3 * rnd()][Math.floor(rnd() * 3)], xe = 3 * rnd(), B = 3 * rnd(), gap = rnd();
-    for (const s of [S.horizonSay(c, T, M.LONG, binf, d1, d2, b0), S.binsSay(c, M.BINS[i % 6], xb, xe, B, gap), S.guessSay([0.5, 2, 5, 10][i % 4], d1), S.heroLabel(c, d1)]) if (bad(s)) wrong.push(s);
+    for (const s of [S.horizonSay(c, T, M.LONG, binf, d1, d2, b0), S.binsSay(c, M.BINS[i % 6], M.LONG, xb, xe, B, gap), S.guessSay([0.5, 2, 5, 10][i % 4], d1), S.heroLabel(c, d1)]) if (bad(s)) wrong.push(s);
   }
   check("words", "the four sentence functions on 5,000 random inputs (with a bound of 0 and an infinite bound) have no NaN, undefined, Infinity, or null", !wrong.length, wrong.slice(0, 2).join("; "));
-  const edge = [S.binsSay(0.1, 25, Infinity, 1.2, 1.3, NaN), S.binsSay(0.1, 25, 0, 1.2, 1.3, 0.08)];
+  const edge = [S.binsSay(0.1, 25, M.LONG, Infinity, 1.2, 1.3, NaN), S.binsSay(0.1, 25, M.LONG, 0, 1.2, 1.3, 0.08)];
   check("words", "the bins sentence says plainly when the belief grid waits at every bin or decides at the first bin above 1/2",
     edge[0].includes("waits at every bin") && edge[1].includes("decides at the first bin above 1/2") && !edge.some(bad), edge.join(" | "));
   check("words", "every cost stop prints as the cost the plates compute with", STOPS.every((c) => +S.costLabel(c) === c), STOPS.map(S.costLabel).join(", "));

@@ -1,6 +1,6 @@
 // Appendix B's model: the two reference programs at a constant cost, as pure functions the worker and the checks share.
 // The evidence grid is model.js's exactPolicy (the port of the paper's known.backward_induction_x); the belief grid is
-// a port of the paper's known.value_iteration (belief_grid, transition_matrix, bound_from_values), at this page's
+// a port of the paper's known.backward_induction (belief_grid, transition_matrix, bound_from_values), at this page's
 // time step. tools/checks/appB.mjs holds both to the paper's code at the book's tag (tools/validity/appB.json).
 import { exactPolicy, boundForCost } from "./model.js";
 
@@ -77,30 +77,39 @@ export function boundFromValues(g, decide, wait) {
   return g[p] - (dp * (g[i] - g[p])) / (di - dp);
 }
 
-/** known.value_iteration at a constant cost c: V <- max(decide, P V - c dt) until the largest change is below
- * 1e-3 dt. Returns the belief bound, its evidence, the iterations, and the bins' evidence. */
-export function valueIteration(c, n, dt = DT, maxIter = 1000000) {
-  const tol = 1e-3 * dt, g = beliefGrid(n), { lo, rows } = transitionRows(g, dt);
+/** known.backward_induction at a constant cost c: from the forced choice, `long` time units of steps back, with the
+ * same transition matrix as value iteration. Returns the belief bound at the start (t = 0, `long` time units left),
+ * its evidence, and the bins' evidence. Each step calls progress(k / steps) every 500 steps if given. */
+export function beliefBackward(c, n, long = LONG, dt = DT, progress = null) {
+  const steps = Math.round(long / dt), g = beliefGrid(n), { lo, rows } = transitionRows(g, dt);
   const decide = Float64Array.from(g, (gi) => Math.max(gi, 1 - gi));
   let v = Float64Array.from(decide);
   const wait = new Float64Array(n), next = new Float64Array(n);
-  for (let it = 1; it <= maxIter; it++) {
-    let change = 0;
+  for (let k = 0; k < steps; k++) {
     for (let i = 0; i < n; i++) {
       const row = rows[i], a = lo[i];
       let acc = 0;
-      for (let k = 0; k < row.length; k++) acc += row[k] * v[a + k];
+      for (let q = 0; q < row.length; q++) acc += row[q] * v[a + q];
       wait[i] = acc - c * dt;
       next[i] = Math.max(decide[i], wait[i]);
-      change = Math.max(change, Math.abs(next[i] - v[i]));
     }
-    if (change < tol) {
-      const gb = boundFromValues(g, decide, wait);
-      return { gb, xb: gb >= 1 ? Infinity : evidenceOf(gb), it, x: Float64Array.from(g, evidenceOf) };
-    }
-    v = Float64Array.from(next);
+    v.set(next);
+    if (progress && k % 500 === 499) progress((k + 1) / steps);
   }
-  throw new Error("value iteration did not settle");
+  const gb = boundFromValues(g, decide, wait);
+  return { gb, xb: gb >= 1 ? Infinity : evidenceOf(gb), x: Float64Array.from(g, evidenceOf) };
+}
+
+/** The state both plates draw from: the answer on show and the cost it was solved at. Asking for a new cost drops
+ * the answer on show; an answer is taken only if no newer cost was asked for since. */
+export function solveState() {
+  let gen = 0, shown = null;
+  return {
+    ask() { gen++; shown = null; return gen; },
+    take(g, c, result) { if (g !== gen) return false; shown = { c, ...result }; return true; },
+    get: () => shown,
+    live: (g) => g === gen,
+  };
 }
 
 /** The distance in evidence between the two bins on either side of an evidence bound xb (NaN if it has no bins

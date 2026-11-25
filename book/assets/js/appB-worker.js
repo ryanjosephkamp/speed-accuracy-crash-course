@@ -1,8 +1,8 @@
 // Appendix B's worker: the two reference programs at a constant cost, off the page's thread (appB-model.js). Jobs:
 //   { job: "horizon", c } -> the evidence grid's bound against the time left, with the choice forced at LONG, and how
 //                            far back the forced choice reaches (at 0.001 and 0.01)
-//   { job: "bins", c }    -> the belief grid's bound for each number of bins in BINS (with progress), beside the
-//                            evidence grid's bound with LONG time units left and B(c)
+//   { job: "bins", c }    -> the belief grid's bound with LONG time units left for each number of bins in BINS (with
+//                            progress), beside the evidence grid's bound with LONG time units left and B(c)
 import * as M from "./appB-model.js";
 
 const RUNS = new Map();
@@ -19,8 +19,8 @@ self.onmessage = (e) => {
     if (m.job === "bins") {
       const out = [];
       for (const n of M.BINS) {
-        const v = M.valueIteration(m.c, n);
-        out.push({ n, gb: v.gb, xb: v.xb, it: v.it, gap: M.binGap(v.x, v.xb), x: v.x });
+        const v = M.beliefBackward(m.c, n);
+        out.push({ n, gb: v.gb, xb: v.xb, gap: M.binGap(v.x, v.xb), x: v.x });
         self.postMessage({ id: m.id, progress: out.length / (M.BINS.length + 1) });
       }
       const r = horizon(m.c);

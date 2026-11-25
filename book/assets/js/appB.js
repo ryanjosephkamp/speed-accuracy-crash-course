@@ -53,7 +53,7 @@ function hero() {
     });
     const r = runs[i], d1 = r.reach[0], t1 = T - d1;
     s += `<path class="acc" stroke-dasharray="3 3" d="M${sx(t1).toFixed(1)} ${f.t}V${Hh - f.b}"/>`;
-    s += `<text class="tag-acc" x="${(sx(t1) + (t1 > T * 0.6 ? -4 : 4)).toFixed(1)}" y="${f.t + 10}" text-anchor="${t1 > T * 0.6 ? "end" : "start"}">0.001 below from here</text>`;
+    s += `<text class="tag-acc" x="${(sx(t1) + (t1 > T * 0.6 ? -4 : 4)).toFixed(1)}" y="${f.t + 10}" text-anchor="${t1 > T * 0.6 ? "end" : "start"}">more than 0.001 below from here on</text>`;
     el.innerHTML = s;
   };
   draw(cur);
@@ -68,25 +68,29 @@ function hero() {
   }, "200px");
 }
 
-// ---------------------------------------------------------------- plate: how far back the forced choice reaches
+// ---------------------------------------------------------------- plate: the bound before the forced choice
 function horizonPlate() {
   const fig = plate("horizon"), el = rootOf("horizon");
   if (!el) return;
-  let k = COSTS.indexOf(0.1), T = 10, data = null, gen = 0, guess = null, shown = false;
+  // the default cost is one the hero doesn't draw, so the hero doesn't answer the guess
+  let k = COSTS.indexOf(0.05), T = 10, guess = null, shown = false;
+  const st = M.solveState();
   el.innerHTML = `<div class="controls">${costDial("hz-c", k)}
     <label class="dial"><span class="ctl-key">Forced choice at</span><output id="hz-T-out">10</output>
       <input type="range" id="hz-T" min="2" max="20" step="0.5" value="10" aria-label="The time of the forced choice"></label></div>
-    <div class="controls">${segHTML("hz-guess", [[0.5, "0.5"], [2, "2"], [5, "5"], [10, "10"]], "", "Guess: over how many time units before it does the forced choice move the bound by more than 0.001?")}
+    <div class="controls">${segHTML("hz-guess", [[0.5, "0.5"], [2, "2"], [5, "5"], [10, "10"]], "", "Guess: with how many time units left is the bound last more than 0.001 from its value with 30 left?")}
       <div class="actions"><button class="btn" type="button" id="hz-show">Show me</button></div></div>
     <p class="say" id="hz-verdict" aria-live="polite"></p>
     <div class="chart-wrap" id="hz-chart"></div>
-    <ul class="legend"><li><span class="key key-ex">The bound, choice forced at your time</span></li><li><span class="key key-guide">Its value with ${M.LONG} time units left</span></li><li><span class="key key-acc-dash">Where it is first 0.001 away, counting back</span></li></ul>
+    <ul class="legend"><li><span class="key key-ex">The bound, choice forced at your time</span></li><li><span class="key key-guide">Its value with ${M.LONG} time units left</span></li><li id="hz-key-mark" hidden><span class="key key-acc-dash">The earliest check more than 0.001 from it</span></li></ul>
     <dl class="reads" id="hz-reads"></dl><p class="say" id="hz-say" aria-live="polite"></p><p class="fine" id="hz-state" aria-live="polite"></p>`;
   const chart = $("#hz-chart", el), reads = $("#hz-reads", el), say = $("#hz-say", el), state = $("#hz-state", el), verdict = $("#hz-verdict", el);
-  const cIn = $("#hz-c", el), cOut = $("#hz-c-out", el), tIn = $("#hz-T", el), tOut = $("#hz-T-out", el);
+  const cIn = $("#hz-c", el), cOut = $("#hz-c-out", el), tIn = $("#hz-T", el), tOut = $("#hz-T-out", el), keyMark = $("#hz-key-mark", el);
   const draw = () => {
-    if (!data) { chart.innerHTML = ""; return; }
-    const r = data, binf = r.bTg[r.bTg.length - 1], d1 = r.reach[0], d2 = r.reach[1];
+    const r = st.get();
+    keyMark.hidden = !shown;
+    if (!r) { chart.innerHTML = ""; reads.innerHTML = ""; say.textContent = ""; return; }
+    const binf = r.bTg[r.bTg.length - 1], d1 = r.reach[0], d2 = r.reach[1];
     const yTop = Math.max(0.3, binf * 1.18);
     const f = frame(chart, { x: [0, 20], y: [0, yTop], aspect: 0.46, minH: 170, maxH: 250 });
     let s = axes(f, { yl: "bound (evidence)", xl: "time", grid: true, xt: [0, 5, 10, 15, 20] });
@@ -97,36 +101,39 @@ function horizonPlate() {
     s += `<path class="acc" d="M${f.sx(T).toFixed(1)} ${f.t}V${f.H - f.b}"/><text class="tag-acc" x="${(f.sx(T) + (T > 15 ? -4 : 4)).toFixed(1)}" y="${f.t + 10}" text-anchor="${T > 15 ? "end" : "start"}">forced choice</text>`;
     if (shown) {
       const t1 = T - d1;
-      if (t1 > 0) s += `<path class="acc" stroke-dasharray="3 3" d="M${f.sx(t1).toFixed(1)} ${f.t + 14}V${f.H - f.b}"/>`;
-      else s += `<text class="tag-acc" x="${(f.l + 4).toFixed(1)}" y="${(f.H - f.b - 6).toFixed(1)}">0.001 away already at t = 0</text>`;
+      if (t1 > 1e-9) s += `<path class="acc" stroke-dasharray="3 3" d="M${f.sx(t1).toFixed(1)} ${f.t + 14}V${f.H - f.b}"/>`;
+      else s += `<text class="tag-acc" x="${(f.l + 4).toFixed(1)}" y="${(f.H - f.b - 6).toFixed(1)}">more than 0.001 below at every check</text>`;
     }
-    chart.innerHTML = svg(f, s, `The bound with the choice forced at ${T}, at a cost of ${S.costLabel(COSTS[k])}, against time, beside its value with ${M.LONG} time units left`);
+    chart.innerHTML = svg(f, s, `The bound with the choice forced at ${T}, at a cost of ${S.costLabel(r.c)}, against time, beside its value with ${M.LONG} time units left` + (shown ? `; the earliest check more than 0.001 from that value is ${T - d1 > 1e-9 ? "at t = " + (T - d1).toFixed(2) : "at t = 0"}` : ""));
     const b0 = M.boundAt(r, T, 0);
-    reads.innerHTML = `<div><dt>Bound, ${M.LONG} left</dt><dd>${fmt(binf, 3)}</dd></div>
-      <div><dt>0.001 away, last</dt><dd>${shown ? fmt(d1, 2) : "?"}<small>time units</small></dd></div>
-      <div><dt>0.01 away, last</dt><dd>${fmt(d2, 2)}<small>time units</small></dd></div>
-      <div><dt>Bound at t = 0</dt><dd>${fmt(b0, 3)}</dd></div>`;
-    say.textContent = shown ? S.horizonSay(COSTS[k], T, M.LONG, binf, d1, d2, b0) : "";
+    reads.innerHTML = `<div><dt>Bound, ${M.LONG} left</dt><dd>${fmt(binf, 4)}</dd></div>
+      <div><dt>More than 0.001 from it, with</dt><dd>${shown ? fmt(d1, 2) : "?"}<small>time units left or fewer</small></dd></div>
+      <div><dt>More than 0.01 from it, with</dt><dd>${shown ? fmt(d2, 2) : "?"}<small>time units left or fewer</small></dd></div>
+      <div><dt>Bound at t = 0</dt><dd>${fmt(b0, 4)}</dd></div>`;
+    say.textContent = shown ? S.horizonSay(r.c, T, M.LONG, binf, d1, d2, b0) : "";
     liftReady(fig);
   };
-  const reveal = () => { shown = true; if (data) verdict.textContent = guess === null ? "" : S.guessSay(guess, data.reach[0]); draw(); };
+  const reveal = () => { shown = true; const r = st.get(); verdict.textContent = guess === null || !r ? "" : S.guessSay(guess, r.reach[0]); draw(); };
   onSeg(el, "hz-guess", (v) => { guess = +v; reveal(); });
   $("#hz-show", el).addEventListener("click", reveal);
   tIn.addEventListener("input", () => { T = +tIn.value; tOut.textContent = String(T); draw(); });
+  // moving the cost drops the answer on show at once; releasing the slider solves at the new cost
+  const hold = () => { k = +cIn.value; cOut.textContent = S.costLabel(COSTS[k]); st.ask(); verdict.textContent = ""; state.textContent = "Release the slider to solve at this cost."; draw(); };
   const go = () => {
-    const my = ++gen, c = COSTS[k];
+    const c = COSTS[k], g = st.ask();
     cOut.textContent = S.costLabel(c);
-    state.textContent = "Solving the program…";
+    verdict.textContent = "";
+    state.textContent = `Solving the program at a cost of ${S.costLabel(c)}…`;
+    draw();
     horizon(c).then((m) => {
-      if (my !== gen) return;
-      data = m;
+      if (!st.take(g, c, m)) return;
       state.textContent = `Computed in the page: one program with the choice forced at ${m.long}, checking every ${m.dt} time units on an evidence grid of ${M.H}; at a constant cost, its bound depends only on the time left, so it gives the bound for every forced choice up to ${m.long}.`;
       if (shown && guess !== null) verdict.textContent = S.guessSay(guess, m.reach[0]);
       draw();
-    }).catch((e) => { if (my === gen) fail(state, e); });
+    }).catch((e) => { if (st.live(g)) fail(state, e); });
   };
-  cIn.addEventListener("input", () => { k = +cIn.value; cOut.textContent = S.costLabel(COSTS[k]); });
-  cIn.addEventListener("change", go);
+  cIn.addEventListener("input", hold);
+  cIn.addEventListener("change", () => { k = +cIn.value; go(); });
   keepDrawn(chart, draw);
   go();
 }
@@ -135,7 +142,8 @@ function horizonPlate() {
 function binsPlate() {
   const fig = plate("bins"), el = rootOf("bins");
   if (!el) return;
-  let k = COSTS.indexOf(0.02), n = 100, data = null, gen = 0;
+  let k = COSTS.indexOf(0.02), n = 100;
+  const st = M.solveState();
   el.innerHTML = `<div class="controls">${costDial("bn-c", k)}</div>
     <div class="controls">${segHTML("bn-n", M.BINS.map((b) => [b, String(b)]), n, "Bins on (0, 1)")}</div>
     <div class="chart-wrap" id="bn-top"></div>
@@ -145,7 +153,8 @@ function binsPlate() {
   const top = $("#bn-top", el), bot = $("#bn-bot", el), reads = $("#bn-reads", el), say = $("#bn-say", el), state = $("#bn-state", el);
   const cIn = $("#bn-c", el), cOut = $("#bn-c-out", el);
   const draw = () => {
-    if (!data) { top.innerHTML = ""; bot.innerHTML = ""; return; }
+    const data = st.get();
+    if (!data) { top.innerHTML = ""; bot.innerHTML = ""; reads.innerHTML = ""; say.textContent = ""; return; }
     const fin = data.rows.map((r) => r.xb).filter(Number.isFinite);
     const lo = Math.min(data.xe, ...fin), hi = Math.max(data.B, data.xe, ...fin);
     const pad = Math.max(0.05, (hi - lo) * 0.12);
@@ -155,40 +164,41 @@ function binsPlate() {
     s += `<path class="ex" d="M${f.l} ${f.sy(data.xe).toFixed(1)}H${f.W - f.r}"/>`;
     for (const r of data.rows) {
       const y = Number.isFinite(r.xb) ? f.sy(r.xb) : f.t - 2;
-      s += `<circle class="${r.n === n ? "ink-dot" : "ink-dot"}" cx="${f.sx(r.n).toFixed(1)}" cy="${y.toFixed(1)}" r="${r.n === n ? 5 : 3.4}"${r.n === n ? "" : ' fill-opacity="0.45"'}/>`;
+      s += `<circle class="ink-dot" cx="${f.sx(r.n).toFixed(1)}" cy="${y.toFixed(1)}" r="${r.n === n ? 5 : 3.4}"${r.n === n ? "" : ' fill-opacity="0.45"'}/>`;
     }
-    top.innerHTML = svg(f, s, `The belief grid's bound for each number of bins at a cost of ${S.costLabel(COSTS[k])}, beside the evidence grid's bound and B(c)`);
-    // below: where the chosen number of bins sits in evidence, near the bound
+    top.innerHTML = svg(f, s, `The belief grid's bound for each number of bins at a cost of ${S.costLabel(data.c)}, with ${data.long} time units left, beside the evidence grid's bound and B(c)`);
+    // below: the chosen grid's bin midpoints with positive evidence, up to the axis's end
     const row = data.rows.find((r) => r.n === n);
     const xr = Math.min(4, Math.max(1, data.B * 1.35));
     const g = frame(bot, { x: [0, xr], y: [0, 1], h: 84, l: 46, t: 18, b: 30 });
     let u = axes(g, { yt: [], xl: "evidence, x", fy: () => "" });
-    u += `<text class="lab" x="${g.l}" y="11">the ${n} bins, placed in evidence (bins above 1/2)</text>`;
+    u += `<text class="lab" x="${g.l}" y="11">the ${n} bins' midpoints with positive evidence, up to ${+xr.toFixed(2)}</text>`;
     for (const x of row.x) if (x > 0 && x <= xr) u += `<path class="dim" d="M${g.sx(x).toFixed(1)} ${g.sy(0.15).toFixed(1)}V${g.sy(0.75).toFixed(1)}"/>`;
     if (Number.isFinite(row.xb) && row.xb <= xr) u += `<circle class="ink-dot" cx="${g.sx(row.xb).toFixed(1)}" cy="${g.sy(0.45).toFixed(1)}" r="4"/>`;
     u += `<path class="ex" d="M${g.sx(data.xe).toFixed(1)} ${g.sy(0).toFixed(1)}V${g.sy(0.95).toFixed(1)}"/>`;
-    bot.innerHTML = svg(g, u, `The ${n} bins' positions in evidence, with the belief grid's bound and the evidence grid's`);
-    reads.innerHTML = `<div><dt>Belief grid, ${n} bins</dt><dd>${Number.isFinite(row.xb) ? fmt(row.xb, 3) : "none"}<small>${row.it} iterations</small></dd></div>
-      <div><dt>Evidence grid</dt><dd>${fmt(data.xe, 3)}</dd></div>
-      <div><dt>B(c)</dt><dd>${fmt(data.B, 3)}</dd></div>
-      <div><dt>Bins at the bound</dt><dd>${fmt(row.gap, 3)}<small>apart</small></dd></div>`;
-    say.textContent = S.binsSay(COSTS[k], n, row.xb, data.xe, data.B, row.gap);
+    bot.innerHTML = svg(g, u, `The midpoints of the ${n} bins with positive evidence up to ${+xr.toFixed(2)}, placed in evidence, with the belief grid's bound and the evidence grid's`);
+    reads.innerHTML = `<div><dt>Belief grid, ${n} bins</dt><dd>${Number.isFinite(row.xb) ? fmt(row.xb, 4) : "none"}</dd></div>
+      <div><dt>Evidence grid</dt><dd>${fmt(data.xe, 4)}</dd></div>
+      <div><dt>B(c)</dt><dd>${fmt(data.B, 4)}</dd></div>
+      <div><dt>Midpoints at the bound</dt><dd>${fmt(row.gap, 4)}<small>apart</small></dd></div>`;
+    say.textContent = S.binsSay(data.c, n, data.long, row.xb, data.xe, data.B, row.gap);
     liftReady(fig);
   };
   onSeg(el, "bn-n", (v) => { n = +v; draw(); });
+  const hold = () => { k = +cIn.value; cOut.textContent = S.costLabel(COSTS[k]); st.ask(); state.textContent = "Release the slider to solve at this cost."; draw(); };
   const go = () => {
-    const my = ++gen, c = COSTS[k];
+    const c = COSTS[k], g = st.ask();
     cOut.textContent = S.costLabel(c);
-    state.textContent = "Solving the belief grid for six numbers of bins…";
-    run({ job: "bins", c }, { key: "appB-bins", progress: (q) => { if (my === gen) state.textContent = `Solving the belief grid… ${Math.round(q * 100)}%`; } }).then((m) => {
-      if (my !== gen) return;
-      data = m;
-      state.textContent = `Computed in the page: value iteration on each belief grid, checking every ${M.DT} time units, until no value changes by more than 0.001 Δt in a step; the evidence grid's program with the choice forced ${m.long} time units ahead.`;
+    state.textContent = `Solving the belief grid at a cost of ${S.costLabel(c)} for six numbers of bins…`;
+    draw();
+    run({ job: "bins", c }, { key: "appB-bins", progress: (q) => { if (st.live(g)) state.textContent = `Solving the belief grid at a cost of ${S.costLabel(c)}… ${Math.round(q * 100)}%`; } }).then((m) => {
+      if (!st.take(g, c, m)) return;
+      state.textContent = `Computed in the page: each belief grid stepped back ${m.long} time units from a forced choice, checking every ${M.DT} time units, beside the evidence grid's program with the same ${m.long} time units left.`;
       draw();
-    }).catch((e) => { if (my === gen) fail(state, e); });
+    }).catch((e) => { if (st.live(g)) fail(state, e); });
   };
-  cIn.addEventListener("input", () => { k = +cIn.value; cOut.textContent = S.costLabel(COSTS[k]); });
-  cIn.addEventListener("change", go);
+  cIn.addEventListener("input", hold);
+  cIn.addEventListener("change", () => { k = +cIn.value; go(); });
   keepDrawn(top, draw);
   go();
 }
