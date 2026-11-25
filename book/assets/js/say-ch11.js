@@ -10,13 +10,12 @@ export function heroLabel(t, mh, ml) {
 }
 
 // ---------------------------------------------------------------- the information clock
-const GUESS = { flat: "stays the same", falls: "falls", rises: "rises without bound" };
 /** info: { k0, kEnd, tEnd, kMin, tMin, kMax, deadline (a time or null), growth: kEnd / k0 } for the reader's schedule
  * over t from 0 to 10 (or to the deadline). */
 export function clockVerdict(guess, info) {
   const fact = "A constant cost c becomes κ = c·a·e^θ on the information clock: it rises without bound, by a factor of e for each unit of θ.";
   let head = "";
-  if (guess) head = guess === "rises" ? "Right. " : `Not ${GUESS[guess]}: it rises. `;
+  if (guess) head = guess === "rises" ? "Right. " : "No: it rises. ";
   return head + fact + " " + clockMine(info);
 }
 export function clockMine(info) {
@@ -39,12 +38,15 @@ export function beliefStep(step, n) {
 }
 
 // ---------------------------------------------------------------- the rules on one schedule
-/** s: { label, frozenGap0, frozenGapMax, weightedGapMax, plugZeroFrom (time or null), view, losses: [frozen, weighted,
- * plug, tuned] as printed strings, or null for the reader's own schedule }. */
+/** s: { frozenGap0, frozenGapMax, weightedGapMax, plugZero: [[from, to or null], ...] over the times drawn, lastShown,
+ * losses: [frozen, weighted, plug, tuned] as printed strings, or null for the reader's own schedule }. */
 export function rulesSay(s) {
-  let out = `At t = 0, the frozen-time bound is ${f3(Math.abs(s.frozenGap0))} ${s.frozenGap0 >= 0 ? "above" : "below"} the program's; over the window, the weighted rule stays within ${f3(s.weightedGapMax)} of it, and the frozen-time rule within ${f3(s.frozenGapMax)}.`;
-  if (s.plugZeroFrom !== null && s.plugZeroFrom !== undefined) {
-    out += s.plugZeroFrom <= 1e-9 ? " The plug-in bound is 0 from the start: the rule decides at once." : ` The plug-in bound is 0 from t = ${tt(s.plugZeroFrom)} on: from then, the rule decides at once.`;
+  let out = `At t = 0, the frozen-time bound is ${f3(Math.abs(s.frozenGap0))} ${s.frozenGap0 >= 0 ? "above" : "below"} the program's; over the times drawn, the weighted rule stays within ${f3(s.weightedGapMax)} of it, and the frozen-time rule within ${f3(s.frozenGapMax)}.`;
+  const runs = s.plugZero || [];
+  if (runs.length) {
+    const one = ([a, b]) => (a <= 1e-9 && b === null ? "at all of them" : a <= 1e-9 ? `from the start to t = ${tt(b)}` : b === null ? `from t = ${tt(a)} to the last time drawn, ${tt(s.lastShown)}` : a === b ? `at t = ${tt(a)}` : `from t = ${tt(a)} to t = ${tt(b)}`);
+    const parts = runs.slice(0, 3).map(one);
+    out += ` On the times drawn (every 0.02), the plug-in bound is 0 ${parts.join(" and ")}${runs.length > 3 ? `, and in ${runs.length - 3} more stretches` : ""}: there, the rule decides at once.`;
   }
   if (s.losses) out += ` In the paper's scoring of the whole trial, the frozen-time rule loses ${s.losses[0]} points per 100 trials, the weighted rule ${s.losses[1]}, the plug-in rule ${s.losses[2]}, and the tuned constant bound ${s.losses[3]}.`;
   else out += " The paper scores the rules only on its eight schedules; on yours the page draws the bounds but doesn't score them.";
@@ -83,11 +85,11 @@ export function appbSay(step, n) {
 
 // ---------------------------------------------------------------- one kernel per bound
 export function envelopeSay(step, n) {
-  if (step === 0) return `The mean time to leave (ℓ₀, h₀) peaks at ${f3(n.mMax)} near x = ${f2(n.mAt)}; its slopes at the ends are the flux totals, ${f3(n.th)} at h₀ and ${f3(n.tl)} at ℓ₀.`;
-  if (step === 1) return `Near each bound, V − G is close to c₀ times the squared distance to the bound: curvature 2c₀ = ${f2(2 * n.c0)}.`;
-  if (step === 2) return `With δc = ${n.dc}, the first-order rule moves h by ${signed(n.dhFo)} and ℓ by ${signed(n.dlFo)}; the bounds of Appendix B at c₀ + δc move by ${signed(n.dhEx)} and ${signed(n.dlEx)}. The slopes agree with a central difference of the bounds to ${n.slopeRel.toExponential(0)} (relative).`;
+  if (step === 0) return `The mean time to leave (ℓ₀, h₀) peaks at ${f3(n.mMax)} near x = ${f2(n.mAt)}. Its slope is −${f3(n.th)} at h₀, minus the flux total there, and +${f3(n.tl)} at ℓ₀, the flux total there.`;
+  if (step === 1) return `Inside the waiting region, near each bound, V − G is close to c₀ times the squared distance to the bound: curvature 2c₀ = ${f2(2 * n.c0)} from inside.`;
+  if (step === 2) return `With δc = ${n.dc}, the first-order bounds (the dots) move h by ${signed(n.dhFo)} and ℓ by ${signed(n.dlFo)}; the bounds of Appendix B at c₀ + δc move by ${signed(n.dhEx)} and ${signed(n.dlEx)}${Number.isFinite(n.dhCurve) && Number.isFinite(n.dlCurve) ? `, and the green curve crosses 0 at ${signed(n.dhCurve)} and ${signed(n.dlCurve)} from the old bounds. The three differ at second order in δc` : ""}. The slopes −∫n_h/(2c₀) and ∫n_ℓ/(2c₀) agree with a central difference of Appendix B's bounds to ${n.slopeRel.toExponential(0)} (relative).`;
   if (step === 3) return `The upper bound's kernel averages ${f3(n.mh)} time units ahead and the lower bound's ${f3(n.ml)}${Math.abs(n.mh - n.ml) < 5e-4 ? ": with equal rewards they are the same kernel" : ""}.`;
-  return `With equal rewards, both kernels lie on chapter 6's (largest gap ${n.gap.toExponential(0)} over the dots), and −∫n/(2c₀) = ${f3(n.slope)} is B′(c₀) = ${f3(n.Bp)}.`;
+  return `With both rewards 1, both kernels lie on chapter 6's (largest gap ${n.gap.toExponential(0)} over the dots), and −∫n/(2c₀) = ${f3(n.slope)} is B′(c₀) = ${f3(n.Bp)}.`;
 }
 
 // ---------------------------------------------------------------- two bounds, two leads

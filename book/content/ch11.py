@@ -24,8 +24,8 @@ CHAPTER = {
         ("LopsidedWeightedMax", "the weighted look-ahead's largest loss with unequal rewards, one kernel per bound, on 60 random schedules"),
     ],
     "hero": {
-        "aria": "Unequal rewards: a cost that rises and falls, and from one moment each of the two bounds' kernels weighs the moments after it, the upper bound's above a line and the lower bound's below; underneath, the two bounds around the indifference point, first order and per-moment",
-        "caption": r"""A correct “−” pays a quarter of a correct “+”, and the cost of 0.1 swings 30% (orange). From the moment on show, each bound's own kernel weighs the moments after it: the upper bound's above the line, the lower bound's below it (green, from the paper's series). Below: the two bounds around the indifference point $x^*$ (gray), to first order (green) and per moment (dashed). Formal, not proved: the paper checks this numerically.""",
+        "aria": "Unequal rewards: a cost that rises and falls, and from one moment each of the two bounds' kernels weights the moments after it, the upper bound's above a line and the lower bound's below; underneath, the two bounds around the indifference point, first order and per-moment",
+        "caption": r"""A correct “−” pays a quarter of a correct “+”, and the cost of 0.1 swings 30% (orange). From the moment on show, each bound's own kernel weights the moments after it: the upper bound's above the line, the lower bound's below it (green, from the paper's series). Below: the two bounds around the indifference point $x^*$ (gray), to first order (green) and per moment (dashed). Formal, not proved: the paper checks this numerically.""",
         "still": 2,
     },
     "intro": r"""
@@ -68,7 +68,7 @@ PLATES = {
         "title": "Three rules beside the program",
         "state": "computed",
         "state_text": "Computed in the page: a dynamic program over beliefs and three rules; the losses from the paper's Table 10",
-        "caption": r"""Pick one of the paper's eight schedules or your own. Top: the cost of time (orange, log scale). Middle: the evidence bound $X(t)$ of the exact policy, from a dynamic program over 300 beliefs (bins of equal width on $(0, 1)$) in steps of 0.005 time units, stepping back from a forced choice at time 10 or at the deadline (ink); and three rules, each moved in by $0.5826\sqrt{0.005}$ for checking every 0.005: the frozen-time rule (dashed), the weighted look-ahead in information time after 30 damped updates, with $u$-kernels cached on bounds rounded to 0.01 (green), and the plug-in rule (dotted). All with $a = 1$, drawn from 0 to 2.5 or to the deadline. Bottom, for the paper's eight: each rule's loss in points per 100 trials over the whole trial, from {{ref:tab:unknown}}. The tuned constant bound isn't drawn, because its level comes from the scorer, which the page doesn't run; nor are losses for your own schedule.""",
+        "caption": r"""Pick one of the paper's eight schedules or your own. Top: the cost of time (orange, log scale). Middle: the evidence bound $X(t)$ of the exact policy, from a dynamic program over 300 beliefs (bins of equal width on $(0, 1)$) in steps of 0.005 time units, stepping back from a forced choice at time 10 or at the deadline (ink); and three rules, each moved in by $0.5826\sqrt{0.005}$ for checking every 0.005: the frozen-time rule (dashed), the weighted look-ahead in information time after 30 damped updates, with $u$-kernels cached on bounds rounded to 0.01 (green), and the plug-in rule (dotted). All with $a = 1$, drawn every 0.02 from 0 to 2.5, or up to a deadline: there every rule's choice is forced, so the curves stop before it and a dotted line marks it. Bottom, for the paper's eight: each rule's loss in points per 100 trials over the whole trial, from {{ref:tab:unknown}}. The tuned constant bound isn't drawn, because its level comes from the scorer, which the page doesn't run; nor are losses for your own schedule.""",
         "wide": True,
     },
     "pair": {
@@ -89,14 +89,14 @@ PLATES = {
         "title": "Each bound's kernel, from the envelope argument",
         "state": "computed",
         "state_text": "Computed in the page from closed forms and the paper's series",
-        "caption": r"""At $c_0 = 0.1$, for the ratio $r_-/r_+$ you pick. Step 1: the mean exit time $\mathbb{E}_x\tau$ from $(\ell_0, h_0)$, from its closed form; a constant change $\delta c$ in the cost changes the value by $-\delta c\,\mathbb{E}_x\tau$ to first order. Step 2: $V - G$ on the waiting region (ink), beside the parabolas $c_0(x - h_0)^2$ and $c_0(x - \ell_0)^2$ (dashed). Step 3: near each bound, the slope of $V - G$ (ink) and of $V - G - \delta c\,\mathbb{E}_x\tau$ with $\delta c = 0.02$ (green), by central differences; each crosses 0 at a bound. The green dots are the first-order bounds, moved by $-\delta c\int n_h/(2c_0)$ and $\delta c\int n_\ell/(2c_0)$, and the orange ticks are Appendix B's bounds at $c_0 + \delta c$. The middle is left out: $G$ has a kink at $x^*$, where the slope jumps. Step 4: each bound's kernel, its survival flux normalized, from the paper's series with 4,000 terms, against $s$ on a log scale, with the means marked. Step 5: with equal rewards, both kernels against {{ref:thm:main}}'s, from the series {{ref:eq:series}} (dots).""",
+        "caption": r"""At $c_0 = 0.1$, for the ratio $r_-/r_+$ you pick. Step 1: the mean exit time $\mathbb{E}_x\tau$ from $(\ell_0, h_0)$, from its closed form; a constant change $\delta c$ in the cost changes the value by $-\delta c\,\mathbb{E}_x\tau$ to first order. Step 2: $V - G$ on the waiting region (ink), beside the parabolas $c_0(x - h_0)^2$ and $c_0(x - \ell_0)^2$ (dashed). Step 3: near each bound, the slope of $V - G$ (ink, crossing 0 at the old bound) and of $V - G - \delta c\,\mathbb{E}_x\tau$ with $\delta c = 0.02$ (green), by central differences; the dashed green lines are its straight-line approximation at each bound, $2c_0(x - h_0) + \delta c\int n_h$ and $2c_0(x - \ell_0) - \delta c\int n_\ell$, which cross 0 at the first-order bounds (green dots), moved by $-\delta c\int n_h/(2c_0)$ and $\delta c\int n_\ell/(2c_0)$. The green curve itself crosses 0 a little away from the dots, at second order in $\delta c$. The orange ticks are a third quantity: Appendix B's bounds at $c_0 + \delta c$. The middle is left out: $G$ has a kink at $x^*$, where the slope jumps. Step 4: each bound's kernel, its survival flux normalized, from the paper's series with 4,000 terms, against $s$ on a log scale, with the means marked. Step 5: with both rewards 1, both kernels against {{ref:thm:main}}'s, from the series {{ref:eq:series}} (dots).""",
         "wide": False,
     },
     "sine": {
         "title": "Two bounds, two leads",
         "state": "computed",
         "state_text": "Computed in the page: a dynamic program with two bounds, and each bound's transfer function",
-        "caption": r"""The cost is $0.1 + 0.01\sin\omega t$, with $r_+ = 1$ and $r_-$ as you pick, as in the paper's check. Top: the upper bound's move divided by the size of the change, $(h_\varepsilon - h_0)/\varepsilon$ with $\varepsilon = 0.01$, from a dynamic program on an evidence grid of 0.02 that checks every 0.01 time units, against the same program at the constant cost (ink); the first-order prediction, $h'(c_0)$ times the sinusoid filtered by the upper bound's kernel (green); and the per-moment response $h'(c_0)\sin\omega t$ (dashed). Bottom: the same for the lower bound. The window and the fit are the paper's: whole periods from $t = 2$, at least two and at least 6 time units, with 6 more before the forced choice. The slopes $h'(c_0) = -\int n_h/(2c_0)$ and $\ell'(c_0) = \int n_\ell/(2c_0)$ come from the closed-form flux totals. The paper's program checks every 0.002 on a grid of 0.0025; this coarser grid adds a lag that grows with $\omega$, and halving both steps halves it.""",
+        "caption": r"""The cost is $0.1 + 0.01\sin\omega t$, with $r_+ = 1$ and $r_-$ as you pick, as in the paper's check. Top: the upper bound's move divided by the size of the change, $(h_\varepsilon - h_0)/\varepsilon$ with $\varepsilon = 0.01$, from a dynamic program on an evidence grid of 0.02 that checks every 0.01 time units, against the same program at the constant cost (ink); the first-order prediction, $h'(c_0)$ times the sinusoid filtered by the upper bound's kernel (green); and the per-moment response $h'(c_0)\sin\omega t$ (dashed). Bottom: the same for the lower bound. The window and the fit are the paper's: whole periods from $t = 2$, at least two and at least 6 time units, with 6 more before the forced choice. The slopes $h'(c_0) = -\int n_h/(2c_0)$ and $\ell'(c_0) = \int n_\ell/(2c_0)$ come from the closed-form flux totals. The paper's program checks every 0.002 on a grid of 0.0025. The readings' gaps between the program and the first order are residuals of the grid and of the finite change; at the highest frequency, $\omega = 8$ with $r_- = 0.5$, halving both steps roughly halves the upper bound's lead residual (a check runs it), and at low frequencies the residuals are a small fraction of a degree either way.""",
         "wide": True,
     },
 }
@@ -104,6 +104,7 @@ PLATES = {
 STRIPS = {
     "infotime": {
         "plate": "belief",
+        "label": "Scrub the derivation",
         "steps": [
             ("Before the trial, the drift is unknown in size and sign; the evidence makes the belief about it normal.",
              r"With $\mu \sim N(0, 1/a)$ and $X_t = \mu t + W_t$, the posterior is $\mu \mid X_t \sim N\bigl(X_t/(t + a),\ 1/(t + a)\bigr)$, so $\class{lit}{P(\mu > 0 \mid X_t) = \Phi\bigl(X_t/\sqrt{t + a}\bigr)}$."),
@@ -113,14 +114,15 @@ STRIPS = {
              r"With $\theta = \log((t + a)/a)$, so that $d\theta = dt/(t + a)$, and $u = X/\sqrt{t + a}$, Itô's formula gives $du = \tfrac12 u\,dt/(t + a) + d\bar W/\sqrt{t + a}$, which is $\class{lit}{du = \tfrac12 u\,d\theta + dW_\theta}$."),
             ("The cost moves to the new clock too, and a constant cost rises on it.",
              r"A cost $c(t)\,dt$ is $c(t)\,(t + a)\,d\theta$, so $\class{lit}{\kappa(\theta) = c(t)\,(t + a)}$; for a constant $c$, $\kappa = c\,a\,e^\theta$, which grows without bound."),
-            (r"For a constant $\kappa$, the harmonic reward and smooth fit give the bound, through the speed-measure identity.",
-             r"$\Phi(|u|)$ is harmonic for $\tfrac12\partial_u^2 + \tfrac12 u\,\partial_u$. With $s' = e^{-u^2/2}$ and $m = 2e^{u^2/2}$, the value's equation is $(V'/s')' = m\kappa$, and $V'(0) = 0$ with smooth fit, $V'(U) = \Phi'(U)$, gives $2\kappa\int_0^U e^{v^2/2}\,dv = \Phi'/s' = 1/\sqrt{2\pi}$: $\class{lit}{\int_0^U e^{v^2/2}\,dv = \frac{1}{2\sqrt{2\pi}\,\kappa}}$."),
+            (r"For a constant $\kappa$, the reward, harmonic away from 0, and smooth fit give the bound, through the speed-measure identity.",
+             r"On $u > 0$ the reward $\Phi(u)$ is harmonic for $\tfrac12\partial_u^2 + \tfrac12 u\,\partial_u$ ($\Phi(|u|)$ itself has a kink at 0, where by symmetry the value instead has slope 0). With $s' = e^{-u^2/2}$ and $m = 2e^{u^2/2}$, the value's equation is $(V'/s')' = m\kappa$, and $V'(0) = 0$ with smooth fit, $V'(U) = \Phi'(U)$, gives $2\kappa\int_0^U e^{v^2/2}\,dv = \Phi'/s' = 1/\sqrt{2\pi}$: $\class{lit}{\int_0^U e^{v^2/2}\,dv = \frac{1}{2\sqrt{2\pi}\,\kappa}}$."),
             ("From here on, formally only: the kernel is the decision time from the normalized speed measure.",
              r"For a changing $\kappa$, the exact equation would become $\int_0^{U(\theta)} 2e^{u^2/2}\,\mathbb{E}_u[\kappa(\theta + \tau^*)]\,du = 1/\sqrt{2\pi}$, and the argument of {{ref:thm:main}}, applied formally, gives $\class{lit}{w_U}$: the law of the decision time of $u$ started from $e^{u^2/2}$ normalized on $[0, U]$, equivalently its survival flux at $U$. The paper computes it from a finite-difference generator; it proves no analog of {{ref:prop:regularity}} or {{ref:thm:main}} for this process."),
         ],
     },
     "appB": {
         "plate": "appb",
+        "label": "Scrub the derivation",
         "steps": [
             (r"Deciding pays the better of the two expected rewards, and they are equal at $x^*$.",
              r"$\class{lit}{G(x) = \max\bigl(r_+ g(x),\ r_-(1 - g(x))\bigr)}$ with $g(x) = 1/(1 + e^{-2x})$; since $g/(1 - g) = e^{2x}$, the two are equal at $x^* = \tfrac12\log(r_-/r_+)$."),
@@ -130,23 +132,24 @@ STRIPS = {
              r"$V' = G'$ at both ends, and $\cosh^2 x\,G'(x)$ is $\tfrac12 r_+$ above $x^*$ and $-\tfrac12 r_-$ below it, so $\class{lit}{c\,S(h) + K = \tfrac12 r_+,\quad c\,S(\ell) + K = -\tfrac12 r_-}$, and $S(h) - S(\ell) = (r_+ + r_-)/(2c)$."),
             (r"Value matching leaves one equation in $h$.",
              r"$V(h) - V(\ell) = \int_\ell^h V' = A(h) - A(\ell)$ with $A(x) = c\bigl(S(x)\tanh x - \tfrac12\cosh 2x\bigr) + K\tanh x$, and $V = G$ at both ends, so $\class{lit}{A(h) - A(\ell) = r_+ g(h) - r_-\bigl(1 - g(\ell)\bigr)}$, with $\ell$ and $K$ given by $h$ through step 3."),
-            ("With equal rewards, the pair reduces to the flat bound of chapter 3.",
+            ("With both rewards 1, the pair reduces to the flat bound of chapter 3.",
              r"For $r_+ = r_- = 1$, symmetry gives $\ell = -h$ and $K = 0$, so $c\,S(h) = \tfrac12$, which is $\sinh 2h + 2h = 1/c$: $h = B(c)$. For a common reward $r$, multiplying both rewards and the cost by $r$ multiplies the objective by $r$, so $\class{lit}{h = -\ell = B(c/r)}$."),
         ],
     },
     "envelope": {
         "plate": "envelope",
+        "label": "Scrub the derivation",
         "steps": [
             ("To first order, a small change in the cost changes the value by the extra cost paid while undecided.",
              r"Holding the decision time at its value for the constant cost (the envelope argument), a change $\varepsilon\gamma$ changes the value by $\class{lit}{-\varepsilon\int_0^\infty \gamma(t + s)\,P_x(\tau > s)\,ds}$, where $\tau$ is the exit time from $(\ell_0, h_0)$; for a constant change $\delta c$, that is $-\delta c\,\mathbb{E}_x\tau$."),
             (r"At each bound, waiting and deciding meet with the same slope, and their curvatures differ by $2c_0$.",
-             r"$V - G$ is 0 with slope 0 at $h_0$ (smooth fit), and since $\tfrac12 G'' + \tanh(x)\,G' = 0$ while $\tfrac12 V'' + \tanh(x)\,V' = c_0$, $\class{lit}{(V - G)''(h_0) = 2c_0}$."),
-            ("The change in the value tilts the meeting point, and the bound moves to where the slope is 0 again.",
+             r"$V - G$ is 0 with slope 0 at $h_0$ (smooth fit), and since $\tfrac12 G'' + \tanh(x)\,G' = 0$ while $\tfrac12 V'' + \tanh(x)\,V' = c_0$ inside the waiting region, the second derivative from inside is $\class{lit}{(V - G)''(h_0^-) = 2c_0}$."),
+            ("The change in the value shifts the point where waiting and deciding meet with equal slope, and the bound moves to where the slope of their difference is 0 again.",
              r"With $v(x) = -\int_0^\infty \gamma(t + s)\,P_x(\tau > s)\,ds$, $0 = (V - G)'(h_0 + \delta h) + \varepsilon v'(h_0) \approx 2c_0\,\delta h + \varepsilon v'(h_0)$, and $v'(h_0) = \int_0^\infty \gamma(t + s)\,n_h(s)\,ds$, so $\class{lit}{\delta h(t) \approx -\frac{\varepsilon}{2c_0}\int_0^\infty \gamma(t + s)\,n_h(s)\,ds}$."),
             ("Normalized, each bound's flux is its own kernel, and the two bounds decouple.",
              r"Write $n_h = \bigl(\int n_h\bigr)\,w_h$: $\class{lit}{\delta h = -\frac{\varepsilon\int n_h}{2c_0}\,(w_h \star \gamma)}$, and at $\ell$, symmetrically, $\delta\ell = \frac{\varepsilon\int n_\ell}{2c_0}\,(w_\ell \star \gamma)$. For a constant $\gamma$, the coefficient must be the slope of the constant-cost bound, $dh/dc = -\int n_h/(2c)$: the paper checks this against a central difference of Appendix B's bounds, and the plate does too."),
-            ("With equal rewards, both kernels are the kernel of chapter 6, and the formula is the first-order term of Theorem 7.",
-             r"For $r_+ = r_-$, $n_h = n$, and $\int n = 1/(2c_0\cosh^2 b_0)$ by {{ref:lem:kernel}}(a), so $-\frac{\varepsilon}{2c_0}\int n\cdot(w \star \gamma) = \class{lit}{\varepsilon B'(c_0)\,(w \star \gamma)}$, the term of {{ref:thm:main}}. For unequal rewards, the paper hasn't made the argument rigorous."),
+            ("With both rewards equal to 1, both kernels are the kernel of chapter 6, and the formula is the first-order term of Theorem 7.",
+             r"For $r_+ = r_- = 1$, $n_h = n$, and $\int n = 1/(2c_0\cosh^2 b_0)$ by {{ref:lem:kernel}}(a), so $-\frac{\varepsilon}{2c_0}\int n\cdot(w \star \gamma) = \class{lit}{\varepsilon B'(c_0)\,(w \star \gamma)}$, the term of {{ref:thm:main}}. (A common reward $r \ne 1$ gives $B'(c_0/r)/r$ instead, the slope of $B(c_0/r)$ in $c_0$.) For unequal rewards, the paper hasn't made the argument rigorous."),
         ],
     },
 }
@@ -182,11 +185,11 @@ A constant cost $c$ becomes $\kappa = c\,a\,e^\theta$, which rises without bound
         "title": "The bound and the kernel, carried over",
         "blocks": [
             ("plain", r"""
-On the information clock the belief is a diffusion whose rule doesn't change, so the machinery of chapters 3 to 6 has something to hold on to. For a constant $\kappa$, the problem is a stationary one, and the paper finds its bound the way chapter 3 found $B(c)$: the reward for deciding, $\Phi(|u|)$, is harmonic for the belief's generator, and the value's equation with smooth fit gives
+On the information clock the belief is a time-homogeneous diffusion, so the methods of chapters 3 to 6 can be carried over to it, formally. For a constant $\kappa$, the problem is a stationary one, and the paper finds its bound the way chapter 3 found $B(c)$. On $u > 0$ the reward for deciding, $\Phi(u)$, is harmonic for the belief's generator ($\Phi(|u|)$ has a kink at 0; there the value has slope 0 by symmetry, which is the condition the calculation uses), and the value's equation with smooth fit at $U$ gives
 
 $$\int_0^U e^{v^2/2}\,dv = \frac{1}{2\sqrt{2\pi}\,\kappa}.$$
 
-This is {{ref:rem:speed}} at work, the identity chapter 5's plate “Same algebra, two diffusions” draws for both: for the belief, the scale density is $s' = e^{-u^2/2}$, the speed density is $m = 2e^{u^2/2}$, and $\Phi'/s' = 1/\sqrt{2\pi}$. For a $\kappa$ that changes, the exact equation would become
+This is an instance of {{ref:rem:speed}}, the identity chapter 5's plate “Same algebra, two diffusions” draws for both: for the belief, the scale density is $s' = e^{-u^2/2}$, the speed density is $m = 2e^{u^2/2}$, and $\Phi'/s' = 1/\sqrt{2\pi}$. For a $\kappa$ that changes, the exact equation would become
 
 $$\int_0^{U(\theta)} 2e^{u^2/2}\,\mathbb{E}_u\bigl[\kappa(\theta + \tau^*)\bigr]\,du = \frac{1}{\sqrt{2\pi}},$$
 
@@ -195,7 +198,7 @@ and the argument of {{ref:thm:main}}, applied formally, gives a kernel: the deci
             ("strip", "infotime"),
             ("exact", "1023-1036|The reward|is numerical.", "The paper's derivation, in Section 7.1"),
             ("limits", r"""
-**What is derived, and what is carried over.** The posterior is exact, and so are the change of clock and the cost per unit of information time. The constant-$\kappa$ bound is the paper's calculation from the value's equation and smooth fit, for a cost that is constant on the information clock (in real time, $c(t) = \kappa_0/(t + a)$). The exact equation for a changing $\kappa$, the kernel, and the weighted rule built on it are carried over formally: the paper proves no analog of {{ref:prop:regularity}} or {{ref:thm:main}} for this process, and a constant cost in real time is outside the bounded costs those results assume. The evidence for the rule is the measurement in {{ref:tab:unknown}}.
+**What is derived, and what is carried over.** The posterior is exact, and so are the change of clock and the cost per unit of information time. The constant-$\kappa$ bound is the paper's calculation from the value's equation and smooth fit, for a cost that is constant on the information clock (in real time, $c(t) = \kappa_0/(t + a)$). The exact equation for a changing $\kappa$, the kernel, and the weighted rule built on it are carried over formally: the paper proves no analog of {{ref:prop:regularity}} or {{ref:thm:main}} for this process, and a constant cost in real time is outside the bounded costs those results assume. The evidence for the rule is the measurement in {{ref:tab:unknown}}. One reading note on the excerpt: its “$\Phi(|u|)$ is harmonic” holds on $u > 0$ (and on $u < 0$); at 0, $\Phi(|u|)$ has a kink, and the calculation uses the value's slope there, 0 by symmetry, not the reward's.
 """),
         ],
     },
@@ -231,7 +234,7 @@ A guess before the plate: if a correct “$-$” pays a quarter of a correct “
 """),
             ("plate", "pair"),
             ("plain", r"""
-The upper bound moves more, at every cost and ratio the plate allows. It comes down, so the decision maker chooses “$+$” with less certainty than before: a wrong “$+$” forfeits only the small reward for “$-$”. The lower bound, where it chooses “$-$” and a mistake forfeits the large reward for “$+$”, moves down too, by less. At high costs or lopsided enough rewards, the upper bound falls below 0, and then the decision maker chooses “$+$” at the start, without waiting.
+In the plate's computations, at every cost it offers (0.01 to 1) and every ratio below 1 (down to 0.05), the upper bound moves more; at a ratio of 1, neither moves. It comes down, so the decision maker chooses “$+$” with less certainty than before: a wrong “$+$” forfeits only the small reward for “$-$”. The lower bound, where it chooses “$-$” and a mistake forfeits the large reward for “$+$”, moves down too, by less. At high costs or lopsided enough rewards, the upper bound falls below 0, and then the decision maker chooses “$+$” at the start, without waiting.
 
 Appendix B derives the pair from the value's equation on the waiting region, smooth fit at each end, and value matching across it. Scrub through it.
 """),
@@ -249,7 +252,7 @@ When the cost changes a little, $c_0 + \varepsilon\gamma(t)$, how do the two bou
 
 $$\delta h(t) \approx -\frac{\varepsilon}{2c_0}\int_0^\infty \gamma(t + s)\,n_h(s)\,ds, \qquad n_h(s) = -\partial_x P_x(\tau > s)\big|_{x = h_0},$$
 
-and symmetrically at $\ell$, where $\tau$ is the time to leave $(\ell_0, h_0)$. Each bound looks ahead with its own survival flux, and the two decouple at first order. With equal rewards, both fluxes are chapter 6's, and the formula is {{ref:thm:main}}'s first-order term.
+and symmetrically at $\ell$, where $\tau$ is the time to leave $(\ell_0, h_0)$. Each bound looks ahead with its own survival flux, and the two decouple at first order. With both rewards equal to 1, both fluxes are chapter 6's, and the formula is {{ref:thm:main}}'s first-order term.
 """),
             ("strip", "envelope"),
             ("plain", r"""
@@ -262,7 +265,7 @@ The third check is on random schedules. On 60 of them (for each reward ratio, te
             ("exact", "1067-1078|The envelope argument|rigorous for unequal rewards;", "The paper's per-bound argument, in Section 7.2"),
             ("exact", "1079-1089|identity|", "The paper's checks"),
             ("limits", r"""
-**Where the theory stops.** Appendix B's equations follow from the value's equation, smooth fit at both ends, and value matching, for a waiting region that is one interval around $x^*$, as the paper describes it. The first-order part, one kernel per bound, is a formal per-bound envelope argument that the paper says it has not made rigorous. {{ref:thm:main}} itself assumes equal rewards, a drift of known size, and a cost between two positive constants; nothing in this chapter extends its proof, and both extensions are listed among the paper's limitations.
+**Where the theory stops.** Appendix B's equations follow from the value's equation, smooth fit at both ends, and value matching, for a waiting region that is one interval around $x^*$, as the paper describes it; {{ref:prop:regularity}} proves smooth fit only for equal rewards, so Appendix B assumes it at both bounds. The first-order part, one kernel per bound, is a formal per-bound envelope argument that the paper says it has not made rigorous. {{ref:thm:main}} itself assumes equal rewards, a drift of known size, and a cost between two positive constants; nothing in this chapter extends its proof, and both extensions are listed among the paper's limitations.
 """),
         ],
     },
@@ -271,10 +274,10 @@ The third check is on random schedules. On 60 of them (for each reward ratio, te
         "title": "Where this chapter sits",
         "blocks": [
             ("plain", r"""
-The paper's claims and the places one uses another, with this chapter's two highlighted. Unknown reliability uses {{ref:rem:speed}} (chapter 5) for the constant-$\kappa$ bound and the kernel's starting law, the argument of {{ref:thm:main}} (chapter 6), which it applies formally, and {{claim:def:weighted|the weighted look-ahead rule}} (chapter 8), which it runs on the information clock. Unequal rewards uses the envelope identity ({{ref:lem:envelope}}) and smooth fit ({{ref:prop:regularity}}) from chapter 5, and {{ref:thm:main}}, which it reproduces when the rewards are equal. Both are on {{claim:claim:limitations|the paper's list of its limitations}} (chapter 12).
+The paper's claims and the places one uses another, with this chapter's two highlighted. Unknown reliability uses {{ref:rem:speed}} (chapter 5) for the constant-$\kappa$ bound and the kernel's starting law, the argument of {{ref:thm:main}} (chapter 6), which it applies formally, and {{claim:def:weighted|the weighted look-ahead rule}} (chapter 8), which it runs on the information clock. Unequal rewards uses the envelope identity ({{ref:lem:envelope}}) and smooth fit, which {{ref:prop:regularity}} proves for equal rewards and Appendix B assumes at both bounds, from chapter 5, and {{ref:thm:main}}, which it reproduces when both rewards are 1. Both are on {{claim:claim:limitations|the paper's list of its limitations}} (chapter 12).
 """),
             ("map", "ext:unknown"),
-            ("exact", "1249-1250", "The paper's limitations, on the extensions"),
+            ("exact", "1249-1250|The drift|", "The paper's limitations, on the extensions"),
         ],
     },
     {
@@ -331,9 +334,9 @@ With $r_+ = r_- = 1$, $n_h = n$, and $\int n = 1/(2c_0\cosh^2 b_0)$ ({{ref:lem:k
                 (r"“The unequal-rewards result is a theorem.”",
                  r"It is a formal per-bound envelope argument with numerical checks; the paper says it has not made it rigorous."),
                 (r"“With unequal rewards, both bounds shift by the same amount toward the better-paid answer.”",
-                 r"The upper bound, where the better-paid answer is chosen, moves more than the lower one, and both move down; the plate on two bounds computes how much for any ratio and cost."),
+                 r"The upper bound, where the better-paid answer is chosen, moves more than the lower one, and both move down; the plate on two bounds computes how much for ratios from 0.05 to 1 and costs from 0.01 to 1."),
                 (r"“There is a table of the unequal-rewards results.”",
-                 r"The numbers are in the paper's text only. The paper's code writes `tab_lopsided.tex`, but the paper doesn't print it."),
+                 r"The paper prints two of them, the largest losses, in its text; the per-family numbers are in `tab_lopsided.tex`, which its code writes but the paper doesn't print."),
             ]),
         ],
     },
