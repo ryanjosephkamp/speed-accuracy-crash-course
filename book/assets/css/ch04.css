@@ -1,7 +1,6 @@
 /* Chapter 4: what the shared classes don't give. The band between the flat bounds for the lowest and the highest cost
    is a neutral gray, so the reader's orange drawing and the ink bound stay apart from it; the stopping set is a faint
    ink wash; the cost boxes of the comparison are dashed outlines in the cost's orange. */
-.pick-dial { flex: 1 1 13rem; }
 .chart .band-gray { fill: var(--print-dim); opacity: 0.16; stroke: none; }
 .chart .stop-fill { fill: var(--print-ink); opacity: 0.08; stroke: none; }
 .chart .ray { stroke: var(--accent-print); stroke-width: 3.2; fill: none; stroke-linecap: round; }

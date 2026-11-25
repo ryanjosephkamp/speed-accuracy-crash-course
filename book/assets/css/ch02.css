@@ -1,2 +1,0 @@
-/* Chapter 2: one more legend swatch, for the dashed gray reference curve (.chart .guide). */
-.key-guide::before { border-top: 1.5px dashed var(--print-dim); }

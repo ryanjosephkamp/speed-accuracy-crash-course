@@ -100,7 +100,7 @@ STRIPS = {
              r"$\dfrac{P(H = +1 \mid \text{evidence})}{P(H = -1 \mid \text{evidence})} = \dfrac{1/2}{1/2}\cdot\dfrac{p_+(X_t)}{p_-(X_t)} = \class{lit}{e^{2X_t}}$."),
             ("So the belief is a logistic function of the evidence, and the evidence is half the log odds.",
              r"$P(H = +1 \mid X_t = x) = \dfrac{e^{2x}}{1 + e^{2x}} = \class{lit}{g(x) = \dfrac{1}{1 + e^{-2x}}}$, and $\log\dfrac{g}{1 - g} = 2x$."),
-            ("The decision maker's best estimate of the drift is $\tanh X$.",
+            (r"The decision maker's best estimate of the drift is $\tanh X$.",
              r"$\E[H \mid \text{evidence}] = (+1)\,g + (-1)(1 - g) = 2g - 1 = \dfrac{1 - e^{-2X}}{1 + e^{-2X}} = \class{lit}{\tanh X}$. Since $H$ doesn't change, the expected change of the evidence over the next $h$ time units, given what has been seen, is $h\tanh X_t$."),
             ("What is left is fresh noise, so in the decision maker's view the evidence is one diffusion (a cited result).",
              r"The innovation $\bar W_t = X_t - \int_0^t \tanh(X_s)\,ds$ is a Brownian motion in the decision maker's own information (Peskir and Shiryaev 2006, Ch. VI), so $\class{lit}{dX_t = \tanh(X_t)\,dt + d\bar W_t}$. The plate checks two consequences: $\bar W_t$ has variance $t$, and its later increments are uncorrelated with what has been seen."),
@@ -109,7 +109,7 @@ STRIPS = {
     "identities": {
         "plate": "facts",
         "steps": [
-            ("Write the belief through $\tanh$, and the product $g(1 - g)$ simplifies.",
+            (r"Write the belief through $\tanh$, and the product $g(1 - g)$ simplifies.",
              r"$g(y) = \dfrac{1 + \tanh y}{2}$, so $g(1 - g) = \tfrac14(1 + \tanh y)(1 - \tanh y) = \tfrac14(1 - \tanh^2 y) = \class{lit}{\dfrac{1}{4\cosh^2 y}}$."),
             ("Differentiate: the slope of the belief is twice that product.",
              r"$g' = \tfrac12\sech^2 y = 2g(1 - g) = \class{lit}{\dfrac{1}{2\cosh^2 y}}$, and $g'' = -\sech^2 y\,\tanh y$."),

@@ -555,3 +555,6 @@ details.answer > div { padding: 2px 14px 4px; }
 .key-dim::before { border-top: 1.5px solid var(--print-dim); }
 .key-ex-thin::before { border-top: 1.5px solid var(--ex); opacity: 0.55; }
 .key-ink-dots::before { border-top: 3px dotted var(--print-ink); }
+.key-guide::before { border-top: 1.5px dashed var(--print-dim); }
+/* a schedule picker that shares a row with other controls */
+.pick-dial { flex: 1 1 14rem; }
