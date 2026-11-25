@@ -76,17 +76,18 @@ export function heldTap(label, pm, wb) {
 
 // ---- seven rules on the reader's schedule ----------------------------------------------------------------------------
 /** run: { rules: { key: { loss } } }; names: key -> the rule's name inside a sentence; flat: the cost doesn't change;
- * nTable: how many held-out schedules Table 6 counts (those without a deadline), from the paper's data. */
-export function yoursSay(label, run, names, flat = false, nTable = null) {
-  const s0 = yoursBody(label, run, names, flat, nTable);
+ * nTable: how many held-out schedules Table 6 counts (those without a deadline), from the paper's data; deadline: the
+ * schedule has a deadline. */
+export function yoursSay(label, run, names, flat = false, nTable = null, deadline = false) {
+  const s0 = yoursBody(label, run, names, flat, nTable, deadline);
   return Object.values(run.rules).some((r) => r.loss < 0) ? s0 + " " + NEGATIVE : s0;
 }
 /** Why a loss can come out below 0: no rule can earn more than the program's own value on the grid, but the losses are
  * measured against the program's bound as the scorer applies it, which earns slightly less. */
 export const NEGATIVE = "A loss can be slightly negative because it is measured against the program's bound as the scorer applies it, read between grid points, which earns slightly less than the program's own value; no rule earns more than that value.";
-function yoursBody(label, run, names, flat, nTable) {
+function yoursBody(label, run, names, flat, nTable, deadline) {
   const pm = run.rules.per_moment.loss, wb = run.rules.weighted.loss;
-  if (flat) return `${label} doesn't change, so every rule here but the tuned constant gives the per-moment bound, which is optimal on an infinite horizon with continuous checking. The losses this grid scores, about ${num(pm)} points per 100 trials, come from checking only every 0.01 time units and from the forced choice at t = 10.`;
+  if (flat) return `${label} doesn't change, so every rule here but the tuned constant gives the per-moment bound, which is optimal on an infinite horizon with continuous checking. The losses this grid scores, about ${num(pm)} points per 100 trials, include the forced choice at t = 10, which the rule doesn't know about; the shift for checking every 0.01 time units, which is right only to leading order; and the grid.`;
   let s = `On ${label}, on this page's grid, the per-moment rule loses ${num(pm)} points per 100 trials and the weighted look-ahead ${num(wb)}`;
   s += pm >= 0.01 ? `, so the weighted rule avoids ${pct(1 - wb / pm)} of the per-moment rule's loss. ` : `. The per-moment loss is under 0.01, where the paper doesn't count the share avoided. `;
   const others = Object.keys(run.rules).filter((k) => k !== "per_moment" && k !== "weighted");
@@ -98,6 +99,7 @@ function yoursBody(label, run, names, flat, nTable) {
   if (!less.length) s += `None of the other ${n} rules loses less than the per-moment rule here.`;
   else if (!more.length && !same) s += `All of the other ${n} rules lose less than the per-moment rule here.`;
   else s += `Of the other ${n}, ${list(less)} ${less.length === 1 ? "loses" : "lose"} less than the per-moment rule here${more.length ? `, and ${list(more)} more` : ""}${same ? `; ${WORDS[same] ?? same} ${same === 1 ? "ties" : "tie"}` : ""}.`;
+  if (deadline) return s + " This is one schedule; Table 6's last two columns give the median and largest losses over the held-out schedules with a deadline.";
   return s + (nTable ? ` This is one schedule; Table 6 counts the ${nTable} held-out schedules without a deadline.` : " This is one schedule; Table 6 counts the held-out schedules without a deadline.");
 }
 

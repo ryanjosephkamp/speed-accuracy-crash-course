@@ -405,7 +405,7 @@ function yoursPlate() {
     }).join("");
     table.innerHTML = `<div class="tbl-scroll" tabindex="0" role="region" aria-label="Seven rules on your schedule"><table><thead><tr><th scope="col">Rule</th><th scope="col">Loss</th><th scope="col">Bound gap</th><th scope="col">Accuracy</th><th scope="col">Time</th></tr></thead><tbody>${rows}</tbody></table></div>
       <p class="fine">Loss in points per 100 trials; bound gap: the largest before ${until === "4" ? "t = 4" : "the deadline"}, in evidence units; accuracy in percentage points and mean decision time in units of σ²/μ², each against the program. The tuned constant's bound is in parentheses.</p>`;
-    say.textContent = S.yoursSay(labelOf(choice), run, M.SAY_NAMES, isFlat(choice), nTable);
+    say.textContent = S.yoursSay(labelOf(choice), run, M.SAY_NAMES, isFlat(choice), nTable, deadlineOf(choice) !== null);
   };
   const go = () => {
     const my = ++gen;

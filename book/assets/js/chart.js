@@ -2,7 +2,7 @@
 // Classes (.ex, .pm, .wb, .cost, .ax, .tk, ...) take their colors from the page's tokens, so a theme change
 // restyles every chart without redrawing it.
 
-export const fmt = (x, d = 2) => (Number.isFinite(x) ? x.toFixed(d).replace(/^-(0\.0*)$/, "$1") : "–");
+export const fmt = (x, d = 2) => (Number.isFinite(x) ? x.toFixed(d).replace(/^-(0\.0*)$/, "$1").replace(/^-/, "−") : "–");
 
 /** A plot frame: pixel size, margins, and the data ranges, with scales sx and sy (log if asked). */
 export function frame(el, { h = null, aspect = 0.56, minH = 170, maxH = 300, l = 42, r = 12, t = 22, b = 30, x, y, xlog = false, ylog = false }) {

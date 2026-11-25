@@ -199,7 +199,7 @@ Reading the panels with Table 6:
             ("plain", r"""
 Loss is one summary. Table 7 gives three others, as medians over each family of held-out schedules: the largest gap between the rule's bound and the optimal one before $t = 4$ (or the deadline), in evidence units; the change in accuracy, in percentage points; and the change in mean decision time, in units of $\sigma^2/\mu^2$, each relative to the optimal policy.
 
-The per-moment rule's median largest gap runs from {{T:tab_behavior:5:2}} evidence units on ramps to {{T:tab_behavior:3:2}} on deadlines, against {{T:tab_behavior:5:3}} to {{T:tab_behavior:7:3}} for the weighted rule. The largest median change in its accuracy is {{T:tab_behavior:7:4}} percentage points, on piecewise schedules. On deadlines, the family's median changes are {{T:tab_behavior:3:4}} percentage points in accuracy and {{T:tab_behavior:3:6}} in mean decision time. There the per-moment rule's threshold as scored, $\max\bigl(B(c_0) - 0.5826\sqrt{\Delta t}, 0\bigr)$, stays flat until the forced choice, while the optimal bound comes down toward it, and in the median the rule decides later and a little more accurately, and pays for the extra time.
+The per-moment rule's median largest gap runs from {{T:tab_behavior:5:2}} evidence units on ramps to {{T:tab_behavior:3:2}} on deadlines, against {{T:tab_behavior:5:3}} to {{T:tab_behavior:7:3}} for the weighted rule. The largest median change in the per-moment rule's accuracy is {{T:tab_behavior:7:4}} percentage points, on piecewise schedules. On deadlines, the family's median changes are {{T:tab_behavior:3:4}} percentage points in accuracy and {{T:tab_behavior:3:6}} in mean decision time. There the per-moment rule's threshold as scored, $\max\bigl(B(c_0) - 0.5826\sqrt{\Delta t}, 0\bigr)$, stays flat until the forced choice, while the optimal bound comes down toward 0 at the deadline, and in the median the rule decides later and a little more accurately, and pays for the extra time.
 """),
             ("table", "tab:behavior"),
             ("plain", r"""
@@ -243,7 +243,7 @@ What the look-ahead changes is where the bound sits and when it moves. So, in th
 **This section tests a conjecture.** The paper states {{ref:conj:loss}} without proof (chapter 7). The two tables here are measurements that test it, not proofs of it.
 """),
             ("plain", r"""
-{{ref:conj:loss}} is about a miss of fixed shape. For a bounded, Lipschitz $f$, a policy whose bound misses the best bound by $\eta = \varepsilon f$ should lose $\mathbb{E}\bigl[c(\hat\tau)\,\eta(\hat\tau)^2\bigr]$ of reward, up to $o(\varepsilon^2)$, where $\hat\tau$ is its decision time. The rules' misses change shape with $\varepsilon$, so the conjecture gives no order for their losses. The paper's test applies the formula to each rule's actual miss on a grid, as a sum over the grid times $t_j$:
+{{ref:conj:loss}} is about a miss of fixed shape. For a bounded, Lipschitz $f$, a policy whose bound misses the best bound by $\eta = \varepsilon f$ should lose $\mathbb{E}\bigl[c(\hat\tau)\,\eta(\hat\tau)^2\bigr]$ of reward, up to $o(\varepsilon^2)$, where $\hat\tau$ is its decision time. The rules' misses change shape with $\varepsilon$, so the conjecture does not by itself say how much less the weighted rule loses; {{ref:prop:loss}} bounds both rules' losses by $O(\varepsilon^2)$. The paper's test applies the formula to each rule's actual miss on a grid, as a sum over the grid times $t_j$:
 
 $$\text{predicted loss} = 100\sum_j f_j\,c(t_j)\,\eta(t_j)^2,$$
 

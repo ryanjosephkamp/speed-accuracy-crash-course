@@ -266,17 +266,24 @@ check("data", "90 development and 210 held-out schedules, 30 per family, and 36 
     ["Piecewise at twice the level, held 0.8", { id: "piecewise", params: { scale: 2, length: 0.8 } }],
   ];
   const NAMES = M.SAY_NAMES;
+  let closeOk = true, closeAt = "", nDl = 0, nFlat = 0;
   for (const [name, choice] of cases) {
     const dl = deadlineOf(choice), r = M.runRules(costOf(choice), dl);
     const fin = M.RULES.every((k) => Number.isFinite(r.rules[k].loss) && Number.isFinite(r.rules[k].maxDx) && Number.isFinite(r.rules[k].p) && Number.isFinite(r.rules[k].rt));
     const endsRight = dl === null ? Math.abs(r.t[r.t.length - 1] - 4) < 1e-9 : Math.abs(r.t[r.t.length - 1] - Math.round(dl / 0.01) * 0.01) < 1e-9;
     const flat = name === "Constant" || name === "Smooth at size 0" || name === "a flat drawing";
     const ties = flat ? M.RULES.filter((k) => k !== "best_constant").every((k) => Math.abs(r.rules[k].loss - r.rules.per_moment.loss) < 1e-9) : true;
-    const sents = [S.yoursSay(name, r, NAMES, flat), S.shareYours(name, r.rules.per_moment.maxDx, r.rules.per_moment.loss, r.exact.reward, dl !== null && dl < 4 ? "the deadline" : "t = 4")];
+    const sents = [S.yoursSay(name, r, NAMES, flat, 180, dl !== null), S.shareYours(name, r.rules.per_moment.maxDx, r.rules.per_moment.loss, r.exact.reward, dl !== null && dl < 4 ? "the deadline" : "t = 4")];
     const clean = sents.every((s) => !/NaN|undefined|Infinity|null/.test(s));
     check("edges", `${name}: every rule's loss, accuracy, time, and gap is finite, the curves end at ${dl === null ? "t = 4" : "the deadline's grid time"}${flat ? ", every rule but the tuned constant ties the per-moment rule," : ""} and the sentences read cleanly`,
       fin && endsRight && ties && clean, `per-moment ${S.num(r.rules.per_moment.loss)}, weighted ${S.num(r.rules.weighted.loss)}, tuned ${S.num(r.rules.best_constant.loss)}; ends at ${r.t[r.t.length - 1].toFixed(2)}; ${sents[0].slice(0, 90)}…`);
+    const ok = flat ? /forced choice at t = 10.*shift.*leading order.*grid/.test(sents[0]) && !/Table 6/.test(sents[0])
+      : dl !== null ? /Table 6's last two columns give the median and largest losses over the held-out schedules with a deadline\.$/.test(sents[0].replace(" " + S.NEGATIVE, "")) && !/without a deadline/.test(sents[0])
+      : /Table 6 counts the 180 held-out schedules without a deadline\.$/.test(sents[0].replace(" " + S.NEGATIVE, ""));
+    if (flat) nFlat++; if (dl !== null) nDl++;
+    if (!ok && closeOk) { closeOk = false; closeAt = name; }
   }
+  check("edges", "the plate's sentence names three sources of a flat cost's loss (the forced choice, the shift, and the grid), ends on a deadline with Table 6's deadline columns, and otherwise with Table 6's count of schedules without a deadline", closeOk, closeAt || `${cases.length} edge inputs, ${nFlat} flat and ${nDl} with a deadline`);
 }
 
 // ---- the sentences ----------------------------------------------------------------------------------------------------------
