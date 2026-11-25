@@ -129,21 +129,41 @@ const T10 = M.TABLE10_CHOICES;
     if (!(run.frozen[0] > run.exact[0])) { frozenAbove = false; fa = M.TABLE10[k][0]; }
     if (ch.id === "constant" && !idx.every((i) => run.weighted[i] < run.frozen[i])) { wBelow = false; wbd = M.TABLE10[k][0]; }
     const st = M.rulesStats(run, dl), s = say(S.rulesSay({ ...st, losses: M.TABLE10[k].slice(1) }));
-    if (!s.includes(M.TABLE10[k][2]) || (st.plugZeroFrom === null) === /plug-in bound is 0/.test(s)) { ok = false; det = s; }
+    if (!s.includes(M.TABLE10[k][2])) { ok = false; det = s; }
   });
   check("rules", "on all eight schedules, the frozen-time bound starts above the program's at t = 0 (the chapter says so)", frozenAbove, fa || "all eight");
   check("rules", "on the five constant costs, the weighted bound sits below the frozen-time bound over the window (an exercise says why)", wBelow, wbd || "all five");
-  check("words", "the rules sentence quotes Table 10's losses for the schedule shown and mentions the plug-in's zero bound exactly when the run has one", ok, det || "eight schedules");
+  check("words", "the rules sentence quotes Table 10's losses for the schedule shown", ok, det || "eight schedules");
   // even at a constant cost the program's bound moves over the window, and the plug-in stops at once wherever 4c(t + a) >= 1
-  let moves = Infinity;
-  for (const k of [0, 1, 2, 3, 4]) { const run = M.unknownRun(costOf(T10[k]), null, VIEW); moves = Math.min(moves, maxOf(run.exact) - Math.min(...run.exact)); }
-  check("rules", "on all five constant costs, the program's evidence bound moves by more than 0.01 over the window (the chapter says the exact bound moves even at a constant cost)", moves > 0.01, `smallest move ${moves.toFixed(4)}`);
+  // the belief bound u = Phi^-1(g), not only the evidence bound (which moves with sqrt(t + a) even at a fixed u)
+  let falls = Infinity;
+  for (const k of [0, 1, 2, 3, 4]) {
+    const P = M.unknownProgram(costOf(T10[k]), 10, { n: 300, dt: 0.005 }), u = (k_) => M.normPpf(Math.min(Math.max(P.g[k_], 0.5), 1 - 1e-12));
+    falls = Math.min(falls, u(0) - u(Math.round(VIEW / 0.005)));
+  }
+  check("rules", "on all five constant costs, the program's belief bound u = Phi^-1(g) falls by more than 0.05 from t = 0 to 2.5, as a rising cost per unit of information makes it (the chapter's cause); at a constant kappa it would be U(kappa) throughout", falls > 0.05, `smallest fall ${falls.toFixed(3)}`);
   let agree = true, at = "";
   for (const c of [0.05, 0.1, 0.2, 0.3, 0.4, 1]) for (let t = 0; t <= 3; t += 0.05) {
     const q = 4 * c * (t + 1); if (Math.abs(q - 1) < 0.02) continue;
     if ((M.plugInAt(c, t) === 0) !== (q >= 1)) { agree = false; at = `c ${c}, t ${t.toFixed(2)}`; }
   }
   check("rules", "the plug-in bound is 0 (the rule decides at once) exactly where 4 c (t + a) >= 1, with a = 1, away from that boundary: the known-reliability rule for a small estimated drift doesn't wait", agree, at || "costs 0.05 to 1, times 0 to 3");
+  // the rules plate's sentence on the plug-in's zero stretches, held to the rule 4 c(t) (t + 1) >= 1 computed from the
+  // schedule, not from the run: Table 10's eight, a fall at time 2 by 16 (0 from the start, then not), and edge cases
+  const stretches = (cost, ts) => { const out = []; let from = null; ts.forEach((t, i) => { const z = 4 * cost(t) * (t + 1) >= 1; if (z && from === null) from = t; if (!z && from !== null) { out.push([from, ts[i - 1]]); from = null; } }); if (from !== null) out.push([from, null]); return out; };
+  let zok = true, zdet = "", seen = 0;
+  const zcases = [...T10, { id: "fall", params: { at: 2, factor: 16 } }, { id: "jump", params: { at: 1, factor: 16 } }, { id: "pulse", params: { at: 0.8, factor: 8 } }, { id: "deadline", params: { at: 0.75, c: 0.3 } }, { id: "draw", points: defaultDrawing().map((c, i) => (i > 8 && i < 15 ? 0.6 : 0.1)) }];
+  for (const ch of zcases) {
+    const cost = costOf(ch), dl = deadlineOf(ch), run = M.unknownRun(cost, dl, dl ?? VIEW), st = M.rulesStats(run, dl);
+    const shown = M.shownBefore(run.t, dl).map((i) => run.t[i]);
+    const near = shown.some((t) => Math.abs(4 * cost(t) * (t + 1) - 1) < 0.03);   // a time at the switch: skip
+    const want = stretches(cost, shown), sent = say(S.rulesSay({ ...st, losses: null }));
+    if (st.plugZero.length) seen++;
+    if (!near && JSON.stringify(want) !== JSON.stringify(st.plugZero)) { zok = false; zdet = `${label(ch)}: run ${JSON.stringify(st.plugZero)}, rule ${JSON.stringify(want)}`; }
+    if ((st.plugZero.length > 0) !== /plug-in bound is 0/.test(sent) || (want.length && want[0][0] === 0 && !/from the start|at all of them/.test(sent))) { zok = false; zdet = sent; }
+    if (dl !== null && !(shown[shown.length - 1] < dl)) { zok = false; zdet = `${label(ch)}: a time at the deadline is drawn`; }
+  }
+  check("rules", "on Table 10's eight schedules, a fall at time 2 by 16, a late jump, a pulse, a deadline at 0.75, and a drawing that rises in the middle, the plate's stretches where the plug-in bound is 0 are the times drawn with 4c(t)(t + 1) >= 1, the sentence names each (a zero at the start as from the start), and no time at a deadline is drawn", zok && seen >= 4, zdet || `${zcases.length} schedules, ${seen} with zero stretches`);
   // kappa0 / (t + a) is constant on the information clock: the weighted rule is the frozen-time rule there
   const flat = (t) => 0.1 / (t + 1), ts = [0, 0.4, 1.3, 2.5];
   const d = maxOf(ts.map((t, i) => Math.abs(M.weightedTime(flat, ts)[i] - M.frozenTime(flat, ts)[i])));
@@ -220,7 +240,9 @@ const T10 = M.TABLE10_CHOICES;
     if ((cb.hi < 0) !== /chooses “\+” at once/.test(s)) start = false;
     if (!(cb.lo < M.xStar(1, q) && M.xStar(1, q) < cb.hi)) start = false;
   }
-  check("pair", "over the plate's range (costs 0.01 to 1, ratios 0.05 to 1), the upper bound moves more than the lower from +-B(c), as the text says", more, where || `${n} pairs`);
+  check("pair", "on a grid of the plate's costs (0.01 to 1) and its ratios below 1 (0.05 up), the upper bound moves more than the lower from +-B(c), as the text says", more, where || `${n} pairs`);
+  let still = 0; for (const c of [0.01, 0.1, 1]) { const cb = M.constantBounds(c, 1, 1); still = Math.max(still, Math.abs(cb.hi - K.B(c)), Math.abs(cb.lo + K.B(c))); }
+  check("pair", "at the ratio 1, the plate's endpoint, neither bound moves from +-B(c) (the text says so)", still < 1e-9, `largest move ${still.toExponential(1)}`);
   check("pair", "over the same range, both bounds move down from +-B(c) (the text says the lower moves down too, by less)", down, where || `${n} pairs`);
   check("pair", "over the same range, the belief needed to choose “−” is at least the belief needed to choose “+”", beliefs, "");
   check("words", "the bounds bracket x* and the sentence says the start is past h exactly when h < 0, over the plate's range", start, "");
@@ -272,7 +294,9 @@ const T10 = M.TABLE10_CHOICES;
     const x = 0.5 * (cb.lo + cb.hi), q = 1e-4, m = (y) => M.meanExit(y, cb.lo, cb.hi);
     me = Math.max(me, Math.abs((m(x + q) - 2 * m(x) + m(x - q)) / (2 * q * q) + Math.tanh(x) * (m(x + q) - m(x - q)) / (2 * q) + 1) / 100);
   }
-  check("envelope", "the mean exit time is 0 at both bounds, its end slopes are the flux totals, and it solves m''/2 + tanh(x) m' = -1 (by differences)", me < 1e-4, `largest ${me.toExponential(1)}`);
+  check("envelope", "the mean exit time is 0 at both bounds, its slope is minus the flux total at h0 and plus the flux total at l0, and it solves m''/2 + tanh(x) m' = -1 (by differences)", me < 1e-4, `largest ${me.toExponential(1)}`);
+  { const cb = M.constantBounds(0.1, 1, 0.5), ft = M.fluxTotals(cb.lo, cb.hi), s0 = S.envelopeSay(0, { mMax: 1, mAt: 0, th: ft.hi, tl: ft.lo });
+    check("words", "the envelope's step-1 sentence prints the upper end's slope with its minus sign and the lower end's with a plus", s0.includes(`−${ft.hi.toFixed(3)} at h₀`) && s0.includes(`+${ft.lo.toFixed(3)} at ℓ₀`), s0); }
   let curv = 0;
   for (const rm of [1, 0.5, 0.25]) {
     const cb = M.constantBounds(0.1, 1, rm), q = 1e-3, x = cb.hi - 2 * q, VG = (y) => M.valueAt(y, 0.1, 1, rm, cb) - M.stopReward(y, 1, rm);
@@ -320,6 +344,48 @@ const T10 = M.TABLE10_CHOICES;
   check("words", "the sinusoid sentences on the plate's ten runs print no NaN, undefined, Infinity, or null", words, "");
 }
 
+// ---- edge cases of the model and the plates ---------------------------------------------------------------------------
+{
+  // each bound's transform is 1 at lambda = 0 (its limit; the ratio there is 0/0)
+  let z = 0;
+  for (const [lo, hi] of [[-1, 1], [M.constantBounds(0.1, 1, 0.25).lo, M.constantBounds(0.1, 1, 0.25).hi], [-2.3, 0.4]]) {
+    const w = M.transfer(0, lo, hi), w1 = M.transfer(1e-7, lo, hi);
+    z = Math.max(z, Math.abs(w.hi.re - 1), Math.abs(w.lo.re - 1), Math.abs(w.hi.im), Math.abs(w.lo.im), Math.abs(w1.hi.re - 1) > 1e-5 ? 1 : 0);
+  }
+  check("flux", "each bound's normalized transform is 1 at lambda = 0 (not 0/0), and next to 1 at lambda = 1e-7", z < 1e-12, `largest gap ${z.toExponential(1)}`);
+  // the program over beliefs has no grid point at 1/2; its two nearest beliefs decide alike, so its bound of 1/2 (evidence
+  // 0) is where the center stops too: the book's rule for a bound below the first step leaves it unchanged here
+  let sym = 0, half = 0;
+  for (const ch of [{ id: "constant", params: { c: 0.4 } }, { id: "deadline", params: { at: 0.75, c: 0.3 } }, { id: "rising", params: { at: 0.5, rate: 0.8 } }]) {
+    const P = M.unknownProgram(costOf(ch), deadlineOf(ch) ?? 10, { n: 300, dt: 0.005 });
+    sym = Math.max(sym, P.symGap); half += P.g.filter((g) => g === 0.5).length;
+  }
+  check("program", "in the program over beliefs, deciding minus waiting is the same at the two beliefs next to 1/2 (within 1e-12), so a bound of 1/2 means the center stops too; it occurs on these runs", sym < 1e-12 && half > 1, `largest asymmetry ${sym.toExponential(1)}, ${half} steps at 1/2`);
+  // the sine plate's bounds stay far from x*, where the two-bound program would report x* for a bound below its first step
+  let far = Infinity;
+  for (const rm of [0.5, 0.25]) for (const om of [0.5, 8]) { const r = M.sineRun(rm, om), xs = M.xStar(1, rm), mv = 0.01 * Math.max(...r.dh.map(Math.abs), ...r.dl.map(Math.abs)); far = Math.min(far, r.h0 - xs - mv, xs - r.l0 - mv); }
+  check("sine", "on the sinusoid plate's runs, both bounds stay more than 0.5 from x*, so the program's report of x* for a bound inside its first step never arises there", far > 0.5, `closest ${far.toFixed(3)}`);
+  // envelope step 3: the three answers for the moved bound differ at second order in dc
+  const rootNear = (f, a, b) => { let fa = f(a); for (let i = 0; i < 100; i++) { const m = 0.5 * (a + b), fm = f(m); if (fm * fa <= 0) b = m; else { a = m; fa = fm; } } return 0.5 * (a + b); };
+  let ord = true, od = "";
+  for (const rm of [0.5, 0.25]) {
+    const cb = M.constantBounds(0.1, 1, rm), ft = M.fluxTotals(cb.lo, cb.hi), xs = M.xStar(1, rm);
+    const slope = (x, dc) => (0.1 * M.Sfun(x) + cb.K) / Math.cosh(x) ** 2 - (x > xs ? 1 : -rm) / (2 * Math.cosh(x) ** 2) - dc * (ft.C - M.Sfun(x)) / Math.cosh(x) ** 2;
+    const gap = (dc) => Math.abs(rootNear((x) => slope(x, dc), cb.hi - 0.5, cb.hi - 1e-9) - (cb.hi - dc * ft.hi / 0.2));
+    const r = gap(0.02) / gap(0.01); od += `${rm}: ${r.toFixed(2)}  `;
+    if (!(r > 3.2 && r < 4.8)) ord = false;
+  }
+  check("envelope", "the green curve's own crossing near h0 and the first-order bound (the dot) differ by an amount that falls about fourfold when dc halves (second order), so the dots are the linearization, not the curve's root", ord, od);
+  // the sine caption: at low frequencies the program's lead residual is a small fraction of a degree
+  let lowLead = 0;
+  const wrap = (x) => ((((x + 180) % 360) + 360) % 360) - 180;
+  for (const rm of [0.5, 0.25]) for (const om of [0.5, 1]) {
+    const run = M.sineRun(rm, om), cb = M.constantBounds(0.1, 1, rm), tr = M.transferAt(om, cb.lo, cb.hi);
+    lowLead = Math.max(lowLead, Math.abs(wrap(run.fitH.phase - 180) - tr.hi.lead), Math.abs(wrap(run.fitL.phase) - tr.lo.lead));
+  }
+  check("sine", "at omega = 0.5 and 1, both ratios, the plate's program leads or lags the first order by under 0.25 degrees (the caption says a small fraction of a degree)", lowLead < 0.25, `largest ${lowLead.toFixed(3)} degrees`);
+}
+
 // ---- the sentences, on random numbers and the strips' real numbers ----------------------------------------------------
 {
   const R = K.rng(11);
@@ -329,7 +395,8 @@ const T10 = M.TABLE10_CHOICES;
     const u = () => R.next(), dl = i % 3 ? null : 0.4 + 2 * u();
     test(S.heroLabel(4 * u(), u(), u()));
     test(S.clockVerdict(["flat", "falls", "rises", null][i % 4], { k0: 0.01 + u(), kEnd: 10 * u() + 1e-3, tEnd: dl ?? 10, kMin: 0.005 + u() * 0.01, tMin: u() * 5, deadline: dl }));
-    test(S.rulesSay({ frozenGap0: u() - 0.2, frozenGapMax: u(), weightedGapMax: u() * 0.1, plugZeroFrom: i % 4 ? null : u() * 2, losses: i % 2 ? ["0.1", "0.2", "0.3", "0.4"] : null }));
+    const z = [[], [[0, null]], [[0, 0.6 + u()]], [[0.2 + u(), null]], [[0, 0.3], [0.8, 1.2], [1.5, 1.6], [2, null], [2.3, 2.4]]][i % 5];
+    test(S.rulesSay({ frozenGap0: u() - 0.2, frozenGapMax: u(), weightedGapMax: u() * 0.1, plugZero: z, lastShown: 2.5 * u(), losses: i % 2 ? ["0.1", "0.2", "0.3", "0.4"] : null }));
     const q = 0.05 + 0.95 * u(), c = 10 ** (-2 + 2 * u()), cb = M.constantBounds(c, 1, q), nn = { ratio: q, c, lo: cb.lo, hi: cb.hi, xs: M.xStar(1, q), B: K.B(c), gPlus: M.belief(cb.hi), gMinus: 1 - M.belief(cb.lo) };
     test(S.pairSay(nn)); test(S.pairVerdict(["upper", "lower", "same"][i % 3], nn));
     test(S.sineSay({ omega: 2, rm: 0.5, hi: { foGain: u(), foLead: 60 * u(), dpGain: u() + 0.01, dpLead: 60 * u() }, lo: { foGain: u(), foLead: 60 * u(), dpGain: u() + 0.01, dpLead: 60 * u() } }));
@@ -342,12 +409,14 @@ const T10 = M.TABLE10_CHOICES;
     const cb = M.constantBounds(0.1, 1, rm);
     for (let st = 0; st < 5; st++) test(say(S.appbSay(st, { ratio: rm, rp: 1, rm, K: cb.K, lo: cb.lo, hi: cb.hi, xs: M.xStar(1, rm), gapS: M.Sfun(cb.hi) - M.Sfun(cb.lo), gapWant: (1 + rm) / 0.2, worst: 1e-12 })));
     const ft = M.fluxTotals(cb.lo, cb.hi), bk = M.boundaryKernels(cb.lo, cb.hi);
-    for (let st = 0; st < 5; st++) test(say(S.envelopeSay(st, { c0: 0.1, dc: 0.02, th: ft.hi, tl: ft.lo, mh: bk.mean("hi"), ml: bk.mean("lo"), mMax: 1, mAt: 0, dhFo: -0.1, dlFo: 0.1, dhEx: -0.1, dlEx: 0.1, slopeRel: 1e-9, gap: 1e-3, slope: -5.97, Bp: -5.97 })));
+    for (let st = 0; st < 5; st++) test(say(S.envelopeSay(st, { c0: 0.1, dc: 0.02, th: ft.hi, tl: ft.lo, mh: bk.mean("hi"), ml: bk.mean("lo"), mMax: 1, mAt: 0, dhFo: -0.1, dlFo: 0.1, dhEx: -0.1, dlEx: 0.1, dhCurve: rm === 1 ? NaN : -0.12, dlCurve: 0.09, slopeRel: 1e-9, gap: 1e-3, slope: -5.97, Bp: -5.97 })));
   }
   for (const s of sentences) test(s);
   check("words", "the plates' sentences never print NaN, undefined, Infinity, or null (random inputs and every real computation above)", bad === 0, `${n} sentences, ${bad} bad${first ? ": " + first : ""}`);
   const v = S.clockVerdict("flat", { k0: 0.1, kEnd: 1.1, tEnd: 10, kMin: 0.1, tMin: 0, deadline: null });
-  check("words", "a wrong guess on the clock plate is told the constant cost rises, and the growth for a constant 0.1 is 11 times", /^Not stays the same: it rises/.test(v) && /11 times/.test(v), v);
+  check("words", "a wrong guess on the clock plate is told the constant cost rises, and the growth for a constant 0.1 is 11 times", /^No: it rises\./.test(v) && /11 times/.test(v), v);
+  const v2 = S.clockVerdict("falls", { k0: 0.1, kEnd: 1.1, tEnd: 10, kMin: 0.1, tMin: 0, deadline: null }), v3 = S.clockVerdict("rises", { k0: 0.1, kEnd: 1.1, tEnd: 10, kMin: 0.1, tMin: 0, deadline: null });
+  check("words", "the clock plate answers both wrong guesses with the same full sentence, and the right one with Right", /^No: it rises\./.test(v2) && /^Right\./.test(v3), `${v2.slice(0, 20)} / ${v3.slice(0, 20)}`);
   const pv = S.pairVerdict("lower", { ratio: 0.25, c: 0.1, ...M.constantBounds(0.1, 1, 0.25), B: K.B(0.1) });
   check("words", "a wrong guess on the two-bounds plate is told it was the upper bound", /^The upper one/.test(pv), pv);
 }
