@@ -299,7 +299,7 @@ def strip_html(sid, strips, plates, n):
         plate += f"<p class='strip-see'>{inline(s['see'])}</p>"
     return (f"<div class='strip' id='strip-{sid}' data-strip='{sid}' data-plate='{s.get('plate') or ''}' data-steps='{len(steps)}'>"
             f"<div class='plate-live-stage strip-stage'><div class='grain' aria-hidden='true'></div>"
-            f"<div class='strip-head'><span class='ctl-key'>Scrub the proof</span>"
+            f"<div class='strip-head'><span class='ctl-key'>{html.escape(s.get('label', 'Scrub the proof'))}</span>"
             f"<input type='range' min='0' max='{len(steps) - 1}' step='1' value='0' aria-label='Proof step'></div>"
             f"<ol class='strip-steps'>{buttons}</ol><div class='strip-card' aria-live='polite'>{cards}</div>"
             f"<div class='strip-nav'><button class='btn' type='button' data-go='-1'>Back</button>"
