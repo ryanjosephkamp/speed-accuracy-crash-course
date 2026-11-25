@@ -32,3 +32,9 @@ export function costFromSpec(s) {
     return Math.exp(L[i] + (L[i + 1] - L[i]) * f);
   };
 }
+
+/** The comparator's edge cases (tools/checks/paper-code.mjs): constant costs where the grid's first step past the
+ * center decides, with a forced choice at EDGE_HORIZON (at 3.2 the center still waits, at 4.2 it stops too), and a
+ * cost that falls 40,000-fold at time 1, to 1e-5, below the presets' range, so that its bound passes the cap. */
+export const EDGE_CONSTANT = [3.2, 4.2], EDGE_HORIZON = 2;
+export const EDGE_CHOICES = { "fall to 1e-5": { id: "fall", params: { at: 1, factor: 40000 } } };
