@@ -11,9 +11,9 @@
 //   { job: "fit" }               -> the sinusoid test at Table 1's five frequencies, with progress
 //   { job: "sweep", c0, om }     -> the sweep's four sizes at one cost and frequency, with progress
 //   { job: "refine", choice }    -> the two rules' losses on this page's three grids, with progress
-import { costOf, deadlineOf } from "./schedules-book.js?v=e783c21d62";
-import { exactPolicy, perMoment, weightedBound, toDiscrete, score } from "./model.js?v=e783c21d62";
-import * as M from "./ch09-model.js?v=e783c21d62";
+import { costOf, deadlineOf } from "./schedules-book.js?v=0487a934ff";
+import { exactPolicy, perMoment, weightedBound, toDiscrete, score } from "./model.js?v=0487a934ff";
+import * as M from "./ch09-model.js?v=0487a934ff";
 
 const horizonOf = (choice) => deadlineOf(choice) ?? M.WINDOW + M.SPARE;
 

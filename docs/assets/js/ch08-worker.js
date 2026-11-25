@@ -4,7 +4,7 @@
 //   { job: "more", choice }         -> how far 300 updates move the bound from the 30th
 //   { job: "roots", choice | null, t } -> the map T(b; t) over levels, its crossings, and the iteration's end
 //   { job: "prop13" }               -> the small change of Proposition 13 at each size
-import { compareRules, scheduleFor, moreUpdates, rootsAt, spikeCost, prop13, P13 } from "./ch08-rule.js?v=e783c21d62";
+import { compareRules, scheduleFor, moreUpdates, rootsAt, spikeCost, prop13, P13 } from "./ch08-rule.js?v=0487a934ff";
 
 self.onmessage = (e) => {
   const m = e.data;

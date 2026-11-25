@@ -2,12 +2,12 @@
 // the belief from sampled trials, the fold Y = |X| and its measured drift, the three facts about g, and two starts
 // on the same noise. Paths and trials are sampled with rng() from kernel.js and ?seed=; every exact curve comes
 // from ch02-model.js; the best bound comes from the dynamic program in the worker. Sentences come from say-ch02.js.
-import { rng, B, decide } from "./kernel.js?v=e783c21d62";
-import * as M from "./ch02-model.js?v=e783c21d62";
-import { costOf, deadlineOf, labelOf, VIEW } from "./schedules-book.js?v=e783c21d62";
-import { getChoice, solve, onVisible, watchVisible, liftReady, calm, seedParam, wireStrips } from "./book.js?v=e783c21d62";
-import { frame, line, axes, svg, fmt, keepDrawn, ticks, dropAt } from "./chart.js?v=e783c21d62";
-import * as S from "./say-ch02.js?v=e783c21d62";
+import { rng, B, decide } from "./kernel.js?v=0487a934ff";
+import * as M from "./ch02-model.js?v=0487a934ff";
+import { costOf, deadlineOf, labelOf, VIEW } from "./schedules-book.js?v=0487a934ff";
+import { getChoice, solve, onVisible, watchVisible, liftReady, calm, seedParam, wireStrips } from "./book.js?v=0487a934ff";
+import { frame, line, axes, svg, fmt, keepDrawn, ticks, dropAt } from "./chart.js?v=0487a934ff";
+import * as S from "./say-ch02.js?v=0487a934ff";
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const plate = (id) => document.getElementById("plate-" + id);

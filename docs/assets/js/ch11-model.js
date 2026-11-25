@@ -12,7 +12,7 @@
 //
 // tools/checks/ch11.mjs holds these to the paper's code (tools/validity/ch11.json) and to identities.
 
-import { B as Bknown } from "./kernel.js?v=e783c21d62";
+import { B as Bknown } from "./kernel.js?v=0487a934ff";
 
 export const OVERSHOOT = 0.5826;
 

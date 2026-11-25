@@ -2,12 +2,12 @@
 // ch05-model.js, run in this chapter's worker (ch05-worker.js), or from closed forms; the frozen rule of the envelope
 // identity is worked out here, on the worker's bound, in about 10 ms. The words under each plate come from the
 // functions in say-ch05.js, which take numbers and return sentences.
-import { frozenRule, belief, B, testStep, areaTo, wAt, chords, halfCrossed, bandStats, liveSummary, isResolved, areaReading } from "./ch05-model.js?v=e783c21d62";
-import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, VIEW, defaultDrawing } from "./schedules-book.js?v=e783c21d62";
-import { getChoice, setChoice, onVisible, watchVisible, liftReady, calm, seedParam } from "./book.js?v=e783c21d62";
-import { rng, meanLookAhead, meanDecisionTime } from "./kernel.js?v=e783c21d62";
-import { frame, line, area, axes, svg, fmt, keepDrawn } from "./chart.js?v=e783c21d62";
-import * as S from "./say-ch05.js?v=e783c21d62";
+import { frozenRule, belief, B, testStep, areaTo, wAt, chords, halfCrossed, bandStats, liveSummary, isResolved, areaReading } from "./ch05-model.js?v=0487a934ff";
+import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, VIEW, defaultDrawing } from "./schedules-book.js?v=0487a934ff";
+import { getChoice, setChoice, onVisible, watchVisible, liftReady, calm, seedParam } from "./book.js?v=0487a934ff";
+import { rng, meanLookAhead, meanDecisionTime } from "./kernel.js?v=0487a934ff";
+import { frame, line, area, axes, svg, fmt, keepDrawn } from "./chart.js?v=0487a934ff";
+import * as S from "./say-ch05.js?v=0487a934ff";
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const plate = (id) => document.getElementById("plate-" + id);
@@ -27,7 +27,7 @@ let worker = null, nextId = 1;
 const pending = new Map();
 function work(job, progress = null) {
   if (!worker) {
-    worker = new Worker(new URL("./ch05-worker.js?v=e783c21d62", import.meta.url), { type: "module" });
+    worker = new Worker(new URL("./ch05-worker.js?v=0487a934ff", import.meta.url), { type: "module" });
     worker.onmessage = (e) => {
       const m = e.data, p = pending.get(m.id);
       if (!p) return;

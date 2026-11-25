@@ -226,7 +226,7 @@ export function mountMap(root, { data, chapter = null, focus = "thm:main", links
   const d3 = {};
   function init3d(name) {
     const box = root.querySelector(`[data-view="${name}"] .cm3`);
-    import("./claim-map-3d.js?v=e783c21d62").then(({ mount3d }) => {
+    import("./claim-map-3d.js?v=0487a934ff").then(({ mount3d }) => {
       d3[name] = mount3d(box, { view: name, data: D, chapter, focus, where });
       if (current === name) d3[name]?.resize();
     }).catch((e) => { box.innerHTML = '<p class="plate-fail">The 3D map could not load. Focus, Layers, Outline, and Book path still work.</p>'; console.error(e); });

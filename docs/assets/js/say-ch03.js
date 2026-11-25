@@ -1,6 +1,6 @@
 // The sentences chapter 3's plates print, as pure functions of the numbers they show. tools/checks/ch03.mjs runs them
 // over random inputs and on the plates' own numbers.
-import { B } from "./kernel.js?v=e783c21d62";
+import { B } from "./kernel.js?v=0487a934ff";
 const fx = (x, d) => { const s = x.toFixed(d); return /^-0\.?0*$/.test(s) ? s.slice(1) : s; };
 const f2 = (x) => fx(x, 2), f3 = (x) => fx(x, 3);
 /** A cost as the book prints it: two significant figures, no trailing zeros. */

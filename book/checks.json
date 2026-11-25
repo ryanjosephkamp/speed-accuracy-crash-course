@@ -1,7 +1,7 @@
 {
  "date": "2026-11-25",
- "total": 1419,
- "passed": 1419,
+ "total": 1455,
+ "passed": 1455,
  "results": [
   {
    "file": "book",
@@ -772,6 +772,258 @@
    "name": "one, and none, read as English",
    "ok": true,
    "detail": "X: rests on none of these, and 1 of these uses it."
+  },
+  {
+   "file": "appB",
+   "plate": "horizon",
+   "name": "appB.json was computed on the page's grid (dt, h, cap, the longest forced choice, and the two gaps)",
+   "ok": true,
+   "detail": "paper-v1.2 (7db71f1): 0.01, 0.02, 5, 30"
+  },
+  {
+   "file": "appB",
+   "plate": "horizon",
+   "name": "at a cost of 0.01, the page's bound with the choice forced at 30 matches known.backward_induction_x every 0.5 time units of time left, within 1e-6",
+   "ok": true,
+   "detail": "largest difference 1.01e-8"
+  },
+  {
+   "file": "appB",
+   "plate": "horizon",
+   "name": "at a cost of 0.01, the page's reach at 0.001 and 0.01 equals the paper's code's, within one step",
+   "ok": true,
+   "detail": "10.32, 6.69 vs 10.32, 6.69"
+  },
+  {
+   "file": "appB",
+   "plate": "horizon",
+   "name": "at a cost of 0.1, the page's bound with the choice forced at 30 matches known.backward_induction_x every 0.5 time units of time left, within 1e-6",
+   "ok": true,
+   "detail": "largest difference 7.11e-9"
+  },
+  {
+   "file": "appB",
+   "plate": "horizon",
+   "name": "at a cost of 0.1, the page's reach at 0.001 and 0.01 equals the paper's code's, within one step",
+   "ok": true,
+   "detail": "5.18, 3.16 vs 5.18, 3.16"
+  },
+  {
+   "file": "appB",
+   "plate": "horizon",
+   "name": "at a cost of 1, the page's bound with the choice forced at 30 matches known.backward_induction_x every 0.5 time units of time left, within 1e-6",
+   "ok": true,
+   "detail": "largest difference 1.68e-9"
+  },
+  {
+   "file": "appB",
+   "plate": "horizon",
+   "name": "at a cost of 1, the page's reach at 0.001 and 0.01 equals the paper's code's, within one step",
+   "ok": true,
+   "detail": "0.20, 0.09 vs 0.20, 0.09"
+  },
+  {
+   "file": "appB",
+   "plate": "horizon",
+   "name": "at a cost of 0.01, the plate's bound for a forced choice at 2, read from the solve at 30, equals a direct solve forced at 2 at every step, within 1e-12",
+   "ok": true,
+   "detail": "largest difference 0.00e+0"
+  },
+  {
+   "file": "appB",
+   "plate": "horizon",
+   "name": "at a cost of 0.01, the plate's bound for a forced choice at 10, read from the solve at 30, equals a direct solve forced at 10 at every step, within 1e-12",
+   "ok": true,
+   "detail": "largest difference 0.00e+0"
+  },
+  {
+   "file": "appB",
+   "plate": "horizon",
+   "name": "at a cost of 0.01, the plate's bound for a forced choice at 20, read from the solve at 30, equals a direct solve forced at 20 at every step, within 1e-12",
+   "ok": true,
+   "detail": "largest difference 0.00e+0"
+  },
+  {
+   "file": "appB",
+   "plate": "horizon",
+   "name": "at a cost of 0.1, the plate's bound for a forced choice at 2, read from the solve at 30, equals a direct solve forced at 2 at every step, within 1e-12",
+   "ok": true,
+   "detail": "largest difference 0.00e+0"
+  },
+  {
+   "file": "appB",
+   "plate": "horizon",
+   "name": "at a cost of 0.1, the plate's bound for a forced choice at 10, read from the solve at 30, equals a direct solve forced at 10 at every step, within 1e-12",
+   "ok": true,
+   "detail": "largest difference 0.00e+0"
+  },
+  {
+   "file": "appB",
+   "plate": "horizon",
+   "name": "at a cost of 0.1, the plate's bound for a forced choice at 20, read from the solve at 30, equals a direct solve forced at 20 at every step, within 1e-12",
+   "ok": true,
+   "detail": "largest difference 0.00e+0"
+  },
+  {
+   "file": "appB",
+   "plate": "horizon",
+   "name": "at a cost of 1, the plate's bound for a forced choice at 2, read from the solve at 30, equals a direct solve forced at 2 at every step, within 1e-12",
+   "ok": true,
+   "detail": "largest difference 0.00e+0"
+  },
+  {
+   "file": "appB",
+   "plate": "horizon",
+   "name": "at a cost of 1, the plate's bound for a forced choice at 10, read from the solve at 30, equals a direct solve forced at 10 at every step, within 1e-12",
+   "ok": true,
+   "detail": "largest difference 0.00e+0"
+  },
+  {
+   "file": "appB",
+   "plate": "horizon",
+   "name": "at a cost of 1, the plate's bound for a forced choice at 20, read from the solve at 30, equals a direct solve forced at 20 at every step, within 1e-12",
+   "ok": true,
+   "detail": "largest difference 0.00e+0"
+  },
+  {
+   "file": "appB",
+   "plate": "horizon",
+   "name": "at the slider's lowest cost, 0.01, the bound with 40 time units left is within 1e-6 of the bound with 30 left",
+   "ok": true,
+   "detail": "1.57e-9"
+  },
+  {
+   "file": "appB",
+   "plate": "horizon",
+   "name": "the finding and the text: over the slider's 21 costs, the reach at 0.001 and at 0.01 is strictly shorter at each higher cost",
+   "ok": true,
+   "detail": "0.001: 10.32 at 0.01 to 0.20 at 1"
+  },
+  {
+   "file": "appB",
+   "plate": "horizon",
+   "name": "the hero's \"below\": at every slider cost, the bound never falls as the time left grows, so it is never above its value with 30 left",
+   "ok": true,
+   "detail": "never falls"
+  },
+  {
+   "file": "appB",
+   "plate": "horizon",
+   "name": "every slider cost's bound is finite and positive with time left, and 0 at the forced choice",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "file": "appB",
+   "plate": "words",
+   "name": "the horizon plate's sentence, at every cost stop and forced choice on the sliders (777), has no NaN, undefined, Infinity, or null; where it names the earliest check more than 0.001 away, every check before it is within 0.001 and that one isn't; where it says every check from t = 0 is more than 0.001 away, each is, and the printed gap at t = 0 is above 0.001",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "file": "appB",
+   "plate": "bins",
+   "name": "at a cost of 0.01, the page's belief-grid bound at the start, with the choice forced at 30 and at 2, for each of the six numbers of bins, matches known.backward_induction's within 1e-9",
+   "ok": true,
+   "detail": "largest difference 1.22e-15"
+  },
+  {
+   "file": "appB",
+   "plate": "bins",
+   "name": "at a cost of 0.1, the page's belief-grid bound at the start, with the choice forced at 30 and at 2, for each of the six numbers of bins, matches known.backward_induction's within 1e-9",
+   "ok": true,
+   "detail": "largest difference 3.66e-15"
+  },
+  {
+   "file": "appB",
+   "plate": "bins",
+   "name": "at a cost of 1, the page's belief-grid bound at the start, with the choice forced at 30 and at 2, for each of the six numbers of bins, matches known.backward_induction's within 1e-9",
+   "ok": true,
+   "detail": "largest difference 1.89e-15"
+  },
+  {
+   "file": "appB",
+   "plate": "bins",
+   "name": "the text at 0.02: the belief grid's bound with 25, 50, and 100 bins is each more than 0.1 below the evidence grid's",
+   "ok": true,
+   "detail": "25: -0.8273, 50: -0.4772, 100: -0.3682"
+  },
+  {
+   "file": "appB",
+   "plate": "bins",
+   "name": "the text: at every cost stop, the belief grid with 800 bins is within 0.01 of the evidence grid's bound, both with 30 time units left",
+   "ok": true,
+   "detail": "largest 0.0078"
+  },
+  {
+   "file": "appB",
+   "plate": "bins",
+   "name": "the text: at every cost stop from 0.1 to 1, the belief grid with 50 bins is within 0.01 of the evidence grid's bound",
+   "ok": true,
+   "detail": "largest 0.0063"
+  },
+  {
+   "file": "appB",
+   "plate": "bins",
+   "name": "the text: at every cost stop, the evidence grid's bound is below B(c)",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "file": "appB",
+   "plate": "words",
+   "name": "the text's bin widths: the slope of the evidence in the belief, 1/(2g(1 - g)), is 2 at 1/2 and rounds to 51 at 0.99, and the text says 2/n and about 50/n",
+   "ok": true,
+   "detail": "2, 50.51"
+  },
+  {
+   "file": "appB",
+   "plate": "words",
+   "name": "the bins plate's sentence at every cost stop and number of bins (126) has no NaN, undefined, Infinity, or null, every bound there is finite and positive, and its two printed bounds differ whenever it prints a difference",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "file": "appB",
+   "plate": "state",
+   "name": "the solve-state helper both plates draw from: asking for a new cost drops the answer on show, a late answer for an older ask is refused, and the answer on show carries the cost it was solved at",
+   "ok": true,
+   "detail": "true, true, true, true, true"
+  },
+  {
+   "file": "appB",
+   "plate": "state",
+   "name": "appB.js's source: both plates draw from the solve state, take answers through it with the cost they asked for, and pass the shown answer's cost (not the slider's) to their sentences",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "file": "appB",
+   "plate": "words",
+   "name": "the four sentence functions on 5,000 random inputs (with a bound of 0 and an infinite bound) have no NaN, undefined, Infinity, or null",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "file": "appB",
+   "plate": "words",
+   "name": "the bins sentence says plainly when the belief grid waits at every bin or decides at the first bin above 1/2",
+   "ok": true,
+   "detail": "At a cost of 0.1, with 25 bins and 30 time units left, the belief grid's program waits at every bin, so it has no bound on this grid. The evidence grid's bound is 1.2000. | At a cost of 0.1, with 25 bins and 30 time units left, the belief grid's program decides at the first bin above 1/2, so its bound is reported as a belief of 1/2, evidence 0. The evidence grid's bound is 1.2000."
+  },
+  {
+   "file": "appB",
+   "plate": "words",
+   "name": "every cost stop prints as the cost the plates compute with",
+   "ok": true,
+   "detail": "0.01, 0.012, 0.015, 0.02, 0.025, 0.03, 0.04, 0.05, 0.06, 0.08, 0.1, 0.12, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5, 0.6, 0.8, 1"
+  },
+  {
+   "file": "appB",
+   "plate": "words",
+   "name": "the hero's costs are cost stops of the plates",
+   "ok": true,
+   "detail": "0.02, 0.1, 0.5"
   },
   {
    "file": "ch00",
