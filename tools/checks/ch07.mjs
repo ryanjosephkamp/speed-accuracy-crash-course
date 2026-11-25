@@ -6,6 +6,7 @@ import * as M from "../../book/assets/js/ch07-model.js";
 import { exactPolicy, score, boundForCost, toDiscrete } from "../../book/assets/js/model.js";
 import { costOf, defaultDrawing, VIEW, SPARE } from "../../book/assets/js/schedules-book.js";
 import * as S from "../../book/assets/js/say-ch07.js";
+import { frame } from "../../book/assets/js/chart.js";
 import { check, N, table, tableNumbers, asPrinted } from "./lib.mjs";
 
 // ---- Table 1 ------------------------------------------------------------------------------------------------
@@ -265,7 +266,32 @@ for (const c of [0.02, 0.1, 0.5]) {
   const res = M.lossRun(costOf({ id: "draw", points: [2, ...Array(25).fill(0.01)] }), [1]);
   const r = res.runs[0], ratios = [r.pred.pm / r.loss.pm, r.pred.fo / r.loss.fo], top = M.ratioAxisTop(ratios);
   const capTop = M.ratioAxisTop([12, 3]);
-  check("conjecture", "on the audit's drawing at eps = 1, both rules' ratios (6.3 and 2.9) are drawn as dots on an axis to 7, and both losses are positive; made-up ratios 12 and 3 give an axis to 8 with the 12 drawn as an arrow", ratios.every((x) => M.ratioMark(x, top) === "dot") && top === 7 && r.loss.pm > 0 && r.loss.fo > 0 && capTop === 8 && M.ratioMark(12, capTop) === "arrow" && M.ratioMark(3, capTop) === "dot" && M.ratioMark(NaN, capTop) === "none", `ratios ${ratios.map((x) => x.toFixed(2)).join(", ")}; axis top ${top}`);
+  check("conjecture", "on the audit's drawing at eps = 1, both rules' ratios (6.3 and 2.9) are marked as dots on an axis to 7, and both losses are positive; and, as marker selection only (no drawing), made-up ratios 12 and 3 give an axis to 8 with the 12 marked for an arrow", ratios.every((x) => M.ratioMark(x, top) === "dot") && top === 7 && r.loss.pm > 0 && r.loss.fo > 0 && capTop === 8 && M.ratioMark(12, capTop) === "arrow" && M.ratioMark(3, capTop) === "dot" && M.ratioMark(NaN, capTop) === "none", `ratios ${ratios.map((x) => x.toFixed(2)).join(", ")}; axis top ${top}`);
+}
+
+{
+  // the loss chart's range holds the display cutoff (the round 3 audit's drawing: 0.01 through 0.2, then 0.012), and
+  // the reading counts the losses above the cutoff when there are too few for a slope
+  const res = M.lossRun(costOf({ id: "draw", points: [0.01, 0.01, 0.01, ...Array(23).fill(0.012)] }), [1, 1 / 2, 1 / 4, 1 / 8, 1 / 16, 1 / 32, 1 / 64]);
+  const lp = res.runs.map((r) => r.loss.pm), lf = res.runs.map((r) => r.loss.fo), cut = 10 * res.floor;
+  const [lo, hi] = M.lossAxis([...lp, ...lf].filter((v) => v > 0), cut);
+  const nPm = lp.filter((v) => M.resolved(v, res.floor)).length, nFo = lf.filter((v) => M.resolved(v, res.floor)).length;
+  const say = S.lossSay(1, lp[0], lf[0], NaN, NaN, nPm > 0, nFo > 0, false, nPm, nFo, 7);
+  check("loss", "on a drawing whose losses all sit below the display cutoff, the loss chart's range still holds the cutoff, and the reading counts the losses above it", cut >= lo && cut <= hi && nFo === 0 && /None of the first-order bound's 7 losses are above the display cutoff/.test(say) && !/falls below/.test(say), `cutoff ${cut.toExponential(2)}, axis ${lo.toExponential(2)} to ${hi.toExponential(2)}; ${nPm} and ${nFo} above the cutoff; ${say}`);
+}
+{
+  // the shift plate's curves on an odd deadline (cost 0.5, deadline 0.95, the shared worker's thinning: every 0.02 and
+  // the last time): each drops straight down at the forced choice
+  const dl = 0.95, cost = costOf({ id: "deadline", params: { at: dl, c: 0.5 } }), P = exactPolicy(cost, dl);
+  const t = [], ex = [], pm = [], sh = [];
+  let last = 0; for (let k = 0; k < P.ts.length && P.ts[k] <= dl + 1e-9; k++) last = k;
+  const keep = []; for (let k = 0; k <= last; k += 2) keep.push(k); if (keep[keep.length - 1] !== last) keep.push(last);
+  for (const k of keep) { const x = P.ts[k]; t.push(x); ex.push(P.bounds[k]); pm.push(x >= dl - 1e-9 ? 0 : toDiscrete(boundForCost(cost(x)), 0.01)); sh.push(x >= dl - 1e-9 ? 0 : M.shiftedBound(cost, x)); }
+  const f = frame({ clientWidth: 330 }, { x: [0, dl], y: [0, 1], aspect: 0.48, minH: 190, maxH: 280 });
+  const paths = [...M.shiftLines(f, t, ex, pm, sh, dl).matchAll(/class="(\w[\w-]*)" d="([^"]+)"/g)].map((m) => [m[1], m[2].match(/[ML][^ML]+/g).map((p) => p.slice(1).split(" ").map(Number))]);
+  const pmPath = paths.find((p) => p[0] === "pm")[1], n = pmPath.length;
+  const X = f.sx(dl), drop = Math.abs(pmPath[n - 1][0] - X) < 0.06 && Math.abs(pmPath[n - 2][0] - X) < 0.06 && Math.abs(pmPath[n - 2][1] - f.sy(pm[pm.length - 2])) < 0.06 && Math.abs(pmPath[n - 1][1] - f.sy(0)) < 0.06;
+  check("shift", "on a deadline at 0.95 (an odd step), the shift plate's per-moment curve holds its level to the forced choice and drops straight down there, as do the other two curves", drop && paths.length === 3 && paths.every(([, pts]) => Math.abs(pts[pts.length - 1][0] - X) < 0.06 && Math.abs(pts[pts.length - 2][0] - X) < 0.06), `last two per-moment points ${pmPath.slice(-2).map((p) => p.join(",")).join(" and ")}; held level ${pm[pm.length - 2].toFixed(4)}`);
 }
 
 // ---- the sentences ----------------------------------------------------------------------------------------
