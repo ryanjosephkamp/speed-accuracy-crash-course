@@ -72,10 +72,13 @@ export function standingSay(st, label, ratio = 1) {
 
 // ---- the value of waiting ------------------------------------------------------------------------------------------
 
+/** A positive bound below the grid's first evidence step, with enough decimals (three to six) that the printed number
+ * is below the step too, so a sentence comparing it with the step stays true; "just below" the step if six aren't. */
+const belowStep = (b, step) => { for (let d = 3; d <= 6; d++) { const s = b.toFixed(d); if (+s < step) return s; } return `just below ${step}`; };
 /** A bound as the value plate prints it, on the slice's marker, in its tile, and in its sentence: "< 0.001" for a
- * positive bound that would round to 0.000 (the program still waits at y = 0 there), three decimals below 0.1, and two
- * above. */
-export const boundShown = (b) => (b > 0 && b < 0.0005 ? "< 0.001" : b < 0.1 ? f3(b) : f2(b));
+ * positive bound that would round to 0.000 (the program still waits at y = 0 there), below the evidence step h with
+ * enough decimals to print below it (belowStep), three decimals below 0.1, and two above. */
+export const boundShown = (b, h = 0.02) => (b > 0 && b < 0.0005 ? "< 0.001" : b > 0 && b < h ? belowStep(b, h) : b < 0.1 ? f3(b) : f2(b));
 /** A value of waiting, W = V − g, as the value plate prints it: "< 0.001" for one above 0 (by more than rounding error,
  * 1e-12) that would round to 0.000, three decimals otherwise. */
 export const wShown = (w) => (w > 1e-12 && w < 0.0005 ? "< 0.001" : f3(w));
@@ -97,7 +100,7 @@ export function sliceSay(t, b, V0, W0, forced = false, h = 0.02) {
   if (!(b > 0)) return forced ? `At time ${f2(t)}, the choice is forced: the bound is 0, and V = g at every y.`
     : `At time ${f2(t)}, the bound is 0: even at y = 0 the program decides at once, so V = g at every y.`;
   const s = `At time ${f2(t)}, deciding at y = 0 is a coin flip, worth 0.5; the best rule from there earns V = ${f3(V0)}, so the chance to wait is worth ${wIs(W0)}. `;
-  if (b < h) return s + `The bound, ${boundShown(b)}, is below the grid's first evidence step, ${h}: the program still waits at y = 0 and decides at y = ${h}, and the bound is where deciding starts to beat waiting, read between the grid's evidence points 0 and ${h}; at the grid points above it, V = g.`;
+  if (b < h) return s + `The bound, ${boundShown(b, h)}, is below the grid's first evidence step, ${h}: the program still waits at y = 0 and decides at y = ${h}, and the bound is where deciding starts to beat waiting, read between the grid's evidence points 0 and ${h}; at the grid points above it, V = g.`;
   return s + `The bound, ${boundShown(b)}, is where deciding starts to beat waiting, read between the grid's evidence points; at the grid points above it, V = g.`;
 }
 
@@ -107,8 +110,8 @@ export function sliceSay(t, b, V0, W0, forced = false, h = 0.02) {
 export function sliceReads(m, i, best) {
   const t = m.times[i], bt = m.rowB[i], V0 = m.V[i][0], W0 = V0 - m.gy[0];
   return {
-    marker: bt !== null && bt > 0 ? `threshold ${boundShown(bt)}` : null,
-    tiles: { V: f3(V0), W: wShown(W0), bound: bt === null ? "–" : boundShown(bt), most: wShown(best.W) },
+    marker: bt !== null && bt > 0 ? `threshold ${boundShown(bt, m.h)}` : null,
+    tiles: { V: f3(V0), W: wShown(W0), bound: bt === null ? "–" : boundShown(bt, m.h), most: wShown(best.W) },
     say: sliceSay(t, bt ?? 0, V0, W0, Math.abs(t - m.horizon) < 1e-9, m.h),
   };
 }

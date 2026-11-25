@@ -307,9 +307,9 @@ const flatProg = (c) => { const k = c.toPrecision(15); if (!flatMemo.has(k)) fla
     const sOn = S.revealSay(rOn, true), sOff = S.revealSay(rOff, true);
     // the band's two edges, as bandSeries gives them to the reveal, are one curve at every plotted check
     const sr = M.bandSeries(data, flats, VIEW, cost, null);
-    let split = 0; for (let k = 0; k < sr.ts.length; k++) split = Math.max(split, Math.abs(sr.up[k] - sr.dn[k]));
-    check("words", "Constant 0.1 through the band plate's Show me (the worker's bounds, then bandKind, bandSeries, bandReveal, and revealSay, which the plate prints as they come): it gets the band, its two edges equal at all 251 checks in the window, and the constant-cost note; a drawing on the program's bound lies inside it to within 0.002, and one 0.05 above lies outside",
-      kind === "constant" && rOn.band && rOn.cnt === n && sr.ts.length === KV + 1 && sr.up.length === KV + 1 && sr.dn.length === KV + 1 && split < 1e-12
+    let split = sr.up && sr.dn ? 0 : Infinity; if (sr.up && sr.dn) for (let k = 0; k < sr.ts.length; k++) split = Math.max(split, Math.abs(sr.up[k] - sr.dn[k]));
+    check("words", "Constant 0.1, the band helpers on the worker's bounds (bandKind, bandSeries, bandReveal, and revealSay; not the Show me binding or the rendering): bandKind gives it the band, its two edges are equal at all 251 checks in the window, and the sentence opens with the constant-cost note; a drawing on the program's bound is inside it to within 0.002, and one 0.05 above is outside",
+      kind === "constant" && rOn.band && rOn.cnt === n && sr.ts.length === KV + 1 && sr.up?.length === KV + 1 && sr.dn?.length === KV + 1 && split < 1e-12
       && sOn.startsWith(S.outsideNote("constant")) && /all of it lies inside the band, to within 0\.002\.$/.test(sOn) && /100% of it lies more than 0\.002 outside the band\.$/.test(sOff),
       `edges differ by at most ${split.toExponential(1)} over ${sr.ts.length} checks; ${sOn.slice(-90)} | ${sOff.slice(-70)}`);
   }
@@ -325,12 +325,23 @@ const flatProg = (c) => { const k = c.toPrecision(15); if (!flatMemo.has(k)) fla
       rows.push({ name, r, tile: S.rangeTile(r), say: S.revealSay(r, false), last: data.bounds[Math.round(view / data.dt)] });
     }
     const [r6, r55, rd] = rows;
-    check("words", "the band plate without a band: on Rising from 0.6 at rate 2 the program's lowest bound is positive and below the first step, and the tile and sentence print it as 0.002 and say the program still waits at y = 0; from 0.55 the lowest is 0 and the sentence says the program stops at once; at a deadline at 1 the bound is 0 only at the forced choice, and the sentence says so",
+    check("words", "without a band, the worker's bounds through bandReveal, rangeTile, and revealSay (the tile text and sentence; not the rendering): on Rising from 0.6 at rate 2 the lowest bound is positive and below the first step, and the tile text and sentence give it as 0.002 and say the program still waits at y = 0; from 0.55 the lowest is 0 and the sentence says the program stops at once; at a deadline at 1 the bound is 0 only at the forced choice, and the sentence says so",
       !r6.r.band && r6.r.lo > 0 && r6.r.lo < 0.02 && r6.tile === `${r6.r.lo.toFixed(3)} to ${r6.r.hi.toFixed(2)}` && r6.tile.startsWith("0.002 to") && r6.say.startsWith(`Over the window, the best bound runs from 0.002 to`) && /Its lowest value, 0\.002, is below the grid's first evidence step, 0\.02: there the program still waits at y = 0/.test(r6.say)
       && r55.r.lo === 0 && r55.tile.startsWith("0.00 to") && /Where it is 0, the program stops at once at every evidence level, y = 0 included\./.test(r55.say) && !/waits/.test(r55.say)
       && rd.r.lo === 0 && rd.last === 0 && rd.r.loOpen > 0.02 && /It is 0 only at the deadline, where the choice is forced\./.test(rd.say) && !/stops at once|waits/.test(rd.say)
       && S.boundText(0.0004) === "< 0.001" && S.boundText(0.0123) === "0.012" && S.boundText(0.5) === "0.50" && S.boundText(0) === "0.00",
       rows.map((x) => `${x.name}: lowest ${x.r.lo.toExponential(3)}, tile ${x.tile}`).join("; "));
+  }
+  {
+    // a lowest bound just below the first step prints below it: Rising from 0.95 at rate 1.95 (lowest 0.019920)
+    const ch = { id: "rising", params: { at: 0.95, rate: 1.95 } }, cost = costOf(ch);
+    const data = await runWorker("../../book/assets/js/ch04-worker.js", { job: "values", spec: { kind: "choice", choice: ch }, keep: "none" });
+    const r = M.bandReveal({ kind: M.bandKind(ch), sketch: new Array(51).fill(NaN), view: VIEW, data, flats: null, cost, dl: null, ext: M.extremes(cost) });
+    const tile = S.rangeTile(r), say = S.revealSay(r, false), low = tile.split(" to ")[0];
+    check("words", "Rising from 0.95 at rate 1.95, the worker's bounds through bandReveal, rangeTile, and revealSay: the lowest bound is between 0.0195 and 0.02, and the tile text and sentence print it as 0.0199, below the step they compare it with, never 0.020; boundText and bound3 print a bound within 1e-6 of the step as \"just below 0.02\"",
+      r.lo > 0.0195 && r.lo < 0.02 && low === "0.0199" && +low < 0.02 && say.includes("Its lowest value, 0.0199, is below the grid's first evidence step, 0.02") && !/0\.020\b/.test(tile + say)
+      && S.boundText(0.0199999999) === "just below 0.02" && S.bound3(0.0199999999) === "just below 0.02" && S.bound3(0.0123) === "0.012" && S.bound3(1.2) === "1.200" && S.boundText(0.02) === "0.02",
+      `lowest ${r.lo.toFixed(7)}: tile ${tile}; ${say.slice(0, 140)}`);
   }
   check("words", "a guess after the median reads late, and one before it early", /late/.test(S.decideVerdict(1.2, 0.8)) && /early/.test(S.decideVerdict(0.5, 0.8)) && /within 0.05/.test(S.decideVerdict(0.82, 0.8)), "checked");
   check("words", "the hero names the flat bounds for the highest and the lowest cost", S.heroLabel("Cost jumps", costOf(M.FIG1A)(0), 1.6) === "Cost jumps: the bound stays between B(1.6) and B(0.1)", S.heroLabel("Cost jumps", costOf(M.FIG1A)(0), 1.6));

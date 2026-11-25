@@ -34,9 +34,13 @@ export function palmerVerdict(guess, ms) {
 // ---------------------------------------------------------------- your schedule
 const STEP = 0.02; // the program's evidence step
 const units = (v) => `${v} time ${v === 1 ? "unit" : "units"}`;
-/** A bound as the plate prints it: three decimals below the grid's first step (the page places a bound there where
- * its program waits at the center), "< 0.001" for a positive bound that would round to 0, two decimals otherwise. */
-export const boundText = (b) => (b > 0 && b < 0.0005 ? "< 0.001" : b > 0 && b < STEP ? b.toFixed(3) : f2(b));
+/** A positive bound below the grid's first evidence step, with enough decimals (three to six) that the printed number
+ * is below the step too, so a sentence comparing it with the step stays true; "just below" the step if six aren't. */
+const belowStep = (b, step) => { for (let d = 3; d <= 6; d++) { const s = b.toFixed(d); if (+s < step) return s; } return `just below ${step}`; };
+/** A bound as the plate prints it: below the grid's first step (the page places a bound there where its program
+ * waits at the center), at least three decimals and never as much as the step; "< 0.001" for a positive bound that
+ * would round to 0; two decimals otherwise. */
+export const boundText = (b) => (b > 0 && b < 0.0005 ? "< 0.001" : b > 0 && b < STEP ? belowStep(b, STEP) : f2(b));
 /** What a bound means for a decision made at it. A bound of 0 away from a deadline means the program stops at once at
  * every evidence level, the center included; a positive bound below the first step means it waits at the center. */
 export function boundNote(b, g, forced = false) {

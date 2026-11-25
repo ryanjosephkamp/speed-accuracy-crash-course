@@ -45,7 +45,8 @@ export function flatJob(m) {
   // the earn plate's curve: the averages for 60 flat bounds from 0.05 to 3, checking the evidence continuously
   const bs = Array.from({ length: 60 }, (_, i) => 0.05 + (2.95 * i) / 59), os = bs.map((v) => flatOnSchedule(cost, v, dl));
   const curve = { b: bs, reward: os.map((o) => o.reward), bill: os.map((o) => o.bill), net: os.map((o) => o.net) };
-  return { horizon, b: cont.b, net: cont.net, reward: cont.reward, bill: cont.bill, gridX: grid.x, grid: grid.reward, shifted: grid.shifted, curve };
+  return { horizon, b: cont.b, net: cont.net, reward: cont.reward, bill: cont.bill, gridX: grid.x, grid: grid.reward, shifted: grid.shifted, curve,
+    search: { cap: grid.cap, scan: grid.scan, scores: grid.scores, refined: grid.refined } };
 }
 
 self.onmessage = (e) => {
