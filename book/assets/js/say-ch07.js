@@ -141,13 +141,14 @@ export function lossNote(kind, label, c0) {
 }
 
 const lossWords = (x, res) => (!(x > 1e-12) ? `no reward measurable on this grid (a scored difference of ${sci(x)})` : `${sci(x)} of reward${res ? "" : ", below the display cutoff"}`);
-export function lossSay(eps, lossPm, lossFo, slopePm, slopeFo, resPm, resFo, foZero = false) {
+const countWords = (n) => ["none", "one", "two"][n] ?? String(n);
+export function lossSay(eps, lossPm, lossFo, slopePm, slopeFo, resPm, resFo, foZero = false, nPm = 3, nFo = 3, sizes = 7) {
   let s = `At ε = ${frac(eps)}, the per-moment rule loses ${lossWords(lossPm, resPm)}, and the first-order bound ${lossWords(lossFo, resFo)}. `;
   if (foZero) s += "At this size the first-order bound falls to 0 for a while, where every decision is made at once: it is a small-change result. ";
   if (Number.isFinite(slopePm)) s += `Over its three smallest sizes above the display cutoff, the per-moment loss falls with a slope of ${f2(slopePm)} on these log axes${slopePm > 1.6 && slopePm < 2.6 ? ", close to the 2 of a second-order loss" : ""}. `;
-  else s += "Fewer than three of the per-moment losses are above the display cutoff, too few to fit a slope. ";
+  else s += `${nPm ? `Only ${countWords(nPm)}` : "None"} of the per-moment rule's ${sizes} losses ${nPm === 1 ? "is" : "are"} above the display cutoff; a slope takes three. `;
   if (Number.isFinite(slopeFo)) s += `The first-order bound's loss falls with a slope of ${f2(slopeFo)}${slopeFo > 2.6 ? ", faster than second order" : ""}.`;
-  else s += "The first-order bound's loss falls below the display cutoff too soon to fit a slope over three sizes.";
+  else s += `${nFo ? `Only ${countWords(nFo)}` : "None"} of the first-order bound's ${sizes} losses ${nFo === 1 ? "is" : "are"} above the display cutoff; a slope takes three.`;
   return s;
 }
 
