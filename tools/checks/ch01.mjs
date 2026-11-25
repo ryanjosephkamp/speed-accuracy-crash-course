@@ -252,12 +252,13 @@ const KEYS = ["t", "cost", "exact", "pm", "wb", "pmShift", "wbShift"];
     const gg = panel(q, { x0: 0, y0: 0, w: 420, bh: 130, yTop: 2, selected: false, title: "x" });
     const line = points(gg.paths.cost), X = +gg.sx(T).toFixed(1), v = vertexAt(line, X);
     const dot = +nowMarks(q, gg, T).match(/acc-dot" cx="[\d.]+" cy="([\d.]+)"/)[1];
-    const knots = ch.id === "draw" ? Array.from({ length: 26 }, (_, i) => i / 10).every((u) => vertexAt(line, +gg.sx(u).toFixed(1))) : true;
+    // every knot is a vertex of the path, at the knot's own cost on the strip's scale (to the path's 0.1 px rounding)
+    const knots = ch.id === "draw" ? Array.from({ length: 26 }, (_, i) => i / 10).every((u) => { const pt = vertexAt(line, +gg.sx(u).toFixed(1)); return pt && Math.abs(pt[1] - gg.syC(q.cost(u))) < 0.051; }) : true;
     const inside = line.every(([, y]) => y >= gg.cT - 1e-9 && y <= gg.cB + 1e-9), spread = Math.max(...line.map((u) => u[1])) - Math.min(...line.map((u) => u[1]));
     strips.push({ ok: line.length >= 181 && inside && knots && v && Math.abs(v[1] - dot) < 0.11 && (ch.id === "constant" ? spread === 0 : spread > 0.5 * (gg.cB - gg.cT)),
       text: `${ch.id === "draw" ? (ch.points[2] === 2 && ch.points[3] === 0.01 ? "sharp knot" : "alternating drawing") : ch.id}: ${line.length} points from ${Math.min(...line.map((u) => u[1]))} to ${Math.max(...line.map((u) => u[1]))} inside ${gg.cT}–${gg.cB}; at t = ${T} line ${v?.[1]}, dot ${dot}${ch.id === "draw" ? `; a vertex at every knot: ${knots}` : ""}` });
   }
-  check("fig1", "the panels as drawn keep the cost line inside its strip on its own scale (a constant 1, a rise to 3.2, a drawing alternating 0.5 and 2, and a drawing at 0.01 with one knot of 2 at t = 0.2), turn a drawing's path at each of its knots, and put the dot on the line (at t = 1.25, and at the sharp knot itself)", strips.every((x) => x.ok), strips.map((x) => x.text).join("; "));
+  check("fig1", "the panels as drawn keep the cost line inside its strip on its own scale (a constant 1, a rise to 3.2, a drawing alternating 0.5 and 2, and a drawing at 0.01 with one knot of 2 at t = 0.2), turn a drawing's path at each of its knots, at that knot's cost, and put the dot on the line (at t = 1.25, and at the sharp knot itself)", strips.every((x) => x.ok), strips.map((x) => x.text).join("; "));
   // a positive bound below the grid's first step shows as positive, in the read-out's tile and its sentence, as the
   // plate prints them (panelReadOut, whose tiles and sentence the plate assigns as they come)
   const ramp = { id: "rising", params: { at: 0, rate: 2 } }, rm = await ask(ramp), b193 = at(rm, "exact", 1.93), b192 = at(rm, "exact", 1.92);
