@@ -353,14 +353,16 @@ const T10 = M.TABLE10_CHOICES;
     z = Math.max(z, Math.abs(w.hi.re - 1), Math.abs(w.lo.re - 1), Math.abs(w.hi.im), Math.abs(w.lo.im), Math.abs(w1.hi.re - 1) > 1e-5 ? 1 : 0);
   }
   check("flux", "each bound's normalized transform is 1 at lambda = 0 (not 0/0), and next to 1 at lambda = 1e-7", z < 1e-12, `largest gap ${z.toExponential(1)}`);
-  // the program over beliefs has no grid point at 1/2; its two nearest beliefs decide alike, so its bound of 1/2 (evidence
-  // 0) is where the center stops too: the book's rule for a bound below the first step leaves it unchanged here
+  // the program over beliefs has no grid point at 1/2. By mirror symmetry its two nearest beliefs have the same
+  // deciding-minus-waiting gap, so where both stop it reports a bound of 1/2 (evidence 0). That says nothing about
+  // whether waiting at the center itself would pay (with the payoff's kink there, one more step can earn slightly more);
+  // 1/2 is what the midpoint grid reports when its first nodes stop
   let sym = 0, half = 0;
   for (const ch of [{ id: "constant", params: { c: 0.4 } }, { id: "deadline", params: { at: 0.75, c: 0.3 } }, { id: "rising", params: { at: 0.5, rate: 0.8 } }]) {
     const P = M.unknownProgram(costOf(ch), deadlineOf(ch) ?? 10, { n: 300, dt: 0.005 });
     sym = Math.max(sym, P.symGap); half += P.g.filter((g) => g === 0.5).length;
   }
-  check("program", "in the program over beliefs, deciding minus waiting is the same at the two beliefs next to 1/2 (within 1e-12), so a bound of 1/2 means the center stops too; it occurs on these runs", sym < 1e-12 && half > 1, `largest asymmetry ${sym.toExponential(1)}, ${half} steps at 1/2`);
+  check("program", "in the program over beliefs, deciding minus waiting is the same at the two beliefs next to 1/2 by mirror symmetry (within 1e-12), and the reported bound of 1/2 occurs on these runs where both stop", sym < 1e-12 && half > 1, `largest asymmetry ${sym.toExponential(1)}, ${half} steps at 1/2`);
   // the sine plate's bounds stay far from x*, where the two-bound program would report x* for a bound below its first step
   let far = Infinity;
   for (const rm of [0.5, 0.25]) for (const om of [0.5, 8]) { const r = M.sineRun(rm, om), xs = M.xStar(1, rm), mv = 0.01 * Math.max(...r.dh.map(Math.abs), ...r.dl.map(Math.abs)); far = Math.min(far, r.h0 - xs - mv, xs - r.l0 - mv); }

@@ -7930,7 +7930,7 @@
   {
    "file": "ch11",
    "plate": "program",
-   "name": "in the program over beliefs, deciding minus waiting is the same at the two beliefs next to 1/2 (within 1e-12), so a bound of 1/2 means the center stops too; it occurs on these runs",
+   "name": "in the program over beliefs, deciding minus waiting is the same at the two beliefs next to 1/2 by mirror symmetry (within 1e-12), and the reported bound of 1/2 occurs on these runs where both stop",
    "ok": true,
    "detail": "largest asymmetry 1.8e-15, 1432 steps at 1/2"
   },

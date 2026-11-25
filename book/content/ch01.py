@@ -27,8 +27,8 @@ CHAPTER = {
         ("HeldPerMomentMax", "its largest loss there, in points per 100 trials"),
     ],
     "hero": {
-        "aria": "Figure 1(b): the cost of time falls from 0.4 to 0.05 around time 0.3. Below, the best bound makes most of its rise before the center of the fall, while the per-moment rule's bound rises with the cost.",
-        "caption": r"""Figure 1(b): the cost of time falls from 0.4 to 0.05 around $t = 0.3$ (orange, log scale). Below, the best bound from a dynamic program solved in this page (ink) makes most of its rise before the center of the fall; the per-moment rule's bound (dashed) rises with the cost. Both are for checking the evidence every 0.01 time units.""",
+        "aria": "Figure 1(b): the cost of time falls from 0.4 to 0.05 around time 0.3. Below, the best bound makes most of its rise before the center of the fall, while the per-moment rule's bound rises only as the cost falls.",
+        "caption": r"""Figure 1(b): the cost of time falls from 0.4 to 0.05 around $t = 0.3$ (orange, log scale). Below, the best bound from a dynamic program solved in this page (ink) makes most of its rise before the center of the fall; the per-moment rule's bound (dashed) rises only as the cost falls. Both are for checking the evidence every 0.01 time units.""",
         "still": 1,
     },
     "intro": r"""
