@@ -1,9 +1,9 @@
 // Appendix A's page: the hero, which draws the results proved here in the paper's order with an arc for each use the
 // claim map records and lights one result at a time, and the proof strips, which stand without plates on this page.
 // The hero reads the map from the data the page carries (#map-data); its words come from say-appA.js.
-import { chain } from "./appA-chain.js?v=0487a934ff";
-import { wireStrips } from "./book.js?v=0487a934ff";
-import * as S from "./say-appA.js?v=0487a934ff";
+import { chain } from "./appA-chain.js?v=355988b29e";
+import { wireStrips } from "./book.js?v=355988b29e";
+import * as S from "./say-appA.js?v=355988b29e";
 
 const esc = (s) => String(s).replace(/[<>&]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" })[c]);
 

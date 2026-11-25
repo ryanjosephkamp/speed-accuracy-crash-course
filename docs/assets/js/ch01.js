@@ -2,13 +2,13 @@
 // 16-fold rise, and Figure 1 rebuilt live with the reader's schedule as a fifth panel. The best bound and the weighted
 // look-ahead come from ch01-model.js in ch01-worker.js (the dynamic program and Algorithm 1, from model.js); the
 // per-moment bound is B(c(t)) from model.js's table. The words under each plate come from say-ch01.js.
-import { boundForCost, toDiscrete } from "./model.js?v=0487a934ff";
-import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, defaultDrawing, VIEW, SPARE } from "./schedules-book.js?v=0487a934ff";
-import { getChoice, setChoice, solve, onVisible, watchVisible, liftReady, calm } from "./book.js?v=0487a934ff";
-import { frame, line, axes, svg, fmt, keepDrawn } from "./chart.js?v=0487a934ff";
-import { FIG1, fig1Choice, fig1Of, at, ahead, knotsOf, DT, SHIFT } from "./ch01-model.js?v=0487a934ff";
-import { panel, nowMarks, panelReadOut, fifthNote, ROWS } from "./ch01-draw.js?v=0487a934ff";
-import * as S from "./say-ch01.js?v=0487a934ff";
+import { boundForCost, toDiscrete } from "./model.js?v=355988b29e";
+import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, defaultDrawing, VIEW, SPARE } from "./schedules-book.js?v=355988b29e";
+import { getChoice, setChoice, solve, onVisible, watchVisible, liftReady, calm } from "./book.js?v=355988b29e";
+import { frame, line, axes, svg, fmt, keepDrawn } from "./chart.js?v=355988b29e";
+import { FIG1, fig1Choice, fig1Of, at, ahead, knotsOf, DT, SHIFT } from "./ch01-model.js?v=355988b29e";
+import { panel, nowMarks, panelReadOut, fifthNote, ROWS } from "./ch01-draw.js?v=355988b29e";
+import * as S from "./say-ch01.js?v=355988b29e";
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const plate = (id) => document.getElementById("plate-" + id);
@@ -35,7 +35,7 @@ function follow(pick, onChange) {
 const fail = (id, e) => { const r = rootOf(id); if (r) r.innerHTML = `<p class="plate-fail">The live plate could not start: ${String(e.message).replace(/[<>&]/g, "")}</p>`; console.error(e); };
 
 // ---------------------------------------------------------------- the solver: one schedule's three bounds, shared
-const WORKER = new URL("./ch01-worker.js?v=0487a934ff", import.meta.url);
+const WORKER = new URL("./ch01-worker.js?v=355988b29e", import.meta.url);
 const SOLVED = new Map();
 function three(choice, progress = null) {
   const k = JSON.stringify(choice);

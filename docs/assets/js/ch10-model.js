@@ -5,9 +5,9 @@
 // model.js; the averaged-cost rule as the paper's code computes it (shortcuts.weighted_ahead) from ch08-rule.js.
 // tools/checks/ch10.mjs holds every rule and every score here to the paper's code run on the same grid
 // (tools/validity/ch10.json), and the rebuilt schedules to the paper's own schedule functions.
-import { boundForCost, kernelForBound, weightedBound, exactPolicy, score, toDiscrete } from "./model.js?v=0487a934ff";
-import { averagedCost } from "./ch08-rule.js?v=0487a934ff";
-import { B } from "./kernel.js?v=0487a934ff";
+import { boundForCost, kernelForBound, weightedBound, exactPolicy, score, toDiscrete } from "./model.js?v=355988b29e";
+import { averagedCost } from "./ch08-rule.js?v=355988b29e";
+import { B } from "./kernel.js?v=355988b29e";
 
 export const HORIZON = 10;                       // the paper's experiments force the choice at t = 10 (common.HORIZON)
 export const PAGE_GRID = { dt: 0.01, h: 0.02, cap: 5 };

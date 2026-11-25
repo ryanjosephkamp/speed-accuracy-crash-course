@@ -3,7 +3,7 @@
 //                            far back the forced choice reaches (at 0.001 and 0.01)
 //   { job: "bins", c }    -> the belief grid's bound with LONG time units left for each number of bins in BINS (with
 //                            progress), beside the evidence grid's bound with LONG time units left and B(c)
-import * as M from "./appB-model.js?v=0487a934ff";
+import * as M from "./appB-model.js?v=355988b29e";
 
 const RUNS = new Map();
 const horizon = (c) => { if (!RUNS.has(c)) RUNS.set(c, M.horizonRun(c)); return RUNS.get(c); };

@@ -3,11 +3,11 @@
 // schedule's own range), and the three bounds on the panel's bound scale; the time line and its dots are drawn apart,
 // so moving the time redraws only them. The read-out's tiles and sentence, and the note above the fifth panel, are
 // built here too, and the plate prints them as they come.
-import { boundForCost, toDiscrete } from "./model.js?v=0487a934ff";
-import { VIEW, SPARE, deadlineOf, labelOf } from "./schedules-book.js?v=0487a934ff";
-import { ticks, dropAt } from "./chart.js?v=0487a934ff";
-import { at, ahead, costStrip, stripTimes, isFlat, fig1Of, DT } from "./ch01-model.js?v=0487a934ff";
-import * as S from "./say-ch01.js?v=0487a934ff";
+import { boundForCost, toDiscrete } from "./model.js?v=355988b29e";
+import { VIEW, SPARE, deadlineOf, labelOf } from "./schedules-book.js?v=355988b29e";
+import { ticks, dropAt } from "./chart.js?v=355988b29e";
+import { at, ahead, costStrip, stripTimes, isFlat, fig1Of, DT } from "./ch01-model.js?v=355988b29e";
+import * as S from "./say-ch01.js?v=355988b29e";
 
 export const ROWS = { title: 15, gap: 5 };
 const range = (a, b, n) => Array.from({ length: n }, (_, i) => a + ((b - a) * i) / (n - 1));

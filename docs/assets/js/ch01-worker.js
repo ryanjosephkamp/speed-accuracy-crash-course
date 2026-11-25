@@ -1,7 +1,7 @@
 // Chapter 1's worker: the dynamic program and the two rules for a schedule, off the page's thread.
 //   { job: "three", choice } -> the best bound, the per-moment rule, and the weighted look-ahead (ch01-model.js)
-import { threeRules } from "./ch01-model.js?v=0487a934ff";
-import { costOf, deadlineOf } from "./schedules-book.js?v=0487a934ff";
+import { threeRules } from "./ch01-model.js?v=355988b29e";
+import { costOf, deadlineOf } from "./schedules-book.js?v=355988b29e";
 
 self.onmessage = (e) => {
   const m = e.data;

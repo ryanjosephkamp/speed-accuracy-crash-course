@@ -1,12 +1,12 @@
 // Chapter 12's plates. Every number drawn comes from kernel.js (the series and the closed forms), ch12-model.js (the
 // Palmer observer, the ramp's exact look-ahead, the kernel's quantiles, the averaged bounds, the gate), or the solver's
 // worker; the words under each plate come from say-ch12.js, which takes numbers and returns sentences.
-import * as K from "./kernel.js?v=0487a934ff";
-import * as M from "./ch12-model.js?v=0487a934ff";
-import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, VIEW, SPARE, defaultDrawing } from "./schedules-book.js?v=0487a934ff";
-import { getChoice, setChoice, solve, onVisible, watchVisible, liftReady, calm, seedParam, wireStrips } from "./book.js?v=0487a934ff";
-import { frame, line, area, axes, svg, fmt, keepDrawn } from "./chart.js?v=0487a934ff";
-import * as S from "./say-ch12.js?v=0487a934ff";
+import * as K from "./kernel.js?v=355988b29e";
+import * as M from "./ch12-model.js?v=355988b29e";
+import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, VIEW, SPARE, defaultDrawing } from "./schedules-book.js?v=355988b29e";
+import { getChoice, setChoice, solve, onVisible, watchVisible, liftReady, calm, seedParam, wireStrips } from "./book.js?v=355988b29e";
+import { frame, line, area, axes, svg, fmt, keepDrawn } from "./chart.js?v=355988b29e";
+import * as S from "./say-ch12.js?v=355988b29e";
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const plate = (id) => document.getElementById("plate-" + id);
