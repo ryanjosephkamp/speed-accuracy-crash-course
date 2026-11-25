@@ -122,11 +122,21 @@ def table_rows(name):
     return _TABLE_ROWS[name]
 
 
+def typeset_cell(c):
+    """A generated table's cell as print: an em dash for ---, an en dash for --, and a minus sign before a number,
+    outside math (inside $...$, MathJax sets the minus)."""
+    c = c.replace("\\%", "%")
+    parts = c.split("$")
+    for i in range(0, len(parts), 2):
+        parts[i] = re.sub(r"(?<![\w.])-(?=\d)", "\u2212", parts[i].replace("---", "\u2014").replace("--", "\u2013"))
+    return "$".join(parts)
+
+
 def table_cell(name, r, c):
     rows = table_rows(name)
     if not (1 <= r <= len(rows) and 1 <= c <= len(rows[r - 1])):
         fail(f"no cell {r},{c} in {name}")
-    return rows[r - 1][c - 1].replace("\\%", "%").replace("---", "—")
+    return typeset_cell(rows[r - 1][c - 1])
 
 
 def claim_ref(spec):
@@ -328,7 +338,7 @@ FIGURES = {
     "random_losses": ("fig:random", "The loss of the per-moment rule and of the weighted look-ahead on each of the 90 development schedules, in three families (smooth, step, and deadline), on a log scale. In each family, most of the weighted rule's losses are one to two powers of ten below the per-moment rule's.",
                       "In this print, the per-moment rule is slate and the weighted look-ahead green."),
     "heldout_paired": ("fig:heldout", "A scatter of the held-out schedules: the per-moment rule's loss across, the weighted look-ahead's up, on log scales, with lines at equal loss and at 10% and 1% of the per-moment rule's loss; most points sit below the 10% line.",
-                       "In this print, the points are drawn in this page's inks."),
+                       ),
 }
 
 
@@ -340,8 +350,8 @@ def table_html(label):
     num = LABELS[label]["num"]
     cap = figure_caption(label, "table")
     head = "".join(f"<th scope='col'>{html.escape(h)}</th>" for h in heads)
-    body = "".join("<tr>" + "".join((f"<th scope='row'>{inline(c.replace(chr(92) + '%', '%'))}</th>" if j == 0 else
-                                     f"<td>{inline(c.replace(chr(92) + '%', '%').replace('---', '—'))}</td>")
+    body = "".join("<tr>" + "".join((f"<th scope='row'>{inline(typeset_cell(c))}</th>" if j == 0 else
+                                     f"<td>{inline(typeset_cell(c))}</td>")
                                     for j, c in enumerate(r)) + "</tr>" for r in rows)
     for r in rows:
         if len(r) != len(heads):
