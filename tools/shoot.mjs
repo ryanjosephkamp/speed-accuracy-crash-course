@@ -2,7 +2,9 @@
 // page to the end so every plate wakes, and records what a reader would meet: console errors and uncaught
 // exceptions, plates that failed to draw, sideways scroll, and a picture of each plate.
 //
-//   node tools/shoot.mjs [--port 8770] [--out shots] [--width 390] [--both-widths] kernel/ index.html
+//   node tools/shoot.mjs [--port 8770] [--out shots] [--width 390] [--both-widths] [--local key=value] kernel/ index.html
+//
+// --local sets a localStorage entry before each page loads (for example cc-map-view=path), and may repeat.
 //
 // It serves docs/ itself on the port. Chrome is found at its usual macOS place, or set CHROME. Pictures go to
 // <out>/<page>-<width>-<theme>-<plate>.png. Exits 1 on any console error, exception, or failed plate.
@@ -21,6 +23,8 @@ const PORT = +opt("--port", 8770);
 const OUT = resolve(opt("--out", join(ROOT, "shots")));
 const WIDTH = +opt("--width", 390);
 const BOTH = flag("--both-widths");
+const LOCAL = [];
+for (let v; (v = opt("--local", null)) !== null;) LOCAL.push(v.split("="));
 const pages = args.length ? args : ["index.html"];
 const CHROME = process.env.CHROME || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 
@@ -70,6 +74,7 @@ listeners.push((m) => {
   if (m.method === "Log.entryAdded" && m.params.entry.level === "error") problems.push(`${current}: ${m.params.entry.source}: ${m.params.entry.text} ${m.params.entry.url || ""}`);
 });
 await S("Runtime.enable"); await S("Log.enable"); await S("Page.enable");
+if (LOCAL.length) await S("Page.addScriptToEvaluateOnNewDocument", { source: `try { ${LOCAL.map(([k, v]) => `localStorage.setItem(${JSON.stringify(k)}, ${JSON.stringify(v)});`).join(" ")} } catch (e) {}` });
 const evalJS = async (expr) => (await S("Runtime.evaluate", { expression: expr, awaitPromise: true, returnByValue: true })).result.value;
 
 mkdirSync(OUT, { recursive: true });

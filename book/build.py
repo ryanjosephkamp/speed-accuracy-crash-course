@@ -126,13 +126,15 @@ def table_cell(name, r, c):
     return rows[r - 1][c - 1].replace("\\%", "%").replace("---", "—")
 
 
-def claim_ref(cid):
-    """A claim's name from the claim map, linked to the section that teaches it once its chapter is built."""
+def claim_ref(spec):
+    """A claim's name from the claim map ({{claim:id}}), or other words for it ({{claim:id|words}}), linked to the
+    section that teaches it once its chapter is built."""
+    cid, _, words = spec.partition("|")
     node = MAP["nodes"].get(cid)
     if node is None:
         fail(f"unknown claim {cid}")
     href = LINKS_NOW.get(cid)
-    name = node["name"]
+    name = words or node["name"]
     return f"[{name}]({href})" if href else name
 
 
@@ -154,7 +156,7 @@ def fill(s):
         if k not in NUMBERS:
             fail(f"unknown number {k}")
         return NUMBERS[k]
-    return re.sub(r"\{\{([\w:.-]+)\}\}", mac, s)
+    return re.sub(r"\{\{([\w:.-]+(?:\|[^}]+)?)\}\}", mac, s)
 
 
 def inline(s):
@@ -261,8 +263,8 @@ def checks_line(tag):
     when = f"{MONTHS[m - 1]} {d}, {y}"
     if not mine:
         return ""
-    return (f"<p class='plate-checked'>Checked {when}: {len(mine)} of {len(mine)} checks of this plate's model against "
-            f"the paper's numbers and code pass, of {c['total']} for the book.</p>")
+    return (f"<p class='plate-checked'>Checked {when}: all {len(mine)} checks behind this plate pass (against the paper's "
+            f"numbers and code, and the page's own identities and sentences), of {c['total']} for the book.</p>")
 
 
 def plate_html(pid, plates, n):
@@ -418,8 +420,11 @@ def map_html(depth, chapter=None, focus="thm:main"):
 
 
 def map_data():
+    # the map names each chapter as the book's contents do
+    titles = {str(num): title for num, title, _, _ in BOOK.CHAPTERS}
+    data = {**MAP, "chapters": [{**c, "title": titles.get(str(c["num"]), c["title"])} for c in MAP["chapters"]]}
     return ("<script type='application/json' id='map-data'>"
-            + json.dumps(MAP, ensure_ascii=False).replace("<", "\\u003c") + "</script>")
+            + json.dumps(data, ensure_ascii=False).replace("<", "\\u003c") + "</script>")
 
 
 def qs_html(qs):
@@ -650,6 +655,14 @@ def chapter_page(i):
                  turn=turn_html(prev, nxt), page_ink=ink(num), css=css)
 
 
+def built_list():
+    nums = [str(num) for num, *_ in BUILT]
+    words = [("appendix " + n if n in ("A", "B") else n) for n in nums]
+    if len(words) <= 1:
+        return "chapter " + "".join(words)
+    return "chapters " + (", ".join(words[:-1]) + (", and " if len(words) > 2 else " and ") + words[-1])
+
+
 def contents_page():
     book = BOOK
     CURRENT_SLUG[0] = None
@@ -674,7 +687,7 @@ def contents_page():
 <p class="kicker">Ryan Kamp</p>
 <h1>{html.escape(book.TITLE)}<span class="sub">{html.escape(book.SUBTITLE)}</span></h1>
 <p class="lede">{inline(book.LEDE)}</p>
-<p class="byline">{inline(book.DRAFT)}</p>
+<p class="byline">{inline(book.DRAFT.format(built=built_list()))}</p>
 </header>
 <section class="sec" id="schedule" aria-labelledby="h-schedule">
 <h2 id="h-schedule">Your schedule</h2>
@@ -685,7 +698,7 @@ def contents_page():
 <h3>Your schedule</h3>
 <p class="plate-state" data-state="computed">Computed in the page: the best bound by dynamic programming on a grid</p>
 <div class="demo-root"></div>{checks_line("schedule")}</div>
-<figcaption><b>Live.</b> <span class="cap">Top: the cost of time, on a log scale (orange). Bottom: the best bound for it (ink), from a dynamic program that checks the evidence every 0.01 time units on a grid of 0.02 and runs 6 time units past the window, and the per-moment rule's bound, $B(c(t))$ moved in by the same check's shift (dashed). Draw your own by dragging across the top chart.</span></figcaption>
+<figcaption><b>Live.</b> <span class="cap">Top: the cost of time, on a log scale (orange). Bottom: the best bound for it (ink), from a dynamic program that checks the evidence every 0.01 time units on a grid of 0.02 and runs 6 time units past the window (or ends at a deadline), and the per-moment rule's bound, $B(c(t))$ moved in by the same check's shift (dashed). Draw your own by dragging across the top chart.</span></figcaption>
 </figure>
 </section>
 <section class="sec" id="contents" aria-labelledby="h-contents">

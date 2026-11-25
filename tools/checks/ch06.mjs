@@ -2,7 +2,8 @@
 // dynamic program against the paper's (Table 1), and the sentences under the plates.
 import * as K from "../../book/assets/js/kernel.js";
 import { exactPolicy, boundForCost, OVERSHOOT } from "../../book/assets/js/model.js";
-import { costOf, PRESETS } from "../../book/assets/js/schedules-book.js";
+import { VIEW, SPARE } from "../../book/assets/js/schedules-book.js";
+import { costOf, PRESETS, defaultDrawing } from "../../book/assets/js/schedules-book.js";
 import * as S from "../../book/assets/js/say-ch06.js";
 import { check, N, SIN, asPrinted } from "./lib.mjs";
 
@@ -19,10 +20,14 @@ check("kernel", "DecisionTimeTenth: b tanh b at 0.1", asPrinted(K.meanDecisionTi
 // ---- the kernel: series, flux, normalization ----------------------------------------------------------------
 for (const c of [0.02, 0.1, 0.5]) {
   const b = K.B(c);
-  check("kernel", `the flux integrates to 1/(2 c0 cosh^2 b0) at c0 = ${c}`, Math.abs(K.fluxTotal(b) - 1 / (2 * c * Math.cosh(b) ** 2)) < 1e-5, `${K.fluxTotal(b).toFixed(6)} vs ${(1 / (2 * c * Math.cosh(b) ** 2)).toFixed(6)}`);
+  check("kernel", `the flux's closed-form total, tanh b0 + b0 sech^2 b0, is 1/(2 c0 cosh^2 b0) at c0 = ${c}`, Math.abs(K.fluxTotal(b) - 1 / (2 * c * Math.cosh(b) ** 2)) < 1e-5, `${K.fluxTotal(b).toFixed(6)} vs ${(1 / (2 * c * Math.cosh(b) ** 2)).toFixed(6)}`);
+  const integ = K.kernelMass(0, 80, b, 20000) * K.fluxTotal(b);   // kernelMass divides by the closed-form total
+  check("kernel", `the flux series, integrated term by term over (0, 80), equals that total at c0 = ${c} (within 1e-4)`, Math.abs(integ - K.fluxTotal(b)) < 1e-4, `${integ.toFixed(6)} vs ${K.fluxTotal(b).toFixed(6)}`);
   const { w } = K.kernelBins(c);
   const tot = w.reduce((a, v) => a + v, 0);
-  check("kernel", `the kernel's bins sum to 1 at c0 = ${c}`, Math.abs(tot - 1) < 1e-9, `sum ${tot.toFixed(12)}`);
+  check("kernel", `the kernel's bins telescope to 1 at c0 = ${c} (by construction; the next check tests a bin)`, Math.abs(tot - 1) < 1e-9, `sum ${tot.toFixed(12)}`);
+  { const kb = K.kernelBins(c), m0 = kb.w[0], want = K.kernelMass(0, kb.edges[1], b, 20000);
+    check("kernel", `the kernel's first bin holds the series' mass over its interval at c0 = ${c} (within 1e-4)`, Math.abs(m0 - want) < 1e-4, `${m0.toFixed(6)} vs ${want.toFixed(6)}`); }
   check("starts", `pi_0 integrates to 1 at c0 = ${c}`, Math.abs(K.pi0Cdf(b, c) - 1) < 1e-6, `${K.pi0Cdf(b, c).toFixed(8)}`);
 }
 {
@@ -39,7 +44,7 @@ for (const l of [0.5, 1, 2, 5, 10, 20]) {
   const a = K.transform(l, 0.1), s = K.transformSeries(l, 0.1);
   check("transform", `closed-form transform equals the series at lambda = ${l}`, Math.abs(a - s) < 1e-5, `${a.toFixed(6)} vs ${s.toFixed(6)}`);
 }
-check("transform", "the transform is 1 at lambda = 0", Math.abs(K.transform(1e-9, 0.1) - 1) < 1e-6, K.transform(1e-9, 0.1).toFixed(8));
+check("transform", "the transform is within 1e-6 of 1 at lambda = 1e-9 (its value at 0)", Math.abs(K.transform(1e-9, 0.1) - 1) < 1e-6, K.transform(1e-9, 0.1).toFixed(8));
 for (const row of SIN) {
   const [om, gain, lead] = row;
   const t = K.transfer(0.1, om);
@@ -102,12 +107,48 @@ for (const row of SIN) {
       S.sketchSay(R.next(), i % 3 ? R.next() * 2 : NaN, R.next(), R.next(), 1 + R.next()),
       S.startsVerdict(["zero", "spread", "bound"][i % 3], R.next(), 0.1, 1.17, 0.546),
       S.bracketSay(R.next() * 0.3, R.next(), R.next()),
-      S.ordersVerdict({ pm: i % 4 === 0 ? null : i % 3, fo: i % 4 === 0 ? null : (i + 1) % 3 }, R.next() * 3, R.next() * 3),
+      S.ordersVerdict({ pm: i % 4 === 0 ? null : i % 3, fo: i % 4 === 0 ? null : (i + 1) % 3 },
+        { pm: i % 5 ? { slope: R.next() * 3, from: 1, to: 0.125 } : null, fo: i % 7 ? { slope: R.next() * 3, from: 1, to: 0.25 } : null }, R.next() * 1e-3, i % 6 === 0),
       S.zText((R.next() - 0.5) * 8),
     ];
     for (const s of say) { n++; if (/NaN|undefined|Infinity|null/.test(s)) bad++; }
   }
   check("words", "the plates' sentences never print NaN, undefined, Infinity, or null", bad === 0, `${n} sentences, ${bad} bad`);
-  check("words", "the gap sentence says a 3-standard-error miss is rare, and a 1.5 isn't flagged", /one time in twenty/.test(S.zText(3)) && !/twenty/.test(S.zText(1.5)), S.zText(3));
+  check("words", "the gap sentence puts a 3-standard-error miss at about one time in twenty only under its stated assumptions, and doesn't flag 1.5", /if the sampling error were normal and the runs unbiased/.test(S.zText(3)) && !/twenty/.test(S.zText(1.5)), S.zText(3));
 }
 
+
+// ---- the plate "Your schedule, scaled down", run as the page runs it (the scale job's programs, the same errors) ----
+{
+  const EPS = [1, 0.5, 0.25, 0.125, 0.0625, 0.03125];
+  const errors = (cost, dt = 0.01, h = 0.02) => {
+    const ts = Array.from({ length: 501 }, (_, i) => (i * VIEW) / 500);
+    const c0 = ts.reduce((a, t) => a + cost(t), 0) / ts.length, gamma = (x) => cost(x) - c0, H = VIEW + SPARE;
+    const flat = exactPolicy(() => c0, H, dt, h), kv = Math.round(VIEW / dt), t = Array.from(flat.ts.slice(0, kv + 1));
+    const beta = K.firstOrder(gamma, t, c0), b0c = K.B(c0), eFo = [], ePm = [];
+    for (const e of EPS) {
+      const r = exactPolicy((x) => c0 + e * gamma(x), H, dt, h).bounds;
+      let mf = 0, mp = 0;
+      t.forEach((x, i) => { const d = r[i] - flat.bounds[i]; mf = Math.max(mf, Math.abs(d - e * beta[i])); mp = Math.max(mp, Math.abs(d - (K.B(c0 + e * gamma(x)) - b0c))); });
+      eFo.push(mf); ePm.push(mp);
+    }
+    return { eFo, ePm };
+  };
+  const runs = [...PRESETS.filter((p) => !["deadline", "constant", "rising"].includes(p.id))   // outside the theorem, or nothing to shrink
+    .map((p) => ({ id: p.id, choice: { id: p.id, params: Object.fromEntries(p.params.map((q) => [q.id, q.value])) } })),
+    { id: "draw (the default drawing)", choice: { id: "draw", points: defaultDrawing() } }];
+  for (const p of runs) {
+    const cost = costOf(p.choice);
+    const { eFo, ePm } = errors(cost), floor = S.gridFloor(eFo);
+    const fo = S.fitAbove(EPS, eFo, floor), pm = S.fitAbove(EPS, ePm, floor);
+    const ok = fo && pm && fo.slope >= 1.5 && pm.slope >= 0.5 && pm.slope < 1.5;
+    check("yours", `${p.id}: above the grid's floor, the first-order error falls like eps^2 or faster and the per-moment error like eps`, ok,
+      `first-order slope ${fo ? fo.slope.toFixed(2) : "none"} (${fo ? fo.from + " to " + fo.to : ""}), per-moment ${pm ? pm.slope.toFixed(2) : "none"}, floor ${floor.toExponential(1)}`);
+  }
+  const wave = costOf({ id: "wave", params: { omega: 2, size: 0.3 } });
+  const coarse = errors(wave), fine = errors(wave, 0.005, 0.01);
+  const f1 = S.gridFloor(coarse.eFo), f2v = S.gridFloor(fine.eFo);
+  check("yours", "the floor is the grid's: halving both steps lowers Wave's floor at least twofold", f2v < f1 / 2, `${f1.toExponential(2)} on (0.01, 0.02), ${f2v.toExponential(2)} on (0.005, 0.01)`);
+  const v = S.ordersVerdict({ pm: null, fo: null }, { pm: { slope: 1, from: 1, to: 0.03125 }, fo: null }, 7e-4, true);
+  check("words", "on the rising cost, the verdict calls the slopes measurements and says the theorem doesn't cover it", /outside the theorem/.test(v) && /measurements/.test(v) && !/O\(ε²\) for a Lipschitz/.test(v), v);
+}

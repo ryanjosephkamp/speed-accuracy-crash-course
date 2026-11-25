@@ -15,6 +15,8 @@ const store = {
   set(v) { try { localStorage.setItem(KEY, v); } catch (e) { /* private mode: the choice lasts this visit */ } },
 };
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+// "Section 4.1" for a number, "Sections 1, 8" for several, and the words themselves otherwise ("Abstract, 1")
+const secText = (x) => (/^[\d.]+$/.test(x) ? `Section ${x}` : /^[\d., ]+$/.test(x) ? `Sections ${x}` : String(x));
 const curve = (x1, y1, x2, y2) => { const my = (y1 + y2) / 2; return `M${x1.toFixed(1)},${y1.toFixed(1)} C${x1.toFixed(1)},${my.toFixed(1)} ${x2.toFixed(1)},${my.toFixed(1)} ${x2.toFixed(1)},${y2.toFixed(1)}`; };
 const rel = (el, box) => { const r = el.getBoundingClientRect(); return { x: r.left - box.left + r.width / 2, top: r.top - box.top, bot: r.bottom - box.top, mid: r.top - box.top + r.height / 2 }; };
 
@@ -53,7 +55,7 @@ export function mountMap(root, { data, chapter = null, focus = "thm:main", links
   <div class="cm-hood"></div>
 </div>
 <div class="cm-view" data-view="layers">
-  <p class="cm-how">Each claim sits on a row below everything it uses, so the paper reads from the definitions down. Tap a claim to light what it rests on (slate) and what rests on it (green).</p>
+  <p class="cm-how">Each claim sits on a row below everything it uses, so the paper reads from the definitions down. Tap a claim to highlight what it rests on (slate) and what rests on it (green).</p>
   <div class="cm-layers"></div><p class="cm-info" aria-live="polite"></p>
 </div>
 <div class="cm-view" data-view="outline">
@@ -61,7 +63,7 @@ export function mountMap(root, { data, chapter = null, focus = "thm:main", links
   <div class="cm-outline"></div>
 </div>
 <div class="cm-view" data-view="path">
-  <p class="cm-how">The claims in the order the book teaches them, with each use drawn as an arc on the left. A dashed rust arc points forward: a claim that uses something taught later. Tap a claim to light its arcs.</p>
+  <p class="cm-how">The claims in the order the book teaches them, with each use drawn as an arc on the left. A dashed arc marks a use of something the book teaches later (rust until highlighted). Tap a claim to highlight its arcs.</p>
   <div class="cm-arcs"></div><p class="cm-info" aria-live="polite"></p>
 </div>
 <div class="cm-view" data-view="cloud">
@@ -105,9 +107,9 @@ export function mountMap(root, { data, chapter = null, focus = "thm:main", links
       (Object.keys(farUp).length ? row(Object.keys(farUp).sort(byOrder), "far", "Two steps back") : "") +
       row(up.slice().sort(byOrder), "uses", "It uses") +
       `<div class="center-card${here(focus) ? " here" : ""}"><div class="k">${esc(n.kind)} · chapter ${n.ch} · ${esc(chTitle(n.ch))}</div><h3>${esc(n.name)}</h3>` +
-      `<p>Section ${esc(n.sec)} · page ${n.page} · ${esc(n.statusLabel)} · ${where(focus)}</p></div>` +
+      `<p>${esc(secText(n.sec))} · page ${n.page} · ${esc(n.statusLabel)} · ${where(focus)}</p></div>` +
       row(down.slice().sort(byOrder), "usedby", "Used by") +
-      (Object.keys(farDown).length ? row(Object.keys(farDown).sort(byOrder), "far", "Two steps on") : "");
+      (Object.keys(farDown).length ? row(Object.keys(farDown).sort(byOrder), "far", "Two steps forward") : "");
     drawFocus();
   }
   function drawFocus() {
@@ -135,7 +137,7 @@ export function mountMap(root, { data, chapter = null, focus = "thm:main", links
     const up = closure(id, deps), down = closure(id, uses);
     layers.classList.add("sel");
     layers.querySelectorAll(".node").forEach((b) => { const x = b.dataset.id; b.classList.toggle("on", x === id); b.classList.toggle("up", !!up[x]); b.classList.toggle("down", !!down[x]); });
-    linfo.innerHTML = `<strong>${esc(N[id].name)}</strong> rests on ${Object.keys(up).length} claims, and ${Object.keys(down).length} rest on it. ${where(id)}.`;
+    linfo.innerHTML = `<strong>${esc(N[id].name)}</strong> (${esc(N[id].statusLabel.toLowerCase())}) rests on ${Object.keys(up).length} claims, and ${Object.keys(down).length} rest on it. ${where(id)}.`;
     drawLayers();
   }
   function drawLayers() {
@@ -165,7 +167,7 @@ export function mountMap(root, { data, chapter = null, focus = "thm:main", links
           const n = N[id];
           const link = (x) => `<a href="#${oid(x)}" data-go="${x}">${esc(N[x].label)}${N[x].ch !== n.ch ? ` <span class="m">(ch. ${N[x].ch})</span>` : ""}</a>`;
           return `<div class="oitem" id="${oid(id)}"><div class="t"><span class="dot s-${n.status}"></span>${esc(n.name)}</div>` +
-            `<div class="m">${esc(n.kind)} · section ${esc(n.sec)} · page ${n.page} · ${esc(n.statusLabel)} · ${where(id)}</div>` +
+            `<div class="m">${esc(n.kind)} · ${esc(secText(n.sec).toLowerCase())} · page ${n.page} · ${esc(n.statusLabel)} · ${where(id)}</div>` +
             `<div class="ln2 uses"><span class="k">Uses</span>${deps[id].length ? deps[id].slice().sort(byOrder).map(link).join("") : `<span class="m">nothing in the map</span>`}</div>` +
             `<div class="ln2 usedby"><span class="k">Used by</span>${uses[id].length ? uses[id].slice().sort(byOrder).map(link).join("") : `<span class="m">nothing in the map</span>`}</div></div>`;
         }).join("") + `</details>`;
@@ -195,7 +197,7 @@ export function mountMap(root, { data, chapter = null, focus = "thm:main", links
     arcs.classList.add("sel");
     arcs.querySelectorAll(".node").forEach((b) => { const x = b.dataset.id; b.classList.toggle("on", x === id); b.classList.toggle("up", deps[id].includes(x)); b.classList.toggle("down", uses[id].includes(x)); });
     const fwd = deps[id].filter((x) => pos[x] > pos[id]).length;
-    ainfo.innerHTML = `<strong>${esc(N[id].name)}</strong> uses ${deps[id].length} claims${fwd ? ` (${fwd} taught later in the book)` : ""}, and ${uses[id].length} use it. ${where(id)}.`;
+    ainfo.innerHTML = `<strong>${esc(N[id].name)}</strong> (${esc(N[id].statusLabel.toLowerCase())}) uses ${deps[id].length} claims${fwd ? ` (${fwd} taught later in the book)` : ""}, and ${uses[id].length} use it. ${where(id)}.`;
     drawPath();
   }
   function drawPath() {
@@ -212,8 +214,9 @@ export function mountMap(root, { data, chapter = null, focus = "thm:main", links
       const a = P[a0], b = P[b0]; if (!a || !b) return;
       const y1 = a.mid, y2 = b.mid, bulge = Math.min(g - 10, 6 + Math.abs(y2 - y1) * 0.16);
       const d = `M${x0},${y1.toFixed(1)} C${(x0 - bulge).toFixed(1)},${y1.toFixed(1)} ${(x0 - bulge).toFixed(1)},${y2.toFixed(1)} ${x0},${y2.toFixed(1)}`;
-      if (b0 === asel) hot += `<path class="up" d="${d}"/>`;
-      else if (a0 === asel) hot += `<path class="down" d="${d}"/>`;
+      const fw = pos[a0] > pos[b0] ? " fwd-lit" : "";   // a forward use stays dashed when highlighted
+      if (b0 === asel) hot += `<path class="up${fw}" d="${d}"/>`;
+      else if (a0 === asel) hot += `<path class="down${fw}" d="${d}"/>`;
       else faint += `<path${pos[a0] > pos[b0] ? ' class="fwd"' : ""} d="${d}"/>`;
     });
     svg.innerHTML = faint + hot + dots;

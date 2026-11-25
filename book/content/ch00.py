@@ -37,7 +37,7 @@ CHAPTER = {
     "title": "How to read this book",
     "full": "How to read this book",
     "leaf": 1,
-    "finding": "Every chapter works on a cost schedule you choose, sets plain words beside the paper's own, and asks for your guess before it shows the answer.",
+    "finding": "The book's chapters work on a cost schedule you choose, set plain words beside the paper's own, and ask for your guess before they show an answer.",
     "hero": {
         "aria": "Four cost schedules in turn, each with the best bound solved in the page and the per-moment rule's bound beneath it",
         "caption": "Figure 1's four schedules, one at a time: the cost of time (orange) and, beneath it, the best bound from a dynamic program solved in this page (ink) beside the per-moment rule's bound (dashed).",
@@ -48,9 +48,9 @@ CHAPTER = {
         ("MaxLookAhead", "the most the best bound looks ahead on average, at any cost (time units, found numerically)"),
     ],
     "intro": r"""
-Every chapter works on a cost schedule you choose, sets plain words beside the paper's own, and asks for your guess before it shows the answer. This chapter sets up those habits once, so the later chapters can use them without stopping to explain.
+The book's chapters work on a cost schedule you choose, set plain words beside the paper's own, and ask for your guess before they show an answer. This chapter sets up those habits once, so the later chapters can use them without stopping to explain.
 
-The book follows the paper *Waiting, weighted* one result at a time. Each result gets a plain statement, the paper's exact text, a live plate computed in this page from the paper's equations, and questions with worked answers. A check script holds the plates' computations to the paper's generated numbers and to its code; the line under each plate says how many of those checks pass.
+The book follows the paper *Waiting, weighted* one result at a time. Each result gets a plain statement and the paper's exact text; most also get a live plate, computed in this page from the paper's equations, and questions with worked answers. A check script holds the plates' computations to the paper's generated numbers and to its code, and to identities they must satisfy; the line under each plate says how many of those checks pass.
 """,
 }
 
@@ -63,7 +63,7 @@ PLATES = {
         "title": "Your schedule",
         "state": "computed",
         "state_text": "Computed in the page: the best bound by dynamic programming on a grid",
-        "caption": r"""Top: the cost of time, on a log scale (orange). Bottom: the best bound for it (ink), from a dynamic program that checks the evidence every 0.01 time units on a grid of 0.02 and runs 6 time units past the window, and the per-moment rule's bound, $B(c(t))$ moved in by the same check's shift (dashed). Draw your own by dragging across the top chart.""",
+        "caption": r"""Top: the cost of time, on a log scale (orange). Bottom: the best bound for it (ink), from a dynamic program that checks the evidence every 0.01 time units on a grid of 0.02 and runs 6 time units past the window (or ends at a deadline), and the per-moment rule's bound, $B(c(t))$ moved in by the same check's shift (dashed). Draw your own by dragging across the top chart.""",
         "wide": True,
     },
     "guess": {
@@ -77,7 +77,7 @@ PLATES = {
         "title": "Waiting meets deciding",
         "state": "computed",
         "state_text": "Computed in the page from the closed forms",
-        "caption": r"""For a constant cost $c$, with $Y = |X|$ the size of the evidence. Step 1: the value of deciding now, $g(y)$, and the value of waiting with the best flat bound $b = B(c)$, which is $V(y) = g(b) - c\,(b\tanh b - y\tanh y)$ below the bound. Step 2: $\cosh^2 y\,V'(y) = c\,(y + \tfrac12\sinh 2y)$, beside $\cosh^2 y\,g'(y) = \tfrac12$. Step 3: the two meet at $y = B(c)$, which is the equation.""",
+        "caption": r"""For a constant cost $c$, with $Y = |X|$ the size of the evidence. Step 1: the value of deciding now, $g(y)$, and the value of continuing until the best flat bound $b = B(c)$, which is $V(y) = g(b) - c\,(b\tanh b - y\tanh y)$ below the bound. Step 2: $\cosh^2 y\,V'(y) = c\,(y + \tfrac12\sinh 2y)$ below the bound (solid), and the same formula continued past it (faint), where $V = g$ instead. Step 3: the formula meets $\cosh^2 y\,g'(y) = \tfrac12$ at $y = B(c)$, which is the equation.""",
         "wide": False,
     },
 }
@@ -102,11 +102,11 @@ SECTIONS = [
         "title": "Your schedule",
         "blocks": [
             ("plain", r"""
-The paper asks what the best decision rule does when the cost of time changes. A decision maker watches noisy evidence pile up and chooses once the net evidence reaches a *bound*: a higher bound means slower, more accurate choices. Each moment spent deciding costs $c(t)$, in the same units as the reward for a correct choice, and a *schedule* says how that cost changes over the trial. Time is measured in units of $\sigma^2/\mu^2$, so the evidence's drift and noise are both 1.
+The paper asks what the best decision rule does when the cost of time changes. A decision maker watches noisy evidence pile up and chooses once the net evidence reaches a *bound*: a higher bound means slower, more accurate choices. Each moment spent deciding costs $c(t)$, in the same units as the reward for a correct choice, and a *schedule* says how that cost changes over the trial. Time is measured in units of $\sigma^2/\mu^2$, so the evidence drifts at rate $+1$ or $-1$, depending on which choice is correct, with noise of variance 1 per unit time.
 
 Pick one of the book's ten schedules, or choose Draw your own and drag across the top chart. Your browser keeps the choice for every page of the book, and each chapter works on it.
 
-Under the schedule is the best bound for it, solved in this page: a dynamic program steps back from a forced choice six time units past the window, on an evidence grid, the way the paper computes its reference policy (chapter 9). At the ten schedules' starting settings, its bound agrees with the paper's own code to within $10^{-6}$, the check's tolerance. Because it checks the evidence every 0.01 time units and starts from a finite horizon, its bound sits a little inside the paper's continuous, infinite-horizon one; chapter 9 says by how much. The dashed curve is the per-moment rule's bound, the shortcut chapter 1 starts from, moved in by the same amount.
+Under the schedule is the best bound for it, solved in this page: a dynamic program steps back from a choice forced six time units past the window (or at a deadline), on an evidence grid, the way the paper computes its reference policy (chapter 9). At the ten schedules' starting settings, its bound agrees with the paper's own code to within $10^{-6}$, the check's tolerance. It approximates the paper's bound, which watches the evidence continuously on an infinite horizon: checking only every $\Delta t = 0.01$ moves a constant-cost bound in by about $0.5826\sqrt{\Delta t}$, to leading order, and chapter 9 covers the grid and the horizon. A bound below the grid's first step, 0.02, reads as 0, as in the paper's code; that happens at costs above about 3. The dashed curve is the per-moment rule's bound, the shortcut chapter 1 starts from, moved in by the same $0.5826\sqrt{\Delta t}$.
 """),
             ("plate", "schedule"),
         ],
@@ -133,7 +133,7 @@ Each chapter asks for a guess before it shows an answer, because an answer means
 """),
             ("plate", "guess"),
             ("plain", r"""
-Whether you guessed above or below the dashed curve depends on what your cost does after the marked moment. A decision still open when the cost changes pays the new cost, so the best bound moves before the cost does. One case follows from the paper's results, as an exercise in chapter 5 (the paper doesn't state it): when the cost never falls after a moment, the best bound at that moment sits at or below the per-moment one. Chapter 6 says how far ahead the bound looks.
+Whether you guessed above or below the dashed curve depends on what your cost does after the marked moment. A decision still open when the cost changes pays the new cost, so the best bound can start moving before the cost does. One case follows from the paper's results, as an exercise in chapter 5 (the paper doesn't state it): when the cost never falls after a moment, the best bound at that moment sits at or below the per-moment one. Chapter 6 says how far ahead the bound looks.
 """),
         ],
     },
@@ -142,7 +142,7 @@ Whether you guessed above or below the dashed curve depends on what your cost do
         "title": "A proof, a step at a time",
         "blocks": [
             ("md", r"""
-Each proof in the book is a strip of steps. Move through them with the slider or the buttons, and the plate beside the proof draws what each step is about; the terms a step changes are lit. This one is the shortest proof in the paper: why the best bound for a constant cost $c$ solves $\sinh(2b) + 2b = 1/c$. Chapter 3 goes through it properly.
+Each proof in the book is a strip of steps. Move through them with the slider or the buttons, and the plate beside the proof draws what each step is about; the terms a step changes are lit. This one is a short derivation from the paper: why the best bound for a constant cost $c$ solves $\sinh(2b) + 2b = 1/c$. Chapter 3 goes through it properly.
 """),
             ("strip", "flat"),
             ("exact", "252-262||mean decision time.", "The paper's derivation"),
@@ -153,7 +153,7 @@ Each proof in the book is a strip of steps. Move through them with the slider or
         "title": "Where each result is taught",
         "blocks": [
             ("md", r"""
-The paper makes 50 claims: definitions, lemmas, propositions, one theorem, corollaries, a conjecture, measurements, and the statements its discussion makes. The map below draws each claim and the claims it uses. Each chapter lights its own part of the map, and once a chapter is built, its claims link to the sections that teach them. Pick the drawing you like; your browser keeps it.
+The map below has 50 entries from the paper: definitions, lemmas, propositions, one theorem, corollaries, a conjecture, measurements, and the statements its discussion makes (an entry can group a few statements). It draws each entry and the entries it uses. Each chapter lights its own part of the map, and once a chapter is built, its claims link to the sections that teach them. Pick the drawing you like; your browser keeps it.
 """),
             ("map", "thm:main"),
         ],
@@ -163,13 +163,13 @@ The paper makes 50 claims: definitions, lemmas, propositions, one theorem, corol
         "title": "What the paper proves, and what it doesn't",
         "blocks": [
             ("md", r"""
-Not every sentence in the paper is a theorem, and the book keeps the kinds apart. Each claim in the map has a status. Every proof is for the paper's model under its standing assumption: a cost of time that is continuous and stays between two positive constants, on an infinite horizon. The proved results from chapter 6 on are about small changes around a constant cost, to first order in the size of the change.
+Not every sentence in the paper is a theorem, and the book keeps the kinds apart. Each entry in the map has a status. The proofs are for the paper's model under its standing assumption: a cost of time that is continuous and stays between two positive constants, on an infinite horizon, with equal rewards for the two choices. Within that, the hypotheses differ: Theorem 7 and Proposition 13 are about small changes around a constant cost, to first order in the size of the change; Lemma 6 and Corollaries 8 and 9 describe the kernel at a constant cost, exactly; and Proposition 10 bounds a reward loss at second order.
 """),
             ("md", "**Proved** (" + str(len(_PROVED)) + "):\n\n" + _items(_PROVED)),
             ("md", "**Argued formally, conjectured, or computed from closed forms, but not proved** (" + str(len(_ARGUED)) + "):\n\n" + _items(_ARGUED, True)),
-            ("md", "**Measured** (" + str(len(_MEASURED)) + "): on the dynamic program, on random schedules, or by the paper's code.\n\n" + _items(_MEASURED)),
+            ("md", "**Measured, and the numerical methods behind the measurements** (" + str(len(_MEASURED)) + "): on the dynamic program, on random schedules, or by the paper's code.\n\n" + _items(_MEASURED)),
             ("md", r"""
-The other """ + str(len(_REST)) + r""" claims are definitions (""" + str(len(_DEFS)) + r""") and claims that rest on other work or compare the paper with it (""" + str(len(_CITED)) + r"""). The prediction about urgency signals is on the second list: the paper argues it from the first-order theory, but it is not a theorem.
+The other """ + str(len(_REST)) + r""" entries are definitions and statements of scope (""" + str(len(_DEFS)) + r"""), and entries that rest on other work or compare the paper with it (""" + str(len(_CITED)) + r"""). The prediction about urgency signals is on the second list: the paper argues it from the first-order theory, but it is not a theorem.
 """),
         ],
     },
