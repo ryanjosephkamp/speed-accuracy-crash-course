@@ -88,7 +88,7 @@ function horizonPlate() {
   const cIn = $("#hz-c", el), cOut = $("#hz-c-out", el), tIn = $("#hz-T", el), tOut = $("#hz-T-out", el), keyMark = $("#hz-key-mark", el);
   const draw = () => {
     const r = st.get();
-    keyMark.hidden = !shown;
+    keyMark.hidden = true;
     if (!r) { chart.innerHTML = ""; reads.innerHTML = ""; say.textContent = ""; return; }
     const binf = r.bTg[r.bTg.length - 1], d1 = r.reach[0], d2 = r.reach[1];
     const yTop = Math.max(0.3, binf * 1.18);
@@ -101,6 +101,7 @@ function horizonPlate() {
     s += `<path class="acc" d="M${f.sx(T).toFixed(1)} ${f.t}V${f.H - f.b}"/><text class="tag-acc" x="${(f.sx(T) + (T > 15 ? -4 : 4)).toFixed(1)}" y="${f.t + 10}" text-anchor="${T > 15 ? "end" : "start"}">forced choice</text>`;
     if (shown) {
       const t1 = T - d1;
+      keyMark.hidden = !(t1 > 1e-9);
       if (t1 > 1e-9) s += `<path class="acc" stroke-dasharray="3 3" d="M${f.sx(t1).toFixed(1)} ${f.t + 14}V${f.H - f.b}"/>`;
       else s += `<text class="tag-acc" x="${(f.l + 4).toFixed(1)}" y="${(f.H - f.b - 6).toFixed(1)}">more than 0.001 below at every check</text>`;
     }
@@ -172,11 +173,11 @@ function binsPlate() {
     const xr = Math.min(4, Math.max(1, data.B * 1.35));
     const g = frame(bot, { x: [0, xr], y: [0, 1], h: 84, l: 46, t: 18, b: 30 });
     let u = axes(g, { yt: [], xl: "evidence, x", fy: () => "" });
-    u += `<text class="lab" x="${g.l}" y="11">the ${n} bins' midpoints with positive evidence, up to ${+xr.toFixed(2)}</text>`;
+    u += `<text class="lab" x="${g.l}" y="11">the ${n}-bin grid's midpoints with positive evidence, to the axis's end</text>`;
     for (const x of row.x) if (x > 0 && x <= xr) u += `<path class="dim" d="M${g.sx(x).toFixed(1)} ${g.sy(0.15).toFixed(1)}V${g.sy(0.75).toFixed(1)}"/>`;
     if (Number.isFinite(row.xb) && row.xb <= xr) u += `<circle class="ink-dot" cx="${g.sx(row.xb).toFixed(1)}" cy="${g.sy(0.45).toFixed(1)}" r="4"/>`;
     u += `<path class="ex" d="M${g.sx(data.xe).toFixed(1)} ${g.sy(0).toFixed(1)}V${g.sy(0.95).toFixed(1)}"/>`;
-    bot.innerHTML = svg(g, u, `The midpoints of the ${n} bins with positive evidence up to ${+xr.toFixed(2)}, placed in evidence, with the belief grid's bound and the evidence grid's`);
+    bot.innerHTML = svg(g, u, `The visible midpoints with positive evidence from the ${n}-bin grid, placed in evidence up to the axis's end, with the belief grid's bound and the evidence grid's`);
     reads.innerHTML = `<div><dt>Belief grid, ${n} bins</dt><dd>${Number.isFinite(row.xb) ? fmt(row.xb, 4) : "none"}</dd></div>
       <div><dt>Evidence grid</dt><dd>${fmt(data.xe, 4)}</dd></div>
       <div><dt>B(c)</dt><dd>${fmt(data.B, 4)}</dd></div>

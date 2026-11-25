@@ -150,7 +150,7 @@ SECTIONS = [
         "title": "The reference, computed backward",
         "blocks": [
             ("plain", r"""
-Outside the unknown-reliability test of chapter 11, every loss in the paper is measured against one reference: the best policy for the gridded problem. The paper computes it by backward induction on an evidence grid. Start at the last grid time, where the choice is forced, so the value at evidence $x$ is the chance of being right, $\max(g(x), 1 - g(x))$, with $g(x) = 1/(1 + e^{-2x})$ the belief that the drift is $+1$. One step earlier, waiting is worth what the next step's value is worth on average, less the cost of the step:
+With known reliability and equal rewards, every loss in the paper is measured against one reference: the best policy for the gridded problem. The paper computes it by backward induction on an evidence grid. Start at the last grid time, where the choice is forced, so the value at evidence $x$ is the chance of being right, $\max(g(x), 1 - g(x))$, with $g(x) = 1/(1 + e^{-2x})$ the belief that the drift is $+1$. One step earlier, waiting is worth what the next step's value is worth on average, less the cost of the step:
 
 $$V_{\mathrm{wait}}(t_k, x) = g(x)\,\mathbb{E}\,V(t_{k+1}, x + \Delta t + \sqrt{\Delta t}\,Z) + \bigl(1 - g(x)\bigr)\,\mathbb{E}\,V(t_{k+1}, x - \Delta t + \sqrt{\Delta t}\,Z) - c(t_k)\,\Delta t,$$
 
