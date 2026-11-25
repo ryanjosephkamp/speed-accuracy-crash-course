@@ -295,7 +295,9 @@ function verified(roots, t, cost, deadline, breaks) {
   check("program", "the page's program with the center recorded gives model.js's exactPolicy bounds exactly (jump, deadline, pulse)", same, same ? "bit for bit" : "differs");
   const j32 = R.compareRules(costOf({ id: "jump", params: { at: 0.2, factor: 32 } }), null), note = S.gridZeroNote(j32.gridZero);
   const fig = FIG1.map((id) => { const { cost, deadline } = fig1(id); return R.compareRules(cost, deadline).gridZero; });
-  check("program", "on the 32-fold jump at 0.2, the exported bound reads 0 at times when the program waits at 0 evidence, and the state line says so; on Figure 1's four schedules it never does", j32.gridZero > 0 && note.includes(String(j32.gridZero)) && /still waits at 0 evidence/.test(note) && fig.every((n) => n === 0), `${j32.gridZero} times; Figure 1: ${fig.join(", ")}`);
+  // model.js places a bound below the grid's first step wherever the program waits at 0 evidence, so the exported
+  // bound never reads 0 while the program waits there (the paper's code would report 0 at those times)
+  check("program", "on the 32-fold jump at 0.2 and Figure 1's four schedules, the exported bound never reads 0 while the program waits at 0 evidence, so the state line has nothing to flag", j32.gridZero === 0 && fig.every((n) => n === 0), `${j32.gridZero} times; Figure 1: ${fig.join(", ")}`);
 }
 
 // ---- Algorithm 1's kernel bins ------------------------------------------------------------------------------------
