@@ -1,12 +1,12 @@
 // Chapter 4's plates. The bounds and values come from the dynamic program in ch04-worker.js (model.js's program, with
-// its values kept); the decisions are sampled against that bound with a fixed seed; the flat bounds come from
+// its values kept); the decisions are sampled against that bound with a fixed seed; the continuous flat bounds come from
 // kernel.js. The words under each plate come from say-ch04.js, which takes numbers and returns sentences.
-import { B, rng } from "./kernel.js?v=0648557a87";
-import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, VIEW, SPARE, defaultDrawing } from "./schedules-book.js?v=0648557a87";
-import { getChoice, setChoice, solve, onVisible, liftReady, seedParam, wireStrips } from "./book.js?v=0648557a87";
-import { frame, line, area, axes, svg, tags, fmt, keepDrawn, dropAt } from "./chart.js?v=0648557a87";
-import * as M from "./ch04-model.js?v=0648557a87";
-import * as S from "./say-ch04.js?v=0648557a87";
+import { B, rng } from "./kernel.js?v=850f062e96";
+import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, VIEW, SPARE, defaultDrawing } from "./schedules-book.js?v=850f062e96";
+import { getChoice, setChoice, solve, onVisible, liftReady, seedParam, wireStrips } from "./book.js?v=850f062e96";
+import { frame, line, area, axes, svg, tags, fmt, keepDrawn, dropAt } from "./chart.js?v=850f062e96";
+import * as M from "./ch04-model.js?v=850f062e96";
+import * as S from "./say-ch04.js?v=850f062e96";
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const plate = (id) => document.getElementById("plate-" + id);
@@ -40,7 +40,7 @@ const edgeLabels = (f, up, dn, upText, dnText) => {
 const minus = (s) => String(s).replace(/^-/, "−");
 
 // ---- the worker: one program per schedule and job, shared by the plates that ask for it
-const WORKER = new URL("./ch04-worker.js?v=0648557a87", import.meta.url);
+const WORKER = new URL("./ch04-worker.js?v=850f062e96", import.meta.url);
 const memo = new Map();
 function work(key, job, opts = {}) {
   if (key && memo.has(key)) return memo.get(key);
@@ -112,7 +112,7 @@ function hero() {
     s += `<path class="cost" d="${path(ts, ts.map(cost), syC)}"/>`;
     s += `<text class="lab" x="${l}" y="11">cost of time: ${p.label.toLowerCase()}</text>`;
     const ex = solved[i];
-    if (ex) { // the band on the grid: the program's own flat bounds for the lowest and the highest cost
+    if (ex) { // the band on the grid: the same program's bounds for the constant costs c_min and c_max
       const k = Math.round(view / ex.b.dt), xs = Array.from({ length: k + 1 }, (_, j) => j * ex.b.dt);
       let d = ""; xs.forEach((x, j) => { d += (j ? "L" : "M") + sx(x).toFixed(1) + " " + syB(ex.lo.bounds[j]).toFixed(1); });
       for (let j = k; j >= 0; j--) d += "L" + sx(xs[j]).toFixed(1) + " " + syB(ex.hi.bounds[j]).toFixed(1);
@@ -252,7 +252,7 @@ function bandPlate() {
   const stateLine = () => {
     const sub = data && (Array.from(data.bounds).some((v) => v > 0 && v < M.H) || (flats && flats.hi.bounds[0] < M.H));
     const base = dl !== null ? "Time step 0.01, evidence step 0.02, a forced choice at the deadline; the dashed curve is B(c(t)) moved in by 0.5826√0.01, the leading term of the monitoring shift."
-      : `Time step 0.01, evidence step 0.02, 6 time units past the window. ${hasBand() ? "The gray band is the program's own flat bounds for the lowest and the highest cost, on the same grid and horizon; the dashed lines are B(c_min) and B(c_max), and the" : "The"} dashed curve is B(c(t)), moved in by 0.5826√0.01, the leading term of the monitoring shift.`;
+      : `Time step 0.01, evidence step 0.02, 6 time units past the window. ${hasBand() ? "The gray band lies between the same program's bounds for the constant costs c_min and c_max, on the same grid and horizon (not flat: they bend down toward the forced choice), drawn at least 1.5 px wide so it shows when the two are equal; the dashed lines are B(c_min) and B(c_max), and the" : "The"} dashed curve is B(c(t)), moved in by 0.5826√0.01, the leading term of the monitoring shift.`;
     return base + (sub ? " Below the grid's first step, 0.02, the page places a bound between the center and that step, where its program still waits at the center; the paper's code reports 0 there." : "");
   };
   const reset = () => {
@@ -289,10 +289,10 @@ function bandPlate() {
     if (shown && data) { const { ts: tt, bs } = series(); s += line(f, ...dropAt(tt, bs, dl), "ex"); }
     if (!drew && !shown) s += text((f.l + f.W - f.r) / 2, f.sy(yTop * 0.55), "drag here to draw your guess", "tag-acc", "middle");
     s += `<rect class="hit" x="${f.l}" y="${f.t}" width="${f.W - f.l - f.r}" height="${f.H - f.t - f.b}"/>`;
-    const what = hasBand() ? ", inside the band of the program's own flat bounds, beside the per-moment bound" : ", beside the per-moment bound";
+    const what = hasBand() ? ", inside the band of the same program's bounds for the constant costs c_min and c_max, beside the per-moment bound" : ", beside the per-moment bound";
     chart.innerHTML = svg(f, s, shown ? `The best bound for ${labelOf(choice)}${what}` : `The per-moment bound for ${labelOf(choice)}, and your drawing`);
     chart._f = f;
-    key.innerHTML = `<li><span class="key key-pm">Per-moment B(c(t))</span></li>${drew ? `<li><span class="key key-acc">Your guess</span></li>` : ""}${shown ? `<li><span class="key key-ex">Best bound</span></li>${hasBand() ? `<li><span class="key key-band">Band: the program's flat bounds for c_max and c_min</span></li><li><span class="key key-guide">B(c_max), B(c_min) moved in</span></li>` : ""}` : ""}`;
+    key.innerHTML = `<li><span class="key key-pm">Per-moment B(c(t))</span></li>${drew ? `<li><span class="key key-acc">Your guess</span></li>` : ""}${shown ? `<li><span class="key key-ex">Best bound</span></li>${hasBand() ? `<li><span class="key key-band">Band: constant-cost bounds, c_max to c_min</span></li><li><span class="key key-guide">B(c_max), B(c_min) moved in</span></li>` : ""}` : ""}`;
   };
   const drawAll = () => { drawCost(); drawBound(); };
   const reveal = () => {
@@ -307,10 +307,10 @@ function bandPlate() {
       miss += Math.abs(sketch[i] - bs[k]); cnt++;
       if (up && (sketch[i] > up[k] + 0.002 || sketch[i] < dn[k] - 0.002)) out++;
     });
-    const verdict = S.sketchVerdict(drew && cnt > 0, cnt ? miss / cnt : NaN, cnt ? out / cnt : 0, kind === "ok");
+    const verdict = S.sketchVerdict(drew && cnt > 0, cnt ? miss / cnt : NaN, cnt ? out / cnt : 0, hasBand());
     if (hasBand()) {
       const st = M.bandStats(ts, bs, up, dn, M.flatOnGrid(ext.lo), M.flatOnGrid(ext.hi), pm);
-      reads.innerHTML = `<div><dt>Band on the grid</dt><dd>${fmt(st.dn, 3)} to ${fmt(st.up, 3)}<small>the program's flat bounds at time 0</small></dd></div>
+      reads.innerHTML = `<div><dt>Band on the grid</dt><dd>${fmt(st.dn, 3)} to ${fmt(st.up, 3)}<small>the constant-cost programs' bounds at time 0</small></dd></div>
         <div><dt>Closest to the lower edge</dt><dd>${fmt(st.gapDn, 3)}<small>at time ${fmt(st.atDn, 2)}</small></dd></div>
         <div><dt>Closest to the upper edge</dt><dd>${fmt(st.gapUp, 3)}<small>at time ${fmt(st.atUp, 2)}</small></dd></div>
         <div><dt>Continuous edges, moved in</dt><dd>${fmt(st.shiftGap, 3)}<small>largest distance from the band's edges</small></dd></div>
@@ -415,9 +415,9 @@ function comparePlate() {
       s += bandPath(f, xs, dnG, upG, "band-gray") + hline(f, upC, "guide") + hline(f, dnC, "guide");
       s += line(f, xs, bs, "ex");
       s += edgeLabels(f, upC, dnC, "B(c_min)", "B(c_max)");
-      label = "The program's bound for Figure 1(a) against time, inside the band of its own flat bounds for the lowest and highest cost";
+      label = "The program's bound for Figure 1(a) against time, inside the band of the same program's bounds for the constant costs c_min and c_max";
       const dn = dnG[0], up = upG[0];
-      reads.innerHTML = `<div><dt>Band on the grid</dt><dd>${fmt(dn, 3)} to ${fmt(up, 3)}<small>the program's flat bounds for c_max and c_min</small></dd></div><div><dt>Continuous edges, moved in</dt><dd>${fmt(dnC, 3)} to ${fmt(upC, 3)}<small>B(c_max) and B(c_min), less 0.5826√0.01</small></dd></div><div><dt>Bound over the window</dt><dd>${fmt(Math.min(...bs), 3)} to ${fmt(Math.max(...bs), 3)}</dd></div>`;
+      reads.innerHTML = `<div><dt>Band on the grid</dt><dd>${fmt(dn, 3)} to ${fmt(up, 3)}<small>the constant-cost programs' bounds for c_max and c_min</small></dd></div><div><dt>Continuous edges, moved in</dt><dd>${fmt(dnC, 3)} to ${fmt(upC, 3)}<small>B(c_max) and B(c_min), less 0.5826√0.01</small></dd></div><div><dt>Bound over the window</dt><dd>${fmt(Math.min(...bs), 3)} to ${fmt(Math.max(...bs), 3)}</dd></div>`;
       key.innerHTML = `<li><span class="key key-ex">Best bound for Figure 1(a)</span></li><li><span class="key key-band">Band on the grid</span></li><li><span class="key key-guide">Continuous edges, moved in</span></li>`;
       say.textContent = S.compareSay(3, { min: Math.min(...bs), max: Math.max(...bs), dn, up });
     }
@@ -533,7 +533,8 @@ function decidePlate() {
   const tIn = $("#dc-t", el), yIn = $("#dc-y", el);
   const stats = () => {
     const tau = Array.from(data.tau), cost = costOf(choice);
-    // a decision forced at a deadline is charged the cost at the deadline itself, which the schedule keeps finite
+    // a decision forced at a deadline is charged the cost at the deadline itself, which the schedule keeps finite (equal
+    // to the rate just before it)
     const ec = mean(tau.map((s) => Math.min(cost(t0 + s), 1e3))), dl = deadlineOf(choice);
     const forced = dl === null ? 0 : tau.filter((s) => t0 + s >= dl - 1e-9).length / tau.length;
     const beyond = tau.filter((s) => t0 + s > xMax + 1e-9).length;
@@ -644,7 +645,7 @@ function capPlate() {
     data = null; draw();
     const k = kindOf(choice);
     used = k === "deadline" || k === "rising" ? FIG1A : choice;
-    note.textContent = used === FIG1A && used !== choice ? `${labelOf(choice)} has ${k === "deadline" ? "an infinite cost at its deadline" : "no highest cost"}, so the bound 1 + c_max σ fails; the plate uses Figure 1(a).` : `${labelOf(used)}, from evidence 0 at time 0.`;
+    note.textContent = used === FIG1A && used !== choice ? S.capFallback(labelOf(choice), k) : `${labelOf(used)}, from evidence 0 at time 0.`;
     state.textContent = "Solving the dynamic program and sampling…";
     const mine = used;
     solve({ job: "cap", spec: specOf(used), t0: 0, y0: 0, n: NRUN, seed, track: TRACK, keepPaths: 8 }, { key: "cap", worker: WORKER }).then((m) => {
@@ -674,7 +675,7 @@ function capPlate() {
     } else if (step === 1) {
       const X = Math.min(VIEW + 1, Math.max(1.5, Math.ceil(M.quantile(sig, 0.9) * 2) / 2));
       const k = Math.round(X / dt), ts = Array.from({ length: k + 1 }, (_, j) => j * dt);
-      // the cap the sample uses at each check: the program's own flat bound for c_min, on the same horizon
+      // the cap the sample uses at each check: the constant-cost program's bound for c_min, on the same horizon
       const bs = Array.from(data.bounds.subarray(0, k + 1)), caps = Array.from(data.cap.subarray(0, k + 1)), cap = caps[0];
       const pathAt = (p, u) => { const q = p.pts.find((r) => Math.abs(r[0] - u) < dt / 2); return q ? q[1] : NaN; };
       const yHi = Math.max(cap, ...data.paths.filter((p) => p.sigma <= X).map((p) => pathAt(p, p.sigma)).filter(Number.isFinite)) * 1.08 + 0.05;

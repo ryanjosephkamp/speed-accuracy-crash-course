@@ -2,12 +2,12 @@
 // paper's backward_induction_x and known_reward); the trials and the overshoots are sampled here, in small batches,
 // with kernel.js's seeded generator; the paper's Tables 1, 2, and 12 come from ch09-model.js, checked cell by cell
 // against the generated tables. The words under each plate come from say-ch09.js.
-import * as K from "./kernel.js?v=0648557a87";
-import * as M from "./ch09-model.js?v=0648557a87";
-import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, defaultDrawing } from "./schedules-book.js?v=0648557a87";
-import { getChoice, setChoice, solve, onVisible, watchVisible, liftReady, calm, seedParam } from "./book.js?v=0648557a87";
-import { frame, line, area, axes, svg, fmt, keepDrawn } from "./chart.js?v=0648557a87";
-import * as S from "./say-ch09.js?v=0648557a87";
+import * as K from "./kernel.js?v=850f062e96";
+import * as M from "./ch09-model.js?v=850f062e96";
+import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, defaultDrawing } from "./schedules-book.js?v=850f062e96";
+import { getChoice, setChoice, solve, onVisible, watchVisible, liftReady, calm, seedParam } from "./book.js?v=850f062e96";
+import { frame, line, area, axes, svg, fmt, keepDrawn } from "./chart.js?v=850f062e96";
+import * as S from "./say-ch09.js?v=850f062e96";
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const plate = (id) => document.getElementById("plate-" + id);
@@ -16,7 +16,7 @@ const segHTML = (name, opts, cur, legend) => `<fieldset class="seg"><legend>${le
   `<label><input type="radio" name="${name}" value="${v}"${String(v) === String(cur) ? " checked" : ""}><span>${lbl}</span></label>`).join("")}</div></fieldset>`;
 const onSeg = (el, name, fn) => el.querySelectorAll(`input[name="${name}"]`).forEach((r) => r.addEventListener("change", () => fn(r.value)));
 const setSeg = (el, name, v) => el.querySelectorAll(`input[name="${name}"]`).forEach((r) => { r.checked = r.value === String(v); });
-const WORKER = new URL("./ch09-worker.js?v=0648557a87", import.meta.url);
+const WORKER = new URL("./ch09-worker.js?v=850f062e96", import.meta.url);
 const run = (job, opts = {}) => solve(job, { worker: WORKER, ...opts });
 const fail = (state, e) => { if (e.message !== "superseded") state.textContent = "The solver stopped: " + e.message; };
 const finiteMax = (arr) => arr.reduce((m, v) => (Number.isFinite(v) ? Math.max(m, v) : m), -Infinity);
@@ -51,9 +51,9 @@ const shade = (d) => Math.min(0.85, 0.06 + 0.62 * Math.sqrt(d / 1.2));
 
 // the density job is shared by the hero, the density plate, and the trials plate: one run per schedule
 const DENSITY = new Map();
-function density(choice, only = null) {
-  const k = keyOf(choice) + (only ? "|" + only.join(",") : "");
-  if (!DENSITY.has(k)) DENSITY.set(k, run({ job: "density", choice, only }).catch((e) => { DENSITY.delete(k); throw e; }));
+function density(choice, only = null, fine = false) {
+  const k = keyOf(choice) + (only ? "|" + only.join(",") : "") + (fine ? "|fine" : "");
+  if (!DENSITY.has(k)) DENSITY.set(k, run({ job: "density", choice, only, fine }).catch((e) => { DENSITY.delete(k); throw e; }));
   return DENSITY.get(k);
 }
 
@@ -113,7 +113,7 @@ function hero() {
     s += `<path class="ax" d="M${l} ${sb(0)}H${W - r}M${l} ${sb(1).toFixed(1)}H${W - r}"/>`;
     s += `<text class="lab" x="${l}" y="${by - 4}">decided so far: correctly (ink), wrongly (slate)</text>`;
     s += `<text class="tk" x="${sx(0)}" y="${H - 6}">0</text><text class="tk" x="${sx(T)}" y="${H - 6}" text-anchor="end">time ${T}</text>`;
-    s += `<text class="tk" x="${(sx(0.5) + 4).toFixed(1)}" y="${(y0 + 10).toFixed(1)}">cost jumps 16-fold</text><path class="acc" stroke-dasharray="2 3" d="M${sx(0.5).toFixed(1)} ${y0}V${y1}"/>`;
+    s += `<text class="tk" x="${(sx(0.5) + 4).toFixed(1)}" y="${(y0 + 10).toFixed(1)}">16-fold rise, centered at 0.5</text><path class="acc" stroke-dasharray="2 3" d="M${sx(0.5).toFixed(1)} ${y0}V${y1}"/>`;
     el.innerHTML = s;
   };
   draw(cur);
@@ -197,7 +197,7 @@ function backwardPlate() {
     reads.innerHTML = `<div><dt>Time</dt><dd>${t.toFixed(2)}</dd></div>
       <div><dt>Bound b(t)</dt><dd>${Number.isFinite(b) ? fmt(b, 3) : "above 5"}</dd></div>
       <div><dt>Waiting adds, at x = 0</dt><dd>${fmt(Math.max(sl.a0, 0), 3)}</dd></div>`;
-    say.textContent = S.backwardSay(t, b, Math.max(sl.a0, 0), data.horizon, data.deadline !== null, M.CAP);
+    say.textContent = S.backwardSay(t, b, Math.max(sl.a0, 0), data.horizon, data.deadline !== null, M.CAP, data.h);
     liftReady(fig);
   };
   const stopPlay = () => { playing = false; cancelAnimationFrame(raf); raf = 0; play.textContent = "Play"; play.setAttribute("aria-pressed", "false"); };
@@ -255,7 +255,10 @@ function densityPlate() {
   wirePick($("#dn-pick", el));
   let data = null, pol = "best", j = 0, gen = 0, playing = false, visible = false, raf = 0, t0 = 0, j0 = 0;
   const CLS = { best: "ex", pm: "pm", wb: "wb" };
-  const cumAt = (P, k) => { let up = 0, lo = 0; for (let q = 1; q <= k; q++) { up += P.upAt[q]; lo += P.loAt[q]; } return { up, lo }; };
+  // at a deadline, every trial still deciding at its last step decides there: at the bound, or by the sign of the
+  // evidence (endUp, endLo); those decisions are counted together as the forced choice
+  const forcedOf = (P) => { const kF = data.ts.length - 1; return data.deadline === null ? null : { k: kF, up: P.upAt[kF] + P.endUp, lo: P.loAt[kF] + P.endLo }; };
+  const cumAt = (P, k) => M.decidedBy(P, k, data.deadline === null ? null : data.ts.length - 1);
   const drawMap = () => {
     if (!data) { map.innerHTML = ""; return; }
     const P = data.policies[pol], view = data.view, xr = data.xr, kNow = P.snapK[j];
@@ -284,8 +287,11 @@ function densityPlate() {
     if (!data) { rate.innerHTML = ""; return; }
     const P = data.policies[pol], view = data.view, kNow = P.snapK[j];
     // the rate of deciding, per unit time, over pairs of steps
-    const ts = [], up = [], lo = [];
-    for (let k = 2; k < data.ts.length && data.ts[k] <= view + 1e-9; k += 2) { ts.push(data.ts[k] - M.DT / 2); up.push((P.upAt[k] + P.upAt[k - 1]) / (2 * M.DT)); lo.push(-(P.loAt[k] + P.loAt[k - 1]) / (2 * M.DT)); }
+    const ts = [], up = [], lo = [], F = forcedOf(P);
+    for (let k = 2; k < data.ts.length && data.ts[k] <= view + 1e-9; k += 2) {
+      if (F && k >= F.k) break;   // the forced choice is a point mass, marked below, not a rate
+      ts.push(data.ts[k] - M.DT / 2); up.push((P.upAt[k] + P.upAt[k - 1]) / (2 * M.DT)); lo.push(-(P.loAt[k] + P.loAt[k - 1]) / (2 * M.DT));
+    }
     const hi = Math.max(0.5, finiteMax(up)), dn = Math.max(0.1, -Math.min(...lo, 0));
     const f = frame(rate, { x: [0, view], y: [-dn * 1.1, hi * 1.08], aspect: 0.36, minH: 150, maxH: 210 });
     let s = axes(f, { yl: "decided per unit time", xl: "time", grid: true, zero: true, fy: (v) => String(+Math.abs(v).toFixed(3)) });
@@ -293,7 +299,12 @@ function densityPlate() {
     if (n > 1) s += area(f, ts.slice(0, n), up.slice(0, n), 0, "ex-fill") + area(f, ts.slice(0, n), lo.slice(0, n), 0, "pm-fill");
     s += line(f, ts, up, "ex-thin") + line(f, ts, lo, "ex-thin");
     s += `<path class="dim" stroke-dasharray="2 3" d="M${f.sx(data.ts[kNow]).toFixed(1)} ${f.t}V${f.H - f.b}"/>`;
-    rate.innerHTML = svg(f, s, "How many trials decide per unit time, correctly above the axis and wrongly below it");
+    if (F && kNow >= F.k) {
+      const X = f.sx(data.ts[F.k]).toFixed(1);
+      s += `<path class="ex" stroke-width="4" d="M${X} ${f.sy(0).toFixed(1)}V${f.t}"/><path class="pm" stroke-width="4" stroke-dasharray="none" d="M${X} ${f.sy(0).toFixed(1)}V${(f.H - f.b).toFixed(1)}"/>`;
+      s += `<text class="tag-ex" x="${(+X - 6).toFixed(1)}" y="${f.t + 10}" text-anchor="end">forced at the deadline: ${(100 * (F.up + F.lo)).toFixed(1)}%</text>`;
+    }
+    rate.innerHTML = svg(f, s, "How many trials decide per unit time, correctly above the axis and wrongly below it, and the share forced to choose at a deadline");
   };
   const draw = () => {
     if (!data) return;
@@ -305,7 +316,7 @@ function densityPlate() {
       <div class="k-pm"><dt>Wrong by ${t.toFixed(2)}</dt><dd>${(c.lo * 100).toFixed(1)}%</dd></div>
       <div><dt>Whole trial: correct</dt><dd>${(P.p * 100).toFixed(2)}%<small>mean time ${fmt(P.rt, 3)}</small></dd></div>
       <div><dt>Reward</dt><dd>${fmt(P.reward, 4)}<small>correct − cost ${fmt(P.paid, 4)}</small></dd></div>`;
-    say.textContent = S.densitySay(pol, t, c.up, c.lo, P);
+    say.textContent = S.densitySay(pol, t, c.up, c.lo, P, c.forced);
     liftReady(fig);
   };
   const stopPlay = () => { playing = false; cancelAnimationFrame(raf); raf = 0; play.textContent = "Play"; play.setAttribute("aria-pressed", "false"); };
@@ -356,12 +367,12 @@ function trialsPlate() {
       <p class="verdict" id="tr-verdict" aria-live="polite"></p></div>
     <div class="controls">${pickHTML("tr-pick")}<div class="actions"><button class="btn" type="button" id="tr-more">Run 10 times as many</button></div></div>
     <div class="chart-wrap" id="tr-chart"></div>
-    <ul class="legend"><li><span class="key key-ex">The density's score, exact on the grid</span></li><li><span class="key key-dim">Average of the trials, ± 2 standard errors</span></li></ul>
+    <ul class="legend"><li><span class="key key-ex">The density's score, on this page's grid</span></li><li><span class="key key-dim">Average of the trials, ± 2 standard errors</span></li></ul>
     <dl class="reads" id="tr-reads"></dl><p class="say" id="tr-say" aria-live="polite"></p><p class="fine" id="tr-state" aria-live="polite"></p>`;
   const chart = $("#tr-chart", el), reads = $("#tr-reads", el), say = $("#tr-say", el), state = $("#tr-state", el), verdict = $("#tr-verdict", el);
   const gIn = $("#tr-g", el), gOut = $("#tr-gout", el), more = $("#tr-more", el);
   wirePick($("#tr-pick", el));
-  let gen = 0, exact = null, bound = null, ts = null, cost = null, acc = null, R = null, goal = 100000, timer = 0, visible = false, pts = [], guess = null, shown = false;
+  let gen = 0, exact = null, fineScore = null, bound = null, ts = null, cost = null, acc = null, R = null, goal = 100000, timer = 0, visible = false, pts = [], guess = null, shown = false;
   const seed = seedParam(2026);
   const guessN = () => 10 ** +gIn.value;
   const showGuess = () => { gOut.textContent = "about " + S.count(guessN()); };
@@ -384,11 +395,11 @@ function trialsPlate() {
   const report = () => {
     if (!acc || !acc.n) return;
     const st = M.trialStats(acc), need = M.trialsFor(st.sd, TARGET);
-    reads.innerHTML = `<div class="k-ex"><dt>Density's score</dt><dd>${fmt(exact, 5)}<small>no sampling error</small></dd></div>
+    reads.innerHTML = `<div class="k-ex"><dt>Density's score</dt><dd>${fmt(exact, 5)}<small>no sampling error; ${fmt(fineScore, 5)} on a grid four times finer</small></dd></div>
       <div><dt>Trials so far</dt><dd>${S.count(st.n)}<small>${fmt(st.mean, 5)} ± ${fmt(2 * st.se, 5)}</small></dd></div>
       <div><dt>Spread of one trial</dt><dd>${fmt(st.sd, 3)}</dd></div>
       <div class="k-acc"><dt>Trials for a standard error of 2 × 10⁻⁵</dt><dd>${shown ? "about " + S.count(need) : "–"}<small>${shown ? "(spread ÷ 0.00002)²" : "press Show me"}</small></dd></div>`;
-    say.textContent = S.trialsSay(st.n, st.mean, st.se, exact, st.sd, TARGET, shown ? need : null);
+    say.textContent = S.trialsSay(st.n, st.mean, st.se, exact, fineScore, st.sd, TARGET, shown ? need : null);
     if (shown) verdict.textContent = S.trialsVerdict(guess, need);
   };
   const step = () => {
@@ -404,20 +415,25 @@ function trialsPlate() {
     }
     draw(); report();
     if (acc.n < goal) timer = setTimeout(step, 16);
-    else state.textContent = `${S.count(acc.n)} trials of the same gridded problem: the bound checked every ${M.DT}, the evidence continuous, seed ${seed} (add ?seed= to the address for another).`;
+    else state.textContent = `${S.count(acc.n)} trials with the scorer's checks (every ${M.DT}), bound, and payoffs, but continuous evidence; seed ${seed} (add ?seed= to the address for another).`;
   };
   const kick = () => { if (!timer && visible && acc && acc.n < goal) timer = setTimeout(step, 0); };
-  more.addEventListener("click", () => { goal = Math.min(goal * 10, 1e7); state.textContent = "Running more trials…"; kick(); });
+  const CAP_N = 1e7;
+  more.addEventListener("click", () => {
+    if (goal >= CAP_N) return;
+    goal = Math.min(goal * 10, CAP_N); more.disabled = goal >= CAP_N;
+    state.textContent = "Running more trials…"; kick();
+  });
   gIn.addEventListener("input", () => { guess = guessN(); showGuess(); if (shown) report(); });
   $("#tr-show", el).addEventListener("click", () => { shown = true; report(); });
   watchVisible(fig, (v) => { visible = v; kick(); });
   const go = () => {
     const my = ++gen, choice = getChoice();
-    clearTimeout(timer); timer = 0; exact = null; acc = null; pts = []; goal = 100000; chart.innerHTML = ""; reads.innerHTML = ""; say.textContent = "";
+    clearTimeout(timer); timer = 0; exact = null; fineScore = null; acc = null; pts = []; goal = 100000; more.disabled = false; chart.innerHTML = ""; reads.innerHTML = ""; say.textContent = "";
     state.textContent = "Solving the best bound…";
-    density(choice, ["best"]).then((m) => {
+    density(choice, ["best"], true).then((m) => {
       if (my !== gen) return;
-      cost = costOf(choice); ts = m.ts; bound = m.policies.best.bound; exact = m.policies.best.reward;
+      cost = costOf(choice); ts = m.ts; bound = m.policies.best.bound; exact = m.policies.best.reward; fineScore = m.policies.best.fineReward;
       R = K.rng(seed); acc = { n: 0, sum: 0, sq: 0 };
       state.textContent = "Simulating trials…";
       keepDrawn(chart, draw);
@@ -463,7 +479,10 @@ function overshootPlate() {
     const st = P.stop, over = s0 * st[1] - b;
     s += `<path class="acc" stroke-width="2.6" d="M${f.sx(st[0]).toFixed(1)} ${f.sy(b).toFixed(1)}V${f.sy(s0 * st[1]).toFixed(1)}"/>`;
     s += `<text class="tag-acc" x="${(f.sx(st[0]) - 6).toFixed(1)}" y="${(f.sy(s0 * st[1]) - 6).toFixed(1)}" text-anchor="end">past by ${fmt(over, 3)}</text>`;
-    if (P.first[0] < st[0] - dt * 0.5 && P.first[0] >= tBeg) s += `<circle class="ring-ex" cx="${f.sx(P.first[0]).toFixed(1)}" cy="${f.sy(b).toFixed(1)}" r="4"/><text class="tk" x="${(f.sx(P.first[0]) + 6).toFixed(1)}" y="${(f.sy(b) + 14).toFixed(1)}">first reached here, unseen</text>`;
+    if (P.first[0] < st[0] - 1e-12 && P.first[0] >= tBeg) {
+      const fx = f.sx(P.first[0]), right = fx < f.W * 0.6;
+      s += `<circle class="ring-ex" cx="${fx.toFixed(1)}" cy="${f.sy(s0 * P.first[1]).toFixed(1)}" r="4"/><text class="tk" x="${(fx + (right ? 6 : -6)).toFixed(1)}" y="${(f.sy(b) + 14).toFixed(1)}" text-anchor="${right ? "start" : "end"}">first fine step past it, unseen</text>`;
+    }
     pathEl.innerHTML = svg(f, s, `One run checked every ${dt}: the evidence between checks, the checks, and how far past the bound it is when a check first sees it there`);
   };
   const drawStats = () => {
@@ -702,7 +721,7 @@ function sweepPlate() {
   if (!el) return;
   const at03 = M.PAPER.SweepSwingThird, at06 = M.PAPER.SweepSwingSixTenths;
   const opts = [2, 4, 8].map((x) => [+(x * at03).toFixed(1), `About ${(x * at03).toFixed(1)}%`]);
-  el.innerHTML = `<div class="predict" id="sw-predict"><p>The fitted swing is off by ${at03}% at ε/c₀ = 0.3. If that error is second order in the size of the change, what is it at 0.6?</p>
+  el.innerHTML = `<div class="predict" id="sw-predict"><p>The fitted swing is off by at most ${at03}% at ε/c₀ = 0.3. If that error is second order in the size of the change, what is the most it is off at 0.6?</p>
       ${segHTML("sw-guess", opts, "", "Your guess")}
       <div class="actions" style="margin-top:8px"><button class="btn btn-go" type="button" id="sw-show">Show me</button></div>
       <p class="verdict" id="sw-verdict" aria-live="polite"></p></div>
@@ -710,6 +729,7 @@ function sweepPlate() {
     <div class="chart-wrap" id="sw-chart"></div>
     <ul class="legend"><li><span class="key key-ink-dots">Table 2, three costs</span></li><li><span class="key key-guide">Slope 2</span></li><li><span class="key key-ring-acc">This page's program, when run</span></li></ul>
     <div class="chart-wrap" id="sw-phase"></div>
+    <ul class="legend"><li><span class="key key-ink-dots">Table 2: the largest phase error over its six costs and frequencies</span></li><li><span class="key key-ring-acc">This page's program, at the one cost and frequency run</span></li></ul>
     <div class="controls">${segHTML("sw-c", M.SWEEP.costs.map((c) => [c, String(c)]), 0.1, "This page's program at c₀")}${segHTML("sw-om", M.SWEEP.omegas.map((o) => [o, String(o)]), 1, "and ω")}
       <div class="actions"><button class="btn" type="button" id="sw-run">Run it</button></div></div>
     <dl class="reads" id="sw-reads"></dl><p class="say" id="sw-say" aria-live="polite"></p><p class="fine" id="sw-state" aria-live="polite"></p></div>`;
@@ -722,7 +742,7 @@ function sweepPlate() {
     body.hidden = false;
     const f = frame(chart, { x: [0.04, 0.8], y: [0.03, 20], xlog: true, ylog: true, aspect: 0.55, minH: 200, maxH: 290 });
     let s = axes(f, { yl: "swing error (%)", xl: "ε/c₀", grid: true, xt: M.SWEEP.rels, fx: (v) => String(v) });
-    s += `<path class="dim" stroke-dasharray="1 3" d="M${f.l} ${f.sy(FLOOR).toFixed(1)}H${f.W - f.r}"/><text class="tk" x="${f.W - f.r}" y="${(f.sy(FLOOR) + 13).toFixed(1)}" text-anchor="end">below this, three decimals print 1.000</text>`;
+    s += `<path class="dim" stroke-dasharray="1 3" d="M${f.l} ${f.sy(FLOOR).toFixed(1)}H${f.W - f.r}"/><text class="tk" x="${f.W - f.r}" y="${(f.sy(FLOOR) + 13).toFixed(1)}" text-anchor="end">a cell printed 1.000 is below this</text>`;
     // slope 2 through the paper's largest error at 0.6
     const top6 = Math.max(...M.TABLE2[3].slice(1, 4).flatMap((r) => r.map((v) => Math.abs(v - 1) * 100)));
     s += line(f, [0.05, 0.6], [top6 * (0.05 / 0.6) ** 2, top6], "guide");
@@ -787,29 +807,22 @@ function gridPlate() {
   const say = $("#gr-say", el), state = $("#gr-state", el), verdict = $("#gr-verdict", el);
   wirePick($("#gr-pick", el));
   let shown = false, unit = "abs", mine = null, gen = 0, guess = null;
-  const moves = () => {
-    let pmAbs = 0, wbAbs = 0, pmRel = 0, wbRel = 0;
-    for (const [, pm, wb] of M.TABLE12) {
-      pmAbs = Math.max(pmAbs, Math.abs(pm[3] - pm[1])); wbAbs = Math.max(wbAbs, Math.abs(wb[3] - wb[1]));
-      if (pm[1] > 0) pmRel = Math.max(pmRel, Math.abs(pm[3] / pm[1] - 1));
-      if (wb[1] > 0) wbRel = Math.max(wbRel, Math.abs(wb[3] / wb[1] - 1));
-    }
-    return { pmAbs, wbAbs, pmRel, wbRel };
-  };
+  const moves = () => M.gridMoves(M.RESULTS12);
   const drawPaper = () => {
     if (!shown) { paperBox.hidden = true; return; }
     paperBox.hidden = false;
     const series = [];
-    for (const [name, pm, wb] of M.TABLE12) {
-      series.push({ name, cls: "pm", v: pm.map((x) => (unit === "abs" ? x - pm[1] : pm[1] > 0 ? (x / pm[1] - 1) * 100 : NaN)) });
-      series.push({ name, cls: "wb", v: wb.map((x) => (unit === "abs" ? x - wb[1] : wb[1] > 0 ? (x / wb[1] - 1) * 100 : NaN)) });
+    for (const [name, pm, wb] of M.RESULTS12) {
+      series.push({ name, cls: "pm", v: pm.map((x) => (unit === "abs" ? x - pm[1] : pm[1] >= M.SHARE_FLOOR ? (x / pm[1] - 1) * 100 : NaN)) });
+      series.push({ name, cls: "wb", v: wb.map((x) => (unit === "abs" ? x - wb[1] : wb[1] >= M.SHARE_FLOOR ? (x / wb[1] - 1) * 100 : NaN)) });
     }
     const vals = series.flatMap((s) => s.v).filter(Number.isFinite);
     const lim = Math.max(...vals.map(Math.abs)) * 1.12;
     const f = frame(chart, { x: [0.8, 4.2], y: [-lim, lim], aspect: 0.5, minH: 190, maxH: 270 });
     let s = axes(f, { yl: unit === "abs" ? "change from grid 2 (points)" : "change from grid 2 (%)", xl: "grid", grid: true, zero: true, xt: [1, 2, 3, 4], fx: (v) => (v === 2 ? "2, the paper's" : String(v)) });
     for (const se of series) if (se.v.every(Number.isFinite)) s += line(f, [1, 2, 3, 4], se.v, se.cls === "pm" ? "pm" : "wb");
-    chart.innerHTML = svg(f, s, `Table 12's losses on four grids, as changes from the paper's grid, ${unit === "abs" ? "in points per 100 trials" : "as a share of the loss"}`);
+    if (unit === "rel") s += `<text class="tk" x="${f.W - f.r}" y="${f.t + 10}" text-anchor="end">losses under ${M.SHARE_FLOOR} points left out</text>`;
+    chart.innerHTML = svg(f, s, `Table 12's losses on four grids, unrounded, as changes from the paper's grid, ${unit === "abs" ? "in points per 100 trials" : "as a share of the loss"}`);
   };
   const drawMine = () => {
     if (!mine) { mineEl.innerHTML = ""; return; }
@@ -824,7 +837,7 @@ function gridPlate() {
     liftReady(fig);
   };
   const draw = () => { drawPaper(); drawMine(); };
-  const reveal = () => { shown = true; const mv = moves(); verdict.textContent = S.gridVerdict(guess, mv.pmAbs, mv.wbAbs, mv.pmRel, mv.wbRel); drawPaper(); };
+  const reveal = () => { shown = true; const mv = moves(); verdict.textContent = S.gridVerdict(guess, M.PAPER.GridPmMaxChange, M.PAPER.GridWbMaxChange, mv.pmRel, mv.wbRel, M.SHARE_FLOOR); drawPaper(); };
   onSeg(el, "gr-guess", (v) => { guess = v; reveal(); });
   $("#gr-show", el).addEventListener("click", reveal);
   onSeg(el, "gr-unit", (v) => { unit = v; drawPaper(); });

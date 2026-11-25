@@ -2,13 +2,13 @@
 // fixed points the rule's equation asks for), model.js (the constant-cost bound, the binned kernels, the dynamic
 // program and its scorer), or kernel.js (the kernel's series and transform); the heavy work runs in ch08-worker.js.
 // The words under each plate come from say-ch08.js, which takes numbers and returns sentences.
-import * as K from "./kernel.js?v=0648557a87";
-import { boundForCost, kernelForBound, toDiscrete } from "./model.js?v=0648557a87";
-import { PRESETS, DRAW, paramsOf, labelOf, defaultDrawing, deadlineOf, VIEW } from "./schedules-book.js?v=0648557a87";
-import { getChoice, setChoice, onVisible, watchVisible, liftReady, calm } from "./book.js?v=0648557a87";
-import { frame, line, area, axes, svg, fmt, keepDrawn } from "./chart.js?v=0648557a87";
-import { weightedHistory, mapExact, scheduleFor, spikeCost, shareExact, codeStretches, P13, levelDerivative } from "./ch08-rule.js?v=0648557a87";
-import * as S from "./say-ch08.js?v=0648557a87";
+import * as K from "./kernel.js?v=850f062e96";
+import { boundForCost, kernelForBound, toDiscrete } from "./model.js?v=850f062e96";
+import { PRESETS, DRAW, paramsOf, labelOf, defaultDrawing, deadlineOf, VIEW } from "./schedules-book.js?v=850f062e96";
+import { getChoice, setChoice, onVisible, watchVisible, liftReady, calm } from "./book.js?v=850f062e96";
+import { frame, line, area, axes, svg, fmt, keepDrawn } from "./chart.js?v=850f062e96";
+import { weightedHistory, mapExact, scheduleFor, spikeCost, shareExact, codeStretches, pmPlot, P13, levelDerivative } from "./ch08-rule.js?v=850f062e96";
+import * as S from "./say-ch08.js?v=850f062e96";
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const plate = (id) => document.getElementById("plate-" + id);
@@ -46,7 +46,7 @@ let worker = null, nextId = 1;
 const pending = new Map(), latest = new Map();
 function work(job, { key = null, progress = null } = {}) {
   if (!worker) {
-    worker = new Worker(new URL("./ch08-worker.js?v=0648557a87", import.meta.url), { type: "module" });
+    worker = new Worker(new URL("./ch08-worker.js?v=850f062e96", import.meta.url), { type: "module" });
     worker.onmessage = (e) => {
       const m = e.data, p = pending.get(m.id);
       if (!p) return;
@@ -176,10 +176,10 @@ function twoPlate() {
     let g = axes(f, { yl: "bound (evidence)", xl: "time", grid: true });
     const st = codeStretches(r);
     if (st.length) g += line(f, r.t, shift(r.avgCode), "avg-code");
-    g += line(f, r.t, avg, "avg") + line(f, r.t, pm, "pm") + line(f, r.t, wb, "wb") + line(f, r.t, ex, "ex");
+    g += line(f, r.t, avg, "avg") + line(f, ...pmPlot(r.t, pm, dl), "pm") + line(f, r.t, wb, "wb") + line(f, r.t, ex, "ex");
     codeKey.hidden = !st.length;
     if (dl !== null) g += deadlineMark(f, dl);
-    boundEl.innerHTML = svg(f, g, `For ${labelOf(choice)}: the best bound, the per-moment rule, the averaged-cost rule, and the weighted rule`);
+    boundEl.innerHTML = svg(f, g, `For ${labelOf(choice)}: the program's bound, the per-moment rule, the averaged-cost rule, and the weighted rule`);
     const L = S.lossText;
     reads.innerHTML = `<div class="k-pm"><dt>Per-moment loss</dt><dd>${L(r.loss.pm)}<small>points per 100 trials</small></dd></div>
       <div class="k-avg"><dt>Averaged-cost loss</dt><dd>${L(r.loss.avg)}<small>${st.length ? `by its definition; ${L(r.loss.avgCode)} as the paper's code computes it` : "points per 100 trials"}</small></dd></div>
@@ -200,7 +200,7 @@ function twoPlate() {
     rulesFor(c, a, (p) => { state.textContent = `Solving the dynamic program and the rules… ${Math.round(p * 100)}%`; }).then((r) => {
       if (c !== choice || a !== (deadlineOf(choice) !== null ? null : add)) return;
       data = r;
-      state.textContent = `Time step 0.01, evidence step 0.02; the program runs ${r.deadline !== null ? "to the deadline" : "6 time units past the window"}.${S.gridZeroNote(r.gridZero)}`;
+      state.textContent = `Time step 0.01, evidence step 0.02; the program runs ${r.deadline !== null ? "to the deadline" : "6 time units past the window"}.${S.subStepNote(r.subStep)}`;
       draw();
     }).catch((e) => stopped(state, e));
   };
@@ -474,10 +474,11 @@ function rootsPlate() {
   const tl = $("#rt-tl", el), tin = $("#rt-t", el), tout = $("#rt-tout", el), bin = $("#rt-b", el), bout = $("#rt-bout", el), note = $("#rt-note", el);
   const costNow = () => (source === "spike" ? spikeCost : scheduleFor(choice).cost);
   const dlNow = () => (source === "spike" ? null : deadlineOf(choice));
+  const breaksNow = () => (source === "spike" ? [] : scheduleFor(choice).breaks);
   const draw = () => {
     bout.textContent = fmt(b, 3);
     if (!data) { mapEl.innerHTML = ""; kerEl.innerHTML = ""; return; }
-    const cost = costNow(), Tb = mapExact(b, t, cost, dlNow());
+    const cost = costNow(), Tb = mapExact(b, t, cost, dlNow(), breaksNow());
     const f = frame(mapEl, { x: [0, data.hi], y: [0, data.hi], aspect: 0.72, minH: 220, maxH: 330 });
     let g = axes(f, { yl: `T(b; ${+t.toFixed(2)})`, xl: "level b", grid: true });
     g += line(f, [0, data.hi], [0, data.hi], "diag") + line(f, data.bs, data.map, "wb");
@@ -573,7 +574,7 @@ function algorithmPlate() {
     if (step === 0) {
       const ts = range(0, view, 251), pm = ts.map((t) => (deadline !== null && t >= deadline - 1e-9 ? 0 : boundForCost(cost(t))));
       f = frame(chart, { x: [0, view], y: [0, Math.max(0.4, finiteMax(pm) * 1.12)], aspect: 0.44, minH: 170, maxH: 260 });
-      g = axes(f, { yl: "per-moment bound B(c(t))", xl: "time", grid: true }) + line(f, ts, pm, "pm");
+      g = axes(f, { yl: "per-moment bound B(c(t))", xl: "time", grid: true }) + line(f, ...pmPlot(ts, pm, deadline), "pm");
       g += `<path class="dim" stroke-dasharray="2 3" d="M${f.sx(tk).toFixed(1)} ${f.t}V${f.H - f.b}"/><circle class="acc-dot" cx="${f.sx(tk).toFixed(1)}" cy="${f.sy(b).toFixed(1)}" r="4.5"/>`;
       label = "The per-moment bound over the window, with the chosen time marked"; items = [["key-pm", "Per-moment bound"]];
       reads.innerHTML = `<div class="k-acc"><dt>Cost at tₖ</dt><dd>${S.num(c)}</dd></div><div class="k-pm"><dt>Start b(tₖ)</dt><dd>${fmt(b, 3)}</dd></div>`;
@@ -613,10 +614,10 @@ function algorithmPlate() {
       const r = data, ex = r.exact, wb = shift(r.wb), pm = shift(r.pm);
       f = frame(chart, { x: [0, r.view], y: [0, Math.max(0.4, finiteMax(ex, r.wb, pm) * 1.12)], aspect: 0.44, minH: 170, maxH: 260 });
       g = axes(f, { yl: "bound (evidence)", xl: "time", grid: true });
-      g += line(f, r.t, pm, "pm") + line(f, r.t, r.wb, "wb-thin") + line(f, r.t, wb, "wb") + line(f, r.t, ex, "ex");
+      g += line(f, ...pmPlot(r.t, pm, r.deadline), "pm") + line(f, r.t, r.wb, "wb-thin") + line(f, r.t, wb, "wb") + line(f, r.t, ex, "ex");
       const k = nearest(r.t, tk);
       g += `<path class="dim" stroke-dasharray="2 3" d="M${f.sx(tk).toFixed(1)} ${f.t}V${f.H - f.b}"/><circle class="wb-dot" cx="${f.sx(r.t[k]).toFixed(1)}" cy="${f.sy(wb[k]).toFixed(1)}" r="4.5"/>`;
-      label = "The rule over the window before and after the shift for checking every 0.01, beside the dynamic program"; items = [["key-ex", "Program's bound"], ["key-wb", "Weighted, moved in"], ["key-faint", "Before the shift"], ["key-pm", "Per-moment, moved in"]];
+      label = "The rule over the window before and after the shift for checking every 0.01, beside the program's bound"; items = [["key-ex", "Program's bound"], ["key-wb", "Weighted, moved in"], ["key-faint", "Before the shift"], ["key-pm", "Per-moment, moved in"]];
       const sh = SHIFT;
       reads.innerHTML = `<div class="k-wb"><dt>Shift, Δt = 0.01</dt><dd>${fmt(sh, 3)}</dd></div><div><dt>At the paper's Δt = 0.002</dt><dd>${fmt(0.5826 * Math.sqrt(0.002), 3)}</dd></div><div class="k-wb"><dt>Rule at tₖ</dt><dd>${fmt(wb[k], 3)}</dd></div>`;
       say.textContent = S.algoSay(4, { shift: sh, t: r.t[k], x: wb[k], ex: ex[k] });
@@ -632,7 +633,7 @@ function algorithmPlate() {
     local = null; data = null; draw();
     state.textContent = "Solving the dynamic program for the last step…";
     const c = choice;
-    rulesFor(c, null).then((r) => { if (c !== choice) return; data = r; state.textContent = `Kernels from 4000 terms of their series in 240 bins, cached by level; the program on a grid of 0.01 by 0.02.${S.gridZeroNote(r.gridZero)}`; if (step === 4) draw(); })
+    rulesFor(c, null).then((r) => { if (c !== choice) return; data = r; state.textContent = `Kernels from 4000 terms of their series in 240 bins, cached by level; the program on a grid of 0.01 by 0.02.${S.subStepNote(r.subStep)}`; if (step === 4) draw(); })
       .catch((e) => stopped(state, e));
   };
   follow(pick, (c) => { choice = c; run(); });

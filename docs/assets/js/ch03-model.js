@@ -3,9 +3,9 @@
 // the constant-cost problem (the value of a flat bound, the reward g(b) - c b tanh b and its slope), the standing
 // assumption checked on a schedule, and the dynamic program with its value V(t, y) kept on a grid. The page, the
 // worker, and tools/checks/ch03.mjs all import it.
-import { B, Bprime, survival, kappa, rng, OVERSHOOT } from "./kernel.js?v=0648557a87";
-import { belief, grid, score } from "./model.js?v=0648557a87";
-import { costOf, deadlineOf, paramsOf, DRAW_MIN, DRAW_MAX, VIEW } from "./schedules-book.js?v=0648557a87";
+import { B, Bprime, survival, kappa, rng, OVERSHOOT } from "./kernel.js?v=850f062e96";
+import { belief, grid, score } from "./model.js?v=850f062e96";
+import { costOf, deadlineOf, paramsOf, DRAW_MIN, DRAW_MAX, VIEW } from "./schedules-book.js?v=850f062e96";
 
 export { B, Bprime };
 export const g = (y) => belief(y);
@@ -361,6 +361,11 @@ export const belowFirstStep = (b, h) => Number.isFinite(b) && b > 0 && b < h;
  * either side of b). With a deadline, a path still open there is forced at its last check before the deadline. cum is
  * cumulativeCost on the path's steps. */
 export function pathOutcome(path, b, cum, deadline = null) {
+  const o = outcomeAt(path, b, cum, deadline);
+  o.shift = OVERSHOOT * Math.sqrt(path.dt);
+  return o;
+}
+function outcomeAt(path, b, cum, deadline) {
   const k = decideAt(path, b), kT = deadline !== null ? Math.round(deadline / path.dt) : Infinity;
   if (k >= 0 && k <= kT) { const x = path.x[k]; return { b, k, tau: k * path.dt, x, side: Math.sign(x) || 1, forced: false, right: g(Math.abs(x)), bill: cum[k] }; }
   if (deadline !== null) { const kk = Math.min(kT, path.x.length - 1), x = path.x[kk]; return { b, k: kk, tau: kk * path.dt, x, xT: x, side: Math.sign(x) || 1, forced: true, deadline, right: g(Math.abs(x)), bill: cum[kk] }; }
@@ -369,16 +374,32 @@ export function pathOutcome(path, b, cum, deadline = null) {
 
 /** The best flat bound on the dynamic program's own grid: the threshold x, held fixed and checked every dt, that
  * scores highest with model.js's score (the scorer the paper's code mirrors), with the choice forced at the horizon.
- * Searched by golden section within 0.15 of the continuous best moved in by the grid's shift. */
+ * The search covers every threshold the grid can hold, (0, cap): each cell boundary (odd multiples of h/2) to 0.31,
+ * where the scorer's interpolation changes slope, then every 0.05 to 3.5 and every 0.1 to the cap; a flat policy can
+ * have more than one peak (a fast decision before a cost falls, or a slow one after it), so the three highest local
+ * peaks of that scan are each refined by golden section between their neighbors. near, if given, is scored too. */
 export function bestFlatOnGrid(cost, horizon, { dt = 0.01, h = 0.02, cap = 5, near = null } = {}) {
   const steps = Math.round(horizon / dt);
   const ts = Float64Array.from({ length: steps + 1 }, (_, k) => k * dt);
   const memo = new Map();
   const at = (x) => { const k = x.toFixed(9); if (!memo.has(k)) memo.set(k, score(Float64Array.from(ts, () => x), ts, cost, h, cap).reward); return memo.get(k); };
-  const x0 = near ?? 1;
-  const { x } = argmax(at, Math.max(0.005, x0 - 0.15), Math.min(cap, x0 + 0.15), 7, 1e-4);
-  return { x, reward: at(x), shifted: at(x0), x0 };
+  const xs = [];
+  for (let x = h / 2; x < 0.31 + 1e-9; x += h) xs.push(+x.toFixed(9));
+  for (let x = 0.35; x < Math.min(3.5, cap) + 1e-9; x += 0.05) xs.push(+x.toFixed(9));
+  for (let x = 3.6; x < cap - 1e-9; x += 0.1) xs.push(+x.toFixed(9));
+  const vs = xs.map(at);
+  const peaks = xs.map((x, i) => i).filter((i) => (i === 0 || vs[i] >= vs[i - 1]) && (i === xs.length - 1 || vs[i] >= vs[i + 1]))
+    .sort((i, j) => vs[j] - vs[i]).slice(0, 3);
+  let best = { x: xs[peaks[0]], f: vs[peaks[0]] };
+  for (const i of peaks) {
+    const r = argmax(at, xs[Math.max(0, i - 1)], xs[Math.min(xs.length - 1, i + 1)], 5, 1e-5);
+    if (r.f > best.f) best = r;
+  }
+  return { x: best.x, reward: best.f, shifted: near === null ? NaN : at(near), x0: near, scanned: xs.length, peaks: peaks.length };
 }
+
+/** The routes plate's step 2 axis: tall enough for the highest trial level's dot, c (b + sinh(2b)/2) at b = 1.3 B(c). */
+export const slopeAxisTop = (c, levels) => Math.max(1.2, 1.08 * Math.max(...levels.map((b) => c * (b + 0.5 * Math.sinh(2 * b)))));
 
 /** The kept sample nearest a tap on the value map: its row (time) and column (evidence), with their coordinates. */
 export function nearestSample(times, ys, t, y) {

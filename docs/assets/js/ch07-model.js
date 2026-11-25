@@ -3,8 +3,9 @@
 // waiting value at a constant cost, the time spent past the bound), and the forward computation that scores a rule
 // and gives its decision times, for the losses on the reader's schedule. tools/checks/ch07.mjs holds these to the
 // paper's generated numbers and to model.js.
-import * as K from "./kernel.js?v=0648557a87";
-import { boundForCost, toDiscrete, belief } from "./model.js?v=0648557a87";
+import * as K from "./kernel.js?v=850f062e96";
+import { boundForCost, toDiscrete, belief } from "./model.js?v=850f062e96";
+import { line, dropAt } from "./chart.js?v=850f062e96";
 
 /** The paper's Table 1 (tab_sinusoid at the tag), c0 = 0.1 and eps = 0.01: omega, then the swing and the lead in
  * degrees for the closed form, the dynamic program, and the weighted look-ahead. Checked cell by cell against
@@ -383,6 +384,17 @@ export function lossRun(cost, EPS, { horizon = LOSS_HORIZON, view = 2.5, dt = 0.
     if (progress) progress(runs.length / EPS.length);
   }
   return { c0, floor, horizon, t: keepW.map((k) => ts[k]), tc: keepC.map((k) => ts[k]), runs };
+}
+
+/** The loss chart's vertical range: every positive loss and the display cutoff, with room around them. */
+export const lossAxis = (pos, cutoff) => [Math.min(cutoff / 4, ...pos) / 1.5, Math.max(cutoff, ...pos) * 3];
+
+/** The shift plate's three curves as SVG paths in a frame f: the per-moment and shifted rules (dashed and dotted) and
+ * the program's bound (ink). On a deadline each drops straight down at the forced choice, instead of sloping across
+ * the last step. */
+export function shiftLines(f, t, exact, pm, sh, dl = null) {
+  const curve = (ys, cls) => { const [x, y] = dropAt(t, ys, dl); return line(f, x, y, cls); };
+  return curve(pm, "pm") + curve(sh, "wb-dots") + curve(exact, "ex");
 }
 
 /** The top of the ratio chart's axis: 2, or the largest ratio rounded up, at most 8. */

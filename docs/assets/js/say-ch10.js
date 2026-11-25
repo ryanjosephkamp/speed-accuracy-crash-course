@@ -27,7 +27,7 @@ const list = (xs) => (xs.length < 2 ? xs.join("") : xs.length === 2 ? `${xs[0]} 
 /** fam: a family's name, or null for all of them; med: the median share avoided over the n schedules where the
  * per-moment rule loses at least 0.01. */
 export function heroLabel(fam, med, n) {
-  return `${fam ? fam : "All families"}: a median of ${pct(med)} of the per-moment loss avoided (${n} schedules)`;
+  return `${fam ? fam : "All families"}: a median of ${pct(med)} of the per-moment loss avoided, over the ${n} schedules where that loss is at least 0.01`;
 }
 
 // ---- the development schedules ---------------------------------------------------------------------------------------
@@ -74,12 +74,16 @@ export function heldTap(label, pm, wb) {
 }
 
 // ---- seven rules on the reader's schedule ----------------------------------------------------------------------------
-/** run: { rules: { key: { loss } } }; names: key -> the rule's name inside a sentence; flat: the cost doesn't change. */
-export function yoursSay(label, run, names, flat = false) {
-  const s0 = yoursBody(label, run, names, flat);
-  return Object.values(run.rules).some((r) => r.loss < 0) ? s0 + " A negative loss means a rule scored a little above the program on this grid." : s0;
+/** run: { rules: { key: { loss } } }; names: key -> the rule's name inside a sentence; flat: the cost doesn't change;
+ * nTable: how many held-out schedules Table 6 counts (those without a deadline), from the paper's data. */
+export function yoursSay(label, run, names, flat = false, nTable = null) {
+  const s0 = yoursBody(label, run, names, flat, nTable);
+  return Object.values(run.rules).some((r) => r.loss < 0) ? s0 + " " + NEGATIVE : s0;
 }
-function yoursBody(label, run, names, flat) {
+/** Why a loss can come out below 0: no rule can earn more than the program's own value on the grid, but the losses are
+ * measured against the program's bound as the scorer applies it, which earns slightly less. */
+export const NEGATIVE = "A loss can be slightly negative because it is measured against the program's bound as the scorer applies it, read between grid points, which earns slightly less than the program's own value; no rule earns more than that value.";
+function yoursBody(label, run, names, flat, nTable) {
   const pm = run.rules.per_moment.loss, wb = run.rules.weighted.loss;
   if (flat) return `${label} doesn't change, so every rule here but the tuned constant gives the per-moment bound, which is optimal on an infinite horizon with continuous checking. The losses this grid scores, about ${num(pm)} points per 100 trials, come from checking only every 0.01 time units and from the forced choice at t = 10.`;
   let s = `On ${label}, on this page's grid, the per-moment rule loses ${num(pm)} points per 100 trials and the weighted look-ahead ${num(wb)}`;
@@ -93,7 +97,7 @@ function yoursBody(label, run, names, flat) {
   if (!less.length) s += `None of the other ${n} rules loses less than the per-moment rule here.`;
   else if (!more.length && !same) s += `All of the other ${n} rules lose less than the per-moment rule here.`;
   else s += `Of the other ${n}, ${list(less)} ${less.length === 1 ? "loses" : "lose"} less than the per-moment rule here${more.length ? `, and ${list(more)} more` : ""}${same ? `; ${WORDS[same] ?? same} ${same === 1 ? "ties" : "tie"}` : ""}.`;
-  return s + " This is one schedule; Table 6 counts the 180 held-out schedules without a deadline.";
+  return s + (nTable ? ` This is one schedule; Table 6 counts the ${nTable} held-out schedules without a deadline.` : " This is one schedule; Table 6 counts the held-out schedules without a deadline.");
 }
 
 // ---- close in reward -------------------------------------------------------------------------------------------------
@@ -108,10 +112,16 @@ export function shareVerdict(guess, med) {
 /** The reader's schedule: the per-moment rule's largest bound gap (before `until`, "t = 4" or "the deadline"), its loss,
  * and that loss's share of the reward. */
 export function shareYours(label, gap, loss, reward, until) {
-  const share = loss / (100 * reward);
-  let s = `On ${label}, on this page's grid, the per-moment bound strays up to ${gap.toFixed(2)} evidence units from the best bound before ${until}, `;
-  if (!(loss > 0)) return s + `and loses ${num(loss)} points per 100 trials: nothing this grid can tell from 0.`;
-  return s + `and gives up ${num(loss)} points per 100 trials, ${share >= 0.0001 ? pct(share, 2) : "under 0.01%"} of the best policy's reward.`;
+  const s = `On ${label}, on this page's grid, the per-moment bound is up to ${gap.toFixed(gap < 0.1 ? 3 : 2)} evidence units from the best bound before ${until}, `;
+  if (loss < 0) return s + `and its loss is ${num(loss)} points per 100 trials (${sharePct(loss / (100 * reward))} of the best policy's reward): a negative difference at the level of the grid. ` + NEGATIVE;
+  return s + `and gives up ${num(loss)} points per 100 trials, ${sharePct(loss / (100 * reward))} of the best policy's reward.`;
+}
+/** A share of the reward, signed, with the decimals it needs. */
+export function sharePct(x) {
+  if (!Number.isFinite(x)) return "–";
+  if (x === 0) return "0%";
+  const a = Math.abs(x), v = a >= 0.0001 ? (100 * a).toFixed(2) : num(100 * a);
+  return `${x < 0 ? "−" : ""}${v}%`;
 }
 
 // ---- the loss formula ------------------------------------------------------------------------------------------------
@@ -144,10 +154,14 @@ export const GROWTH_CHOICES = GROWTH;
  * losses [{ a, pm, wb }] at the same amplitudes. */
 export function scalingPage(rows, paper) {
   const floor = rows.find((r) => r.a === 0), amps = rows.filter((r) => r.a > 0);
-  const below = amps.filter((r) => Math.abs(r.wb) <= Math.abs(floor.pm)).map((r) => r.a);
-  const pmOk = amps.filter((r) => { const p = paper.find((q) => q.a === r.a); return p && Math.abs(r.pm / p.pm - 1) <= 0.1; }).map((r) => r.a);
-  let s = `On this page's grid, the per-moment rule scores ${num(floor.pm)} at the constant cost, where it is optimal on an infinite horizon with continuous checking: that is this grid's own error there. `;
-  s += below.length ? `The weighted rule's loss is no larger in size than that at a = ${list(below.map(String))}, so this grid can't measure it there` : "The weighted rule's loss is larger in size than that at every amplitude";
-  s += pmOk.length ? `; the per-moment loss is within 10% of the paper's grid at a = ${list(pmOk.map(String))}.` : "; the per-moment loss differs from the paper's grid by more than 10% at every amplitude.";
+  const pOf = (a) => paper.find((q) => q.a === a);
+  const near = (x, y) => x > 0 && y > 0 && Math.abs(x / y - 1) <= 0.5;
+  const wbOk = amps.filter((r) => near(r.wb, pOf(r.a).wb)), wbOff = amps.filter((r) => !near(r.wb, pOf(r.a).wb));
+  const pmOk = amps.filter((r) => Math.abs(r.pm / pOf(r.a).pm - 1) <= 0.1).map((r) => r.a);
+  let s = `On this page's grid, the per-moment rule's loss at the constant cost is ${num(floor.pm)} points per 100 trials (the dotted line marks its size): one signed difference at one cost, not an error bound for the other amplitudes. `;
+  const pctOf = (r) => `${Math.max(1, Math.ceil(100 * Math.abs(r.wb / pOf(r.a).wb - 1)))}%`;
+  s += wbOk.length ? `The weighted rule's loss on this grid is within ${list(wbOk.map((r, i) => (i ? `${pctOf(r)} at a = ${r.a}` : `${pctOf(r)} of the paper's grid at a = ${r.a}`)))}` : "The weighted rule's loss on this grid is not within half of the paper's grid at any amplitude";
+  s += wbOff.length ? `; at a = ${list(wbOff.map((r) => String(r.a)))}, this grid and the paper's differ ${wbOff.some((r) => Math.sign(r.wb) !== Math.sign(pOf(r.a).wb)) ? "in sign or " : ""}by more than half, below what this coarser grid resolves` : "";
+  s += pmOk.length ? `. The per-moment loss is within 10% of the paper's grid at a = ${list(pmOk.map(String))}.` : ". The per-moment loss differs from the paper's grid by more than 10% at every amplitude.";
   return s;
 }

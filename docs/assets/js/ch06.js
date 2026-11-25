@@ -1,12 +1,12 @@
 // Chapter 6's plates. Every number drawn comes from kernel.js (the series, the closed forms, the sampler) or from
 // the dynamic program in the worker; the words under each plate come from the functions in say-ch06.js, which take
 // numbers and return sentences.
-import * as K from "./kernel.js?v=0648557a87";
-import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, VIEW, defaultDrawing } from "./schedules-book.js?v=0648557a87";
-import { getChoice, setChoice, solve, onVisible, watchVisible, liftReady, calm, seedParam } from "./book.js?v=0648557a87";
-import { frame, line, area, axes, svg, tags, fmt, keepDrawn } from "./chart.js?v=0648557a87";
-import * as S from "./say-ch06.js?v=0648557a87";
-import { yoursErrors, errorRange } from "./ch06-model.js?v=0648557a87";
+import * as K from "./kernel.js?v=850f062e96";
+import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, VIEW, defaultDrawing } from "./schedules-book.js?v=850f062e96";
+import { getChoice, setChoice, solve, onVisible, watchVisible, liftReady, calm, seedParam } from "./book.js?v=850f062e96";
+import { frame, line, area, axes, svg, tags, fmt, keepDrawn } from "./chart.js?v=850f062e96";
+import * as S from "./say-ch06.js?v=850f062e96";
+import { yoursErrors, errorRange } from "./ch06-model.js?v=850f062e96";
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const plate = (id) => document.getElementById("plate-" + id);
@@ -504,8 +504,8 @@ function yoursPlate() {
     <div class="chart-wrap" id="yo-top"></div>
     <ul class="legend"><li><span class="key key-ex">Program, (b − b₀) ÷ ε</span></li><li><span class="key key-wb">First order, β</span></li><li><span class="key key-pm">Per-moment</span></li></ul>
     <div class="predict" id="yo-predict"><p>As ε shrinks, how fast does the theory say each shortcut's error shrinks?</p>
-      ${segHTML("yo-gpm", [["0", "Not at all"], ["1", "Like ε"], ["2", "Like ε²"]], "", "Per-moment rule")}
-      ${segHTML("yo-gfo", [["0", "Not at all"], ["1", "Like ε"], ["2", "Like ε²"]], "", "First-order correction")}
+      ${segHTML("yo-gpm", [["0", "Doesn't shrink"], ["1", "Order ε"], ["2", "At most order ε²"]], "", "Per-moment rule")}
+      ${segHTML("yo-gfo", [["0", "Doesn't shrink"], ["1", "Order ε"], ["2", "At most order ε²"]], "", "First-order correction")}
       <div class="actions" style="margin-top:8px"><button class="btn btn-go" type="button" id="yo-show">Show the errors</button></div>
       <p class="verdict" id="yo-verdict" aria-live="polite"></p></div>
     <div class="chart-wrap" id="yo-bot" hidden></div>
@@ -525,15 +525,16 @@ function yoursPlate() {
   const drawBot = () => {
     if (!data || !reveal) { bot.hidden = true; return; }
     const { ePm, eFo } = data, yr = errorRange(ePm, eFo);
-    if (!yr) { bot.hidden = true; reads.innerHTML = ""; verdict.textContent = S.tooSmallSay(); return; }
+    if (!yr) { bot.hidden = true; reads.innerHTML = ""; verdict.textContent = S.tooSmallSay(Math.max(...ePm, ...eFo)); return; }
     bot.hidden = false;
     const [yLo, yHi] = yr;
     const f = frame(bot, { x: [EPS[EPS.length - 1] / 1.3, 1.3], y: [yLo, yHi], xlog: true, ylog: true, aspect: 0.5, minH: 180, maxH: 280 });
     let g = axes(f, { yl: "largest error in the bound", xl: "ε", grid: true });
     // guide lines of slope 1 and 2 through the per-moment error at the largest epsilon: guides only
     const e0 = EPS[0], y0 = ePm[0] || yHi / 3;
-    g += line(f, [e0, EPS[EPS.length - 1]], [y0, y0 * EPS[EPS.length - 1] / e0], "guide");
-    g += line(f, [e0, EPS[EPS.length - 1]], [y0 / 3, (y0 / 3) * (EPS[EPS.length - 1] / e0) ** 2], "guide");
+    // each guide is a straight line in log-log; clip it to the plot in x as well as y, so its slope stays true
+    const guide = (ya, p) => { const seg = S.guideInRange(e0, ya, p, EPS[EPS.length - 1], e0, yLo, yHi); return seg ? line(f, seg[0], seg[1], "guide") : ""; };
+    g += guide(y0, 1) + guide(y0 / 3, 2);
     const xl = EPS[EPS.length - 1] * 1.6, lx = f.sx(xl);
     g += `<text class="tk" x="${lx.toFixed(1)}" y="${(f.sy(y0 * xl / e0) - 6).toFixed(1)}">slope 1</text>`;
     g += `<text class="tk" x="${lx.toFixed(1)}" y="${Math.min(f.H - f.b - 4, f.sy((y0 / 3) * (xl / e0) ** 2) + 14).toFixed(1)}">slope 2</text>`;
@@ -547,21 +548,27 @@ function yoursPlate() {
     verdict.textContent = S.errorsVerdict(guess, ePm, eFo, EPS, data.outside);
     liftReady(fig);
   };
+  // what the prediction box offers: the theory's question, the measured errors only (outside the theorem), or nothing
+  const setPredict = (mode) => {
+    const box = $("#yo-predict", el);
+    box.hidden = mode === "none";
+    box.querySelectorAll("fieldset").forEach((fs) => { fs.hidden = mode !== "theory"; });
+    box.querySelector("p").textContent = mode === "measure" ? "The rising cost is outside the theorem: show how the two errors compare." : "As ε shrinks, how fast does the theory say each shortcut's error shrinks?";
+  };
   const run = () => {
     const my = ++gen;   // a newer selection makes this run's answer stale
     data = null; verdict.textContent = ""; reads.innerHTML = ""; drawTop(); drawBot();
     pick.value = choice.id;
     const dl = deadlineOf(choice);
-    if (dl !== null) { note.textContent = S.outsideNote("deadline"); state.textContent = ""; return; }
+    if (dl !== null) { setPredict("none"); note.textContent = S.outsideNote("deadline"); state.textContent = ""; return; }
     const cost = costOf(choice);
     const tsAvg = range(0, VIEW, 501);
     const c0 = tsAvg.reduce((a, t) => a + cost(t), 0) / tsAvg.length;
     // a cost that doesn't move (a flat drawing, a size of 0) has nothing to shrink, whatever its preset
     let moves = 0; for (let t = 0; t <= VIEW + 6; t += 0.01) moves = Math.max(moves, Math.abs(cost(t) - c0));
-    if (moves <= 1e-9 * c0) { note.textContent = S.outsideNote("constant"); state.textContent = ""; return; }
+    if (moves <= 1e-9 * c0) { setPredict("none"); note.textContent = S.outsideNote("constant"); state.textContent = ""; return; }
     const outside = choice.id === "rising";
-    $("#yo-predict", el).querySelectorAll("fieldset").forEach((fs) => { fs.hidden = outside; });
-    $("#yo-predict", el).querySelector("p").textContent = outside ? "The rising cost is outside the theorem: show the measured errors." : "As ε shrinks, how fast does the theory say each shortcut's error shrinks?";
+    setPredict(outside ? "measure" : "theory");
     note.textContent = outside ? S.outsideNote("rising") : S.insideNote(labelOf(choice));
     state.textContent = "Solving seven dynamic programs…";
     solve({ job: "scale", choice, c0, eps: EPS, view: VIEW }, { key: "yours", progress: (p) => { if (my === gen) state.textContent = `Solving seven dynamic programs… ${1 + Math.round(p * 6)} of 7`; } }).then((m) => {

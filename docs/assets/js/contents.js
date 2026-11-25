@@ -1,8 +1,8 @@
 // The contents page's plate: the reader's schedule (a preset, its two settings, or a drawing) and, under it, the
 // best bound for it from the dynamic program, beside the per-moment rule's bound.
-import { PRESETS, DRAW, DRAW_TIMES, DRAW_MIN, DRAW_MAX, costOf, defaultDrawing, paramsOf, deadlineOf, VIEW, labelOf } from "./schedules-book.js?v=0648557a87";
-import { getChoice, setChoice, solve, onVisible, liftReady } from "./book.js?v=0648557a87";
-import { frame, line, axes, svg, tags, fmt, keepDrawn, dropAt } from "./chart.js?v=0648557a87";
+import { PRESETS, DRAW, DRAW_TIMES, DRAW_MIN, DRAW_MAX, costOf, defaultDrawing, paramsOf, deadlineOf, VIEW, labelOf } from "./schedules-book.js?v=850f062e96";
+import { getChoice, setChoice, solve, onVisible, liftReady } from "./book.js?v=850f062e96";
+import { frame, line, axes, svg, tags, fmt, keepDrawn, dropAt } from "./chart.js?v=850f062e96";
 
 const fig = document.getElementById("plate-schedule");
 const rootEl = fig?.querySelector(".demo-root");
@@ -82,7 +82,7 @@ function build() {
     for (let i = 0; i < t.length; i++) { const d = Math.abs(exact[i] - pm[i]); if (Number.isFinite(d) && d > g) { g = d; gi = i; } }
     reads.innerHTML = `<div><dt>Best bound at time 0</dt><dd>${fmt(exact[0])}</dd></div>
       <div class="k-pm"><dt>Per-moment at time 0</dt><dd>${fmt(pm[0])}</dd></div>
-      <div><dt>Largest gap between them</dt><dd>${fmt(g)}<small>at time ${fmt(t[gi])}</small></dd></div>`;
+      <div><dt>Largest gap at the solver's times</dt><dd>${fmt(g)}<small>at time ${fmt(t[gi])}</small></dd></div>`;
     liftReady(fig);
   }
 

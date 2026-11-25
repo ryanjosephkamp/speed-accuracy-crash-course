@@ -2,8 +2,8 @@
 // on the page's grid: the dynamic program's (model.js exactPolicy), the per-moment rule's B(c(t)), and the weighted
 // look-ahead (model.js weightedBound, the paper's Algorithm 1). tools/checks/ch01.mjs holds these to the paper's code
 // (tools/validity/paper-code.json) and to the paper's own Figure 1 (tools/validity/ch01.json).
-import { exactPolicy, boundForCost, weightedBound, toDiscrete, OVERSHOOT } from "./model.js?v=0648557a87";
-import { paramsOf, VIEW, SPARE } from "./schedules-book.js?v=0648557a87";
+import { exactPolicy, boundForCost, weightedBound, toDiscrete, OVERSHOOT } from "./model.js?v=850f062e96";
+import { paramsOf, VIEW, SPARE } from "./schedules-book.js?v=850f062e96";
 
 export const DT = 0.01, H = 0.02;   // the page's grid: check the evidence every 0.01 time units, evidence step 0.02
 export const EVERY = 1;             // keep every time the program checks, so a read-out at t = 0.99 is the grid's own value
@@ -81,13 +81,28 @@ export function costStrip(cost, view) {
 }
 
 /** What the cost does over the next `span` time units from t: the forced choice itself (t at the deadline), past
- * it, a forced choice ahead, or the cost's mean, least, and most there (sampled every 0.005). */
+ * it, a forced choice ahead, or the cost sampled every 0.005 from t to t + span: its least and most values, its mean
+ * (by the trapezoid rule, so a straight ramp gets its exact mean), and whether the samples never fall (up) or never
+ * rise (down). A sample says nothing about the cost between samples or after t + span. */
 export function ahead(cost, t, deadline, span = 0.5) {
   const dl = deadline ?? null;
   if (dl !== null && Math.abs(t - dl) <= 1e-9) return { kind: "forced", now: cost(t) };
   if (dl !== null && t > dl) return { kind: "past" };
   if (dl !== null) return { kind: "deadline", left: dl - t, now: cost(t) };
-  let sum = 0, n = 0, lo = Infinity, hi = -Infinity;
-  for (let s = 0.005; s <= span + 1e-9; s += 0.005) { const c = cost(t + s); sum += c; n++; lo = Math.min(lo, c); hi = Math.max(hi, c); }
-  return { kind: "cost", now: cost(t), mean: sum / n, lo, hi };
+  const n = Math.round(span / 0.005), cs = Array.from({ length: n + 1 }, (_, i) => cost(t + (span * i) / n));
+  let sum = 0, up = true, down = true;
+  for (let i = 1; i <= n; i++) {
+    sum += 0.5 * (cs[i - 1] + cs[i]);
+    if (cs[i] < cs[i - 1] * (1 - 1e-12)) up = false;
+    if (cs[i] > cs[i - 1] * (1 + 1e-12)) down = false;
+  }
+  return { kind: "cost", now: cs[0], mean: sum / n, lo: Math.min(...cs), hi: Math.max(...cs), up, down };
+}
+
+/** Whether a schedule's cost doesn't change at all over [0, until] (a constant, a smooth schedule of size 0, a drawing
+ * whose knots are equal), sampled every 0.01: the same number everywhere, not merely the same to the digits printed. */
+export function isFlat(cost, until) {
+  const n = Math.round(until / 0.01), c0 = cost(0);
+  for (let i = 1; i <= n; i++) if (cost(i * 0.01) !== c0) return false;
+  return true;
 }

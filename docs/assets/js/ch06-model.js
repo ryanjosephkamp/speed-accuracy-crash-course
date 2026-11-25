@@ -1,6 +1,6 @@
 // Chapter 6's "Your schedule, scaled down": the errors the plate draws, from the scale job's programs, shared by the
 // page and its check so both compute the same thing.
-import * as K from "./kernel.js?v=0648557a87";
+import * as K from "./kernel.js?v=850f062e96";
 
 /** From the scale job's reply m (times t, the constant-cost bound b0, a run per size), with the cost and its middle
  * c0: the largest error over the window of the per-moment bound (the full B(c0 + eps gamma)) and of the first-order

@@ -2,12 +2,12 @@
 // the belief from sampled trials, the fold Y = |X| and its measured drift, the three facts about g, and two starts
 // on the same noise. Paths and trials are sampled with rng() from kernel.js and ?seed=; every exact curve comes
 // from ch02-model.js; the best bound comes from the dynamic program in the worker. Sentences come from say-ch02.js.
-import { rng, B, decide } from "./kernel.js?v=0648557a87";
-import * as M from "./ch02-model.js?v=0648557a87";
-import { costOf, deadlineOf, labelOf, VIEW } from "./schedules-book.js?v=0648557a87";
-import { getChoice, solve, onVisible, watchVisible, liftReady, calm, seedParam, wireStrips } from "./book.js?v=0648557a87";
-import { frame, line, axes, svg, fmt, keepDrawn, ticks, dropAt } from "./chart.js?v=0648557a87";
-import * as S from "./say-ch02.js?v=0648557a87";
+import { rng, B, decide } from "./kernel.js?v=850f062e96";
+import * as M from "./ch02-model.js?v=850f062e96";
+import { costOf, deadlineOf, labelOf, VIEW } from "./schedules-book.js?v=850f062e96";
+import { getChoice, solve, onVisible, watchVisible, liftReady, calm, seedParam, wireStrips } from "./book.js?v=850f062e96";
+import { frame, line, axes, svg, fmt, keepDrawn, ticks, dropAt } from "./chart.js?v=850f062e96";
+import * as S from "./say-ch02.js?v=850f062e96";
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const plate = (id) => document.getElementById("plate-" + id);
@@ -110,7 +110,7 @@ function unitsPlate() {
       const right = f.sx(T1) > f.W * 0.6;
       s += `<text class="tag-acc" x="${(f.sx(T1) + (right ? -8 : 8)).toFixed(1)}" y="${(f.sy(E) + 16).toFixed(1)}" text-anchor="${right ? "end" : "start"}">one time unit: ${fmt(T1, 3)}</text>`;
     } else s += `<text class="tag-acc" x="${f.W - f.r - 4}" y="${f.t + 12}" text-anchor="end">one time unit: ${fmt(T1, 2)}, past the edge</text>`;
-    raw.innerHTML = svg(f, s, `One evidence path in raw units for drift ${fmt(mu)} and noise ${fmt(sigma)}, with the drift line and the noise curve meeting at one time unit`);
+    raw.innerHTML = svg(f, s, `One evidence path in raw units for drift ${fmt(mu)} and noise ${fmt(sigma)}, with the drift line and the noise curve, which meet at one time unit, ${T1 <= RAW_T ? `time ${fmt(T1, 3)}, inside the window` : `time ${fmt(T1, 2)}, past the window's edge at ${RAW_T}`}`);
   };
   const drawPaper = () => {
     const k = (mu * mu) / (sigma * sigma), reach = RAW_T * k;

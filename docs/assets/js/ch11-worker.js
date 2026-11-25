@@ -1,8 +1,8 @@
 // Chapter 11's worker: the two dynamic programs, off the page's thread.
 //   { job: "unknown", choice }     -> the program over beliefs and the three rules on that schedule (ch11-model.js)
 //   { job: "sine", rm, omega }     -> the program with two bounds at a constant cost and with a sinusoid, and the fits
-import { unknownRun, sineRun } from "./ch11-model.js?v=0648557a87";
-import { costOf, deadlineOf, VIEW } from "./schedules-book.js?v=0648557a87";
+import { unknownRun, sineRun } from "./ch11-model.js?v=850f062e96";
+import { costOf, deadlineOf, VIEW } from "./schedules-book.js?v=850f062e96";
 
 self.onmessage = (e) => {
   const m = e.data;

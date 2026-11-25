@@ -2,7 +2,7 @@
 // rounding traps, the first-order urgency signal for a ramp and a sine wave, the kernel's quantiles, the fixed
 // kernel's average of the constant-cost bounds ahead, and the urgency gate. tools/checks/ch12.mjs holds these to the
 // paper's generated numbers, to its code at the tag, and to the closed forms they rest on.
-import * as K from "./kernel.js?v=0648557a87";
+import * as K from "./kernel.js?v=850f062e96";
 
 // ---------------------------------------------------------------- the Palmer observer
 /** The mean observer of Palmer, Huk, and Shadlen (2005) as the paper's figure script (paper/make_figures.py at the
@@ -84,8 +84,8 @@ export function kernelQuantile(q, c0) {
 /** A ramp of the cost's shape: 0 before t1, rising linearly to 1 over L time units, 1 after. */
 export const ramp = (t1, L) => (t) => Math.min(1, Math.max(0, (t - t1) / L));
 
-/** (w * gamma)(t) for the ramp above, exactly: E[min((t + S - t1)^+, L)] / L = [E(S - a)^+ - E(S - a - L)^+] / L
- * with a = t1 - t. To first order, delta U / U = -eps B'(c0) (w * gamma) / b0, so this is the urgency's change as a
+/** (w * gamma)(t) for the ramp above, term by term from the series: E[min((t + S - t1)^+, L)] / L =
+ * [E(S - a)^+ - E(S - a - L)^+] / L with a = t1 - t, each sum cut off after at most 4,000 terms. To first order, delta U / U = -eps B'(c0) (w * gamma) / b0, so this is the urgency's change as a
  * share of the per-moment urgency's full change, which is gamma(t) itself. */
 export const rampLookAhead = (t, t1, L, c0) => (excessMean(t1 - t, c0) - excessMean(t1 - t + L, c0)) / L;
 
@@ -115,23 +115,38 @@ export function averagedBound(cost, t, c0) {
 
 // ---------------------------------------------------------------- the urgency gate (Smith and Ratcliff, 2022)
 /** One path of the evidence X(t) = t + W(t) (the correct choice is +1), in Euler steps of dt from 0, until |X| first
- * reaches the bound b(t) or time tMax. Returns the times, the path, and the hitting time (read between steps). */
+ * reaches the bound b(t) or time tMax. Returns the times, the path, the crossing time (read between the two steps by a
+ * straight line through |X| - b), and its sign: +1 at the upper level, -1 at the lower. */
 export function gatePath(bound, R, dt = 0.002, tMax = 4) {
   const ts = [0], xs = [0], sd = Math.sqrt(dt);
-  let x = 0, t = 0, hit = NaN;
+  let x = 0, t = 0, hit = NaN, sign = 0;
   while (t < tMax) {
     const xn = x + dt + sd * R.normal(), tn = t + dt;
     ts.push(tn); xs.push(xn);
     if (Math.abs(xn) >= bound(tn)) {
-      // the crossing between the two steps, by the straight line through them
       const f0 = Math.abs(x) - bound(t), f1 = Math.abs(xn) - bound(tn);
       hit = t + (dt * -f0) / (f1 - f0);
+      sign = Math.sign(xn);
       break;
     }
     x = xn; t = tn;
   }
-  return { ts, xs, hit };
+  return { ts, xs, hit, sign };
 }
+
+/** What the plate draws of a gate path: every keep-th step before the crossing, then the crossing itself, where the
+ * evidence is sign b(hit) and the gated evidence X a / b is sign a (a = 1). Both charts use these same points. */
+export function gateDisplay(g, bound, keep = 5) {
+  const n = Number.isFinite(g.hit) ? g.xs.length - 1 : g.xs.length;   // the last step is past the bound
+  const idx = [];
+  for (let i = 0; i < n; i++) if (i % keep === 0) idx.push(i);
+  const ts = idx.map((i) => g.ts[i]), xs = idx.map((i) => g.xs[i]);
+  if (Number.isFinite(g.hit)) { ts.push(g.hit); xs.push(g.sign * bound(g.hit)); }
+  return { ts, xs, gated: xs.map((x, k) => x / bound(ts[k])) };
+}
+
+/** The top of the degree axis for a guess: 50, or 90 when the guess is above 50. */
+export const degreeAxisTop = (guess) => (Number.isFinite(guess) && guess > 50 ? 90 : 50);
 
 // ---------------------------------------------------------------- the urgency signal on the reader's schedule
 /** The urgency a/b from three bounds at each size, each divided by the urgency of the program's own constant-cost
@@ -149,10 +164,13 @@ export function urgencies(t, b0, runs, cost, c0, EPS) {
     const best = t.map((x, i) => ratio(run[i], i));
     const pmB = t.map((x, i) => b0[i] + (K.B(c0 + e * gamma(x)) - B0));
     const foB = t.map((x, i) => b0[i] + e * beta[i]);
-    return { best, pm: pmB.map(ratio), fo: foB.map(ratio), holes: foB.some((b) => !(b > 0)) };
+    const fo = foB.map(ratio), pm = pmB.map(ratio);
+    // both gaps over the same times: those where all three curves are defined
+    const joint = t.map((x, i) => Number.isFinite(best[i]) && Number.isFinite(fo[i]) && Number.isFinite(pm[i]));
+    const gap = (a) => Math.max(0, ...a.map((v, i) => (joint[i] ? Math.abs(v - best[i]) : 0)));
+    return { best, pm, fo, holes: foB.some((b) => !(b > 0)), used: joint.filter(Boolean).length, total: t.length, gFo: gap(fo), gPm: gap(pm) };
   });
-  const gap = (a, b) => Math.max(0, ...a.map((v, i) => (Number.isFinite(v) && Number.isFinite(b[i]) ? Math.abs(v - b[i]) : 0)));
-  return { u, gFo: u.map((x) => gap(x.fo, x.best)), gPm: u.map((x) => gap(x.pm, x.best)) };
+  return { u, gFo: u.map((x) => x.gFo), gPm: u.map((x) => x.gPm) };
 }
 
 /** Whether a schedule's cost moves at all over the window and the solver's spare time: a flat drawing or a size of 0

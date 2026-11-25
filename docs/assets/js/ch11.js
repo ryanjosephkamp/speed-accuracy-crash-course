@@ -3,19 +3,19 @@
 // the program with two bounds), from kernel.js (chapter 6's kernel, for the symmetric case), or from the paper's
 // Table 10 (as printed, and checked against paper/generated/tab_unknown.tex). The dynamic programs run in
 // ch11-worker.js. The words under each plate come from say-ch11.js, which takes numbers and returns sentences.
-import * as K from "./kernel.js?v=0648557a87";
-import * as M from "./ch11-model.js?v=0648557a87";
-import { PRESETS, DRAW, paramsOf, labelOf, defaultDrawing, costOf, deadlineOf, VIEW } from "./schedules-book.js?v=0648557a87";
-import { getChoice, setChoice, solve, onVisible, liftReady, seedParam, wireStrips } from "./book.js?v=0648557a87";
-import { frame, line, area, axes, svg, fmt, tags, keepDrawn } from "./chart.js?v=0648557a87";
-import * as S from "./say-ch11.js?v=0648557a87";
+import * as K from "./kernel.js?v=850f062e96";
+import * as M from "./ch11-model.js?v=850f062e96";
+import { PRESETS, DRAW, paramsOf, labelOf, defaultDrawing, costOf, deadlineOf, VIEW } from "./schedules-book.js?v=850f062e96";
+import { getChoice, setChoice, solve, onVisible, liftReady, seedParam, wireStrips } from "./book.js?v=850f062e96";
+import { frame, line, area, axes, svg, fmt, tags, keepDrawn } from "./chart.js?v=850f062e96";
+import * as S from "./say-ch11.js?v=850f062e96";
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const plate = (id) => document.getElementById("plate-" + id);
 const rootOf = (id) => plate(id)?.querySelector(".demo-root");
 const range = (a, b, n) => Array.from({ length: n }, (_, i) => a + ((b - a) * i) / (n - 1));
 const logRange = (a, b, n) => range(Math.log(a), Math.log(b), n).map(Math.exp);
-const WORKER = new URL("./ch11-worker.js?v=0648557a87", import.meta.url);
+const WORKER = new URL("./ch11-worker.js?v=850f062e96", import.meta.url);
 const segHTML = (name, opts, cur, legend) => `<fieldset class="seg"><legend>${legend}</legend><div class="seg-row">${opts.map(([v, lbl]) =>
   `<label><input type="radio" name="${name}" value="${v}"${String(v) === String(cur) ? " checked" : ""}><span>${lbl}</span></label>`).join("")}</div></fieldset>`;
 const onSeg = (el, name, fn) => el.querySelectorAll(`input[name="${name}"]`).forEach((r) => r.addEventListener("change", () => fn(r.value)));
@@ -190,7 +190,8 @@ function beliefPlate() {
   const at = (tr, tq) => tr.x[Math.round(tq / (DT * 10))];
   el.innerHTML = `${flag("belief")}<p class="fine" id="bl-step"></p><div class="chart-wrap" id="bl-chart"></div><dl class="reads" id="bl-reads"></dl><p class="say" id="bl-say"></p>`;
   const chart = $("#bl-chart", el), reads = $("#bl-reads", el), say = $("#bl-say", el), head = $("#bl-step", el);
-  const U = M.frozenBound(KAPPA), kern = M.kernelU(U);
+  // the kernel at the unrounded bound U(0.1); the weighted rule's cache rounds bounds to 0.01, but this step shows U itself
+  const U = M.frozenBound(KAPPA), kern = M.survivalKernel((x) => x / 2, U, 240);
   const draw = () => {
     let f, g = "", label = "", n = {};
     reads.innerHTML = "";
@@ -289,11 +290,14 @@ function rulesPlate() {
   };
   const drawChart = () => {
     if (!data) { chart.innerHTML = ""; return; }
-    const { t, exact, frozen, weighted, plug } = data;
+    // before a deadline only: at the deadline every rule's choice is forced, so no curve is drawn there
+    const dl = data.deadline, idx = M.shownBefore(data.t, dl), pick = (arr) => idx.map((i) => arr[i]);
+    const t = pick(data.t), exact = pick(data.exact), frozen = pick(data.frozen), weighted = pick(data.weighted), plug = pick(data.plug);
     const all = [...exact, ...frozen, ...weighted, ...plug].filter(Number.isFinite);
-    const f = frame(chart, { x: [0, t[t.length - 1]], y: [0, Math.max(...all) * 1.08], aspect: 0.5, minH: 190, maxH: 290 });
-    let g = axes(f, { yl: "evidence bound X(t)", xl: "time t", grid: true });
+    const f = frame(chart, { x: [0, dl ?? t[t.length - 1]], y: [0, Math.max(...all) * 1.08], aspect: 0.5, minH: 190, maxH: 290, t: dl === null ? 22 : 30 });
+    let g = axes(f, { yl: dl === null ? "evidence bound X(t)" : "", xl: "time t", grid: true });
     g += line(f, t, frozen, "pm") + line(f, t, plug, "plug") + line(f, t, weighted, "wb") + line(f, t, exact, "ex");
+    if (dl !== null) g += `<path class="acc" stroke-dasharray="2 4" d="M${f.sx(dl).toFixed(1)} ${f.t}V${f.H - f.b}"/>` + text(f.sx(dl) - 4, f.t - 8, "deadline: every rule decides", "tag-acc", "end");
     chart.innerHTML = svg(f, g, `For ${current().label}: the exact policy's evidence bound beside the frozen-time, weighted, and plug-in rules`);
     liftReady(fig);
   };
@@ -527,7 +531,7 @@ function envelopePlate() {
       const Ph = range(cb.hi - w, cb.hi, 40), Pl = range(cb.lo, cb.lo + w, 40);
       g += line(f, X, vg, "ex") + line(f, Ph, Ph.map((x) => c0 * (x - cb.hi) ** 2), "acc", 'stroke-dasharray="4 3"') + line(f, Pl, Pl.map((x) => c0 * (x - cb.lo) ** 2), "acc", 'stroke-dasharray="4 3"');
       g += text(f.sx(cb.hi) - 4, f.sy(c0 * w * w) - 6, "c₀(x − h₀)²", "tag-acc", "end") + text(f.sx(cb.lo) + 4, f.sy(c0 * w * w) - 6, "c₀(x − ℓ₀)²", "tag-acc");
-      head.textContent = "Step 2: waiting minus deciding, and its curvature at each bound.";
+      head.textContent = "Step 2: waiting minus deciding, and its curvature just inside each bound.";
       label = "The value of waiting minus the reward for deciding over the waiting region, with parabolas of curvature 2 c0 at the bounds";
     } else if (step === 2) {
       // slopes: (V - G)' and (V - G)' - dc m', near each end only (G has a kink at x*, where the slope jumps);
@@ -541,6 +545,12 @@ function envelopePlate() {
       f = frame(chart, { x: [cb.lo - 0.2, cb.hi + 0.2], y: [-lim, lim], aspect: 0.52, minH: 190, maxH: 260 });
       g = axes(f, { yl: "slope of V − G, near each bound", xl: "evidence x", grid: true, zero: true });
       g += line(f, Xh, s0h, "ex") + line(f, Xl, s0l, "ex") + line(f, Xh, s1h, "wb") + line(f, Xl, s1l, "wb");
+      // the straight-line approximation of the green slope at each bound: 2 c0 (x - h0) + dc n_h-total, and
+      // 2 c0 (x - l0) - dc n_l-total; these cross 0 exactly at the first-order bounds
+      const lin = (X, b0, k) => X.map((x) => Math.max(-lim, Math.min(lim, 2 * c0 * (x - b0) + k)));
+      g += line(f, Xh, lin(Xh, cb.hi, dc * ft.hi), "wb", 'stroke-dasharray="5 4" opacity="0.7"') + line(f, Xl, lin(Xl, cb.lo, -dc * ft.lo), "wb", 'stroke-dasharray="5 4" opacity="0.7"');
+      const cross = (X, Y) => { for (let i = 1; i < X.length; i++) if (Math.sign(Y[i]) !== Math.sign(Y[i - 1])) return X[i - 1] - (Y[i - 1] * (X[i] - X[i - 1])) / (Y[i] - Y[i - 1]); return NaN; };
+      n.dhCurve = cross(Xh, s1h) - cb.hi; n.dlCurve = cross(Xl, s1l) - cb.lo;
       g += vline(f, xsr, "dim", 'stroke-dasharray="1 3"') + text(f.sx(xsr), f.t - 6, "x*", "tk", "middle");
       const hFo = cb.hi + dc * o.slope.hi, lFo = cb.lo + dc * o.slope.lo;
       g += dot(f, cb.hi, 0, "ink-dot", 4) + dot(f, cb.lo, 0, "ink-dot", 4) + dot(f, hFo, 0, "wb-dot", 4) + dot(f, lFo, 0, "wb-dot", 4);
@@ -551,7 +561,7 @@ function envelopePlate() {
         <div class="k-acc"><dt>δh, Appendix B</dt><dd>${fmt(n.dhEx, 4)}<small>h(c₀ + δc) − h(c₀)</small></dd></div>
         <div class="k-wb"><dt>δℓ, first order</dt><dd>${fmt(n.dlFo, 4)}</dd></div>
         <div class="k-acc"><dt>δℓ, Appendix B</dt><dd>${fmt(n.dlEx, 4)}</dd></div>`;
-      head.textContent = `Step 3: the slope of V − G before (ink) and after (green) a change of δc = ${dc}; the bounds sit where it is 0.`;
+      head.textContent = `Step 3: the slope of V − G (ink) and of V − G − δc·E_xτ with δc = ${dc} (green), with its straight-line approximation at each bound (dashed), which crosses 0 at the first-order bound (dot).`;
       label = "The slope of the value of waiting minus the reward for deciding, before and after a small change in the cost, with the bounds where each is zero";
     } else {
       const ss = logRange(0.005, 6, 200);

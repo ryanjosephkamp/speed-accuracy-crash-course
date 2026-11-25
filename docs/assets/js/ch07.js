@@ -1,12 +1,12 @@
 // Chapter 7's plates. Every number drawn comes from kernel.js (the series and the closed forms), ch07-model.js (the
 // series form of the transfer function, the scans, the closed forms behind the loss, and the forward computation),
 // the solver's workers, or the paper's Table 1; the words under each plate come from the functions in say-ch07.js.
-import * as K from "./kernel.js?v=0648557a87";
-import * as M from "./ch07-model.js?v=0648557a87";
-import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, VIEW, defaultDrawing } from "./schedules-book.js?v=0648557a87";
-import { getChoice, setChoice, solve, onVisible, watchVisible, liftReady, calm, seedParam, wireStrips } from "./book.js?v=0648557a87";
-import { frame, line, area, axes, svg, tags, fmt, keepDrawn } from "./chart.js?v=0648557a87";
-import * as S from "./say-ch07.js?v=0648557a87";
+import * as K from "./kernel.js?v=850f062e96";
+import * as M from "./ch07-model.js?v=850f062e96";
+import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, VIEW, defaultDrawing } from "./schedules-book.js?v=850f062e96";
+import { getChoice, setChoice, solve, onVisible, watchVisible, liftReady, calm, seedParam, wireStrips } from "./book.js?v=850f062e96";
+import { frame, line, area, axes, svg, tags, fmt, keepDrawn } from "./chart.js?v=850f062e96";
+import * as S from "./say-ch07.js?v=850f062e96";
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const plate = (id) => document.getElementById("plate-" + id);
@@ -452,7 +452,7 @@ function shiftPlate() {
     const all = [...exact, ...pm, ...sh].filter(Number.isFinite);
     const f = frame(chart, { x: [0, view], y: [0, Math.max(...all) * 1.12], aspect: 0.48, minH: 190, maxH: 280 });
     let h = axes(f, { yl: "evidence bound", xl: "time", grid: true });
-    h += line(f, t, pm, "pm") + line(f, t, sh, "wb-dots") + line(f, t, exact, "ex");
+    h += M.shiftLines(f, t, exact, pm, sh, data.dl);
     chart.innerHTML = svg(f, h, `For ${labelOf(choice)}: the program's exported bound, the per-moment bound, and the per-moment bound shifted ahead by the mean look-ahead`);
     liftReady(fig);
   };
@@ -466,7 +466,7 @@ function shiftPlate() {
     solve({ job: "bounds", choice }, { key: "ch07-shift" }).then((m) => {
       const t = m.t, view = dl ?? VIEW;
       const sh = t.map((x) => (dl !== null && x >= dl - 1e-9 ? 0 : M.shiftedBound(cost, x)));
-      data = { t, exact: m.exact, pm: m.pm, sh, c: m.cost, view };
+      data = { t, exact: m.exact, pm: m.pm, sh, c: m.cost, view, dl };
       const n = t.length, G = M.shiftGaps(m.exact, m.pm, sh);
       reads.innerHTML = `<div class="k-pm"><dt>Per-moment: average gap</dt><dd>${fmt(G.avgPm, 3)}<small>largest ${fmt(G.maxPm, 3)}</small></dd></div>
         <div class="k-wb"><dt>Shifted: average gap</dt><dd>${fmt(G.avgSh, 3)}<small>largest ${fmt(G.maxSh, 3)}</small></dd></div>
@@ -724,7 +724,7 @@ let lossWorker = null, lossNext = 1;
 const lossPending = new Map(), lossCache = new Map();
 function getLossWorker() {
   if (lossWorker) return lossWorker;
-  lossWorker = new Worker(new URL("./ch07-worker.js?v=0648557a87", import.meta.url), { type: "module" });
+  lossWorker = new Worker(new URL("./ch07-worker.js?v=850f062e96", import.meta.url), { type: "module" });
   lossWorker.onmessage = (e) => {
     const m = e.data, p = lossPending.get(m.id);
     if (!p) return;
@@ -781,7 +781,7 @@ function lossPlate() {
     const lp = data.runs.map((r) => r.loss.pm), lf = data.runs.map((r) => r.loss.fo);
     const pos = [...lp, ...lf].filter((v) => v > 0);
     if (!pos.length) { bot.innerHTML = `<p class="fine">${S.noLossNote()}</p>`; liftReady(fig); return; }
-    const yLo = Math.min(floor10 / 4, ...pos) / 1.5, yHi = Math.max(...pos) * 3;
+    const [yLo, yHi] = M.lossAxis(pos, floor10);
     const fb = frame(bot, { x: [1 / 90, 1.4], y: [yLo, yHi], xlog: true, ylog: true, aspect: 0.5, minH: 190, maxH: 270 });
     let h = axes(fb, { yl: "loss of reward", xl: "size of the change, ε", grid: true, xt: LOSS_EPS.slice().reverse(), fx: epsLabel });
     // the slope-2 guide through the per-moment loss at the largest resolved epsilon of 1/4 or less
@@ -808,7 +808,7 @@ function lossPlate() {
     reads.innerHTML = `<div class="k-pm"><dt>Per-moment loss</dt><dd>${v(run.loss.pm)}<small>slope, three smallest above the cutoff: ${fmt(sp, 2)}</small></dd></div>
       <div class="k-wb"><dt>First-order bound's loss</dt><dd>${v(run.loss.fo)}<small>slope, three smallest above the cutoff: ${fmt(sf, 2)}</small></dd></div>
       <div><dt>Baseline loss</dt><dd>${S.num(data.floor)}<small>the per-moment loss at the constant cost c(0), on this grid and horizon</small></dd></div>`;
-    say.textContent = S.lossSay(run.eps, run.loss.pm, run.loss.fo, sp, sf, rp[k], rf[k], run.foZero);
+    say.textContent = S.lossSay(run.eps, run.loss.pm, run.loss.fo, sp, sf, rp[k], rf[k], run.foZero, rp.filter(Boolean).length, rf.filter(Boolean).length, LOSS_EPS.length);
   };
   const run = () => {
     data = null; draw(); reads.innerHTML = ""; say.textContent = "";

@@ -1,10 +1,12 @@
 // The sentences chapter 3's plates print, as pure functions of the numbers they show. tools/checks/ch03.mjs runs them
 // over random inputs and on the plates' own numbers.
-import { B } from "./kernel.js?v=0648557a87";
+import { B } from "./kernel.js?v=850f062e96";
 const fx = (x, d) => { const s = x.toFixed(d); return /^-0\.?0*$/.test(s) ? s.slice(1) : s; };
 const f2 = (x) => fx(x, 2), f3 = (x) => fx(x, 3);
 /** A cost as the book prints it: two significant figures, no trailing zeros. */
 export const fc = (c) => String(+(+c).toPrecision(2));
+/** A time, or a value set on a slider, as set: up to three decimals, no trailing zeros (2.55 stays 2.55). */
+export const ft = (t) => String(+(+t).toFixed(3));
 const pts = (x) => fx(100 * x, 1);
 
 /** The hero's label for one cost. */
@@ -16,9 +18,10 @@ export const heroLabel = (c, b) => `At a cost of ${fc(c)}, the reward of a flat 
  * the chance the choice made at that check is right, g(|X|) at the check. */
 export function pathSay(o) {
   if (o.forced) {
-    return `This path is still open at its last check before the deadline, time ${fc(o.deadline)}, so the choice is forced there, at X = ${f3(o.x)}: it is right with chance g(|X|) = ${f3(o.right)}, and the time cost ${f3(o.bill)}, so it nets ${f3(o.right - o.bill)}.`;
+    const at = Math.abs(o.tau - o.deadline) < 1e-9 ? `at the deadline, time ${ft(o.deadline)}` : `at its last check, time ${f3(o.tau)}, before the deadline at ${ft(o.deadline)}`;
+    return `This path is still open ${at}, so the choice is forced there, at X = ${f3(o.x)}: it is right with chance g(|X|) = ${f3(o.right)}, and the time cost ${f3(o.bill)}, so it nets ${f3(o.right - o.bill)}.`;
   }
-  return `Checked every 0.001 time units, this path first reaches the bound at time ${f2(o.tau)}, with X = ${f3(o.x)}, and chooses ${o.side > 0 ? "+1" : "−1"}: it is right with chance g(|X|) = ${f3(o.right)}, and the time cost ${f3(o.bill)}, so it nets ${f3(o.right - o.bill)}.`;
+  return `Checked every 0.001 time units, this path is first at or beyond the bound moved in by ${f3(o.shift ?? 0)} (the plate's threshold) at time ${f3(o.tau)}, with X = ${f3(o.x)}, and chooses ${o.side > 0 ? "+1" : "−1"}: it is right with chance g(|X|) = ${f3(o.right)}, and the time cost ${f3(o.bill)}, so it nets ${f3(o.right - o.bill)}.`;
 }
 
 /** After Show me: the reader's flat bound against the best flat bound (both with continuous monitoring), and then, on
@@ -31,7 +34,7 @@ export function earnVerdict({ b, mine, best, dp, flat, deadline }) {
   s += gap < 5e-4 ? ", so yours earns within 0.05 points per 100 decisions of it." : `, so yours earns ${pts(gap)} points per 100 decisions less.`;
   if (Number.isFinite(dp) && flat && Number.isFinite(flat.grid)) {
     const more = dp - flat.grid;
-    s += ` On the dynamic program's grid, which checks the evidence every 0.01 time units and forces the choice at time ${fc(flat.horizon)}, the best level held flat, ${f2(flat.gridX)}, earns ${f3(flat.grid)}`;
+    s += ` On the dynamic program's grid, which checks the evidence every 0.01 time units and forces the choice at time ${ft(flat.horizon)}, the best level held flat, ${f2(flat.gridX)}, earns ${f3(flat.grid)}`;
     s += more >= 5e-4 ? `, and the best bound that moves with the cost earns ${f3(dp)}: ${pts(more)} points per 100 decisions more.`
       : `, and the best bound that moves earns ${f3(dp)}: on this schedule, moving gains less than 0.05 points per 100 decisions.`;
   }
@@ -54,7 +57,7 @@ export function standingSay(st, label, ratio = 1) {
     case "rising":
       return `${label}: continuous, but it rises without end, so no upper level c_max exists and the assumption fails. The exact equation and Theorem 7 don't cover it; the dynamic program still solves it on its grid, with a last moment.`;
     case "deadline":
-      return `${label === "Your drawing" ? "Your drawing, ended with a forced choice at time 2.5" : `A deadline at time ${fc(st.at)}`}: past it the cost is infinite, so it is neither continuous nor bounded, and the assumption fails. The paper's experiments force the choice at the deadline and judge its rules there by measurement (chapters 9 and 10).`;
+      return `${label === "Your drawing" ? "Your drawing, ended with a forced choice at time 2.5" : `A deadline at time ${ft(st.at)}`}: past it the cost is infinite, so it is neither continuous nor bounded, and the assumption fails. The paper's experiments force the choice at the deadline and judge its rules there by measurement (chapters 9 and 10).`;
     case "drawn":
       return `Your drawing is joined by straight lines in log c and held flat after time 2.5, so it is continuous and stays ${band}: the assumption holds. Its steepest change is ${f2(ratio)}-fold over 0.1 time units; even a stroke drawn straight up becomes a ramp that wide.`;
     case "up":
@@ -81,11 +84,13 @@ export function valueVerdict(tap, best) {
 export function sliceSay(t, b, V0, W0, forced = false) {
   if (!(b > 0)) return forced ? `At time ${f2(t)}, the choice is forced: the bound is 0, and V = g at every y.`
     : `At time ${f2(t)}, the bound is 0: even at y = 0 the program decides at once, so V = g at every y.`;
-  return `At time ${f2(t)}, deciding at y = 0 is a coin flip, worth 0.5; the best rule from there earns V = ${f3(V0)}, so the chance to wait is worth W = ${f3(W0)}. V meets g at the bound, ${b < 0.1 ? f3(b) : f2(b)}, and the two are equal above it.`;
+  return `At time ${f2(t)}, deciding at y = 0 is a coin flip, worth 0.5; the best rule from there earns V = ${f3(V0)}, so the chance to wait is worth W = ${f3(W0)}. The bound, ${b < 0.1 ? f3(b) : f2(b)}, is where deciding starts to beat waiting, read between the grid's evidence points; at the grid points above it, V = g.`;
 }
 
 export function lastNote(last, deadline) {
-  if (deadline !== null) return `A deadline is a last moment already: the choice is forced at time ${fc(deadline)}, and the bound falls to 0 there.`;
+  if (deadline !== null) return deadline > 2.5 + 1e-9
+    ? `A deadline is a last moment already: the choice is forced at time ${ft(deadline)}, past the window, so the map and the bounds stop at 2.5, before the bound falls to 0.`
+    : `A deadline is a last moment already: the choice is forced at time ${ft(deadline)}, and the bound falls to 0 there.`;
   if (last === "window") return "The choice is forced at time 2.5, the window's end. With a last moment, the value depends on the time left, so the bound falls toward 0 as that moment nears, as before a deadline.";
   return "The choice is forced 6 time units past the window, as an approximation to no last moment. The forced choice still changes the bound inside the window, and the change grows as time gets cheaper and decisions run longer.";
 }
@@ -130,7 +135,7 @@ export function doubleVerdict(guess, c, B1, B2, tan) {
 
 /** As the reader slides the tangent. b01 is B(c + 0.01). */
 export function slideSay(c, b, bp, b2, b01) {
-  return `At c = ${fc(c)}, B = ${f3(b)} and B′ = ${f3(bp)}. For a cost higher by 0.01, the tangent estimates a drop of ${f3(-bp * 0.01)}; the bound drops by ${f3(b - b01)}. Doubling the cost lowers it by ${f3(b - b2)}, to ${f3(b2)}, or ${Math.round((100 * b2) / b)}% of where it was.`;
+  return `At c = ${ft(c)}, B = ${f3(b)} and B′ = ${f3(bp)}. For a cost higher by 0.01, the tangent estimates a drop of ${f3(-bp * 0.01)}; the bound drops by ${f3(b - b01)}. Doubling the cost lowers it by ${f3(b - b2)}, to ${f3(b2)}, or ${Math.round((100 * b2) / b)}% of where it was.`;
 }
 
 export const INVERSE_HEAD = [

@@ -12,5 +12,3 @@
 .chart .nd-dot.s-formal, .chart .nd-dot.s-conjecture { fill: var(--accent-print); }
 .chart .nd-dot.s-numerical { fill: var(--wb); }
 .chart .nd-dot.s-definition { fill: var(--print); stroke: var(--print-dim); stroke-width: 1.3; }
-/* the appendix has no live plates, so the hero's list of them stays hidden */
-.hero-foot .chips:not(:has(a)) { display: none; }

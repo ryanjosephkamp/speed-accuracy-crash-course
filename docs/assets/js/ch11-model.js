@@ -12,7 +12,7 @@
 //
 // tools/checks/ch11.mjs holds these to the paper's code (tools/validity/ch11.json) and to identities.
 
-import { B as Bknown } from "./kernel.js?v=0648557a87";
+import { B as Bknown } from "./kernel.js?v=850f062e96";
 
 export const OVERSHOOT = 0.5826;
 
@@ -262,7 +262,8 @@ export function unknownProgram(cost, horizon, { n = 300, dt = 0.005, a = 1, prog
   const wait = new Float64Array(n), next = new Float64Array(n);
   const gb = new Float64Array(steps + 1);
   gb[steps] = 0.5;
-  const half = n >> 1;   // g[half] is the first belief above 1/2
+  const half = n >> 1;   // g[half] is the first belief above 1/2 (n even)
+  let symGap = 0;
   for (let k = steps - 1; k >= 0; k--) {
     const e = dt / (ts[k] + a), sq = Math.sqrt(1 + e), inv = 1 / (2 * e);
     const ck = Math.min(cost(ts[k]), 1e9) * dt;
@@ -277,6 +278,9 @@ export function unknownProgram(cost, horizon, { n = 300, dt = 0.005, a = 1, prog
       for (let j = j0 + 1; j < n; j++) { const z = hu[j] - (u[j] - mu) ** 2 * inv - best; if (z < -40) break; const p = Math.exp(z); num += p * v[j]; den += p; }
       wait[i] = num / den - ck;
     }
+    // the grid has no point at 1/2: the two nearest, g[half - 1] and g[half], are mirror images, so deciding minus
+    // waiting is the same at both, and a stop at g[half] means a stop at 1/2 too (the bound 1/2 is then exact)
+    symGap = Math.max(symGap, Math.abs((decide[half] - wait[half]) - (decide[half - 1] - wait[half - 1])));
     // the bound: the first belief above 1/2 where deciding beats waiting, interpolated (known.bound_from_values)
     let bnd = 1;
     for (let i = half; i < n; i++) {
@@ -294,7 +298,7 @@ export function unknownProgram(cost, horizon, { n = 300, dt = 0.005, a = 1, prog
     if (progress && k % 200 === 0) progress(1 - k / steps);
   }
   const x = Float64Array.from(gb, (b, k) => normPpf(Math.min(Math.max(b, 0.5), 1 - 1e-12)) * Math.sqrt(ts[k] + a));
-  return { ts, g: gb, x };
+  return { ts, g: gb, x, symGap };
 }
 
 // ================================================================ unequal rewards
@@ -385,6 +389,8 @@ const csinh = (z) => cx(Math.sinh(z.re) * Math.cos(z.im), Math.cosh(z.re) * Math
  * E_x e^{-lambda tau} = (A cosh(r x) + B sinh(r x)) / cosh x, equal to 1 at both bounds, r = sqrt(2 lambda + 1). */
 export function exitTransforms(lam, lo, hi) {
   const L = typeof lam === "number" ? cx(lam) : lam;
+  // at lambda = 0 the ratio below is 0/0: its limit is each bound's total flux
+  if (L.re === 0 && L.im === 0) { const t = fluxTotals(lo, hi); return { hi: cx(t.hi), lo: cx(t.lo) }; }
   const r = csqrt(cx(2 * L.re + 1, 2 * L.im));
   const rl = cmul(r, cx(lo)), rh = cmul(r, cx(hi));
   const chl = ccosh(rl), shl = csinh(rl), chh = ccosh(rh), shh = csinh(rh);
@@ -608,12 +614,21 @@ export function clockInfo(cost, deadline, a = 1, tMax = 10) {
   return { ts, ks, k0: ks[0], kEnd: ks[ks.length - 1], tEnd, kMin, tMin, deadline };
 }
 
-/** The rules plate's numbers from a run: each rule's gap to the program at t = 0 and its largest gap over the window
- * (before a deadline, where the choice is forced), and the time from which the plug-in bound stays 0 (or null). */
+/** The times the rules plate draws: all of them, or those before a deadline, where every rule's choice is forced. */
+export const shownBefore = (t, deadline) => t.map((x, i) => i).filter((i) => deadline === null || deadline === undefined || t[i] < deadline - 1e-9);
+
+/** The rules plate's numbers from a run, over the times it draws: each rule's gap to the program at t = 0 and its
+ * largest gap, and every stretch of those times where the plug-in bound is 0 (the rule decides at once), as
+ * [from, to] with to = null when the stretch reaches the last time drawn. */
 export function rulesStats({ t, exact, frozen, weighted, plug }, deadline) {
-  const idx = t.map((x, i) => i).filter((i) => deadline === null || deadline === undefined || t[i] < deadline - 1e-9);
+  const idx = shownBefore(t, deadline);
   const gap = (arr) => Math.max(...idx.map((i) => Math.abs(arr[i] - exact[i])));
-  let zero = null;
-  for (let k = idx.length - 1; k >= 0; k--) { if (plug[idx[k]] === 0) zero = t[idx[k]]; else break; }
-  return { frozenGap0: frozen[0] - exact[0], weightedGap0: weighted[0] - exact[0], frozenGapMax: gap(frozen), weightedGapMax: gap(weighted), plugZeroFrom: zero };
+  const runs = []; let from = null;
+  idx.forEach((i, k) => {
+    if (plug[i] === 0) { if (from === null) from = t[i]; }
+    else if (from !== null) { runs.push([from, t[idx[k - 1]]]); from = null; }
+  });
+  if (from !== null) runs.push([from, null]);
+  return { frozenGap0: frozen[0] - exact[0], weightedGap0: weighted[0] - exact[0], frozenGapMax: gap(frozen), weightedGapMax: gap(weighted),
+    plugZero: runs, lastShown: t[idx[idx.length - 1]] };
 }

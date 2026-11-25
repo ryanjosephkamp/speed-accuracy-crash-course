@@ -1,9 +1,9 @@
 // Appendix A's page: the hero, which draws the results proved here in the paper's order with an arc for each use the
 // claim map records and lights one result at a time, and the proof strips, which stand without plates on this page.
 // The hero reads the map from the data the page carries (#map-data); its words come from say-appA.js.
-import { chain } from "./appA-chain.js?v=0648557a87";
-import { wireStrips } from "./book.js?v=0648557a87";
-import * as S from "./say-appA.js?v=0648557a87";
+import { chain } from "./appA-chain.js?v=850f062e96";
+import { wireStrips } from "./book.js?v=850f062e96";
+import * as S from "./say-appA.js?v=850f062e96";
 
 const esc = (s) => String(s).replace(/[<>&]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" })[c]);
 
@@ -52,9 +52,6 @@ function hero() {
 }
 
 // ---------------------------------------------------------------- start
-// The build marks the map with this page's number, "A", which the map would read as a chapter number; an appendix
-// has no claims of its own, so the map draws as it does on the contents page.
-document.querySelectorAll("[data-claim-map][data-chapter]").forEach((m) => { if (!/^\d+$/.test(m.dataset.chapter)) delete m.dataset.chapter; });
 try { hero(); } catch (e) {
   const el = document.getElementById("hero-svg");
   if (el) el.innerHTML = `<text class="lab" x="12" y="20">The picture could not load: ${esc(e.message)}</text>`;

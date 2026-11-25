@@ -55,7 +55,7 @@ export function mountMap(root, { data, chapter = null, focus = "thm:main", links
   <div class="cm-hood"></div>
 </div>
 <div class="cm-view" data-view="layers">
-  <p class="cm-how">Each claim sits on a row below everything it uses, so the paper reads from the definitions down. Tap a claim to highlight what it rests on (slate) and what rests on it (green).</p>
+  <p class="cm-how">Each claim sits on a row below everything it uses, so the paper reads from the definitions down. Tap a claim to highlight what it uses, directly or through others (slate), and what uses it (green).</p>
   <div class="cm-layers"></div><p class="cm-info" aria-live="polite"></p>
 </div>
 <div class="cm-view" data-view="outline">
@@ -137,7 +137,7 @@ export function mountMap(root, { data, chapter = null, focus = "thm:main", links
     const up = closure(id, deps), down = closure(id, uses);
     layers.classList.add("sel");
     layers.querySelectorAll(".node").forEach((b) => { const x = b.dataset.id; b.classList.toggle("on", x === id); b.classList.toggle("up", !!up[x]); b.classList.toggle("down", !!down[x]); });
-    linfo.innerHTML = `<strong>${esc(N[id].name)}</strong> (${esc(N[id].statusLabel.toLowerCase())}) rests on ${Object.keys(up).length} claims, and ${Object.keys(down).length} rest on it. ${where(id)}.`;
+    linfo.innerHTML = `<strong>${esc(N[id].name)}</strong> (${esc(N[id].statusLabel.toLowerCase())}) uses ${Object.keys(up).length === 1 ? "1 claim" : Object.keys(up).length + " claims"}, directly or through others, and ${Object.keys(down).length === 1 ? "1 uses" : Object.keys(down).length + " use"} it. ${where(id)}.`;
     drawLayers();
   }
   function drawLayers() {
@@ -197,7 +197,7 @@ export function mountMap(root, { data, chapter = null, focus = "thm:main", links
     arcs.classList.add("sel");
     arcs.querySelectorAll(".node").forEach((b) => { const x = b.dataset.id; b.classList.toggle("on", x === id); b.classList.toggle("up", deps[id].includes(x)); b.classList.toggle("down", uses[id].includes(x)); });
     const fwd = deps[id].filter((x) => pos[x] > pos[id]).length;
-    ainfo.innerHTML = `<strong>${esc(N[id].name)}</strong> (${esc(N[id].statusLabel.toLowerCase())}) uses ${deps[id].length} claims${fwd ? ` (${fwd} taught later in the book)` : ""}, and ${uses[id].length} use it. ${where(id)}.`;
+    ainfo.innerHTML = `<strong>${esc(N[id].name)}</strong> (${esc(N[id].statusLabel.toLowerCase())}) uses ${deps[id].length === 1 ? "1 claim" : deps[id].length + " claims"}${fwd ? ` (${fwd} taught later in the book)` : ""}, and ${uses[id].length === 1 ? "1 uses" : uses[id].length + " use"} it. ${where(id)}.`;
     drawPath();
   }
   function drawPath() {
@@ -226,7 +226,7 @@ export function mountMap(root, { data, chapter = null, focus = "thm:main", links
   const d3 = {};
   function init3d(name) {
     const box = root.querySelector(`[data-view="${name}"] .cm3`);
-    import("./claim-map-3d.js?v=0648557a87").then(({ mount3d }) => {
+    import("./claim-map-3d.js?v=850f062e96").then(({ mount3d }) => {
       d3[name] = mount3d(box, { view: name, data: D, chapter, focus, where });
       if (current === name) d3[name]?.resize();
     }).catch((e) => { box.innerHTML = '<p class="plate-fail">The 3D map could not load. Focus, Layers, Outline, and Book path still work.</p>'; console.error(e); });
