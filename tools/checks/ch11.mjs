@@ -158,9 +158,10 @@ const T10 = M.TABLE10_CHOICES;
   const runsOf = (zero, ts) => { const out = []; let from = null; ts.forEach((t, i) => { if (zero[i] && from === null) from = t; if (!zero[i] && from !== null) { out.push([from, ts[i - 1]]); from = null; } }); if (from !== null) out.push([from, null]); return out; };
   const T2 = (t) => (Math.abs(t - Math.round(t)) < 1e-9 ? String(Math.round(t)) : t.toFixed(2).replace(/0$/, ""));
   const phrase = ([a, b], last) => (a <= 1e-9 && b === null ? "at all of them" : a <= 1e-9 ? `from the start to t = ${T2(b)}` : b === null ? `from t = ${T2(a)} to the last time drawn, ${T2(last)}` : a === b ? `at t = ${T2(a)}` : `from t = ${T2(a)} to t = ${T2(b)}`);
-  let zok = true, zdet = "", seen = 0, nTimes = 0;
+  let zok = true, zdet = "", seen = 0, nTimes = 0, many = 0;
   const zcases = [...T10, { id: "fall", params: { at: 2, factor: 16 } }, { id: "jump", params: { at: 1, factor: 16 } }, { id: "pulse", params: { at: 0.8, factor: 8 } }, { id: "deadline", params: { at: 0.75, c: 0.3 } },
-    { id: "draw", points: defaultDrawing().map((c, i) => (i > 8 && i < 15 ? 0.6 : 0.1)) }, { id: "draw", points: Array(26).fill(0.2499999) }];
+    { id: "draw", points: defaultDrawing().map((c, i) => (i > 8 && i < 15 ? 0.6 : 0.1)) }, { id: "draw", points: Array(26).fill(0.2499999) },
+    { id: "draw", points: Array.from({ length: 26 }, (_, i) => (i % 4 < 2 ? 0.02 : 0.6)) }];
   for (const ch of zcases) {
     const cost = costOf(ch), dl = deadlineOf(ch), run = M.unknownRun(cost, dl, dl ?? VIEW), st = M.rulesStats(run, dl);
     const idx = M.shownBefore(run.t, dl), shown = idx.map((i) => run.t[i]);
@@ -169,12 +170,16 @@ const T10 = M.TABLE10_CHOICES;
     if (st.plugZero.length) seen++;
     if (!idx.every((i, k) => (run.plug[i] === 0) === (M.plugInAt(cost(shown[k]), shown[k]) <= delta))) { zok = false; zdet = `${label(ch)}: a drawn time where the plotted bound is 0 but the unshifted one is above delta, or the reverse`; }
     if (JSON.stringify(want) !== JSON.stringify(st.plugZero)) { zok = false; zdet = `${label(ch)}: run ${JSON.stringify(st.plugZero)}, threshold ${JSON.stringify(want)}`; }
-    const named = want.slice(0, 3).every((r) => sent.includes(phrase(r, st.lastShown))) && (want.length > 3) === / more stretches/.test(sent);
+    // the whole clause, word for word: each of the first three stretches, the exact count of any more, and nothing else
+    const lastDrawn = shown[shown.length - 1];
+    const clause = want.length ? ` On the times drawn (every 0.02), the plug-in bound is 0 ${want.slice(0, 3).map((r) => phrase(r, lastDrawn)).join(" and ")}${want.length > 3 ? `, and in ${want.length - 3} more stretches` : ""}: there, the rule decides at once.` : null;
+    const named = clause === null ? !/plug-in bound is 0/.test(sent) : sent.includes(clause);
+    if (want.length > 3) many++;
     if ((want.length > 0) !== /plug-in bound is 0/.test(sent) || !named) { zok = false; zdet = `${label(ch)}: ${sent}`; }
     if (dl !== null && !(shown[shown.length - 1] < dl)) { zok = false; zdet = `${label(ch)}: a time at the deadline is drawn`; }
   }
-  check("rules", `on ${zcases.length} schedules (Table 10's eight, a fall at time 2 by 16, a late jump, a pulse, a deadline at 0.75, a drawing that rises in the middle, and a flat drawing at 0.2499999), at every time drawn the plotted plug-in bound is 0 exactly where the unshifted one is at most 0.5826 sqrt(0.005); the plate's stretches are those times, the sentence names each stretch's endpoints as drawn, and no time at a deadline is drawn`,
-    zok && seen >= 4, zdet || `${nTimes} times on ${zcases.length} schedules, ${seen} with zero stretches`);
+  check("rules", `on ${zcases.length} schedules (Table 10's eight, a fall at time 2 by 16, a late jump, a pulse, a deadline at 0.75, a drawing that rises in the middle, a flat drawing at 0.2499999, and a drawing that alternates 0.02 and 0.6), at every time drawn the plotted plug-in bound is 0 exactly where the unshifted one is at most 0.5826 sqrt(0.005); the plate's stretches are those times; the sentence's clause on them is, word for word, the first three stretches' endpoints as drawn and the exact count of the rest; and no time at a deadline is drawn`,
+    zok && seen >= 4 && many > 0, zdet || `${nTimes} times on ${zcases.length} schedules, ${seen} with zero stretches, ${many} with more than three`);
   {
     // where the two criteria part: a flat cost just under 1/4 has 4c(0 + a) < 1, so the unshifted bound is positive at
     // t = 0, but it is below delta, and the plotted bound is 0 from the start

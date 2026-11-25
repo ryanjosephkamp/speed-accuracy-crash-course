@@ -107,10 +107,11 @@ export function overshootSay(dt, mean, se, n) {
 
 const between = (a, b) => (f2(a) === f2(b) ? `at ${f2(a)}` : `between ${f2(a)} and ${f2(b)}`);
 /** The sentence under the coefficient plate. steady: [lo, hi] of k over the times where the cost holds steady (or
- * null); all: { lo, hi, tLo, tHi } over the window; lastK: k at the last check before a deadline (or null). A
+ * null); all: { lo, hi, tLo, tHi } over the window (null where no time has a coefficient); lastK: k at the last check before a deadline (or null). A
  * departure is a value more than 0.03 from 0.5826. */
 export function coefSay(steady, all, lastK, constant) {
   const K0 = 0.5826;
+  if (!all) return "At every time compared, one of the two bounds is 0 or past the cap, so there is no coefficient to draw.";
   let s = steady ? `Where the cost holds steady, the measured coefficient stays ${between(steady[0], steady[1])}, near ${K0}. ` : "";
   if (constant) return s + "The cost never changes here, so every time is steady.";
   const down = all.lo < K0 - 0.03, up = all.hi > K0 + 0.03;

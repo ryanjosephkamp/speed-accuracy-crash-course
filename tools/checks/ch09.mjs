@@ -267,24 +267,30 @@ check("sweep", "the plate's SweepSwingThird and SweepSwingSixTenths are the pape
     const T = Array.from(B.ts), b = Array.from(B.bounds, (v) => (Number.isFinite(v) ? v : 5));
     const F = M.forward(b, T, cost, { upto: Math.round((dl ?? 2.5) / 0.01) });
     const C = M.shiftCoef(cost, H), Lr = M.ruleLosses(cost, H, { view: dl ?? 2.5 }), Rf = M.refine(cost, H);
-    const Tr = M.trialStats(M.trials(b, T, cost, 2000, K.rng(1)));
-    const nums = [F.reward, F.p, F.rt, F.paid, Tr.mean, Tr.sd, Lr.loss.pm.on, Lr.loss.pm.off, Lr.loss.wb.on, Lr.loss.wb.off, ...Rf.flatMap((r) => [r.pm, r.wb])];
+    const Tr = M.trialStats(M.trials(b, T, cost, 2000, K.rng(1))), fine = score(b, T, cost, M.FINE_H, 5).reward;
+    const CS = M.coefSummary(C, cost, dl), flat = M.isFlat(cost);
+    const nums = [F.reward, F.p, F.rt, F.paid, Tr.mean, Tr.sd, fine, Lr.loss.pm.on, Lr.loss.pm.off, Lr.loss.wb.on, Lr.loss.wb.off, ...Rf.flatMap((r) => [r.pm, r.wb])];
     const lastT = Lr.t[Lr.t.length - 1];
-    const sents = [
-      S.backwardSay(T[0], B.bounds[0], 0.3, H, dl !== null, 5, 0.02), S.densitySay("best", 1, 0.3, 0.1, F),
-      S.trialsSay(Tr.n, Tr.mean, Tr.se, F.reward, F.reward, Tr.sd, 2e-5, M.trialsFor(Tr.sd, 2e-5)),
-      S.shiftSay(Lr.loss, choice.id === "constant", H), S.refineSay(Rf, name),
-    ];
     // the density plate's last kept step is the end of what it draws, and at a deadline every trial has decided by then
     const kEnd = Math.round((dl ?? 2.5) / 0.01), dEnd = M.decidedBy(F, F.snapK[F.snapK.length - 1], dl !== null ? T.length - 1 : null);
     const okD = F.snapK[F.snapK.length - 1] === kEnd && (dl === null || Math.abs(dEnd.up + dEnd.lo - 1) < 1e-12) && dEnd.up + dEnd.lo <= 1 + 1e-12;
+    // each sentence from the numbers its plate passes it: the backward plate's first and last kept slices (with what
+    // waiting adds at 0 from the same slice), the density at the end of what it draws, the trials beside the score on
+    // the page's grid and the finer one, the coefficient's summary as the plate makes it, the shift with the plate's own
+    // flatness test, and the refinement
+    const slice = (jj) => { const k = B.keepK[jj]; return S.backwardSay(B.ts[k], B.bounds[k], Math.max(B.adv[jj * (B.M + 1)], 0), H, dl !== null, 5, B.h); };
+    const sents = [
+      slice(0), slice(B.keepK.length - 1), S.densitySay("best", T[kEnd], dEnd.up, dEnd.lo, F, dEnd.forced),
+      S.trialsSay(Tr.n, Tr.mean, Tr.se, F.reward, fine, Tr.sd, 2e-5, M.trialsFor(Tr.sd, 2e-5)),
+      S.coefSay(CS.steady, CS.all, CS.lastK, CS.flat), S.shiftSay(Lr.loss, flat, H), S.refineSay(Rf, name),
+    ];
     // the coefficient: the solver compares up to the last check before the horizon, and the plate draws the times up to
-    // its view, so the drawn curve ends at 2.5 or at the last check before a deadline
-    const drawnC = C.t.filter((t) => t <= (dl ?? 2.5) + 1e-9), endC = drawnC[drawnC.length - 1];
-    const okC = Math.abs(C.t[C.t.length - 1] - (H - 0.01)) < 1e-9 && Math.abs(endC - (dl !== null ? dl - 0.01 : 2.5)) < 1e-9;
-    check("edges", `${name}: the computations of the six plates that take the reader's schedule (the program, the density, a run of 2,000 trials, the coefficient, the shift, and the refinement) run; the program, the density, the coefficient's drawn curve, and the shift plot end where they should; and their numbers and sentences are clean`,
-      okB && okD && okC && finite(nums) && C.k.length > 0 && Math.abs(lastT - (dl ?? 2.5)) < 1e-9 && !sents.some(bad) && nums.slice(6).every((v) => v > -1e-3),
-      `reward ${F.reward.toFixed(4)}, decided by the plot's end ${(dEnd.up + dEnd.lo).toFixed(6)}, trials ${Tr.mean.toFixed(3)}, losses ${nums.slice(6).map((v) => v.toFixed(4)).join(" ")}, plots end at ${lastT} and ${endC.toFixed(2)}`);
+    // its view; the drawn curve has finite points, the last of them at 2.5 or at the last check before a deadline
+    const okC = Math.abs(C.t[C.t.length - 1] - (H - 0.01)) < 1e-9 && CS.finite > 0 && CS.all !== null && Math.abs(CS.lastT - (dl !== null ? dl - 0.01 : 2.5)) < 1e-9;
+    const flatWant = ["constant", "flat drawing", "smooth at size 0"].includes(name);
+    check("edges", `${name}: the computations of the six plates that take the reader's schedule (the program, the density, a run of 2,000 trials with the finer score, the coefficient, the shift, and the refinement) run; the program, the density, the coefficient's last finite point, and the shift plot end where they should; the shift sentence takes the flat branch exactly on the flat schedules; and the numbers and the seven sentences the plates make from them are clean`,
+      okB && okD && okC && finite(nums) && Math.abs(lastT - (dl ?? 2.5)) < 1e-9 && !sents.some(bad) && nums.slice(7).every((v) => v > -1e-3) && flat === flatWant && /both rules give the constant-cost bound/.test(sents[5]) === flatWant,
+      `reward ${F.reward.toFixed(4)}, decided by the plot's end ${(dEnd.up + dEnd.lo).toFixed(6)}, trials ${Tr.mean.toFixed(3)}, losses ${nums.slice(7).map((v) => v.toFixed(4)).join(" ")}, plots end at ${lastT} and ${CS.lastT === null ? "no finite point" : CS.lastT.toFixed(2)} (${CS.finite} of ${CS.drawn} coefficient points finite)`);
   }
   // the refinement on the reader's schedule: every grid gives a loss, and the page's grid's is model.js's
   const r = M.refine(costOf(preset("jump")), 8.5);
@@ -443,11 +449,25 @@ check("sweep", "the plate's SweepSwingThird and SweepSwingSixTenths are the pape
   // the density plate's rate plot draws M.rateBins: pairs of steps, a last single step where a deadline on an even step
   // leaves one unpaired, and the forced choice apart, as shares. Its bins times their widths, plus those shares, must be
   // the cumulative correct and wrong totals the readings print, at deadlines on odd (0.45, 1.05) and even (1, 3) steps
-  let worst = 0, cover = true, det = [];
+  // each bin is also checked on its own against the forward pass: its steps (pairs from step 1, then the one left over),
+  // its time (the mean of its steps' times), its width, and its correct and wrong mass; and the forced choice's time
+  let worst = 0, cover = true, det = [], binBad = 0, nBins = 0;
+  const perBin = (F, T, R, kEnd, forcedK) => {
+    const last = forcedK === null ? kEnd : forcedK - 1, want = [];
+    for (let k = 1; k <= last; k += 2) want.push(k + 1 <= last ? [k, k + 1] : [k]);
+    if (R.t.length !== want.length) { binBad++; return; }
+    want.forEach((ks, i) => {
+      nBins++;
+      const t = ks.reduce((a, k) => a + T[k], 0) / ks.length, up = ks.reduce((a, k) => a + F.upAt[k], 0), lo = ks.reduce((a, k) => a + F.loAt[k], 0);
+      if (Math.abs(R.t[i] - t) > 1e-12 || R.w[i] !== ks.length || Math.abs(R.up[i] * R.w[i] * R.dt - up) > 1e-15 || Math.abs(R.lo[i] * R.w[i] * R.dt - lo) > 1e-15) binBad++;
+    });
+    if (forcedK !== null && !(R.forced && R.forced.t === T[forcedK] && R.forced.up === F.upAt[forcedK] + F.endUp && R.forced.lo === F.loAt[forcedK] + F.endLo)) binBad++;
+  };
   for (const at of [0.45, 1, 1.05, 3]) {
     const choice = preset("deadline", { at }), cost = costOf(choice), { ts, bounds } = exactPolicy(cost, at), T = Array.from(ts), kD = T.length - 1;
     for (const [name, b] of [["per-moment", Array.from(perMoment(cost, T), (v) => toDiscrete(v, 0.01))], ["best", Array.from(bounds, (v) => (Number.isFinite(v) ? v : 5))]]) {
       const F = M.forward(b, T, cost, { every: 2, upto: kD }), R = M.rateBins(F, T, kD, kD), d = M.decidedBy(F, kD, kD);
+      perBin(F, T, R, kD, kD);
       const sum = (a) => a.reduce((x, v, i) => x + v * R.w[i] * R.dt, 0);
       const up = sum(R.up) + R.forced.up, lo = sum(R.lo) + R.forced.lo;
       worst = Math.max(worst, Math.abs(up - d.up), Math.abs(lo - d.lo), Math.abs(up - F.p));
@@ -459,12 +479,13 @@ check("sweep", "the plate's SweepSwingThird and SweepSwingSixTenths are the pape
   {
     const cost = costOf(preset("jump")), { ts, bounds } = exactPolicy(cost, 8.5), T = Array.from(ts), kE = Math.round(2.5 / 0.01);
     const F = M.forward(Array.from(bounds, (v) => (Number.isFinite(v) ? v : 5)), T, cost, { every: 2, upto: kE }), R = M.rateBins(F, T, kE, null), d = M.decidedBy(F, kE);
+    perBin(F, T, R, kE, null);
     const sum = (a) => a.reduce((x, v, i) => x + v * R.w[i] * R.dt, 0);
     worst = Math.max(worst, Math.abs(sum(R.up) - d.up), Math.abs(sum(R.lo) - d.lo));
     cover = cover && R.forced === null && R.w.reduce((x, v) => x + v, 0) === kE;
   }
-  check("density", "the rate plot's bins (rateBins, what the plate draws) cover every ordinary step once, and with the forced choice as a separate point mass reproduce the cumulative correct and wrong totals (within 1e-12), at deadlines on odd (0.45, 1.05) and even (1, 3) steps for the per-moment rule and the best bound, and on the jump to the window's end",
-    worst < 1e-12 && cover, `largest gap ${worst.toExponential(1)}; ${det.join("; ")}`);
+  check("density", "the rate plot's bins (rateBins, what the plate draws), each checked against the forward pass: in order, pairs of steps from step 1 and then the one left over, each at the mean of its steps' times, with its width and its correct and wrong mass; the forced choice apart, at the deadline's time, with its two shares; and all of it reproducing the cumulative totals (within 1e-12), at deadlines on odd (0.45, 1.05) and even (1, 3) steps for the per-moment rule and the best bound, and on the jump to the window's end",
+    worst < 1e-12 && cover && binBad === 0, `${nBins} bins, ${binBad} wrong; largest total gap ${worst.toExponential(1)}; ${det.join("; ")}`);
 }
 {
   // the text's condition: scoring moves a bound bh in by delta and clips at 0, so by min(delta, bh), and that brings it
@@ -499,10 +520,11 @@ check("sweep", "the plate's SweepSwingThird and SweepSwingSixTenths are the pape
   for (let i = 0; i < 200; i++) {
     const dt = [0.04, 0.01, 0.0025, 0.000625][i % 4], P = M.onePath(b, dt, K.rng(900 + i)), m = M.firstPastMark(P, dt), tBeg = Math.max(0, P.stop[0] - 9 * dt);
     const want = !(P.first[0] < P.stop[0] - 1e-12) ? null : P.first[0] >= tBeg - 1e-12 ? "ring" : "earlier";
-    if (m.kind !== want) ok = false;
+    if (m.kind !== want || m.t !== P.first[0] || m.tBeg !== tBeg) ok = false;
   }
-  check("overshoot", "the overshoot plate rings the first fine step past the bound only inside the nine checks it draws, and gives its time when it comes earlier: earlier for ?seed=19 at dt = 0.000625 (and the default seed at 0.0025), ringed for the opening run at 0.04, and the rule holds on 200 more runs",
-    ok && m19.kind === "earlier" && m19.t < m19.tBeg && m25.kind === "earlier" && m04.kind === "ring", `seed 19: first at ${m19.t.toFixed(6)}, window from ${m19.tBeg.toFixed(6)}; opening run ringed at ${m04.t.toFixed(4)}`);
+  const p19 = runOf(19, 0.000625);
+  check("overshoot", "firstPastMark, which decides the overshoot plate's ring or earlier-time note (the drawing itself isn't inspected): its kind, time, and window start are right on 200 runs; ?seed=19 at dt = 0.000625 (and the default seed at 0.0025) comes earlier than the window, with the time the note prints, 0.2597, the first fine step's; the opening run at 0.04 is ringed",
+    ok && m19.kind === "earlier" && m19.t === p19.first[0] && m19.t < m19.tBeg && String(+m19.t.toFixed(4)) === "0.2597" && m25.kind === "earlier" && m04.kind === "ring", `seed 19: first at ${m19.t.toFixed(6)}, window from ${m19.tBeg.toFixed(6)}; opening run ringed at ${m04.t.toFixed(4)}`);
 }
 {
   // the shift sentence on a flat cost: the residual named as a measured difference with the forced choice, the shift's
@@ -522,4 +544,24 @@ check("sweep", "the plate's SweepSwingThird and SweepSwingSixTenths are the pape
     abs.pm === "Per-moment, all 8 schedules" && abs.wb === "Weighted, all 8 schedules" && rel.pm === "Per-moment, all 8 schedules" && rel.wb === "Weighted, 6 of 8 schedules (Smooth 4 and Step 10 left out)"
     && cap.includes("leaves out the weighted losses of Smooth 4 (it prints as {{T:tab_grid:2:7}}) and Step 10 ({{T:tab_grid:5:7}})") && table("tab_grid")[1][0] === "Smooth 4" && table("tab_grid")[4][0] === "Step 10",
     `${rel.pm}; ${rel.wb}`);
+}
+
+// ---- round 5 -------------------------------------------------------------------------------------------------------
+{
+  // the sweep plate's live rings: the swing error is against the predicted swing eps |B'(c0)| |w(-i omega)|, and the
+  // phase residual is the fitted phase minus the angle of eps B'(c0) w(-i omega), recomputed here from the program's
+  // bounds as experiments/first_order_sweep.py does (complex division), at c0 = 0.1, omega = 1, eps/c0 = 0.05
+  const c0 = 0.1, om = 1, rel = 0.05, eps = rel * c0, row = M.sweepTest(c0, om, [rel])[0];
+  const base = exactPolicy(() => c0, M.SWEEP.horizon), pert = exactPolicy((t) => c0 + eps * Math.sin(om * t), M.SWEEP.horizon);
+  const sel = []; base.ts.forEach((t, k) => { if (t > M.SWEEP.from && t < M.SWEEP.to) sel.push(k); });
+  const f = M.fitSine(sel.map((k) => base.ts[k]), sel.map((k) => pert.bounds[k] - base.bounds[k]), om);
+  const W = K.transfer(c0, om), Bp = K.Bprime(c0), tr = eps * Bp * W.re, ti = eps * Bp * W.im;
+  const qr = (f.a * tr + f.b * ti) / (tr * tr + ti * ti), qi = (f.b * tr - f.a * ti) / (tr * tr + ti * ti);   // z / theory
+  const ratio = Math.hypot(f.a, f.b) / Math.hypot(tr, ti), phase = (Math.atan2(qi, qr) * 180) / Math.PI;
+  const cap = readFileSync(join(ROOT, "book/content/ch09.py"), "utf8"), js = readFileSync(join(ROOT, "book/assets/js/ch09.js"), "utf8");
+  check("sweep", "the sweep's live rings: sweepTest's swing ratio is the fitted amplitude over the predicted swing eps |B'(c0)| |w|, and its phase the angle of the fitted coefficient over eps B'(c0) w (as the tagged sweep script computes it), at c0 = 0.1, omega = 1, eps/c0 = 0.05; the caption names the rings in both panels with those two references and calls the bottom chart the absolute phase residual, and the readings label the signed residual",
+    Math.abs(row.ratio - ratio) < 1e-12 && Math.abs(row.phase - phase) < 1e-9
+    && cap.includes(String.raw`In the top panel, its swing error against the predicted swing $\varepsilon\,|B'(c_0)|\,|\tilde w(-i\omega)|$; in the bottom panel, its absolute phase residual against the predicted phase, the angle of $\varepsilon B'(c_0)\,\tilde w(-i\omega)$`)
+    && cap.includes("Orange rings, in both panels") && !/phase error at the one cost and frequency you pick[^.]*against the prediction/.test(cap) && js.includes("phase residual ${r.phase") && js.includes('yl: "phase residual, absolute (°)"'),
+    `swing error ${(Math.abs(row.ratio - 1) * 100).toFixed(4)}%, phase residual ${row.phase.toFixed(4)} degrees`);
 }

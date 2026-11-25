@@ -312,7 +312,7 @@ function yoursPlate() {
     if (!data) return;
     const T = S.yoursText(data, EPS, sel);
     if (data.kind === "scale") {
-      reads.innerHTML = `<div class="k-wb"><dt>First order vs best, largest gap</dt><dd>${T.fo}<small>of the constant cost's urgency, ${T.over}</small></dd></div>
+      reads.innerHTML = `<div class="k-wb"><dt>First order vs best, largest gap</dt><dd>${T.fo}<small>${T.note}</small></dd></div>
         <div class="k-pm"><dt>Per-moment vs best, largest gap</dt><dd>${T.pm}<small>the same times</small></dd></div>
         <div><dt>Middle cost, c₀</dt><dd>${fmt(data.c0, 3)}<small>the window's average</small></dd></div>`;
     } else reads.innerHTML = `<div class="k-ex"><dt>Best bound's urgency, last time drawn</dt><dd>${fmt(data.ratio, 1)}×<small>the per-moment urgency then</small></dd></div>`;
