@@ -2,12 +2,12 @@
 // paper's backward_induction_x and known_reward); the trials and the overshoots are sampled here, in small batches,
 // with kernel.js's seeded generator; the paper's Tables 1, 2, and 12 come from ch09-model.js, checked cell by cell
 // against the generated tables. The words under each plate come from say-ch09.js.
-import * as K from "./kernel.js?v=f47f3f996a";
-import * as M from "./ch09-model.js?v=f47f3f996a";
-import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, defaultDrawing } from "./schedules-book.js?v=f47f3f996a";
-import { getChoice, setChoice, solve, onVisible, watchVisible, liftReady, calm, seedParam } from "./book.js?v=f47f3f996a";
-import { frame, line, area, axes, svg, fmt, keepDrawn } from "./chart.js?v=f47f3f996a";
-import * as S from "./say-ch09.js?v=f47f3f996a";
+import * as K from "./kernel.js?v=942da027e0";
+import * as M from "./ch09-model.js?v=942da027e0";
+import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, defaultDrawing } from "./schedules-book.js?v=942da027e0";
+import { getChoice, setChoice, solve, onVisible, watchVisible, liftReady, calm, seedParam } from "./book.js?v=942da027e0";
+import { frame, line, area, axes, svg, fmt, keepDrawn } from "./chart.js?v=942da027e0";
+import * as S from "./say-ch09.js?v=942da027e0";
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const plate = (id) => document.getElementById("plate-" + id);
@@ -16,7 +16,7 @@ const segHTML = (name, opts, cur, legend) => `<fieldset class="seg"><legend>${le
   `<label><input type="radio" name="${name}" value="${v}"${String(v) === String(cur) ? " checked" : ""}><span>${lbl}</span></label>`).join("")}</div></fieldset>`;
 const onSeg = (el, name, fn) => el.querySelectorAll(`input[name="${name}"]`).forEach((r) => r.addEventListener("change", () => fn(r.value)));
 const setSeg = (el, name, v) => el.querySelectorAll(`input[name="${name}"]`).forEach((r) => { r.checked = r.value === String(v); });
-const WORKER = new URL("./ch09-worker.js?v=f47f3f996a", import.meta.url);
+const WORKER = new URL("./ch09-worker.js?v=942da027e0", import.meta.url);
 const run = (job, opts = {}) => solve(job, { worker: WORKER, ...opts });
 const fail = (state, e) => { if (e.message !== "superseded") state.textContent = "The solver stopped: " + e.message; };
 const finiteMax = (arr) => arr.reduce((m, v) => (Number.isFinite(v) ? Math.max(m, v) : m), -Infinity);
@@ -466,9 +466,8 @@ function overshootPlate() {
   const newPath = () => { onePath = M.onePath(b, dt, K.rng(seed + 101 + runN * 7 + Math.round(dt * 1e6))); };
   const drawPath = () => {
     const P = onePath, s0 = P.side;
-    // the window's start comes from firstPastMark, which also decides the ring, so the two can't disagree
-    const mk = M.firstPastMark(P, dt), tEnd = P.stop[0], tBeg = mk.tBeg;
-    const fp = P.path.filter((p) => p[0] >= tBeg - 1e-12), cp = P.checks.filter((p) => p[0] >= tBeg - 1e-12);
+    // the window, the fine path, and the checks all come from overshootView, which takes its start from firstPastMark
+    const V = M.overshootView(P, dt), { mk, tBeg, tEnd } = V, fp = V.path, cp = V.checks;
     const ys = fp.map((p) => s0 * p[1]);
     const lo = Math.min(...ys, b - 0.1), hi = Math.max(...ys, b + 0.05);
     const pad = (hi - lo) * 0.08;
@@ -574,10 +573,10 @@ function coefPlate() {
       const cost = costOf(choice), dl = deadlineOf(choice);
       const C = M.coefSummary(m, cost, dl), { view, steady, all, lastK } = C;
       data = { ...m, view, cost };
-      reads.innerHTML = `${steady ? `<div><dt>Where the cost is steady</dt><dd>${fmt(steady[0], 3) === fmt(steady[1], 3) ? fmt(steady[0], 3) : `${fmt(steady[0], 3)} to ${fmt(steady[1], 3)}`}</dd></div>` : ""}
+      reads.innerHTML = `${steady ? `<div><dt>Where the cost is steady${dl !== null ? `, to ${C.steadyEnd.toFixed(2)}` : ""}</dt><dd>${fmt(steady[0], 3) === fmt(steady[1], 3) ? fmt(steady[0], 3) : `${fmt(steady[0], 3)} to ${fmt(steady[1], 3)}`}</dd></div>` : ""}
         ${all ? `<div class="k-ex"><dt>Over the ${dl !== null ? "trial" : "window"}</dt><dd>${fmt(all.lo, 3)} to ${fmt(all.hi, 3)}</dd></div>` : ""}
         ${lastK !== null ? `<div><dt>Last check before the deadline</dt><dd>${fmt(lastK, 3)}</dd></div>` : ""}`;
-      say.textContent = S.coefSay(steady, all, lastK, C.flat, C.steadyIn);
+      say.textContent = S.coefSay(steady, all, lastK, C.flat, C.steadyIn, C.steadyEnd);
       state.textContent = `Two programs on an evidence grid of ${m.h}, ${dl !== null ? "to the deadline" : "to a forced choice at " + (M.WINDOW + M.SPARE)}, compared every ${2 * m.dtC} time units${dl !== null ? " up to the last check before it" : ""}.`;
       keepDrawn(chart, draw);
     }).catch((e) => { if (my === gen) fail(state, e); });

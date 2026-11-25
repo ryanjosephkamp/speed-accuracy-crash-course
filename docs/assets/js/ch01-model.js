@@ -2,8 +2,8 @@
 // on the page's grid: the dynamic program's (model.js exactPolicy), the per-moment rule's B(c(t)), and the weighted
 // look-ahead (model.js weightedBound, the paper's Algorithm 1). tools/checks/ch01.mjs holds these to the paper's code
 // (tools/validity/paper-code.json) and to the paper's own Figure 1 (tools/validity/ch01.json).
-import { exactPolicy, boundForCost, weightedBound, toDiscrete, OVERSHOOT } from "./model.js?v=f47f3f996a";
-import { paramsOf, costOf, defaultDrawing, VIEW, SPARE, DRAW_TIMES, DRAW_MIN, DRAW_MAX } from "./schedules-book.js?v=f47f3f996a";
+import { exactPolicy, boundForCost, weightedBound, toDiscrete, OVERSHOOT } from "./model.js?v=942da027e0";
+import { paramsOf, costOf, defaultDrawing, VIEW, SPARE, DRAW_TIMES, DRAW_MIN, DRAW_MAX } from "./schedules-book.js?v=942da027e0";
 
 export const DT = 0.01, H = 0.02;   // the page's grid: check the evidence every 0.01 time units, evidence step 0.02
 export const CAP = 5;               // the program's evidence cap: a bound above it is reported as missing
