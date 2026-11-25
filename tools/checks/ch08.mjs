@@ -288,20 +288,23 @@ function verified(roots, t, cost, deadline, breaks) {
   const sa = R.scheduleFor(alt), ra = R.rootsAt(sa.cost, 0.02, 160, null, sa.breaks), va = verified(ra.roots, 0.02, sa.cost, null, DRAW_TIMES);
   check("roots", "a drawing alternating costs 2 and 0.01, seen from 0.02: each crossing found is confirmed by the separate evaluation (residual below 1e-6)", ra.roots.length >= 1 && va.every((v) => Math.abs(v.residual) < 1e-6 && v.signChange), ra.roots.map((q, i) => `${q.b.toFixed(6)} (separate residual ${va[i].residual.toExponential(1)})`).join(", "));
   // near-tangent drawings: at 0.0765913 and 0.0766 the separate evaluation comes close to the diagonal near 0.586 without
-  // crossing it, and the plate finds one crossing. The close approach is located, not sampled: T(b) - b is scanned every
-  // 0.005 from 0.55 to 0.62, the largest value must be inside, and a golden-section search from its neighbors finds the
-  // local maximum, which stays below 0 in the separate evaluation with 256 panels per stretch and again with 1024
-  for (const low of [0.0765913, 0.0766]) {
-    const sl = R.scheduleFor(draw(low)), dl = R.rootsAt(sl.cost, 0, 160, null, sl.breaks), vl = verified(dl.roots, 0, sl.cost, null, DRAW_TIMES);
-    const g = (x, P = 256) => refMap(x, 0, sl.cost, null, DRAW_TIMES, P) - x;
+  // crossing it, and the plate finds one crossing. The close approach is located, not sampled, with 256 panels per
+  // stretch and again, separately, with 1024: T(b) - b is scanned every 0.005 from 0.55 to 0.62, the largest value must
+  // be inside, and a golden-section search from its neighbors finds the local maximum, which must stay below 0
+  const peakOf = (g) => {
     const xs = Array.from({ length: 15 }, (_, i) => 0.55 + 0.005 * i), gs = xs.map((x) => g(x)), k = gs.indexOf(Math.max(...gs));
     let a = xs[Math.max(k - 1, 0)], c = xs[Math.min(k + 1, xs.length - 1)];
     const phi = (Math.sqrt(5) - 1) / 2;
     for (let i = 0; i < 60; i++) { const x1 = c - phi * (c - a), x2 = a + phi * (c - a); if (g(x1) > g(x2)) c = x2; else a = x1; }
-    const top = (a + c) / 2, peak = g(top), peakFine = g(top, 1024);
-    check("roots", `a drawing from 1 to ${low}: one crossing found and confirmed, and none at the close approach near 0.586, whose local maximum of T(b) − b, located by search in the separate evaluation, stays below 0 (and below 0 again with four times the panels)`,
-      dl.roots.length === 1 && vl.every((v) => Math.abs(v.residual) < 1e-6 && v.signChange) && k > 0 && k < xs.length - 1 && peak < 0 && peakFine < 0,
-      `${dl.roots.map((q) => q.b.toFixed(4)).join(", ")}; local maximum of T - b at ${top.toFixed(5)}: ${peak.toExponential(3)} (1024 panels: ${peakFine.toExponential(3)})`);
+    const at = (a + c) / 2;
+    return { inside: k > 0 && k < xs.length - 1, at, value: g(at) };
+  };
+  for (const low of [0.0765913, 0.0766]) {
+    const sl = R.scheduleFor(draw(low)), dl = R.rootsAt(sl.cost, 0, 160, null, sl.breaks), vl = verified(dl.roots, 0, sl.cost, null, DRAW_TIMES);
+    const [coarse, fine] = [256, 1024].map((P) => peakOf((x) => refMap(x, 0, sl.cost, null, DRAW_TIMES, P) - x));
+    check("roots", `a drawing from 1 to ${low}: one crossing found and confirmed, and none at the close approach near 0.586, where the local maximum of T(b) − b in the separate evaluation, located by its own search with 256 panels per stretch and again with 1024, stays below 0 in both`,
+      dl.roots.length === 1 && vl.every((v) => Math.abs(v.residual) < 1e-6 && v.signChange) && coarse.inside && fine.inside && coarse.value < 0 && fine.value < 0,
+      `${dl.roots.map((q) => q.b.toFixed(4)).join(", ")}; local maximum of T - b: ${coarse.value.toExponential(3)} at ${coarse.at.toFixed(5)} (256 panels), ${fine.value.toExponential(3)} at ${fine.at.toFixed(5)} (1024)`);
   }
   const s766 = R.scheduleFor(draw(0.0766)), say586 = S.rootsSay(0.586, R.mapExact(0.586, 0, s766.cost, null, s766.breaks), 0, 0);
   check("words", "on the near-tangent drawing at the level 0.586, the sentence gives the signed gap to the diagonal and says the level doesn't fit", /below the level, so it doesn't fit/.test(say586), say586);
@@ -339,24 +342,26 @@ function verified(roots, t, cost, deadline, breaks) {
   const rs = R.scheduleFor({ id: "rising", params: { at: 0, rate: 2 } }, 2), rr = R.compareRules(rs.cost, rs.deadline), low = rr.exact.findIndex((v, i) => v > 0 && v < 0.02 && rr.t[i] < 2 - 1e-9);
   const fig = FIG1.map((id) => { const { cost, deadline } = fig1(id); return R.compareRules(cost, deadline).subStep; });
   check("program", "rising from 0 at rate 2 with a deadline added at 2: plotted bounds between 0 and 0.02 appear (from 1.52), and the count is positive; on Figure 1's four schedules there are none", low >= 0 && Math.abs(rr.t[low] - 1.52) < 1e-9 && rr.subStep > 0 && fig.every((n) => n === 0), `first at ${rr.t[low]}, ${rr.subStep} times; Figure 1: ${fig.join(", ")}`);
-  // the per-moment curve on an odd deadline drops straight down at the forced choice, in each plate that draws it: the
-  // two-rules comparison and Algorithm 1's Shift step (the rule moved in, at the program's times), and Algorithm 1's
-  // Start step (the bound itself, at 251 times). The predicate: the path's last two points sit at the deadline's x, the
-  // first at the held bound's y and the last at 0's y (to the path's 0.1-pixel rounding)
+  // the per-moment curve on an odd deadline drops straight down at the forced choice, in each plate that draws it, as
+  // the page builds that plate's curves: the two-rules comparison (comparisonLines) and Algorithm 1's Shift step
+  // (shiftLines), from compareRules at the program's times, and Algorithm 1's Start step (startSeries and startLine, at
+  // 251 times). The predicate, on each plate's "pm" path: its last two points sit at the deadline's x, the first at the
+  // held bound's y and the last at 0's y (to the path's 0.1-pixel rounding)
   const d95 = R.scheduleFor({ id: "deadline", params: { at: 0.95, c: 0.5 } }), r95 = R.compareRules(d95.cost, d95.deadline);
-  const drop = (f, path, dl, held) => {
-    const pts = (path.match(/[ML]-?[\d.]+ -?[\d.]+/g) || []).map((p) => p.slice(1).split(" ").map(Number));
+  const drop = (f, svgText, dl, held) => {
+    const path = (svgText.match(/class="pm" d="([^"]+)"/) || [])[1] || "";
+    const pts = (path.match(/[ML]-?[\d.]+ -?[\d.]+/g) || []).map((q) => q.slice(1).split(" ").map(Number));
     if (pts.length < 2) return { ok: false, last: "no path" };
     const [a, b] = pts.slice(-2), X = f.sx(dl), close = (u, v) => Math.abs(u - v) < 0.051;
     return { ok: close(a[0], X) && close(b[0], X) && close(a[1], f.sy(held)) && close(b[1], f.sy(0)), last: `(${a.join(", ")}) and (${b.join(", ")}), deadline at x ${X.toFixed(1)}, 0 at y ${f.sy(0).toFixed(1)}` };
   };
   const held = toDiscrete(boundForCost(0.5), 0.01), f95 = frame({ clientWidth: 360 }, { x: [0, 0.95], y: [0, 0.5] });
-  const moved = r95.pm.map((v) => toDiscrete(v, 0.01)), compare95 = drop(f95, line(f95, ...R.pmPlot(r95.t, moved, 0.95), "pm"), 0.95, held);
-  const ts251 = Array.from({ length: 251 }, (_, i) => (0.95 * i) / 250), pm251 = ts251.map((t) => (t >= 0.95 - 1e-9 ? 0 : boundForCost(d95.cost(t))));
-  const start95 = drop(f95, line(f95, ...R.pmPlot(ts251, pm251, 0.95), "pm"), 0.95, boundForCost(0.5));
+  const st95 = R.startSeries(d95.cost, d95.deadline, 0.95);
+  const plates = [["comparison", drop(f95, R.comparisonLines(f95, r95, true), 0.95, held)], ["Shift step", drop(f95, R.shiftLines(f95, r95), 0.95, held)],
+    ["Start step", drop(f95, R.startLine(f95, st95.ts, st95.pm, d95.deadline), 0.95, boundForCost(0.5))]];
   const untouched = R.pmPlot(r95.t, r95.pm, null);
-  check("endpoint", "a deadline at 0.95 with a cost of 0.5: the drawn per-moment path, in the comparison and Algorithm 1's Shift step and in Algorithm 1's Start step, ends with a vertical drop at the deadline's x from the held bound to the y of 0; without a deadline the arrays pass through unchanged",
-    compare95.ok && start95.ok && untouched[0] === r95.t && untouched[1] === r95.pm, `moved in: ${compare95.last}; start: ${start95.last}`);
+  check("endpoint", "a deadline at 0.95 with a cost of 0.5: the per-moment path each plate's curve builder emits (the comparison's comparisonLines, Algorithm 1's shiftLines, and its startLine) ends with a vertical drop at the deadline's x from the held bound to the y of 0; without a deadline pmPlot passes the arrays through unchanged",
+    plates.every(([, q]) => q.ok) && untouched[0] === r95.t && untouched[1] === r95.pm, plates.map(([n, q]) => `${n}: ${q.last}`).join("; "));
 }
 
 // ---- Algorithm 1's kernel bins ------------------------------------------------------------------------------------

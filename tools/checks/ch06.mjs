@@ -5,7 +5,7 @@ import { exactPolicy, boundForCost, OVERSHOOT } from "../../book/assets/js/model
 import { VIEW, SPARE } from "../../book/assets/js/schedules-book.js";
 import { costOf, PRESETS, defaultDrawing } from "../../book/assets/js/schedules-book.js";
 import * as S from "../../book/assets/js/say-ch06.js";
-import { SCALE, scaleJob, scaleGaps, YOURS_EPS, yoursPlateState, errorRange, errorMarks } from "../../book/assets/js/ch06-model.js";
+import { SCALE, scaleJob, scaleGaps, YOURS_EPS, yoursPlateState, yoursMode, errorRange, errorMarks } from "../../book/assets/js/ch06-model.js";
 import { frame } from "../../book/assets/js/chart.js";
 import { check, N, SIN, asPrinted, runWorker } from "./lib.mjs";
 
@@ -126,11 +126,21 @@ for (const row of SIN) {
   const n = Math.round(SCALE.view / 0.02) + 1;
   const full = !!(m && m.ok && m.t.length === n && m.t.every((x, i) => Math.abs(x - 0.02 * i) < 1e-9) && m.b0.length === n && m.b0.every(Number.isFinite)
     && m.runs.length === EPS.length && m.runs.every((r) => r.length === n && r.every(Number.isFinite)));
-  // each run is model.js's program for c0 (1 + eps sin 2t) at the same times
-  const same = full && EPS.every((e, k) => { const P = exactPolicy((t) => SCALE.c0 + e * SCALE.amp * Math.sin(SCALE.omega * t), SCALE.view + SPARE); return m.t.every((x, i) => P.bounds[Math.round(x / 0.01)] === m.runs[k][i]); });
-  check("scale", `the fixed sinusoid: the worker returns the ${n} times 0, 0.02, ..., ${SCALE.view}, a constant-cost run, and the four selectable sizes (80%, 40%, 20%, 10%), each equal to model.js's program for 0.1 (1 + ε sin 2t) at those times`,
+  // the baseline is model.js's program at the constant cost 0.1, and each run its program for 0.1 (1 + eps sin 2t), at the
+  // same times, bit for bit
+  const P0 = exactPolicy(() => SCALE.c0, SCALE.view + SPARE), at = (P, i) => P.bounds[Math.round(m.t[i] / 0.01)];
+  const Pk = EPS.map((e) => exactPolicy((t) => SCALE.c0 + e * SCALE.amp * Math.sin(SCALE.omega * t), SCALE.view + SPARE));
+  const same = full && m.b0.every((v, i) => v === at(P0, i)) && EPS.every((e, k) => m.runs[k].every((v, i) => v === at(Pk[k], i)));
+  check("scale", `the fixed sinusoid: the worker returns the ${n} times 0, 0.02, ..., ${SCALE.view}, its constant-cost baseline, and the four selectable sizes (80%, 40%, 20%, 10%), the baseline equal to model.js's program at the constant cost 0.1 and each size to its program for 0.1 (1 + ε sin 2t), at every one of those times`,
     full && same, m ? `${m.t.length} times, last ${m.t[m.t.length - 1]}, ${m.runs.length} runs` : "no reply");
   const G = full ? scaleGaps(m) : null;
+  // the gaps again, from model.js's paired programs directly (each size's run against the constant-cost run), at the
+  // window's times 0.5, 0.52, ..., 3.5
+  const tw = Array.from({ length: 151 }, (_, j) => 0.5 + 0.02 * j), gamma = (t) => SCALE.amp * Math.sin(SCALE.omega * t);
+  const bw = K.firstOrder(gamma, tw, SCALE.c0), pw = K.perMomentResponse(gamma, tw, SCALE.c0);
+  const own = EPS.map((e, k) => { const d = tw.map((t) => (Pk[k].bounds[Math.round(t / 0.01)] - P0.bounds[Math.round(t / 0.01)]) / e); return [Math.max(...d.map((v, j) => Math.abs(v - bw[j]))), Math.max(...d.map((v, j) => Math.abs(v - pw[j])))]; });
+  check("scale", "the fixed sinusoid: the plate's gaps at each size, to β and to the per-moment response, equal those recomputed from model.js's paired programs at the 151 times from 0.5 to 3.5 (within 1e-12)",
+    G && own.every(([f, q], k) => Math.abs(f - G.gFo[k]) < 1e-12 && Math.abs(q - G.gPm[k]) < 1e-12), own.map(([f, q]) => `${f.toFixed(4)}, ${q.toFixed(4)}`).join("; "));
   const win = G && G.win.length === 151 && G.t[G.win[0]] === 0.5 && Math.abs(G.t[G.win[150]] - 3.5) < 1e-9 && G.t.every((x, i) => (x >= 0.5 && x <= 3.5) === G.win.includes(i));
   const shrink = G && G.gFo.every((g, k) => Number.isFinite(g) && (k === 0 || g < G.gFo[k - 1])) && G.gPm.every((g, k) => Number.isFinite(g) && g > G.gFo[k]);
   check("scale", "the fixed sinusoid's gaps, over the plate's window (the 151 times from 0.5 to 3.5): the gap to β falls at each of the four sizes from 80% to 10%, and the gap to the per-moment response is larger than the gap to β at every size",
@@ -169,30 +179,43 @@ for (const row of SIN) {
     P.show();
     const b = P.bottom(), say = d ? S.errorsVerdict({ pm: null, fo: null }, d.ePm, d.eFo, EPS, d.outside) : "";
     const claimed = /^At every size/.test(say), count = say.match(/^The first-order error is the smaller of the two at (\d+) of the 6 sizes/);
-    check("yours", `${c.id}: with that reply, the revealed chart is drawn on an ordered range, and the verdict's comparison matches the count from the paired errors (every size, or the count it prints)`,
+    check("yours", `${c.id}: with that reply, the plate's state (yoursPlateState, not the page's drawing) reports the revealed chart as shown on an ordered range, and the verdict's comparison matches the count from the paired errors (every size, or the count it prints)`,
       ok && d && !b.hidden && b.range[0] < b.range[1] && (smaller === EPS.length ? claimed : !claimed && count && +count[1] === smaller) && !/slope of|like ε²\)|not at all/.test(say),
       `first-order smaller at ${smaller} of ${EPS.length} sizes; range ${b.range ? b.range.map((v) => v.toExponential(1)).join(" to ") : "none"}`);
   }
-  // nearly flat drawings: 2 to 1.99999 (every error below 1e-7) and 2 to 1.9999 (the largest above it)
+  // nearly flat drawings: 2 to 1.99999 (every error below 1e-7), 2 to 1.9999622 (the largest just below it), and 2 to
+  // 1.9999 (the largest above it)
   const flat = (d) => ({ id: "draw", points: Array.from({ length: 26 }, (_, i) => 2 - (d * i) / 25) });
-  const n5 = await solveOn(flat(1e-5)), n4 = await solveOn(flat(1e-4));
-  n5.P.show(); n4.P.show();
-  const b5 = n5.P.bottom(), b4 = n4.P.bottom(), d4 = n4.P.state.data, small4 = d4 ? [...d4.ePm, ...d4.eFo].filter((v) => v > 0 && v < 1e-7).length : 0;
-  check("yours", "the plate's state on a revealed, nearly flat drawing (2 to 1.99999): the bottom chart stays hidden, and the verdict gives the largest error and says the chart opens only when one error reaches 1e-7",
-    complete(n5.m) && n5.P.state.reveal && b5.hidden && b5.range === null && /below 10⁻⁷: the largest is 2\.6e-8\. The log chart opens only when at least one error reaches 10⁻⁷/.test(S.tooSmallSay(b5.largest)),
-    `largest error ${b5.largest.toExponential(2)}; ${S.tooSmallSay(b5.largest)}`);
-  check("yours", "the plate's state on a revealed drawing from 2 to 1.9999: one error reaches 1e-7, so the chart opens, and its range holds the errors below 1e-7 too (the threshold is on the largest, not on each error)",
+  const printed = (say) => { const q = say.match(/the largest is (\d\.\d\de-\d+), rounded down/); return q ? +q[1] : NaN; };
+  const n5 = await solveOn(flat(1e-5)), n6 = await solveOn(flat(3.78e-5)), n4 = await solveOn(flat(1e-4));
+  n5.P.show(); n6.P.show(); n4.P.show();
+  const b5 = n5.P.bottom(), b6 = n6.P.bottom(), b4 = n4.P.bottom(), d4 = n4.P.state.data, small4 = d4 ? [...d4.ePm, ...d4.eFo].filter((v) => v > 0 && v < 1e-7).length : 0;
+  const s5 = S.tooSmallSay(b5.largest), s6 = S.tooSmallSay(b6.largest);
+  const fair = (say, x) => printed(say) <= x && printed(say) > x * 0.99 && printed(say) < 1e-7;
+  check("yours", "the plate's state on revealed, nearly flat drawings (2 to 1.99999, and 2 to 1.9999622, whose largest error is just below 1e-7): it reports the bottom chart hidden, and the sentence prints the largest error rounded down, below 1e-7, and says the chart opens only when one error reaches 1e-7",
+    complete(n5.m) && complete(n6.m) && n5.P.state.reveal && b5.hidden && b5.range === null && b6.hidden && b6.largest > 9.9e-8 && b6.largest < 1e-7
+      && fair(s5, b5.largest) && fair(s6, b6.largest) && [s5, s6].every((x) => /The log chart opens only when at least one error reaches 10⁻⁷/.test(x)),
+    `largest errors ${b5.largest.toExponential(4)} and ${b6.largest.toExponential(4)}; ${s6}`);
+  check("yours", "the plate's state on a revealed drawing from 2 to 1.9999: one error reaches 1e-7, so it reports the chart shown, with a range that holds the errors below 1e-7 too (the threshold is on the largest, not on each error)",
     complete(n4.m) && !b4.hidden && b4.largest >= 1e-7 && small4 > 0 && b4.range[0] < Math.min(...d4.ePm, ...d4.eFo),
     `largest ${b4.largest.toExponential(2)}, ${small4} errors below 1e-7, range from ${b4.range?.[0].toExponential(2)}`);
-  // a stale reply: a selection that solves, then a switch to one the plate skips before the reply arrives
+  // a drawing that moves only from 2 to 1.999999999 moves all the same: the plate solves it and asks the theory question,
+  // and only a cost constant by value (Constant, a flat drawing, Smooth at size 0) is skipped as one that doesn't change
+  const tiny = await solveOn(flat(1e-9)), bt = (tiny.P.show(), tiny.P.bottom());
+  const skipped = [{ id: "constant", params: { c: 0.1 } }, flat(0), { id: "smooth", params: { c0: 0.1, size: 0 } }].map((c) => yoursMode(c).mode);
+  check("yours", "a drawing from 2 to 1.999999999 is solved as a moving schedule with the theory question, and its revealed chart stays hidden below 1e-7; Constant, a flat drawing, and Smooth at size 0 are the ones skipped as not changing",
+    tiny.P.state.mode === "theory" && tiny.job && complete(tiny.m) && bt.hidden && bt.largest < 1e-7 && skipped.every((x) => x === "constant") && /doesn't change/.test(S.outsideNote("constant")),
+    `mode ${tiny.P.state.mode}, largest error ${bt.largest.toExponential(2)}; skipped as ${skipped.join(", ")}`);
+  // a stale reply: a selection that solves, then a switch to one the plate skips before the reply arrives; the state is
+  // read right after the reply is delivered
   const P = yoursPlateState();
   const first = P.select({ id: "smooth", params: { c0: 0.1, size: 1 } }), skip = P.select({ id: "constant", params: { c: 0.1 } });
-  const late = await runWorker("../../book/assets/js/dp-worker.js", first.job), kept = P.take(first.my, late);
   P.show();
-  const after = P.bottom(), dl = P.select({ id: "deadline", params: { at: 1, c: 0.1 } }), flatDraw = P.select(flat(0));
-  check("yours", "the plate's state: a reply that arrives after a switch to a skipped selection (Constant) is dropped, so no data and no chart remain even with the chart revealed; a deadline and a flat drawing are skipped too",
-    first.job && skip.job === null && !kept && P.state.data === null && after.hidden && dl.job === null && flatDraw.job === null && P.state.mode === "constant",
-    `reply kept: ${kept}; mode after the switch ${P.state.mode === "constant" ? "constant" : P.state.mode}; chart hidden: ${after.hidden}`);
+  const late = await runWorker("../../book/assets/js/dp-worker.js", first.job), kept = P.take(first.my, late);
+  const now = { data: P.state.data, mode: P.state.mode, bottom: P.bottom() };
+  check("yours", "the plate's state: a reply that arrives after a switch to a skipped selection (Constant) is dropped; right after it is delivered, with the chart revealed, the state holds no data, stays on Constant, and reports the chart hidden",
+    first.job && skip.job === null && !kept && now.data === null && now.mode === "constant" && now.bottom.hidden,
+    `reply kept: ${kept}; mode ${now.mode}; chart hidden: ${now.bottom.hidden}`);
   const v = S.errorsVerdict({ pm: null, fo: null }, [1e-2, 5e-3], [1e-3, 3e-4], [1, 0.5], true);
   check("words", "on the rising cost, the verdict calls the errors measurements and says the theorem doesn't cover it", /says nothing about it/.test(v) && /measurements/.test(v) && !/O\(ε²\)\./.test(v), v);
   const th = S.errorsVerdict({ pm: 1, fo: 2 }, [1e-2, 5e-3], [1e-3, 3e-4], [1, 0.5], false);
@@ -218,7 +241,7 @@ for (const row of SIN) {
   const at = (L, gd) => gd && Math.abs(L.x - Math.min(gd[0][0] + 4, real.f.W - real.f.r - 44)) < 0.06 && Math.abs(L.y - Math.max(real.f.t + 10, Math.min(real.f.H - real.f.b - 4, gd[0][1] + (L.p === 2 ? 14 : -6)))) < 0.11;
   const placed = real.labels.length === real.guides.length && real.labels.every((L, i) => at(L, real.guides[i]));
   const none = marks([1e-2, 5e-3, 2.5e-3, 1.2e-3, 6e-4, 3e-4], [1e-9, 1e-9, 1e-9, 1e-9, 1e-9, 1e-9], [3e-10, 3e-8]);
-  check("yours", "the error chart as the plate draws it (420 pixels, the drawing from 2 to 1.9999): each guide's label sits at the left end of its own clipped segment; a guide entirely outside the plot is drawn without a label",
-    real.guides.length >= 1 && placed && none.guides.length === 0 && none.labels.length === 0,
+  check("yours", "the error chart's marks from errorMarks, the function the plate draws them with (420 pixels, the drawing from 2 to 1.9999): both guides are drawn, slope 1 then slope 2, each labeled at the left end of its own clipped segment; guides entirely outside the plot are drawn with no label",
+    real.guides.length === 2 && real.labels.length === 2 && real.labels[0].p === 1 && real.labels[1].p === 2 && placed && none.guides.length === 0 && none.labels.length === 0,
     `${real.guides.length} guides, labels ${real.labels.map((L) => `slope ${L.p} at (${L.x}, ${L.y})`).join(", ")}; guide starts ${real.guides.map((gd) => `(${gd[0].join(", ")})`).join(", ")}`);
 }

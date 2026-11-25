@@ -18,7 +18,8 @@ scipy), runs, for each schedule, on the page's grid:
 and, for the comparator's edge cases (tools/checks/paper-code.mjs), the same program on the same grid at constant
 costs of 3.2 and 4.2 with a forced choice at time 2 (its bound at every step and its value at the center at time 0,
 which says whether the center waits), and on a cost that falls 40,000-fold at time 1 (to 1e-5, below the presets'
-range), whose bound passes the cap late in the window. It writes tools/validity/paper-code.json.
+range), whose bound passes the cap late in the window. Where the tag's code returns infinity for a bound (no stop
+below the cap), the file stores null. It writes tools/validity/paper-code.json.
 """
 import argparse
 import io

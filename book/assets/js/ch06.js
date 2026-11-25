@@ -508,7 +508,8 @@ function yoursPlate() {
     const all = [...beta, ...pmr, ...dev[sel]].filter(Number.isFinite);
     const lo = Math.min(...all), hi = Math.max(...all), pad = (hi - lo) * 0.12 + 1e-6;
     const f = frame(top, { x: [0, VIEW], y: [lo - pad, hi + pad], aspect: 0.5, minH: 190, maxH: 300 });
-    let g = axes(f, { yl: "(b − b₀) ÷ ε", xl: "time", grid: true, zero: true });
+    // ticks below a thousandth (a drawing that barely moves) print in powers of ten, not as three 0s
+    let g = axes(f, { yl: "(b − b₀) ÷ ε", xl: "time", grid: true, zero: true, fy: (v) => (v === 0 ? "0" : Math.abs(v) < 1e-3 ? v.toExponential(1) : String(+v.toFixed(3))) });
     g += line(f, t, pmr, "pm") + line(f, t, beta, "wb") + line(f, t, dev[sel], "ex");
     top.innerHTML = svg(f, g, `For ${labelOf(choice)} at ${EPS[sel] * 100}% of its change: the program's bound move divided by epsilon, the first-order response, and the per-moment response`);
     liftReady(fig);

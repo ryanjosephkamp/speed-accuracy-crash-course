@@ -460,7 +460,7 @@ function shiftPlate() {
     data = null; draw(); reads.innerHTML = ""; say.textContent = "";
     pick.value = choice.id;
     const dl = deadlineOf(choice);
-    const cost = costOf(choice), flat = dl === null && M.isFlat(cost);
+    const cost = costOf(choice), flat = dl === null && M.isFlat(choice);
     note.textContent = S.shiftNote(dl !== null ? "deadline" : flat ? "constant" : "", labelOf(choice));
     state.textContent = "Solving the dynamic program…";
     solve({ job: "bounds", choice }, { key: "ch07-shift" }).then((m) => {
@@ -751,7 +751,7 @@ function lossFor(choice, onProgress) {
 }
 // what a schedule is, for the loss plates: a deadline, a flat cost (by its values, so a flat drawing or a Smooth of
 // size 0 counts), the rising cost, or one the proposition covers
-const scheduleKind = (choice) => (deadlineOf(choice) !== null ? "deadline" : M.isFlat(costOf(choice)) ? "constant" : choice.id === "rising" ? "rising" : "");
+const scheduleKind = (choice) => (deadlineOf(choice) !== null ? "deadline" : M.isFlat(choice) ? "constant" : choice.id === "rising" ? "rising" : "");
 const epsLabel = (e) => (e >= 1 ? "1" : `1/${Math.round(1 / e)}`);
 const epsDial = (id, k) => `<label class="dial"><span class="ctl-key">Size of the change, ε</span><output id="${id}-out">${epsLabel(LOSS_EPS[k])}</output>
   <input type="range" id="${id}" min="0" max="${LOSS_EPS.length - 1}" step="1" value="${k}" aria-label="Size of the change, as a power of one half"></label>`;
