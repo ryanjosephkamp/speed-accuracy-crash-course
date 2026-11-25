@@ -1,0 +1,7 @@
+/* Chapter 3: what the shared classes don't give. The value of waiting, W = V - g, is shaded in the ink of the
+   dynamic program it comes from: cells of the map darker where W is larger, and the gap between V and g in a slice. */
+.chart .heat { fill: var(--ex); stroke: none; }
+.chart .w-fill { fill: var(--ex); opacity: 0.12; stroke: none; }
+.chart .ring-ex { fill: var(--print); stroke: var(--ex); stroke-width: 1.6; }
+.key-guide::before { border-top: 1.5px dashed var(--print-dim); }
+.key-ring::before { width: 0.6em; height: 0.6em; margin-right: 0.45em; border: 1.6px solid var(--ex); border-radius: 50%; vertical-align: -0.05em; }
