@@ -7,7 +7,7 @@ import { boundForCost, kernelForBound, toDiscrete } from "./model.js";
 import { PRESETS, DRAW, paramsOf, labelOf, defaultDrawing, deadlineOf, VIEW } from "./schedules-book.js";
 import { getChoice, setChoice, onVisible, watchVisible, liftReady, calm } from "./book.js";
 import { frame, line, area, axes, svg, fmt, keepDrawn } from "./chart.js";
-import { weightedHistory, mapT, scheduleFor, spikeCost, shareBefore, P13, levelDerivative } from "./ch08-rule.js";
+import { weightedHistory, mapExact, scheduleFor, spikeCost, shareExact, codeUntil, P13, levelDerivative } from "./ch08-rule.js";
 import * as S from "./say-ch08.js";
 
 const $ = (sel, el = document) => el.querySelector(sel);
@@ -15,6 +15,9 @@ const plate = (id) => document.getElementById("plate-" + id);
 const rootOf = (id) => plate(id)?.querySelector(".demo-root");
 const range = (a, b, n) => Array.from({ length: n }, (_, i) => a + ((b - a) * i) / (n - 1));
 const finiteMax = (...arrs) => Math.max(...arrs.flat().filter(Number.isFinite));
+/** The index of the time in ts nearest to t. */
+const nearest = (ts, t) => ts.reduce((bi, x, i) => (Math.abs(x - t) < Math.abs(ts[bi] - t) ? i : bi), 0);
+
 const DT = 0.01, SHIFT = 0.5826 * Math.sqrt(DT);
 const shift = (a) => a.map((v) => toDiscrete(v, DT));
 const segHTML = (name, opts, cur, legend) => `<fieldset class="seg"><legend>${legend}</legend><div class="seg-row">${opts.map(([v, lbl]) =>
@@ -98,7 +101,7 @@ function hero() {
     let s = "";
     // top: the kernel for the rule's own level, forward from t0, split at the deadline
     if (data) {
-      const k = Math.round(t0 / 0.02), b = data.wb[k];
+      const k = nearest(data.t, t0), b = data.wb[k];
       const ss = range(0.003, X - t0, 160), ws = ss.map((u) => K.flux(u, b) / K.fluxTotal(b));
       const cut = T - t0;
       const piece = (keep, cls) => {
@@ -125,7 +128,7 @@ function hero() {
       const upto = data.t.findIndex((x) => x > t0 + 1e-9);
       const pts = data.t.map((x, j) => `${j ? "L" : "M"}${sx(x).toFixed(1)} ${by(data.wb[j]).toFixed(1)}`);
       s += `<path class="wb-thin" d="${pts.join("")}"/><path class="wb" d="${pts.slice(0, upto).join("")}"/>`;
-      const k = Math.round(t0 / 0.02);
+      const k = nearest(data.t, t0);
       s += `<circle class="wb-dot" cx="${sx(t0).toFixed(1)}" cy="${by(data.wb[k]).toFixed(1)}" r="4.5"/>`;
       s += `<text class="tag-wb" x="${sx(0.02).toFixed(1)}" y="${(by(data.wb[0]) + 15).toFixed(1)}">weighted</text>`;
     }
@@ -140,7 +143,7 @@ function hero() {
     data = r;
     draw(cur);
     if (window.ChapterHero) {
-      window.ChapterHero.live(fig, { steps: times.length, draw, label: (i) => { const k = Math.round(times[i] / 0.02); return S.heroLabel(times[i], shareBefore(data.wb[k], T - times[i]), data.wb[k]); } });
+      window.ChapterHero.live(fig, { steps: times.length, draw, label: (i) => { const k = nearest(data.t, times[i]); return S.heroLabel(times[i], shareExact(data.wb[k], T - times[i]), data.wb[k]); } });
     }
   }).catch((e) => console.warn("hero:", e.message));
 }
@@ -158,10 +161,10 @@ function twoPlate() {
       <div class="actions" style="margin-top:8px"><button class="btn btn-go" type="button" id="tw-show">Show me</button></div>
       <p class="verdict" id="tw-verdict" aria-live="polite"></p></div>
     <div class="chart-wrap" id="tw-cost"></div><div class="chart-wrap" id="tw-bound"></div>
-    <ul class="legend"><li><span class="key key-ex">Best bound</span></li><li><span class="key key-pm">Per-moment</span></li><li><span class="key key-avg">Averaged cost</span></li><li><span class="key key-wb">Weighted</span></li></ul>
+    <ul class="legend"><li><span class="key key-ex">Best bound</span></li><li><span class="key key-pm">Per-moment</span></li><li><span class="key key-avg">Averaged cost</span></li><li><span class="key key-wb">Weighted</span></li><li id="tw-codekey" hidden><span class="key key-avg-code">Averaged cost, as the paper's code computes it</span></li></ul>
     <dl class="reads" id="tw-reads"></dl><p class="say" id="tw-say"></p><p class="fine" id="tw-state" aria-live="polite"></p>`;
   const pick = $("#tw-pick", el), note = $("#tw-note", el), costEl = $("#tw-cost", el), boundEl = $("#tw-bound", el);
-  const reads = $("#tw-reads", el), say = $("#tw-say", el), state = $("#tw-state", el), verdict = $("#tw-verdict", el);
+  const reads = $("#tw-reads", el), say = $("#tw-say", el), state = $("#tw-state", el), verdict = $("#tw-verdict", el), codeKey = $("#tw-codekey", el);
   const own = () => deadlineOf(choice);
   const draw = () => {
     if (!data) { boundEl.innerHTML = ""; return; }
@@ -171,15 +174,18 @@ function twoPlate() {
     const top = finiteMax(ex, pm, avg, wb) * 1.12;
     const f = frame(boundEl, { x: [0, r.view], y: [0, Math.max(0.4, top)], aspect: 0.46, minH: 170, maxH: 280 });
     let g = axes(f, { yl: "bound (evidence)", xl: "time", grid: true });
+    const until = codeUntil(r);
+    if (until !== null) g += line(f, r.t, shift(r.avgCode), "avg-code");
     g += line(f, r.t, avg, "avg") + line(f, r.t, pm, "pm") + line(f, r.t, wb, "wb") + line(f, r.t, ex, "ex");
+    codeKey.hidden = until === null;
     if (dl !== null) g += deadlineMark(f, dl);
     boundEl.innerHTML = svg(f, g, `For ${labelOf(choice)}: the best bound, the per-moment rule, the averaged-cost rule, and the weighted rule`);
     const L = S.lossText;
     reads.innerHTML = `<div class="k-pm"><dt>Per-moment loss</dt><dd>${L(r.loss.pm)}<small>points per 100 trials</small></dd></div>
-      <div class="k-avg"><dt>Averaged-cost loss</dt><dd>${L(r.loss.avg)}<small>points per 100 trials</small></dd></div>
+      <div class="k-avg"><dt>Averaged-cost loss</dt><dd>${L(r.loss.avg)}<small>${until !== null ? `by its definition; ${L(r.loss.avgCode)} as the paper's code computes it` : "points per 100 trials"}</small></dd></div>
       <div class="k-wb"><dt>Weighted loss</dt><dd>${L(r.loss.wb)}<small>points per 100 trials</small></dd></div>`;
-    say.textContent = S.twoSay(labelOf(choice), r.loss, dl, dl !== null && !r.own);
-    verdict.textContent = S.twoVerdict(guess, dl !== null);
+    say.textContent = S.twoSay(labelOf(choice), r.loss, dl, dl !== null && !r.own, until);
+    verdict.textContent = S.twoVerdict(guess, dl !== null, until);
     liftReady(fig);
   };
   const run = () => {
@@ -187,7 +193,7 @@ function twoPlate() {
     const o = own();
     el.querySelectorAll('input[name="tw-dl"]').forEach((x) => { x.disabled = o !== null; });
     if (o !== null) { add = null; setSeg(el, "tw-dl", "none"); }
-    note.textContent = o !== null ? `Your schedule has its own deadline, at ${o}.` : choice.id === "constant" ? S.constantNote() : "Add a deadline to make the cost infinite after it.";
+    note.textContent = S.twoNote(o, choice.id === "constant", add);
     data = null; draw(); reads.innerHTML = ""; say.textContent = "";
     state.textContent = "Solving the dynamic program and the rules…";
     const c = choice, a = o !== null ? null : add;
@@ -201,10 +207,10 @@ function twoPlate() {
   keepDrawn(boundEl, draw);
   follow(pick, (c) => { choice = c; run(); });
   onSeg(el, "tw-dl", (v) => { add = v === "none" ? null : +v; run(); });
-  onSeg(el, "tw-guess", (v) => { guess = v; verdict.textContent = S.twoVerdict(guess, data ? data.deadline !== null : own() !== null || add !== null); });
+  onSeg(el, "tw-guess", (v) => { guess = v; verdict.textContent = S.twoVerdict(guess, data ? data.deadline !== null : own() !== null || add !== null, data ? codeUntil(data) : null); });
   $("#tw-show", el).addEventListener("click", () => {
     if (own() === null && add === null) { add = 1.5; setSeg(el, "tw-dl", 1.5); run(); }
-    else verdict.textContent = S.twoVerdict(guess || "zero", true);
+    else verdict.textContent = S.twoVerdict(guess || "zero", true, data ? codeUntil(data) : null);
   });
   run();
 }
@@ -265,7 +271,7 @@ function iteratePlate() {
     const st = settle();
     say.textContent = S.iterateSay(k, change[k - 1] ?? 0, where[k - 1] ?? 0, st, change[29], reveal);
     reads.innerHTML = `<div class="k-wb"><dt>Largest move in update ${k}</dt><dd>${k ? S.num(change[k - 1]) : "–"}<small>${k ? "at time " + fmt(where[k - 1], 2) : "the start"}</small></dd></div>
-      <div><dt>Settled after</dt><dd>${reveal ? (st === null ? "> 30" : st) : "?"}<small>${reveal ? "updates, to within 0.001" : "guess first, or show me"}</small></dd></div>`;
+      <div><dt>Moves below 0.001 from update</dt><dd>${reveal ? (st === null ? "none" : st) : "?"}<small>${reveal ? (st === null ? "the 30th still moves more" : "through update 30") : "guess first, or show me"}</small></dd></div>`;
     if (reveal) verdict.textContent = S.iterateVerdict(guess, st, change[29]);
   };
   const tick = () => { timer = 0; if (!playing || !visible || !data) return; if (k >= 30) { stopPlay(); return; } k++; drawAll(); timer = setTimeout(tick, 420); };
@@ -286,7 +292,7 @@ function iteratePlate() {
         for (let i = 0; i < r.t.length; i++) { const d = Math.abs(r.updates[j][i] - r.updates[j - 1][i]); if (d > m) { m = d; at = r.t[i]; } }
         change.push(m); where.push(at);
       }
-      state.textContent = `Algorithm 1 at the times 0, 0.02, …, ${fmt(r.view, 2)}; each time point is updated on its own.`;
+      state.textContent = `Algorithm 1 at the times 0, 0.02, …${r.deadline !== null ? ` and at the deadline, ${+r.view.toFixed(2)}` : `, ${fmt(r.view, 2)}`}; each time point is updated on its own.`;
       drawAll();
       if (visible) startPlay();
     }).catch((e) => stopped(state, e));
@@ -373,7 +379,7 @@ function contractionPlate() {
         say.textContent = S.p13Say(0, { eps: r.eps, lo: r.lo, hi: r.hi, min: mn, max: mx, crossings: r.crossings });
       } else {
         const ratios = runs.map((x) => x.slope / x.eps);
-        head.textContent = "Step 3: the map is nearly flat, and flatter for a smaller change; the faint curves are the other sizes.";
+        head.textContent = "Step 3: the map is nearly flat, and flatter for a smaller change; the faint curves are the other sizes. The slope read here is the steepest secant between neighboring levels.";
         reads.innerHTML = `<div class="k-wb"><dt>Steepest slope on I</dt><dd>${fmt(r.slope, 4)}</dd></div><div><dt>Slope ÷ ε</dt><dd>${ratios.map((v) => fmt(v, 3)).join(", ")}<small>for ε = ${EPS.map((e) => Math.round(e * 100) + "%").join(", ")}</small></dd></div>`;
         say.textContent = S.p13Say(2, { eps: r.eps, slope: r.slope, ratios });
       }
@@ -387,7 +393,7 @@ function contractionPlate() {
       A.innerHTML = svg(f, g, "The weighted rule's error from the first-order bound, divided by epsilon squared, for four sizes of change");
       legend.innerHTML = keyList([["key-wb", `ε = ${Math.round(r.eps * 100)}%`], ["key-faint", "The other sizes"]]);
       const ratios = runs.map((x) => x.errW / (x.eps * x.eps));
-      head.textContent = "Step 4: divided by ε², the rule's distance from b₀ + εβ is about the same curve at every size: second order.";
+      head.textContent = "Step 4: divided by ε², Algorithm 1's distance from b₀ + εβ draws nearly the same curve at these four sizes, as a second-order difference would.";
       reads.innerHTML = `<div class="k-wb"><dt>Largest distance</dt><dd>${S.num(r.errW)}<small>at ε = ${Math.round(r.eps * 100)}%</small></dd></div><div><dt>÷ ε²</dt><dd>${ratios.map((v) => fmt(v, 3)).join(", ")}</dd></div>`;
       say.textContent = S.p13Say(3, { eps: r.eps, err: r.errW, ratios });
     } else {
@@ -398,9 +404,9 @@ function contractionPlate() {
       g += line(f, r.ts, pm, "pm") + line(f, r.ts, r.beta, "ex", 'stroke-dasharray="2 3"') + line(f, r.ts, wb, "wb");
       A.innerHTML = svg(f, g, "The weighted and per-moment rules' moves divided by epsilon, beside the first-order term of the best bound");
       legend.innerHTML = keyList([["key-wb", "Weighted, ÷ ε"], ["key-beta", "β, the best bound's first-order term"], ["key-pm", "Per-moment, ÷ ε"]]);
-      head.textContent = "Step 5: the weighted rule's move sits on β; the per-moment rule's doesn't, at any size.";
+      head.textContent = "Step 5: Algorithm 1's move sits on β; the per-moment rule's doesn't, at any of these four sizes.";
       reads.innerHTML = `<div class="k-wb"><dt>Weighted, largest gap to β</dt><dd>${fmt(r.errW / r.eps, 4)}</dd></div><div class="k-pm"><dt>Per-moment, largest gap</dt><dd>${fmt(r.errPm / r.eps, 3)}<small>${runs.map((x) => fmt(x.errPm / x.eps, 3)).join(", ")} across the sizes</small></dd></div>`;
-      say.textContent = S.p13Say(4, { eps: r.eps, wb: r.errW / r.eps, pm: r.errPm / r.eps });
+      say.textContent = S.p13Say(4, { eps: r.eps, wb: r.errW / r.eps, pm: r.errPm / r.eps, pms: runs.map((x) => x.errPm / x.eps) });
     }
     liftReady(fig);
   };
@@ -435,8 +441,8 @@ function contractionPlate() {
     A.innerHTML = svg(f, g, "The distance of the kernel's transfer function from 1, zero only at frequency zero");
     legend.innerHTML = keyList([["key-wb", "|1 − w̃(−iω)| at c₀ = 0.1"]]);
     const mn = Math.min(...v.filter((_, i) => om[i] >= 0.5));
-    head.textContent = "Step 6: a change that is its own kernel-weighted average would need w̃(−iω) = 1 at some ω ≠ 0; that never happens.";
-    reads.innerHTML = `<div class="k-wb"><dt>Smallest for ω ≥ 0.5</dt><dd>${fmt(mn, 3)}</dd></div>`;
+    head.textContent = "Step 6: a change that is its own kernel-weighted average would need w̃(−iω) = 1 at some ω ≠ 0; Corollary 8 rules that out, and the curve, sampled from 0 to 20, stays away from 0 except at ω = 0.";
+    reads.innerHTML = `<div class="k-wb"><dt>Smallest, sampled at ω from 0.5 to 20</dt><dd>${fmt(mn, 3)}</dd></div>`;
     say.textContent = S.p13Say(5, { min: mn });
     liftReady(fig);
   };
@@ -467,10 +473,11 @@ function rootsPlate() {
   const mapEl = $("#rt-map", el), kerEl = $("#rt-ker", el), reads = $("#rt-reads", el), say = $("#rt-say", el), state = $("#rt-state", el), verdict = $("#rt-verdict", el);
   const tl = $("#rt-tl", el), tin = $("#rt-t", el), tout = $("#rt-tout", el), bin = $("#rt-b", el), bout = $("#rt-bout", el), note = $("#rt-note", el);
   const costNow = () => (source === "spike" ? spikeCost : scheduleFor(choice).cost);
+  const dlNow = () => (source === "spike" ? null : deadlineOf(choice));
   const draw = () => {
     bout.textContent = fmt(b, 3);
     if (!data) { mapEl.innerHTML = ""; kerEl.innerHTML = ""; return; }
-    const cost = costNow(), Tb = mapT(b, t, cost, true);
+    const cost = costNow(), Tb = mapExact(b, t, cost, dlNow());
     const f = frame(mapEl, { x: [0, data.hi], y: [0, data.hi], aspect: 0.72, minH: 220, maxH: 330 });
     let g = axes(f, { yl: `T(b; ${+t.toFixed(2)})`, xl: "level b", grid: true });
     g += line(f, [0, data.hi], [0, data.hi], "diag") + line(f, data.bs, data.map, "wb");
@@ -504,7 +511,7 @@ function rootsPlate() {
       const dl = deadlineOf(choice), end = (dl ?? VIEW) - 0.02;
       tin.max = String(end); if (t > end) t = end; tin.value = t; tout.textContent = fmt(t, 2);
       note.textContent = `${labelOf(choice)}, seen from time ${fmt(t, 2)}.`;
-    } else { t = 0; note.textContent = "A cost near 4 for the first 0.2 time units, then 0.02, seen from time 0."; }
+    } else { t = 0; note.textContent = "A cost that starts near 4 and falls toward 0.02, the fall centered at time 0.2, seen from time 0."; }
     state.textContent = "Averaging for each level…";
     work({ job: "roots", choice: source === "spike" ? null : choice, t }, { key: "roots" }).then((m) => {
       data = m; bin.max = String(m.hi.toFixed(3)); if (b > m.hi) b = m.hi / 2; bin.value = b;
@@ -607,7 +614,7 @@ function algorithmPlate() {
       f = frame(chart, { x: [0, r.view], y: [0, Math.max(0.4, finiteMax(ex, r.wb, pm) * 1.12)], aspect: 0.44, minH: 170, maxH: 260 });
       g = axes(f, { yl: "bound (evidence)", xl: "time", grid: true });
       g += line(f, r.t, pm, "pm") + line(f, r.t, r.wb, "wb-thin") + line(f, r.t, wb, "wb") + line(f, r.t, ex, "ex");
-      const k = Math.min(r.t.length - 1, Math.round(tk / 0.02));
+      const k = nearest(r.t, tk);
       g += `<path class="dim" stroke-dasharray="2 3" d="M${f.sx(tk).toFixed(1)} ${f.t}V${f.H - f.b}"/><circle class="wb-dot" cx="${f.sx(r.t[k]).toFixed(1)}" cy="${f.sy(wb[k]).toFixed(1)}" r="4.5"/>`;
       label = "The rule over the window before and after the shift for checking every 0.01, beside the dynamic program"; items = [["key-ex", "Best bound"], ["key-wb", "Weighted, moved in"], ["key-faint", "Before the shift"], ["key-pm", "Per-moment, moved in"]];
       const sh = SHIFT;
