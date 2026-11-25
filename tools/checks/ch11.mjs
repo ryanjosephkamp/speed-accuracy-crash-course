@@ -142,28 +142,46 @@ const T10 = M.TABLE10_CHOICES;
     falls = Math.min(falls, u(0) - u(Math.round(VIEW / 0.005)));
   }
   check("rules", "on all five constant costs, the program's belief bound u = Phi^-1(g) falls by more than 0.05 from t = 0 to 2.5, as a rising cost per unit of information makes it (the chapter's cause); at a constant kappa it would be U(kappa) throughout", falls > 0.05, `smallest fall ${falls.toFixed(3)}`);
-  let agree = true, at = "";
-  for (const c of [0.05, 0.1, 0.2, 0.3, 0.4, 1]) for (let t = 0; t <= 3; t += 0.05) {
-    const q = 4 * c * (t + 1); if (Math.abs(q - 1) < 0.02) continue;
+  // the unshifted plug-in bound: 0 exactly where 4c(t + a) >= 1 (its bisection brackets the root from 1e-6, so a root
+  // closer to 0 than that, within a hair of the switch, also reads as 0)
+  let agree = true, at = "", nRaw = 0;
+  for (const c of [0.05, 0.1, 0.2, 0.3, 0.4, 1]) for (let t = 0; t <= 3; t += 0.01) {
+    const q = 4 * c * (t + 1); if (Math.abs(q - 1) < 1e-3) continue;
+    nRaw++;
     if ((M.plugInAt(c, t) === 0) !== (q >= 1)) { agree = false; at = `c ${c}, t ${t.toFixed(2)}`; }
   }
-  check("rules", "the plug-in bound is 0 (the rule decides at once) exactly where 4 c (t + a) >= 1, with a = 1, away from that boundary: the known-reliability rule for a small estimated drift doesn't wait", agree, at || "costs 0.05 to 1, times 0 to 3");
-  // the rules plate's sentence on the plug-in's zero stretches, held to the rule 4 c(t) (t + 1) >= 1 computed from the
-  // schedule, not from the run: Table 10's eight, a fall at time 2 by 16 (0 from the start, then not), and edge cases
-  const stretches = (cost, ts) => { const out = []; let from = null; ts.forEach((t, i) => { const z = 4 * cost(t) * (t + 1) >= 1; if (z && from === null) from = t; if (!z && from !== null) { out.push([from, ts[i - 1]]); from = null; } }); if (from !== null) out.push([from, null]); return out; };
-  let zok = true, zdet = "", seen = 0;
-  const zcases = [...T10, { id: "fall", params: { at: 2, factor: 16 } }, { id: "jump", params: { at: 1, factor: 16 } }, { id: "pulse", params: { at: 0.8, factor: 8 } }, { id: "deadline", params: { at: 0.75, c: 0.3 } }, { id: "draw", points: defaultDrawing().map((c, i) => (i > 8 && i < 15 ? 0.6 : 0.1)) }];
+  check("rules", "the unshifted plug-in bound is 0 exactly where 4 c (t + a) >= 1, with a = 1, at every time from 0 to 3 in steps of 0.01 farther than 0.001 from that switch: the known-reliability rule for a small estimated drift doesn't wait", agree, at || `${nRaw} times at costs 0.05 to 1`);
+  // the plotted plug-in bound is moved in by delta = 0.5826 sqrt(0.005) and clipped at 0, so it is 0 wherever the
+  // unshifted bound is at most delta: a little before the switch above. The plate's stretches are held to that, at every
+  // time drawn on each schedule (none skipped), and the sentence to each stretch's rendered endpoints
+  const delta = 0.5826 * Math.sqrt(0.005);
+  const runsOf = (zero, ts) => { const out = []; let from = null; ts.forEach((t, i) => { if (zero[i] && from === null) from = t; if (!zero[i] && from !== null) { out.push([from, ts[i - 1]]); from = null; } }); if (from !== null) out.push([from, null]); return out; };
+  const T2 = (t) => (Math.abs(t - Math.round(t)) < 1e-9 ? String(Math.round(t)) : t.toFixed(2).replace(/0$/, ""));
+  const phrase = ([a, b], last) => (a <= 1e-9 && b === null ? "at all of them" : a <= 1e-9 ? `from the start to t = ${T2(b)}` : b === null ? `from t = ${T2(a)} to the last time drawn, ${T2(last)}` : a === b ? `at t = ${T2(a)}` : `from t = ${T2(a)} to t = ${T2(b)}`);
+  let zok = true, zdet = "", seen = 0, nTimes = 0;
+  const zcases = [...T10, { id: "fall", params: { at: 2, factor: 16 } }, { id: "jump", params: { at: 1, factor: 16 } }, { id: "pulse", params: { at: 0.8, factor: 8 } }, { id: "deadline", params: { at: 0.75, c: 0.3 } },
+    { id: "draw", points: defaultDrawing().map((c, i) => (i > 8 && i < 15 ? 0.6 : 0.1)) }, { id: "draw", points: Array(26).fill(0.2499999) }];
   for (const ch of zcases) {
     const cost = costOf(ch), dl = deadlineOf(ch), run = M.unknownRun(cost, dl, dl ?? VIEW), st = M.rulesStats(run, dl);
-    const shown = M.shownBefore(run.t, dl).map((i) => run.t[i]);
-    const near = shown.some((t) => Math.abs(4 * cost(t) * (t + 1) - 1) < 0.03);   // a time at the switch: skip
-    const want = stretches(cost, shown), sent = say(S.rulesSay({ ...st, losses: null }));
+    const idx = M.shownBefore(run.t, dl), shown = idx.map((i) => run.t[i]);
+    nTimes += shown.length;
+    const want = runsOf(shown.map((t) => M.plugInAt(cost(t), t) <= delta), shown), sent = say(S.rulesSay({ ...st, losses: null }));
     if (st.plugZero.length) seen++;
-    if (!near && JSON.stringify(want) !== JSON.stringify(st.plugZero)) { zok = false; zdet = `${label(ch)}: run ${JSON.stringify(st.plugZero)}, rule ${JSON.stringify(want)}`; }
-    if ((st.plugZero.length > 0) !== /plug-in bound is 0/.test(sent) || (want.length && want[0][0] === 0 && !/from the start|at all of them/.test(sent))) { zok = false; zdet = sent; }
+    if (!idx.every((i, k) => (run.plug[i] === 0) === (M.plugInAt(cost(shown[k]), shown[k]) <= delta))) { zok = false; zdet = `${label(ch)}: a drawn time where the plotted bound is 0 but the unshifted one is above delta, or the reverse`; }
+    if (JSON.stringify(want) !== JSON.stringify(st.plugZero)) { zok = false; zdet = `${label(ch)}: run ${JSON.stringify(st.plugZero)}, threshold ${JSON.stringify(want)}`; }
+    const named = want.slice(0, 3).every((r) => sent.includes(phrase(r, st.lastShown))) && (want.length > 3) === / more stretches/.test(sent);
+    if ((want.length > 0) !== /plug-in bound is 0/.test(sent) || !named) { zok = false; zdet = `${label(ch)}: ${sent}`; }
     if (dl !== null && !(shown[shown.length - 1] < dl)) { zok = false; zdet = `${label(ch)}: a time at the deadline is drawn`; }
   }
-  check("rules", "on Table 10's eight schedules, a fall at time 2 by 16, a late jump, a pulse, a deadline at 0.75, and a drawing that rises in the middle, the plate's stretches where the plug-in bound is 0 are the times drawn with 4c(t)(t + 1) >= 1, the sentence names each (a zero at the start as from the start), and no time at a deadline is drawn", zok && seen >= 4, zdet || `${zcases.length} schedules, ${seen} with zero stretches`);
+  check("rules", `on ${zcases.length} schedules (Table 10's eight, a fall at time 2 by 16, a late jump, a pulse, a deadline at 0.75, a drawing that rises in the middle, and a flat drawing at 0.2499999), at every time drawn the plotted plug-in bound is 0 exactly where the unshifted one is at most 0.5826 sqrt(0.005); the plate's stretches are those times, the sentence names each stretch's endpoints as drawn, and no time at a deadline is drawn`,
+    zok && seen >= 4, zdet || `${nTimes} times on ${zcases.length} schedules, ${seen} with zero stretches`);
+  {
+    // where the two criteria part: a flat cost just under 1/4 has 4c(0 + a) < 1, so the unshifted bound is positive at
+    // t = 0, but it is below delta, and the plotted bound is 0 from the start
+    const cost = costOf({ id: "draw", points: Array(26).fill(0.2499999) }), raw0 = M.plugInAt(cost(0), 0), run = M.unknownRun(cost, null, VIEW);
+    check("rules", "a flat drawing at 0.2499999: at t = 0 the unshifted plug-in bound is positive (4c(t + a) < 1) and below 0.5826 sqrt(0.005), and the plotted bound there is 0", raw0 > 0 && raw0 < delta && run.plug[0] === 0 && 4 * cost(0) < 1,
+      `unshifted ${raw0.toFixed(5)}, delta ${delta.toFixed(5)}, plotted ${run.plug[0]}`);
+  }
   // kappa0 / (t + a) is constant on the information clock: the weighted rule is the frozen-time rule there
   const flat = (t) => 0.1 / (t + 1), ts = [0, 0.4, 1.3, 2.5];
   const d = maxOf(ts.map((t, i) => Math.abs(M.weightedTime(flat, ts)[i] - M.frozenTime(flat, ts)[i])));
@@ -340,7 +358,7 @@ const T10 = M.TABLE10_CHOICES;
   check("sine", "the plate's program (grid 0.02, every 0.01) matches each bound's first-order prediction within 1% on the swing and 1.5 degrees on the lead, at both ratios and all five frequencies", g < 0.01 && l < 1.5, `largest ${(100 * g).toFixed(2)}%, ${l.toFixed(2)} degrees`);
   const fine = M.sineRun(0.5, 8, { dt: 0.005, h: 0.01, every: 4 }), cb = M.constantBounds(0.1, 1, 0.5), tr = M.transferAt(8, cb.lo, cb.hi);
   const lf = Math.abs(wrap(fine.fitH.phase - 180) - tr.hi.lead);
-  check("sine", "the lag is the grid's: halving both steps cuts the upper bound's lead gap at omega = 8 (r- = 0.5) by a factor between 1.6 and 2.5", at8 / lf > 1.6 && at8 / lf < 2.5, `${at8.toFixed(3)} degrees on (0.01, 0.02), ${lf.toFixed(3)} on (0.005, 0.01)`);
+  check("sine", "halving both steps (the evidence grid and the check interval) cuts the upper bound's lead residual from the first order at omega = 8 (r- = 0.5) by a factor between 1.6 and 2.5", at8 / lf > 1.6 && at8 / lf < 2.5, `${at8.toFixed(3)} degrees on (0.01, 0.02), ${lf.toFixed(3)} on (0.005, 0.01)`);
   check("words", "the sinusoid sentences on the plate's ten runs print no NaN, undefined, Infinity, or null", words, "");
 }
 
@@ -363,6 +381,19 @@ const T10 = M.TABLE10_CHOICES;
     sym = Math.max(sym, P.symGap); half += P.g.filter((g) => g === 0.5).length;
   }
   check("program", "in the program over beliefs, deciding minus waiting is the same at the two beliefs next to 1/2 by mirror symmetry (within 1e-12), and the reported bound of 1/2 occurs on these runs where both stop", sym < 1e-12 && half > 1, `largest asymmetry ${sym.toExponential(1)}, ${half} steps at 1/2`);
+  {
+    // a reported 1/2 is not a center stop: Rising from 0 at rate 2, at t = 1.30 the program reports 1/2, yet from the
+    // center itself one step of the same transition (midpoint nodes, weights proportional to exp(u^2/2 - u^2/(2e)) with
+    // e = dt/(t + a)), then deciding, earns more than deciding there at once; waiting is worth at least that much
+    const cost = costOf({ id: "rising", params: { at: 0, rate: 2 } }), P = M.unknownProgram(cost, 10, { n: 300, dt: 0.005 }), k = Math.round(1.3 / 0.005);
+    const n = 300, g = Array.from({ length: n }, (_, i) => (i + 0.5) / n), u = g.map(M.normPpf), e = 0.005 / (P.ts[k] + 1);
+    const z = u.map((x) => 0.5 * x * x - (x * x) / (2 * e)), zm = Math.max(...z);
+    let num = 0, den = 0;
+    for (let j = 0; j < n; j++) { const p = Math.exp(z[j] - zm); num += p * Math.max(g[j], 1 - g[j]); den += p; }
+    const stepThenDecide = num / den - cost(P.ts[k]) * 0.005;
+    check("program", "Rising from 0 at rate 2, at t = 1.30: the program reports the bound 1/2, but at the center itself one more step of its own transition and then deciding beats deciding at once (so 1/2 is what the grid reports when its first nodes stop, not a center stop)",
+      P.g[k] === 0.5 && stepThenDecide > 0.5, `reported ${P.g[k]}; one step then decide ${stepThenDecide.toFixed(8)} against 0.5`);
+  }
   // the sine plate's bounds stay far from x*, where the two-bound program would report x* for a bound below its first step
   let far = Infinity;
   for (const rm of [0.5, 0.25]) for (const om of [0.5, 8]) { const r = M.sineRun(rm, om), xs = M.xStar(1, rm), mv = 0.01 * Math.max(...r.dh.map(Math.abs), ...r.dl.map(Math.abs)); far = Math.min(far, r.h0 - xs - mv, xs - r.l0 - mv); }
@@ -377,7 +408,7 @@ const T10 = M.TABLE10_CHOICES;
     const r = gap(0.02) / gap(0.01); od += `${rm}: ${r.toFixed(2)}  `;
     if (!(r > 3.2 && r < 4.8)) ord = false;
   }
-  check("envelope", "the green curve's own crossing near h0 and the first-order bound (the dot) differ by an amount that falls about fourfold when dc halves (second order), so the dots are the linearization, not the curve's root", ord, od);
+  check("envelope", "at the upper bound only, for r-/r+ = 0.5 and 0.25: the green curve's own crossing near h0 and the first-order bound (the dot) differ by an amount that falls about fourfold when dc halves (second order), so the upper dot is the linearization, not the curve's root", ord, od);
   // the sine caption: at low frequencies the program's lead residual is a small fraction of a degree
   let lowLead = 0;
   const wrap = (x) => ((((x + 180) % 360) + 360) % 360) - 180;

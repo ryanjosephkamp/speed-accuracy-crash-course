@@ -5,7 +5,6 @@ const f1 = (x) => x.toFixed(1), f2 = (x) => x.toFixed(2), f3 = (x) => x.toFixed(
 const ms = (x) => `${Math.round(x)} ms`;
 const deg = (x) => `${Math.round(x)}°`;
 const omegaText = (om) => (om >= 10 ? om.toFixed(0) : om >= 1 ? om.toFixed(1) : om.toFixed(2));
-const pct = (x) => (x >= 0.1 ? `${Math.round(x * 100)}%` : x >= 0.001 ? `${(x * 100).toFixed(1)}%` : "less than 0.1%");
 const sizeText = (eps) => (eps >= 1 ? "full size" : eps >= 0.1 ? `${Math.round(eps * 100)}% of its size` : `${(eps * 100).toFixed(2).replace(/0+$/, "").replace(/\.$/, "")}% of its size`);
 
 // ---- the hero -------------------------------------------------------------------------------------------------
@@ -72,16 +71,38 @@ export function phaseSay(c0, peak, m) {
  * outside: a schedule outside the theorem (the rising cost). */
 /** Over which of the plate's times both gaps are taken. */
 export const overTimes = (used, total) => (used === total ? `over all ${total} times drawn` : `over the ${used} of ${total} times where all three curves are defined`);
-const gapText = (x) => (x >= 1 ? `up to ${f1(x)} times the constant cost's urgency` : x >= 0.001 ? `up to ${pct(x)} of the constant cost's urgency` : `less than 0.1% of the constant cost's urgency`);
+const SUP = { "-": "⁻", 0: "⁰", 1: "¹", 2: "²", 3: "³", 4: "⁴", 5: "⁵", 6: "⁶", 7: "⁷", 8: "⁸", 9: "⁹" };
+/** A small positive number with two significant digits: 7.1 × 10⁻⁷. */
+const sci2 = (x) => { const [m, e] = x.toExponential(1).split("e"); return `${m} × 10${String(+e).split("").map((c) => SUP[c]).join("")}`; };
+/** A gap as a share of the constant cost's urgency, readable at any size: whole or one-decimal percents, then two
+ * significant digits, so a small gap that isn't 0 never prints as 0. */
+const share = (x) => (x === 0 ? "0%" : x >= 0.1 ? `${Math.round(x * 100)}%` : x >= 0.001 ? `${(x * 100).toFixed(1)}%` : `${sci2(x * 100)}%`);
+/** The readings' form of a gap: two decimals of a percent, then two significant digits below 0.01%. */
+export const gapShown = (x) => (!Number.isFinite(x) ? "–" : x === 0 ? "0%" : x * 100 >= 0.01 ? `${(x * 100).toFixed(2)}%` : `${sci2(x * 100)}%`);
+const gapText = (x) => (x >= 1 ? `up to ${f1(x)} times the constant cost's urgency` : x > 0 ? `up to ${share(x)} of the constant cost's urgency` : `0`);
+/** Two gaps closer than this are a tie: computed differences that small are not a ranking. */
+export const GAP_TIE = 1e-12;
 export function yoursSay(EPS, k, gFo, gPm, missing = [], outside = false, total = 0) {
   const last = EPS.length - 1, miss = (j) => missing[j] || 0;
   let s = `At ${sizeText(EPS[k])}${k === last ? ", the smallest" : ""}, the first-order urgency is off the best bound's by ${gapText(gFo[k])}, and the per-moment urgency by ${gapText(gPm[k])}`;
   s += miss(k) ? `, both over the ${total - miss(k)} of ${total} times where all three curves are defined: at the other ${miss(k)}, a bound is at or below 0 and has no urgency, and the plate leaves a gap. ` : `, at every time drawn. `;
-  if (k !== last) s += `At the smallest size, ${sizeText(EPS[last])}, the gaps are ${pct(gFo[last])} and ${pct(gPm[last])}${miss(last) ? `, over the ${total - miss(last)} times where all three are defined` : ""}. `;
-  if (gFo[last] < gPm[last]) s += `There the first-order urgency, the one the prediction is about, is the closer of the two to the best bound's.`;
+  if (k !== last) s += `At the smallest size, ${sizeText(EPS[last])}, the gaps are ${share(gFo[last])} and ${share(gPm[last])}${miss(last) ? `, over the ${total - miss(last)} times where all three are defined` : ""}. `;
+  if (Math.abs(gFo[last] - gPm[last]) <= GAP_TIE) s += `There the two gaps are equal to within 10⁻¹², so neither urgency is the closer to the best bound's.`;
+  else if (gFo[last] < gPm[last]) s += `There the first-order urgency, the one the prediction is about, is the closer of the two to the best bound's.`;
   else s += `Even there, on this grid, the first-order urgency is not the closer of the two to the best bound's.`;
   if (outside) s += ` The rising cost grows without bound, so it is outside the theorem: these gaps are a computation, with no theory behind them.`;
   return s;
+}
+
+/** The flat schedule's sentence, at every size: nothing moves, so the three urgencies coincide. */
+export const FLAT_SAY = "On a cost that doesn't move, the three urgencies are the same flat line at every size: both gaps are 0, and neither rule is the closer.";
+/** What the urgency plate prints for its data d at size k (the plate's handler for a new size calls this too): the two
+ * gap readings, the times they cover, and the sentence. */
+export function yoursText(d, EPS, k) {
+  if (d.kind !== "scale") return { fo: null, pm: null, over: null, say: deadlineSay(d.tLast, d.deadline, d.ratio) };
+  const x = d.u[k];
+  return { fo: gapShown(d.gFo[k]), pm: gapShown(d.gPm[k]), over: overTimes(x.used, x.total),
+    say: d.flat ? FLAT_SAY : yoursSay(EPS, k, d.gFo, d.gPm, d.u.map((v) => v.total - v.used), d.outside, x.total) };
 }
 
 export function outsideNote(kind) {

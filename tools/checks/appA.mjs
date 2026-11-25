@@ -195,12 +195,17 @@ for (const [sid, st] of Object.entries(A.strips)) {
   const extra = [...thmRests].filter((id) => id !== "prop:exact" && !exactRests.has(id)).sort();
   check("hero", "finding: Theorem 7 rests on only two more of these, the kernel's lemma and the slope B'(c)", same(extra, ["eq:Bprime", "lem:kernel"]), extra.join(", "));
   check("hero", "finding: its names are the paper's (Theorem 7, Appendix A)", LABELS["thm:main"].num === "7" && LABELS["app:proofs"].num === "A" && A.chapter.finding.includes("Theorem 7") && A.chapter.finding.includes("Appendix A"), A.chapter.finding);
-  // the readings: one step of the proofs is numerical (Corollary 9's maximum), and it gives the two values shown
-  const numLines = []; for (let i = APP_A + 1; i < APP_C; i++) if (/numerical/.test(TEX[i - 1])) numLines.push(i);
+  // the readings: the passage of Corollary 9's proof that finds its maximum numerically, and the two values Corollary 9
+  // states for that maximum (a test of this one passage, not a count of every numerical step in the appendices)
+  const sec = lineOf(/^\\subsection\{Proofs of .*cor:transfer,cor:limits/), next = lineOf(/^\\subsection\{/, sec + 1);
+  const forB = lineOf(/For \(b\)/, sec), forC = lineOf(/For \(c\)/, sec);
+  let numAt = -1; for (let i = sec; i < next; i++) if (`${TEX[i - 1]} ${TEX[i]}`.includes("The maximum is found numerically")) { numAt = i; break; }
   const stmt = TEX.findIndex((l) => /\\MaxLookAhead\b/.test(l) && /\\MaxLookAheadCost\b/.test(l)) + 1;
-  check("hero", "the readings: the proofs in Appendices A and B have one numerical step, in Corollary 9's proof, and the two readings are the two values Corollary 9 states for it",
-    numLines.length === 1 && placeOf(numLines[0]) === "A.7" && stmt > lineOf(/\\label\{cor:limits\}/) && stmt < lineOf(/\\end\{corollary\}/, lineOf(/\\label\{cor:limits\}/)) && same(A.chapter.readings.map((r) => r[0]), ["MaxLookAhead", "MaxLookAheadCost"]),
-    `"numerical" at line ${numLines.join(", ")} (${numLines.map(placeOf).join(", ")}); both values at line ${stmt}, in Corollary 9's statement`);
+  const reading = A.chapter.readings.map((r) => r[1]).join(" ");
+  check("hero", "the readings: in Appendix A.7, the proof of Corollary 9(b) says its maximum over c0 is found numerically; the two readings are the two values Corollary 9 states for that maximum, and their words credit that proof without counting the appendices' numerical steps",
+    sec > 0 && placeOf(numAt) === "A.7" && numAt > forB && numAt < forC && forC < next && stmt > lineOf(/\\label\{cor:limits\}/) && stmt < lineOf(/\\end\{corollary\}/, lineOf(/\\label\{cor:limits\}/)) && /numerically its\s+maximum/.test(TEX[stmt - 2] + " " + TEX[stmt - 1])
+    && same(A.chapter.readings.map((r) => r[0]), ["MaxLookAhead", "MaxLookAheadCost"]) && /Corollary 9's proof/.test(reading) && !/the one step/.test(reading),
+    `"The maximum is found numerically" at line ${numAt} (${placeOf(numAt)}), between "For (b)" at ${forB} and "For (c)" at ${forC}; both values at line ${stmt}, in Corollary 9's statement`);
 }
 // the third exercise: the citations in Appendices A and B
 {

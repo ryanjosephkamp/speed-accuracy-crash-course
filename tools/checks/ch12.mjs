@@ -9,7 +9,7 @@ import * as M from "../../book/assets/js/ch12-model.js";
 import { exactPolicy, boundForCost, toDiscrete } from "../../book/assets/js/model.js";
 import { costOf, deadlineOf, PRESETS, defaultDrawing, VIEW, SPARE, DRAW_TIMES } from "../../book/assets/js/schedules-book.js";
 import * as S from "../../book/assets/js/say-ch12.js";
-import { check, N, asPrinted, ROOT } from "./lib.mjs";
+import { check, N, asPrinted, ROOT, runWorker } from "./lib.mjs";
 
 const V = JSON.parse(readFileSync(join(ROOT, "tools/validity/ch12.json"), "utf8"));
 const rel = (a, b) => Math.abs(a - b) / Math.max(Math.abs(b), 1e-300);
@@ -141,6 +141,20 @@ for (const c of COSTS) {
     if (p.sign < 0) { lower++; lowerSay = S.gateSay(p.hit, p.sign); }
   }
   check("gate", "on 300 seeded paths, both charts draw the same crossing, at the signed level (+b and +a, or −b and −a) and between the two straddling steps, and the sentence names the level", drawnOk === m2 && lower > 0, `${drawnOk} of ${m2} paths; ${lower} at the lower level: ${lowerSay}`);
+  {
+    // the drawn moving bound passes through the marked crossing: gateBoundLine (what the plate draws) has a knot at the
+    // crossing time, so the polyline read there is b(hit), the marked point's height; without that knot it is off
+    const at = (ts, ys, x) => { const i = ts.findIndex((t) => t >= x); if (ts[i] === x) return ys[i]; return ys[i - 1] + ((ys[i] - ys[i - 1]) * (x - ts[i - 1])) / (ts[i] - ts[i - 1]); };
+    let worst = 0, oldGap = 0;
+    for (const seed of [2026 + 12, 25 + 12, ...Array.from({ length: 40 }, (_, i) => 7000 + i)]) {
+      const p = M.gatePath(bnd, K.rng(seed)); if (!Number.isFinite(p.hit)) continue;
+      const L = M.gateBoundLine(p, bnd), d = M.gateDisplay(p, bnd), mark = d.xs[d.xs.length - 1];
+      worst = Math.max(worst, Math.abs(p.sign * at(L.ts, L.b, p.hit) - mark));
+      if (seed === 2026 + 12) { const even = Array.from({ length: 160 }, (_, i) => (L.end * i) / 159); oldGap = Math.abs(at(even, even.map(bnd), p.hit) - Math.abs(mark)); }
+    }
+    check("gate", "on the default path, seed 25's, and 40 more, the moving bound as drawn (gateBoundLine) passes through the marked crossing (within 1e-12); with only its 160 even knots it would miss it slightly", worst < 1e-12 && oldGap > 1e-6,
+      `largest miss ${worst.toExponential(1)}; on the default path, the even knots alone miss by ${oldGap.toExponential(2)}`);
+  }
   const neg = M.gatePath(bnd, K.rng(25 + 12));
   check("gate", "the path for ?seed=25 crosses at the lower level, and the plate says so", neg.sign === -1 && /lower bound/.test(S.gateSay(neg.hit, neg.sign)) && /−a/.test(S.gateSay(neg.hit, neg.sign)), `hit ${neg.hit.toFixed(4)}, sign ${neg.sign}`);
   // to first order, U/U0 = b0/b falls along its tangent 2 - b/b0
@@ -165,8 +179,14 @@ for (const c of COSTS) {
 {
   const say = S.controlSay(2, 0.1, 0.546, 0.23, 1.53, 1.3, 1.34);
   check("control", "the control sentence names the fixed-kernel approximation and says it is the best bound only to first order", /fixed-kernel approximation/.test(say) && /to first order in the size of the change, it is the best bound/.test(say) && !/the bound is the kernel's average/.test(say), say);
-  const past = 1 - M.kernelCdf(0.6, 0.03), m = K.meanLookAhead(0.03);
-  check("control", "at c0 = 0.03 and t = 4, the window holds 0.6 time units ahead: the plate's reading puts about 29% of the weight past its edge, and the mean, 0.618 ahead, lies past it (marked by an arrow)", Math.abs(past - 0.2948) < 0.005 && Math.round(past * 100) === 29 && /the average uses all of it/.test(S.PAST_EDGE) && 4 + m > 4.6, `${(past * 100).toFixed(2)}% past; mean at ${(4 + m).toFixed(3)}`);
+  // the control plate's window (END = 4, so the chart ends at 4.6): the reading and the arrow come from controlWindow,
+  // which the plate calls for both
+  const w1 = M.controlWindow(4, 0.03, 4.6), w2 = M.controlWindow(4, 1, 4.6);
+  check("control", "controlWindow, which the plate's reading and arrow use: at c0 = 0.03 and t = 4 it gives the reading “29%” and puts the mean, 0.618 ahead, past the chart's edge (so the plate draws the arrow); at c0 = 1 it gives no reading, with under 0.5% past the edge",
+    w1.reading === "29%" && !w1.meanInside && w1.meanAt > 4.6 && /the average uses all of it/.test(S.PAST_EDGE) && w2.reading === null && w2.past > 0 && w2.past < M.PAST_SHOWN,
+    `${(w1.past * 100).toFixed(2)}% past, mean at ${w1.meanAt.toFixed(3)}; at c0 = 1, ${(w2.past * 100).toExponential(2)}% past, no reading`);
+  const cap = readFileSync(join(ROOT, "book/content/ch12.py"), "utf8");
+  check("control", "the control caption states the reading's threshold, the plate's own (PAST_SHOWN = 0.005)", cap.includes(`when at least ${M.PAST_SHOWN * 100}% of the weight lies past the right edge`), `PAST_SHOWN ${M.PAST_SHOWN}`);
 }
 
 // ---- the urgency on the reader's schedule, run as the page runs it -----------------------------------------------------
@@ -201,18 +221,46 @@ function scaleJob(cost, c0) {
       say.includes(`both over the ${x.used} of ${x.total} times where all three curves are defined`) && S.overTimes(x.used, x.total).includes(`${x.used} of ${x.total}`), `${x.used} of ${x.total} times; ${say}`);
   }
   check("yours", "the deadline's state line says the program's bound is computed for discrete checking and only the per-moment bound is moved in", /program's bound is computed for checking every 0.01/.test(S.DEADLINE_STATE) && /per-moment bound is moved in by 0.5826/.test(S.DEADLINE_STATE) && !/the bounds are moved in/.test(S.DEADLINE_STATE), S.DEADLINE_STATE);
-  // a deadline, on an even and on an odd time step: the plate stops short of the deadline, where the bound is above 0
-  for (const at of [1, 1.05, 0.45]) {
-    const choice = { id: "deadline", params: { at, c: 0.1 } }, cost = costOf(choice), dl = deadlineOf(choice);
-    const run = exactPolicy(cost, dl), ex = thin(run.ts, run.bounds, dl);
-    const pm = ex.t.map((t) => (t >= dl - 1e-9 ? 0 : toDiscrete(boundForCost(cost(t)), 0.01)));
-    const D = M.deadlineUrgency({ t: ex.t, exact: ex.v, pm, cost: ex.t.map(cost) }, dl);
-    const ok = D.keep.length > 10 && D.tLast < dl && ex.t[ex.t.length - 1] === run.ts[run.ts.length - 1] && D.best.every((v) => Number.isFinite(v) && v > 0) && D.pm.every((v) => Number.isFinite(v)) && D.ratio >= 1;
-    check("yours", `deadline at ${at}: the worker's times end on the forced choice, and the plate draws finite urgencies up to ${D.tLast.toFixed(2)}, short of it`, ok, `${D.keep.length} points, last ratio ${D.ratio.toFixed(2)}`);
+  // a deadline, on an even and on an odd time step: the solver's worker (dp-worker.js, run here as the page runs it) ends
+  // its times on the forced choice, and the plate (deadlineUrgency, then yoursText) stops short of it
+  for (const [at, c] of [[1, 0.1], [1.05, 0.1], [0.45, 0.1], [0.45, 0.5]]) {
+    const choice = { id: "deadline", params: { at, c } }, dl = deadlineOf(choice);
+    const m = await runWorker("../../book/assets/js/dp-worker.js", { job: "bounds", choice });
+    const D = M.deadlineUrgency(m, dl), T = S.yoursText({ kind: "deadline", tLast: D.tLast, deadline: dl, ratio: D.ratio }, EPS, 0);
+    const run = exactPolicy(costOf(choice), dl);
+    const ok = m.ok && D.keep.length > 10 && D.tLast < dl && Math.abs(m.t[m.t.length - 1] - run.ts[run.ts.length - 1]) < 1e-12 && D.best.every((v) => Number.isFinite(v) && v > 0) && D.pm.every((v) => Number.isFinite(v)) && D.ratio >= 1
+      && T.say.includes(`at time ${D.tLast.toFixed(2)}, the last moment the plate draws before the deadline at ${dl.toFixed(2)}`);
+    check("yours", `deadline at ${at}, cost ${c}: the worker's times end on the forced choice, and the plate draws finite urgencies up to ${D.tLast.toFixed(2)}, short of it, and says so`, ok, `${D.keep.length} points, last ratio ${D.ratio.toFixed(2)}; ${T.say}`);
   }
   // schedules with nothing to lead: the Constant preset, a flat drawing, and Smooth at size 0
   const flat = [{ id: "constant", params: { c: 0.1 } }, { id: "draw", points: DRAW_TIMES.map(() => 0.2) }, { id: "smooth", params: { c0: 0.1, size: 0 } }];
   check("yours", "the Constant preset, a flat drawing, and Smooth at size 0 are found not to move, and the Wave preset is found to move", flat.every((ch) => !M.moves(costOf(ch), avg(costOf(ch)), VIEW, SPARE)) && M.moves(costOf({ id: "wave", params: { omega: 2, size: 0.05 } }), 0.1, VIEW, SPARE), "three flat, one moving");
+  // what the plate prints for them at every size the reader picks (the size handler calls yoursText again): the flat
+  // sentence and two gaps of 0, never a winner
+  const t126 = Array.from({ length: 126 }, (_, i) => (i * VIEW) / 125);
+  let flatOk = true, flatSay = "";
+  for (const ch of flat) {
+    const d = M.flatUrgency(t126, avg(costOf(ch)), EPS);
+    for (let k = 0; k < EPS.length; k++) { const T = S.yoursText(d, EPS, k); flatSay = T.say; if (T.say !== S.FLAT_SAY || T.fo !== "0%" || T.pm !== "0%" || /closer of the two/.test(T.say)) flatOk = false; }
+  }
+  check("yours", "the Constant preset, a flat drawing, and Smooth at size 0: at each of the three sizes, the plate's text (yoursText) gives both gaps as 0% and the flat sentence, which names no rule as the closer", flatOk, flatSay);
+  // a nearly flat drawing (its third point raised from 0.1 to 0.100001): the gaps are tiny but not 0, and the plate prints
+  // them to two significant digits instead of 0.00%, before naming the closer one
+  {
+    const choice = { id: "draw", points: DRAW_TIMES.map((t, i) => (i === 2 ? 0.100001 : 0.1)) }, cost = costOf(choice), c0 = avg(cost);
+    const m = await runWorker("../../book/assets/js/dp-worker.js", { job: "scale", choice, c0, eps: EPS, view: VIEW });
+    const { u, gFo, gPm } = M.urgencies(m.t, m.b0, m.runs, cost, c0, EPS), L = EPS.length - 1;
+    const d = { kind: "scale", t: m.t, c0, outside: false, u, gFo, gPm }, T = S.yoursText(d, EPS, L);
+    const tiny = gFo[L] > 0 && gPm[L] > 0 && gFo[L] < 1e-6 && gPm[L] < 1e-6;
+    check("yours", "a nearly flat drawing (one point raised by 10⁻⁶): the smallest size's gaps are positive and under 10⁻⁶, and the plate prints both to two significant digits (not 0.00%) in the readings and the sentence before naming the closer",
+      tiny && !/^0\.00%$/.test(T.fo) && !/^0\.00%$/.test(T.pm) && /× 10⁻/.test(T.fo) && /× 10⁻/.test(T.pm) && T.say.includes(T.fo) && T.say.includes(T.pm) && /× 10⁻[⁰¹²³⁴⁵⁶⁷⁸⁹]+%/.test(T.say) && !/less than 0\.1%/.test(T.say) && /the closer of the two/.test(T.say),
+      `gaps ${gFo[L].toExponential(2)} and ${gPm[L].toExponential(2)}; readings ${T.fo} and ${T.pm}; ${T.say}`);
+  }
+  {
+    const tie = S.yoursSay(EPS, 2, [0.1, 0.01, 3e-9], [0.1, 0.01, 3e-9 + 1e-13]), apart = S.yoursSay(EPS, 2, [0.1, 0.01, 7.1e-9], [0.1, 0.01, 2.1e-7]);
+    check("words", "two gaps equal to within 1e-12 are a tie, named as such; gaps of 7.1e-9 and 2.1e-7 print as 7.1 × 10⁻⁷% and 2.1 × 10⁻⁵% and name the first-order urgency as the closer",
+      /neither urgency is the closer/.test(tie) && !/is the closer of the two|not the closer/.test(tie) && /7\.1 × 10⁻⁷%/.test(apart) && /2\.1 × 10⁻⁵%/.test(apart) && /is the closer of the two/.test(apart), `${tie} | ${apart}`);
+  }
 }
 
 // ---- the self-test against main.tex -------------------------------------------------------------------------------------
