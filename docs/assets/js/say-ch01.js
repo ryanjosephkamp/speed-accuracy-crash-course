@@ -10,7 +10,7 @@ export const bf = (x) => (x > 0 && x < 0.0005 ? "< 0.001" : f3(x));
  * step, where the program still waits at the center. */
 const best3 = (x) => (x > 0 && x < 0.0005 ? "below 0.001 but above 0 (the program still waits at the center)" : f3(x));
 /** "= c" when two significant figures give the cost exactly, "≈ c" when they round it. */
-const eqc = (c) => (+cf(c) === c ? "= " : "≈ ") + cf(c);
+const eqc = (c) => (Math.abs(+cf(c) - c) <= 1e-12 * Math.abs(c) ? "= " : "≈ ") + cf(c);
 /** A cost to two significant figures: 0.10, 0.092, 1.4, 16. */
 export const cf = (c) => (!Number.isFinite(c) ? "infinite" : c >= 10 ? c.toFixed(0) : c.toPrecision(2));
 /** A time to two decimals, without trailing zeros: 0.4, 0.35, 1. */

@@ -2,13 +2,13 @@
 // 16-fold rise, and Figure 1 rebuilt live with the reader's schedule as a fifth panel. The best bound and the weighted
 // look-ahead come from ch01-model.js in ch01-worker.js (the dynamic program and Algorithm 1, from model.js); the
 // per-moment bound is B(c(t)) from model.js's table. The words under each plate come from say-ch01.js.
-import { boundForCost, toDiscrete } from "./model.js?v=942da027e0";
-import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, defaultDrawing, VIEW, SPARE } from "./schedules-book.js?v=942da027e0";
-import { getChoice, setChoice, solve, onVisible, watchVisible, liftReady, calm } from "./book.js?v=942da027e0";
-import { frame, line, axes, svg, fmt, keepDrawn } from "./chart.js?v=942da027e0";
-import { FIG1, fig1Choice, fig1Of, at, ahead, knotsOf, DT, SHIFT } from "./ch01-model.js?v=942da027e0";
-import { panel, nowMarks, panelReadOut, fifthNote, ROWS } from "./ch01-draw.js?v=942da027e0";
-import * as S from "./say-ch01.js?v=942da027e0";
+import { boundForCost, toDiscrete } from "./model.js?v=e579ee3325";
+import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, defaultDrawing, VIEW, SPARE } from "./schedules-book.js?v=e579ee3325";
+import { getChoice, setChoice, solve, onVisible, watchVisible, liftReady, calm } from "./book.js?v=e579ee3325";
+import { frame, line, axes, svg, fmt, keepDrawn } from "./chart.js?v=e579ee3325";
+import { FIG1, fig1Choice, fig1Of, at, ahead, knotsOf, DT, SHIFT } from "./ch01-model.js?v=e579ee3325";
+import { panel, nowMarks, panelReadOut, fifthNote, ROWS } from "./ch01-draw.js?v=e579ee3325";
+import * as S from "./say-ch01.js?v=e579ee3325";
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const plate = (id) => document.getElementById("plate-" + id);
@@ -35,7 +35,7 @@ function follow(pick, onChange) {
 const fail = (id, e) => { const r = rootOf(id); if (r) r.innerHTML = `<p class="plate-fail">The live plate could not start: ${String(e.message).replace(/[<>&]/g, "")}</p>`; console.error(e); };
 
 // ---------------------------------------------------------------- the solver: one schedule's three bounds, shared
-const WORKER = new URL("./ch01-worker.js?v=942da027e0", import.meta.url);
+const WORKER = new URL("./ch01-worker.js?v=e579ee3325", import.meta.url);
 const SOLVED = new Map();
 function three(choice, progress = null) {
   const k = JSON.stringify(choice);
@@ -195,7 +195,7 @@ function risePlate() {
     <div class="controls" style="margin-top:10px"><label class="dial"><span class="ctl-key">Your guess at time ${T}</span><output id="rs-out">–</output>
       <input type="range" id="rs-g" min="0" max="${yTop}" step="0.01" value="${(yTop * 0.75).toFixed(2)}" aria-label="Your guess for the best bound at time ${T}"></label>
       <div class="actions"><button class="btn btn-go" type="button" id="rs-show">Show me</button><button class="btn" type="button" id="rs-again">Guess again</button></div></div>
-    <ul class="legend"><li><span class="key key-pm">Per-moment rule</span></li><li><span class="key key-ex">Best bound</span></li><li><span class="key key-acc">Your guess</span></li></ul>
+    <ul class="legend"><li><span class="key key-pm">Per-moment rule, moved in</span></li><li><span class="key key-ex">Best bound</span></li><li><span class="key key-acc">Your guess</span></li></ul>
     <dl class="reads" id="rs-reads"></dl><p class="say" id="rs-say" aria-live="polite"></p><p class="fine" id="rs-state" aria-live="polite"></p>`;
   const costEl = $("#rs-cost", el), boundEl = $("#rs-bound", el), reads = $("#rs-reads", el), say = $("#rs-say", el), state = $("#rs-state", el);
   const inp = $("#rs-g", el), out = $("#rs-out", el);
@@ -235,7 +235,7 @@ function risePlate() {
     const bT = bestT();
     reads.innerHTML = `<div class="k-acc"><dt>Your guess</dt><dd>${guess === null ? "–" : fmt(guess)}</dd></div>
       <div><dt>Best bound</dt><dd>${fmt(bT, 3)}<small>at time ${T}</small></dd></div>
-      <div class="k-pm"><dt>Per-moment</dt><dd>${fmt(pmT, 3)}<small>at time ${T}</small></dd></div>
+      <div class="k-pm"><dt>Per-moment</dt><dd>${fmt(pmT, 3)}<small>at time ${T}, moved in by ${fmt(SHIFT, 3)}</small></dd></div>
       <div class="k-acc"><dt>Your miss</dt><dd>${guess === null ? "–" : fmt(Math.abs(guess - bT), 3)}</dd></div>`;
     say.textContent = S.riseSay(guess, bT, pmT, T, cost(T), c0, c1);
     liftReady(fig);
@@ -283,7 +283,7 @@ function figurePlate() {
       <input type="range" id="f1-t" min="0" max="${VIEW}" step="0.01" value="${t}" aria-label="Time, across every panel"></label>
       <div class="actions"><button class="btn" type="button" id="f1-play" aria-pressed="false">Play</button></div></div>
     <div class="chart-wrap" id="f1-four"></div>
-    <ul class="legend"><li><span class="key key-ex">Best bound</span></li><li><span class="key key-pm">Per-moment</span></li><li><span class="key key-wb">Weighted look-ahead</span></li><li><span class="key key-acc">Cost of time (log scale)</span></li></ul>
+    <ul class="legend"><li><span class="key key-ex">Best bound</span></li><li><span class="key key-pm">Per-moment, moved in</span></li><li><span class="key key-wb">Weighted look-ahead</span></li><li><span class="key key-acc">Cost of time (log scale)</span></li></ul>
     <div class="controls" style="margin-top:16px">${pickHTML("f1-pick")}</div>
     <p class="fine" id="f1-note" style="margin-bottom:10px"></p>
     <div class="chart-wrap" id="f1-yours"></div>

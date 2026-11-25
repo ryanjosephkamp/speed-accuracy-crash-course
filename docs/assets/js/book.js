@@ -1,7 +1,7 @@
 // What every page of the book shares: the theme and depth switches, the contents menu, the reading line, the
 // reader's schedule (kept in this browser), the solver's worker, plates that wake when they reach the screen,
 // and lifting a live plate into the figure viewer.
-import { defaultChoice } from "./schedules-book.js?v=942da027e0";
+import { defaultChoice } from "./schedules-book.js?v=e579ee3325";
 
 const root = document.documentElement;
 const store = {
@@ -26,7 +26,7 @@ export function setChoice(c) {
 
 // ---- the solver ------------------------------------------------------------------------------------------
 // One worker per script: dp-worker.js by default, or a chapter's own (pass its URL, made with
-// new URL("./chNN-worker.js?v=942da027e0", import.meta.url)). A worker answers { id, ok, ... } or { id, progress }.
+// new URL("./chNN-worker.js?v=e579ee3325", import.meta.url)). A worker answers { id, ok, ... } or { id, progress }.
 let nextId = 1;
 const workers = new Map();
 const pending = new Map();
@@ -44,7 +44,7 @@ function getWorker(url) {
   workers.set(k, w);
   return w;
 }
-const DP_WORKER = new URL("./dp-worker.js?v=942da027e0", import.meta.url);
+const DP_WORKER = new URL("./dp-worker.js?v=e579ee3325", import.meta.url);
 /** Run a job in a worker; a newer job with the same key makes the older one's answer be ignored. */
 const latest = new Map();
 export function solve(job, { key = null, progress = null, worker = DP_WORKER } = {}) {
@@ -193,7 +193,7 @@ export function liftReady(fig) { const b = fig.querySelector(".btn-lift"); if (b
 document.querySelectorAll("[data-claim-map]").forEach((el) => onVisible(el, async () => {
   try {
     const data = JSON.parse(document.getElementById("map-data").textContent);
-    const { mountMap } = await import("./claim-map.js?v=942da027e0");
+    const { mountMap } = await import("./claim-map.js?v=e579ee3325");
     mountMap(el, { data, chapter: el.dataset.chapter ? +el.dataset.chapter : null, focus: el.dataset.focus || "thm:main", links: JSON.parse(el.dataset.links || "{}") });
   } catch (e) {
     el.innerHTML = '<p class="plate-fail">The claim map could not load.</p>';

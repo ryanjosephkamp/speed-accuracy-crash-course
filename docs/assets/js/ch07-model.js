@@ -3,10 +3,10 @@
 // waiting value at a constant cost, the time spent past the bound), and the forward computation that scores a rule
 // and gives its decision times, for the losses on the reader's schedule. tools/checks/ch07.mjs holds these to the
 // paper's generated numbers and to model.js.
-import * as K from "./kernel.js?v=942da027e0";
-import { boundForCost, toDiscrete, belief } from "./model.js?v=942da027e0";
-import { line, dropAt } from "./chart.js?v=942da027e0";
-import { isFlat as isFlatChoice } from "./ch01-model.js?v=942da027e0";
+import * as K from "./kernel.js?v=e579ee3325";
+import { boundForCost, toDiscrete, belief } from "./model.js?v=e579ee3325";
+import { line, dropAt } from "./chart.js?v=e579ee3325";
+import { isFlat as isFlatChoice } from "./ch01-model.js?v=e579ee3325";
 
 /** The paper's Table 1 (tab_sinusoid at the tag), c0 = 0.1 and eps = 0.01: omega, then the swing and the lead in
  * degrees for the closed form, the dynamic program, and the weighted look-ahead. Checked cell by cell against
@@ -103,12 +103,12 @@ export function lookAheadFirst(c0) {
 
 /** The largest lead over frequency for a cost, scanned on a log grid of omega from 0.01 to 1e6: { omega, lead }. */
 export function leadPeak(c0, perDecade = 100) {
-  let best = { omega: NaN, lead: -Infinity };
-  for (let lo = -2; lo <= 6 + 1e-9; lo += 1 / perDecade) {
-    const om = 10 ** lo, l = K.transfer(c0, om).lead;
-    if (l > best.lead) best = { omega: om, lead: l };
-  }
-  return best;
+  // the scan: omega = 10^(-2 + k / perDecade), k = 0 .. 8 perDecade, so its last frequency is 10^6
+  const n = 8 * perDecade, oms = Array.from({ length: n + 1 }, (_, k) => 10 ** (-2 + k / perDecade)), leads = oms.map((om) => K.transfer(c0, om).lead);
+  let k = 0; for (let j = 1; j <= n; j++) if (leads[j] > leads[k]) k = j;
+  // after a peak above 45: the first scanned frequency where the lead is below 45 again
+  let back = NaN; if (leads[k] > 45) for (let j = k + 1; j <= n; j++) if (leads[j] < 45) { back = oms[j]; break; }
+  return { omega: oms[k], lead: leads[k], back, last: { omega: oms[n], lead: leads[n], rising: leads[n] > leads[n - 1] } };
 }
 
 /** d log f / d log x by a central difference. */

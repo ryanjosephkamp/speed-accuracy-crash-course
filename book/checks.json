@@ -1,7 +1,7 @@
 {
  "date": "2026-11-25",
- "total": 1407,
- "passed": 1407,
+ "total": 1418,
+ "passed": 1418,
  "results": [
   {
    "file": "book",
@@ -1026,6 +1026,13 @@
    "detail": "21 times between (first 1.52), 29 center stops (first 1.94), 0 mismatched; both cases stated: true"
   },
   {
+   "file": "ch00",
+   "plate": "words",
+   "name": "chapter 0's text says the program agrees with the paper's code run on the same grid, limits the nondecreasing-cost claim to costs the standing assumption allows, and the guess plate's caption gives the log scale and the per-moment bound's shift",
+   "ok": true,
+   "detail": "ch00.py"
+  },
+  {
    "file": "ch01",
    "plate": "rule",
    "name": "B(c) from the page's table matches the root of sinh 2b + 2b = 1/c for costs 0.004 to 8 (within 1e-5)",
@@ -1364,7 +1371,7 @@
   {
    "file": "ch01",
    "plate": "rise",
-   "name": "by t = 0.2, with the cost within 4% of 0.1, the best bound has come down more than three times as far as the per-moment bound (the text's claim), and it falls at every step to 0.4",
+   "name": "by t = 0.2, with the cost within 4% of 0.1, the best bound has come down about eight times as far as the per-moment bound (the text's claim: between 7.5 and 8.5 times), and it falls at every step to 0.4",
    "ok": true,
    "detail": "cost 0.1037; best down 0.170, per-moment down 0.021"
   },
@@ -1528,6 +1535,13 @@
    "name": "costs print to two significant figures",
    "ok": true,
    "detail": "0.10, 0.092, 1.4, 16"
+  },
+  {
+   "file": "ch01",
+   "plate": "words",
+   "name": "a drawing held at 0.1 everywhere (its cost read back through logs, off 0.1 in the last binary digit) prints c(0) = 0.10, not ≈",
+   "ok": true,
+   "detail": "c(0) - 0.1 = 1.4e-17; At time 0, the cost is c(0) = 0.10, so the per-moment bound …"
   },
   {
    "file": "ch02",
@@ -2974,6 +2988,13 @@
   {
    "file": "ch03",
    "plate": "value",
+   "name": "on the plate's grid, W = V - g never rises with y by more than 1e-9 at any kept row, for all ten presets at their defaults and the default drawing, with the last moment 6 past the window or at time 2.5",
+   "ok": true,
+   "detail": "22 runs, no rise"
+  },
+  {
+   "file": "ch03",
+   "plate": "value",
    "name": "jump x32 at 0.2, time 1: where the paper's code reports 0, the page's bound lies between y = 0 and the first step, and the program waits at y = 0",
    "ok": true,
    "detail": "bound 0.01814, V(1, 0) 0.508359 vs g(0) 0.5"
@@ -3429,9 +3450,9 @@
   {
    "file": "ch04",
    "plate": "later",
-   "name": "and reaches that rate to the precision shown (two decimals) just before the jump, from evidence 0, where the program waits at least one check (the text says so)",
+   "name": "and reaches that rate to the precision shown (two decimals) just before the jump, from evidence 0, with the program's bound above 0 at both start times, 0.49 and 0.50 (the text says so)",
    "ok": true,
-   "detail": "1.4999986 at 0.49, evidence 0; the bound there is 0.245"
+   "detail": "1.4999986 at 0.49, evidence 0; the bounds at 0.49 and 0.50 are 0.245 and 0.097"
   },
   {
    "file": "ch04",
@@ -5130,6 +5151,13 @@
   {
    "file": "ch07",
    "plate": "lead",
+   "name": "at each cost the plates offer (0.02, 0.1, 0.3, 1), the lead at omega = 1e6, the scan's last frequency, is below 45 degrees and above its value at the frequency before; at 1 it rises above 45 and is below 45 again at a later scanned frequency; at the others it stays below 45; the half-integration plate's sentence at 0.02, 0.1, and 1 prints those numbers",
+   "ok": true,
+   "detail": "At c₀ = 0.02, the lead stays below 45° at every frequency scanned; at ω = 10⁶, the highest frequency scanned, it is 44.972°, below 45° and rising. | At c₀ = 0.1, the lead stays below 45° at every frequency scanned; at ω = 10⁶, the highest frequency scanned, it is 44.975°, below 45° and rising. | At c₀ = 1, the lead rises above 45°, to 45.95° near ω = 66, falls back below 45° by ω = 115, and at ω = 10⁶, the highest frequency scanned, it is 44.993°, below 45° and rising."
+  },
+  {
+   "file": "ch07",
+   "plate": "lead",
    "name": "at c0 = 1 the lead passes 45 degrees (about 46, near omega = 66)",
    "ok": true,
    "detail": "45.951 at 66.1"
@@ -5445,9 +5473,9 @@
   {
    "file": "ch07",
    "plate": "words",
-   "name": "the lead sentence says the lead passes 45 degrees at c0 = 1 and not at 0.1, and never says it is capped",
+   "name": "the lead sentence says the lead rises above 45 degrees at c0 = 1 and stays below at 0.1, and never says it is capped",
    "ok": true,
-   "detail": "At c₀ = 1, the lead passes 45°: it reaches 45.95° near ω = 66 and then comes back toward 45°."
+   "detail": "At c₀ = 1, the lead rises above 45°, to 45.95° near ω = 66, falls back below 45° by ω = 115, and at ω = 10⁶, the highest frequency scanned, it is 44.993°, below 45° and rising."
   },
   {
    "file": "ch07",
@@ -5455,6 +5483,27 @@
    "name": "the wave sentence flags a lead above 45 degrees only when there is one",
    "ok": true,
    "detail": "At c₀ = 1 and ω = 66, the bound swings 0.300 of the per-moment swing and runs 45.9° ahead of it, 0.010 time units, against a mean look-ahead of 0.040. The lead is above 45° here: it tends to 45° at high frequency but isn't capped there."
+  },
+  {
+   "file": "ch07",
+   "plate": "words",
+   "name": "num, the plates' number helper, prints 999,999 as 10⁶ and 0.0000996 as 10⁻⁴: a mantissa that rounds to 10 moves to the next power of ten",
+   "ok": true,
+   "detail": "10⁶, 10⁻⁴"
+  },
+  {
+   "file": "ch07",
+   "plate": "words",
+   "name": "the look-ahead sentence at c0 = 10 prints the look-ahead and the decision time (both below 0.001) to two figures as powers of ten, with no 0.000 or 0.00",
+   "ok": true,
+   "detail": "At c₀ = 10, the bound looks 4.2 × 10⁻⁴ time units ahead on average, and a decision from 0 takes 6.2 × 10⁻⁴, 1.5 times as long. Over costs from 10⁻⁴ to 10, the scan finds the longest look-ahead, 0.619, at c₀ ≈ 0.035; that maximum is numerical, not proved."
+  },
+  {
+   "file": "ch07",
+   "plate": "words",
+   "name": "the reward plate's verdict at each cost it offers (0.02, 0.1, 0.5): the loss at a miss of 0.2 over the loss at 0.1, above and below the peak, both between 3.7 and 4.3, printed to one decimal, beside 4, twice the miss squared",
+   "ok": true,
+   "detail": "0.02: 3.758, 4.281; 0.1: 3.776, 4.238; 0.5: 3.860, 4.084"
   },
   {
    "file": "ch07",
@@ -6253,6 +6302,20 @@
    "name": "the two-rules plate's caption states both cases below the grid's first step (between 0 and the step where the program waits at 0, 0 where it decides at 0 too); on Rising from 0 at rate 2, compareRules' exported bounds include both, each matching the program's Bellman step at its time",
    "ok": true,
    "detail": "21 between, 29 at 0, 0 mismatched; caption states both: true"
+  },
+  {
+   "file": "ch08",
+   "plate": "words",
+   "name": "chapter 8 calls Proposition 13 the rule's one guarantee about its bound, names Proposition 10 for its reward loss, and doesn't call Proposition 13 the only guarantee the rule has",
+   "ok": true,
+   "detail": "ch08.py"
+  },
+  {
+   "file": "ch08",
+   "plate": "words",
+   "name": "when the averaged-cost rule loses less than the weighted rule, the sentence says it loses less, with no size word",
+   "ok": true,
+   "detail": "On Cost jumps, the weighted rule loses 2.00 points per 100 trials, the per-moment rule 1.00, and the averaged-cost rule 0.500. Here averaging the costs loses less than averaging the bounds."
   },
   {
    "file": "ch09",
@@ -7628,6 +7691,13 @@
   },
   {
    "file": "ch10",
+   "plate": "edges",
+   "name": "the plate's sentence names three sources of a flat cost's loss (the forced choice, the shift, and the grid), ends on a deadline with Table 6's deadline columns, and otherwise with Table 6's count of schedules without a deadline",
+   "ok": true,
+   "detail": "10 edge inputs, 3 flat and 3 with a deadline"
+  },
+  {
+   "file": "ch10",
    "plate": "words",
    "name": "the plates' sentences never print NaN, undefined, Infinity, or null",
    "ok": true,
@@ -8770,6 +8840,13 @@
   {
    "file": "ch12",
    "plate": "wave",
+   "name": "the plate's sentence: at c0 = 1, after its peak above 45 degrees, the lead falls back below 45 within step 5's scan (omega up to 3000)",
+   "ok": true,
+   "detail": "below 45 from omega ≈ 115"
+  },
+  {
+   "file": "ch12",
+   "plate": "wave",
    "name": "the lead tends to 45 degrees: within 0.05 at omega = 1e6 for every plate cost",
    "ok": true,
    "detail": "44.972, 44.975, 44.983, 44.993"
@@ -9106,7 +9183,7 @@
   {
    "file": "ch12",
    "plate": "novelty",
-   "name": "the middle answer is “Proved here, not claimed as new”; the kernel, the theorem, and the rule answer “new” and say they are proved in the paper too",
+   "name": "the middle answer is “Proved here, not claimed as new”; the kernel and the theorem answer “new” and say they are proved in the paper too, and the rule answers “new” and says its first-order exactness is proved there",
    "ok": true,
    "detail": "kernel,rule,theorem"
   },

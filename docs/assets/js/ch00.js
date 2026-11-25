@@ -1,13 +1,13 @@
 // Chapter 0's plates: the reader's schedule (the contents page's plate, mounted here too), a first guess on it, and
 // the shortest proof in the paper as a strip. The bounds come from the dynamic program in the worker; the flat-bound
 // curves from closed forms in kernel.js. Sentences come from say-ch00.js.
-import "./contents.js?v=942da027e0";
-import { B } from "./kernel.js?v=942da027e0";
-import { boundForCost, toDiscrete, belief } from "./model.js?v=942da027e0";
-import { costOf, deadlineOf, labelOf, PRESETS, VIEW, SPARE } from "./schedules-book.js?v=942da027e0";
-import { getChoice, solve, onVisible, liftReady, wireStrips } from "./book.js?v=942da027e0";
-import { frame, line, axes, svg, fmt, keepDrawn, dropAt } from "./chart.js?v=942da027e0";
-import * as S from "./say-ch00.js?v=942da027e0";
+import "./contents.js?v=e579ee3325";
+import { B } from "./kernel.js?v=e579ee3325";
+import { boundForCost, toDiscrete, belief } from "./model.js?v=e579ee3325";
+import { costOf, deadlineOf, labelOf, PRESETS, VIEW, SPARE } from "./schedules-book.js?v=e579ee3325";
+import { getChoice, solve, onVisible, liftReady, wireStrips } from "./book.js?v=e579ee3325";
+import { frame, line, axes, svg, fmt, keepDrawn, dropAt } from "./chart.js?v=e579ee3325";
+import * as S from "./say-ch00.js?v=e579ee3325";
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const plate = (id) => document.getElementById("plate-" + id);
@@ -93,11 +93,13 @@ function guessPlate() {
     drawAll();
   };
   const drawCost = () => {
+    // the schedule plate's log axis (contents.js): its range and its ticks
     const cs = ts.map((t) => cost(t)), fin = cs.filter(Number.isFinite);
-    const f = frame(costEl, { x: [0, view], y: [Math.min(...fin) / 1.6, Math.max(...fin, 0.2) * 1.6], ylog: true, aspect: 0.22, minH: 90, maxH: 130, b: 22 });
-    let s = axes(f, { yl: "cost of time", yt: [] }) + line(f, ts, cs, "cost");
+    const lo = Math.max(0.005, Math.min(...fin) / 1.6), hi = Math.min(40, Math.max(...fin) * 1.6);
+    const f = frame(costEl, { x: [0, view], y: [Math.min(lo, 0.05), Math.max(hi, 0.3)], ylog: true, aspect: 0.32, minH: 120, maxH: 190, b: 22 });
+    let s = axes(f, { yl: "cost of time", grid: true, xt: [] }) + line(f, ts, cs, "cost");
     s += `<path class="dim" stroke-dasharray="2 3" d="M${f.sx(tStar).toFixed(1)} ${f.t}V${f.H - f.b}"/>`;
-    costEl.innerHTML = svg(f, s, `The cost of time for ${labelOf(choice)}`);
+    costEl.innerHTML = svg(f, s, `The cost of time for ${labelOf(choice)}, on a log scale`);
   };
   const drawBound = () => {
     const f = frame(boundEl, { x: [0, view], y: [0, yTop], aspect: 0.5, minH: 190, maxH: 280 });

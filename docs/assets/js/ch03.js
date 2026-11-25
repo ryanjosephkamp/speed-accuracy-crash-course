@@ -2,11 +2,11 @@
 // waiting from the dynamic program, the flat bound two ways, and how the bound answers a cost. The flat-bound numbers
 // come from closed forms and kernel.js's series (ch03-model.js), the value from the dynamic program in ch03-worker.js;
 // the words under each plate come from say-ch03.js.
-import * as M from "./ch03-model.js?v=942da027e0";
-import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, VIEW, defaultDrawing } from "./schedules-book.js?v=942da027e0";
-import { getChoice, setChoice, solve, onVisible, liftReady, seedParam, wireStrips } from "./book.js?v=942da027e0";
-import { frame, line, area, axes, svg, fmt, keepDrawn, tags, ticks } from "./chart.js?v=942da027e0";
-import * as S from "./say-ch03.js?v=942da027e0";
+import * as M from "./ch03-model.js?v=e579ee3325";
+import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, VIEW, defaultDrawing } from "./schedules-book.js?v=e579ee3325";
+import { getChoice, setChoice, solve, onVisible, liftReady, seedParam, wireStrips } from "./book.js?v=e579ee3325";
+import { frame, line, area, axes, svg, fmt, keepDrawn, tags, ticks } from "./chart.js?v=e579ee3325";
+import * as S from "./say-ch03.js?v=e579ee3325";
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const plate = (id) => document.getElementById("plate-" + id);
@@ -16,7 +16,7 @@ const segHTML = (name, opts, cur, legend) => `<fieldset class="seg"><legend>${le
   `<label><input type="radio" name="${name}" value="${v}"${String(v) === String(cur) ? " checked" : ""}><span>${lbl}</span></label>`).join("")}</div></fieldset>`;
 const onSeg = (el, name, fn) => el.querySelectorAll(`input[name="${name}"]`).forEach((r) => r.addEventListener("change", () => fn(r.value)));
 const inRange = (v, lo, hi) => (v >= lo && v <= hi ? v : NaN);
-const WORKER = new URL("./ch03-worker.js?v=942da027e0", import.meta.url);
+const WORKER = new URL("./ch03-worker.js?v=e579ee3325", import.meta.url);
 
 // ---- the reader's schedule, and the dynamic program's value for it (shared by the plates that need it)
 const keyOf = (choice) => JSON.stringify({ id: choice.id, params: choice.id === "draw" ? undefined : paramsOf(choice), points: choice.id === "draw" ? choice.points : undefined });
@@ -271,7 +271,7 @@ function valuePlate() {
     <p class="fine" id="va-note"></p>
     <div class="chart-wrap" id="va-cost"></div>
     <div class="chart-wrap pad" id="va-map"></div>
-    <ul class="legend"><li><span class="key key-ex">Best bound</span></li><li><span class="key key-pm">B(c(t))</span></li><li><span class="key key-acc">Your tap</span></li><li>Shaded, after Show me: W = V − g</li></ul>
+    <ul class="legend"><li><span class="key key-ex">Best bound</span></li><li><span class="key key-pm">B(c(t)), moved in</span></li><li><span class="key key-acc">Your tap</span></li><li>Shaded, after Show me: W = V − g</li></ul>
     <div class="predict" style="margin-top:12px"><p>Where is waiting worth the most? Tap the map, then press Show me.</p>
       <div class="actions"><button class="btn btn-go" type="button" id="va-show">Show me</button></div>
       <p class="verdict" id="va-verdict" aria-live="polite"></p></div>

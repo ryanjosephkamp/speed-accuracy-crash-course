@@ -2,12 +2,12 @@
 // paper's backward_induction_x and known_reward); the trials and the overshoots are sampled here, in small batches,
 // with kernel.js's seeded generator; the paper's Tables 1, 2, and 12 come from ch09-model.js, checked cell by cell
 // against the generated tables. The words under each plate come from say-ch09.js.
-import * as K from "./kernel.js?v=942da027e0";
-import * as M from "./ch09-model.js?v=942da027e0";
-import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, defaultDrawing } from "./schedules-book.js?v=942da027e0";
-import { getChoice, setChoice, solve, onVisible, watchVisible, liftReady, calm, seedParam } from "./book.js?v=942da027e0";
-import { frame, line, area, axes, svg, fmt, keepDrawn } from "./chart.js?v=942da027e0";
-import * as S from "./say-ch09.js?v=942da027e0";
+import * as K from "./kernel.js?v=e579ee3325";
+import * as M from "./ch09-model.js?v=e579ee3325";
+import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, defaultDrawing } from "./schedules-book.js?v=e579ee3325";
+import { getChoice, setChoice, solve, onVisible, watchVisible, liftReady, calm, seedParam } from "./book.js?v=e579ee3325";
+import { frame, line, area, axes, svg, fmt, keepDrawn } from "./chart.js?v=e579ee3325";
+import * as S from "./say-ch09.js?v=e579ee3325";
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const plate = (id) => document.getElementById("plate-" + id);
@@ -16,7 +16,7 @@ const segHTML = (name, opts, cur, legend) => `<fieldset class="seg"><legend>${le
   `<label><input type="radio" name="${name}" value="${v}"${String(v) === String(cur) ? " checked" : ""}><span>${lbl}</span></label>`).join("")}</div></fieldset>`;
 const onSeg = (el, name, fn) => el.querySelectorAll(`input[name="${name}"]`).forEach((r) => r.addEventListener("change", () => fn(r.value)));
 const setSeg = (el, name, v) => el.querySelectorAll(`input[name="${name}"]`).forEach((r) => { r.checked = r.value === String(v); });
-const WORKER = new URL("./ch09-worker.js?v=942da027e0", import.meta.url);
+const WORKER = new URL("./ch09-worker.js?v=e579ee3325", import.meta.url);
 const run = (job, opts = {}) => solve(job, { worker: WORKER, ...opts });
 const fail = (state, e) => { if (e.message !== "superseded") state.textContent = "The solver stopped: " + e.message; };
 const finiteMax = (arr) => arr.reduce((m, v) => (Number.isFinite(v) ? Math.max(m, v) : m), -Infinity);

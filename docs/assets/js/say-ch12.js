@@ -60,7 +60,7 @@ export function linearSay(c0, m) {
 }
 export function phaseSay(c0, peak, m) {
   let s = `At c₀ = ${c0}, the lead in time starts at the mean look-ahead, ${f3(m)}, for slow waves and falls toward 0; the lead in degrees tends to 45°.`;
-  if (peak.lead > 45) s += ` Here it passes 45°, to about ${f2(peak.lead)}° near ω = ${Math.round(peak.omega)} (found numerically), and comes back.`;
+  if (peak.lead > 45) s += ` Here it passes 45°, to about ${f2(peak.lead)}° near ω = ${Math.round(peak.omega)} (found numerically), and then falls back below 45°.`;
   return s;
 }
 
@@ -191,7 +191,7 @@ export const ITEMS = [
     key: "new", proved: true, why: "Stojanovic's theorem covers finite cylinders; the paper proves the expansion outside them, on an infinite horizon, through an equation with no derivative of the bound.",
     lines: [1139, 1143], quote: "together with a proof of the expansion" },
   { id: "rule", text: "The weighted look-ahead rule.",
-    key: "new", proved: true, why: "It is first-order exact near a constant cost (Proposition 13); on the paper's code, it is not faster than the dynamic program.",
+    key: "new", proved: "its first-order exactness", why: "It is first-order exact near a constant cost (Proposition 13); on the paper's code, it is not faster than the dynamic program.",
     lines: [1170, 1172], quote: "rule, and the measurements are, to our knowledge, new here" },
   { id: "anticipation", text: "The best bound moves before a known change.",
     key: "credited", why: "Known before, qualitatively: Drugowitsch and colleagues (2012) computed optimal bounds for time-varying costs by backward induction, and Barendregt and colleagues (2022) find thresholds that anticipate a known drop in reward. What the paper claims, to its knowledge, is an analytic first-order form for small changes of general shape in the cost of time.",
@@ -213,4 +213,4 @@ export function noveltyVerdict(marks) {
   if (over.length) s += ` ${over.length === 1 ? "One statement" : `${over.length} statements`} you marked new the paper credits to others or doesn't claim as new.`;
   return s + ` Every claim of novelty in the paper carries “to our knowledge.”`;
 }
-export const answerText = (item) => `${KIND_WORD[item.key]}${item.also ? ` (and proved here for the 0-1 loss, not claimed as new)` : ""}${item.proved ? `, and proved in the paper` : ""}. ${item.why}`;
+export const answerText = (item) => `${KIND_WORD[item.key]}${item.also ? ` (and proved here for the 0-1 loss, not claimed as new)` : ""}${item.proved === true ? `, and proved in the paper` : item.proved ? `, and ${item.proved} is proved in the paper` : ""}. ${item.why}`;
