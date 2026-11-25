@@ -140,16 +140,20 @@ for (const [sid, st] of Object.entries(A.strips)) {
   const ok = m && m[1] === C[mod].slug && sec && m[2] === sec.id && st.see.includes(`“${C[mod].plates[src.plate]}”`);
   check("strips", `${sid}: the link goes to the section of chapter ${C[mod].num} that draws it, and names its plate`, ok, m ? `../${m[1]}/index.html#${m[2]}` : "no link");
 }
-// every strip of chapters 0 to 8 is either here or left out for a stated reason
+// every strip in the book's chapters is either here or left out for a stated reason
 {
   const LEFT_OUT = {
     "ch00:flat": "the same derivation as chapter 3's routes, which is here",
     "ch02:posterior": "the posterior, which the paper cites (Peskir and Shiryaev, Ch. VI) rather than proves",
+    "ch11:appB": "Appendix B's derivation, which this page has as steps of its own and links to",
+    "ch11:infotime": "Section 7.1's argument, which the paper carries over formally, not as a theorem",
+    "ch11:envelope": "Section 7.2's per-bound argument, which the paper has not made rigorous",
+    "ch12:argument": "the equivalence of urgency gating and collapsing bounds, which the paper cites (Smith and Ratcliff, 2022) rather than proves",
   };
-  const all = ["ch00", "ch01", "ch02", "ch03", "ch04", "ch05", "ch06", "ch07", "ch08"].filter((m) => C[m]).flatMap((m) => Object.keys(C[m].strips).map((s) => `${m}:${s}`));
+  const all = Object.keys(C).filter((m) => /^ch\d\d$/.test(m)).flatMap((m) => Object.keys(C[m].strips).map((s) => `${m}:${s}`));
   const here = Object.values(A.strips).filter((s) => s.from).map((s) => s.from.join(":"));
   const unplaced = all.filter((k) => !here.includes(k) && !(k in LEFT_OUT));
-  check("strips", "every strip of chapters 0 to 8 is reused here, or left out for a stated reason", !unplaced.length && Object.keys(LEFT_OUT).every((k) => all.includes(k)),
+  check("strips", "every strip in the book's chapters is reused here, or left out for a stated reason", !unplaced.length && Object.keys(LEFT_OUT).every((k) => all.includes(k)),
     `${here.length} reused, ${Object.keys(LEFT_OUT).length} left out (${Object.entries(LEFT_OUT).map(([k, v]) => `${k}: ${v}`).join("; ")})${unplaced.length ? "; not placed: " + unplaced.join(", ") : ""}`);
 }
 
@@ -191,14 +195,19 @@ for (const [sid, st] of Object.entries(A.strips)) {
   const extra = [...thmRests].filter((id) => id !== "prop:exact" && !exactRests.has(id)).sort();
   check("hero", "finding: Theorem 7 rests on only two more of these, the kernel's lemma and the slope B'(c)", same(extra, ["eq:Bprime", "lem:kernel"]), extra.join(", "));
   check("hero", "finding: its names are the paper's (Theorem 7, Appendix A)", LABELS["thm:main"].num === "7" && LABELS["app:proofs"].num === "A" && A.chapter.finding.includes("Theorem 7") && A.chapter.finding.includes("Appendix A"), A.chapter.finding);
-  check("hero", "the readings' claim: the proofs in Appendices A and B find exactly one value numerically", TEX.slice(APP_A, APP_C - 1).join(" ").match(/numerical/g)?.length === 1, "one \"numerically\", in Corollary 9's proof");
+  // the readings: one step of the proofs is numerical (Corollary 9's maximum), and it gives the two values shown
+  const numLines = []; for (let i = APP_A + 1; i < APP_C; i++) if (/numerical/.test(TEX[i - 1])) numLines.push(i);
+  const stmt = TEX.findIndex((l) => /\\MaxLookAhead\b/.test(l) && /\\MaxLookAheadCost\b/.test(l)) + 1;
+  check("hero", "the readings: the proofs in Appendices A and B have one numerical step, in Corollary 9's proof, and the two readings are the two values Corollary 9 states for it",
+    numLines.length === 1 && placeOf(numLines[0]) === "A.7" && stmt > lineOf(/\\label\{cor:limits\}/) && stmt < lineOf(/\\end\{corollary\}/, lineOf(/\\label\{cor:limits\}/)) && same(A.chapter.readings.map((r) => r[0]), ["MaxLookAhead", "MaxLookAheadCost"]),
+    `"numerical" at line ${numLines.join(", ")} (${numLines.map(placeOf).join(", ")}); both values at line ${stmt}, in Corollary 9's statement`);
 }
 // the third exercise: the citations in Appendices A and B
 {
   const cites = [];
   for (let i = APP_A + 1; i < APP_C; i++) for (const m of TEX[i - 1].matchAll(/\\cite[tp](?:\[[^\]]*\])*\{([^}]*)\}/g)) cites.push(`${m[1]}@${placeOf(i)}`);
-  check("hero", "exercise: Appendices A and B cite four works' results, in the standing facts and the proofs of Lemma 2 and Proposition 3",
-    same(cites, ["revuz1999@A", "peskir2006@A", "peskir2006@A.2", "deangelis2020@A.3"]) && LABELS["lem:envelope"].num === "2" && LABELS["prop:regularity"].num === "3", cites.join(", "));
+  check("hero", "exercise: Appendices A and B make four citations of three works, in the standing facts and the proofs of Lemma 2 and Proposition 3",
+    same(cites, ["revuz1999@A", "peskir2006@A", "peskir2006@A.2", "deangelis2020@A.3"]) && new Set(cites.map((c) => c.split("@")[0])).size === 3 && LABELS["lem:envelope"].num === "2" && LABELS["prop:regularity"].num === "3", cites.join(", "));
 }
 
 // ---- Appendix B: the strip's three equations, solved here, against the paper's code ---------------------------------
@@ -259,6 +268,29 @@ function solveB(c, rp, rm) {
   }
   check("unequal", "step 5: with equal rewards, h = -l = B(c) and K = 0 satisfy all three equations (within 1e-12)", worst < 1e-12, `largest residual ${worst.toExponential(1)}`);
   check("unequal", "step 5: a common reward of 2 gives h = -l = B(c/2) and K = 0 (within 1e-9)", worstR < 1e-9, `largest difference ${worstR.toExponential(1)}`);
+}
+
+{
+  // step 4 says the value *changes* across the interval: with the rewards the other way round it falls
+  const s = solveB(0.1, 0.25, 1), rise = Ax(s.h, 0.1, s.K) - Ax(s.l, 0.1, s.K);
+  const stepText = A.strips.lopsided.steps[3][0];
+  check("unequal", "step 4: across the interval the value can fall (c = 0.1, r+ = 0.25, r- = 1), so the step says it changes, not rises",
+    rise < 0 && Math.abs(rise - (0.25 * g(s.h) - (1 - g(s.l)))) < 1e-12 && /changes by exactly/.test(stepText) && !/rises/.test(JSON.stringify(A.strips.lopsided.steps)), `V(h) - V(l) = ${rise.toFixed(6)}; "${stepText}"`);
+}
+
+// ---- the page's sentences against the paper's, where the audits asked for the paper's terms ------------------------
+{
+  const text = (id) => JSON.stringify(A.sections.find((s) => s.id === id).blocks);
+  const tex = TEX.join("\n");
+  const pairs = [
+    ["standing: the martingale is the value minus the cost paid, as in the paper's Snell envelope", /V\(t \+ s, Y_s\) - \\\\int_0\^s c\(t \+ u\)\\\\,du\$, stopped there, is a martingale/.test(text("standing")), tex.includes("$V(t + s, Y_s) - \\int_0^s c(t + u)\\dd u$ up to $\\sigma$")],
+    ["standing: the theorem \"assumes\" a finite expected supremum, the paper's word", /The theorem assumes/.test(text("standing")), tex.includes("assumes $\\E\\sup_s |G_s| < \\infty$")],
+    ["flat: Proposition 13's proof uses that B decreases and its slope, so the page lists it for both", /\{\{ref:prop:rule\}\}, and \{\{ref:prop:loss\}\}, and the slope in \{\{ref:thm:main\}\} and \{\{ref:prop:rule\}\}/.test(text("flat")),
+      TEX.slice(lineOf(/^\\subsection\{Proof of .*prop:rule/), lineOf(/^\\subsection\{Proof of .*prop:loss/)).join(" ").includes("Since $B$ is") && /B'\(c_0\)\\gamma\(t\+s\)/.test(TEX.slice(lineOf(/^\\subsection\{Proof of .*prop:rule/), lineOf(/^\\subsection\{Proof of .*prop:loss/)).join(" "))],
+    ["corollaries: Corollary 8 is about the first-order term, beta", /moves the bound, to first order, by a sinusoid/.test(text("corollaries")), /\\beta\(t\) = \\operatorname\{Re\}/.test(TEX.slice(lineOf(/\\label\{cor:transfer\}/), lineOf(/\\label\{cor:transfer\}/) + 4).join(" "))],
+    ["exercises: Lemma 1(d) holds for any bounded measurable cost, as the paper notes", /\{\{ref:lem:structure\}\}\(d\) holds for any bounded measurable cost/.test(text("exercises")), tex.includes("Part (d) holds for any bounded measurable cost")],
+  ];
+  for (const [name, page, paper] of pairs) check("words", name, page && paper, `page ${page ? "says it" : "doesn't"}, main.tex ${paper ? "says it" : "doesn't"}`);
 }
 
 // ---- the sentences ------------------------------------------------------------------------------------------------
