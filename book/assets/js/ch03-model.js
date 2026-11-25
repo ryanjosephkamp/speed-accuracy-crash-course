@@ -385,7 +385,8 @@ function outcomeAt(path, b, cum, deadline) {
  * slope, then every 0.05 to 3.5 and every 0.1 below the cap; a flat policy can have more than one peak (a fast decision
  * before a cost falls, or a slow one after it), so the three highest local peaks of that scan are each refined by golden
  * section between their neighbors. It doesn't score every threshold in (0, cap): between scanned points it can miss a
- * higher score, and the result is the best it found. near, if given, is scored too. */
+ * higher score. The result is the best level it scored, over the scan and every refinement probe. near, if given, is
+ * scored too, but not as a candidate. */
 export function bestFlatOnGrid(cost, horizon, { dt = 0.01, h = 0.02, cap = 5, near = null } = {}) {
   const steps = Math.round(horizon / dt);
   const ts = Float64Array.from({ length: steps + 1 }, (_, k) => k * dt);
@@ -401,12 +402,13 @@ export function bestFlatOnGrid(cost, horizon, { dt = 0.01, h = 0.02, cap = 5, ne
   let best = { x: xs[peaks[0]], f: vs[peaks[0]] };
   const refined = [];
   for (const i of peaks) {
-    const lo = xs[Math.max(0, i - 1)], hi = xs[Math.min(xs.length - 1, i + 1)], r = argmax(at, lo, hi, 5, 1e-5);
-    refined.push({ peak: xs[i], lo, hi, x: r.x, f: r.f });
-    if (r.f > best.f) best = r;
+    const lo = xs[Math.max(0, i - 1)], hi = xs[Math.min(xs.length - 1, i + 1)], probes = [];
+    const r = argmax((x) => { const f = at(x); probes.push([x, f]); return f; }, lo, hi, 5, 1e-5);
+    for (const [x, f] of probes) if (f > best.f) best = { x, f };
+    refined.push({ peak: xs[i], lo, hi, x: r.x, f: r.f, probes });
   }
   // scan and refined: what the search did, for the checks (the scanned levels and their scores, and each refined peak
-  // with its bracket and result)
+  // with its bracket, golden section's result, and every level it scored there)
   return { x: best.x, reward: best.f, shifted: near === null ? NaN : at(near), x0: near, cap, scan: xs, scores: vs, refined };
 }
 

@@ -333,31 +333,33 @@ for (const c of [0.05, 0.1, 0.3]) {
         `level ${f.gridX.toFixed(4)}, ${f.grid.toFixed(7)} vs ${at07.toFixed(7)} at 0.07; printed gain ${gain} points`);
     }
   }
-  // the search itself, through the worker's flatJob: the levels it scans are exactly the caption's, each scored by
-  // model.js's scorer on the program's grid and horizon; the peaks it refines are the up-to-three highest local peaks of
-  // those scores, each between its two neighbors; and its answer is the best of everything it scored
+  // the search itself, through the worker's flatJob, on what it reports: the levels it scanned and their scores, the
+  // peaks it refined in order, every level it scored inside each refined bracket, and the level it returned
   {
     const want = [...Array.from({ length: 16 }, (_, k) => 0.01 + 0.02 * k), ...Array.from({ length: 64 }, (_, k) => 0.35 + 0.05 * k), ...Array.from({ length: 14 }, (_, k) => 3.6 + 0.1 * k)];
     const rows = [];
-    let offScan = 0;
-    for (const [name, choice] of [["Constant 0.1", { id: "constant", params: { c: 0.1 } }], ["Constant 0.01", { id: "constant", params: { c: 0.01 } }], ["a deadline at 1", { id: "deadline", params: { at: 1, c: 0.1 } }]]) {
+    let multi = 0;
+    for (const [name, choice] of [["Constant 0.1", { id: "constant", params: { c: 0.1 } }], ["Constant 0.01", { id: "constant", params: { c: 0.01 } }], ["a deadline at 1", { id: "deadline", params: { at: 1, c: 0.1 } }],
+      ["a drawing at 2 to time 0.2, then 0.01", { id: "draw", points: Array.from({ length: 26 }, (_, i) => (i <= 2 ? 2 : 0.01)) }]]) {
       const f = flatJob({ choice }), q = f.search, cost = costOf(choice), ts = Float64Array.from({ length: Math.round(f.horizon / 0.01) + 1 }, (_, k) => k * 0.01);
       const sc = (x) => score(Float64Array.from(ts, () => x), ts, cost, 0.02, 5).reward;
       const levels = q.cap === 5 && q.scan.length === want.length && q.scan.every((x, i) => Math.abs(x - want[i]) < 1e-9);
       const scored = q.scores.length === q.scan.length && q.scan.every((x, i) => Math.abs(q.scores[i] - sc(x)) < 1e-12);
-      const peaks = q.scores.map((v, i) => i).filter((i) => (i === 0 || q.scores[i] >= q.scores[i - 1]) && (i === q.scores.length - 1 || q.scores[i] >= q.scores[i + 1]))
-        .sort((i, j) => q.scores[j] - q.scores[i]).slice(0, 3);
+      const local = q.scores.map((v, i) => i).filter((i) => (i === 0 || q.scores[i] >= q.scores[i - 1]) && (i === q.scores.length - 1 || q.scores[i] >= q.scores[i + 1]))
+        .sort((i, j) => q.scores[j] - q.scores[i]);
+      const peaks = local.slice(0, 3);
+      if (peaks.length > 1) multi++;
       const refined = q.refined.length === peaks.length && peaks.every((i, j) => {
         const r = q.refined[j];
-        return r.peak === q.scan[i] && r.lo === q.scan[Math.max(0, i - 1)] && r.hi === q.scan[Math.min(q.scan.length - 1, i + 1)] && r.x >= r.lo && r.x <= r.hi && Math.abs(r.f - sc(r.x)) < 1e-12;
+        return r.peak === q.scan[i] && r.lo === q.scan[Math.max(0, i - 1)] && r.hi === q.scan[Math.min(q.scan.length - 1, i + 1)] && r.probes.length > 5
+          && r.probes.every(([x, v]) => x >= r.lo && x <= r.hi && Math.abs(v - sc(x)) < 1e-12);
       });
-      const top = Math.max(...q.scores), best = Math.max(top, ...q.refined.map((r) => r.f));
-      const answer = f.grid === best && Math.abs(sc(f.gridX) - f.grid) < 1e-12;
-      if (f.grid > top + 1e-9 && !q.scan.some((x) => Math.abs(x - f.gridX) < 1e-9)) offScan++;
-      rows.push({ ok: levels && scored && refined && answer, text: `${name}: ${q.scan.length} levels (${levels}), scores ${scored}, ${q.refined.length} refined at ${q.refined.map((r) => r.peak).join(", ")} (${refined}), answer ${f.gridX.toFixed(5)} with ${f.grid.toFixed(7)} against the best scanned ${top.toFixed(7)} (${answer})` });
+      const all = [...q.scan.map((x, i) => [x, q.scores[i]]), ...q.refined.flatMap((r) => r.probes)], top = all.reduce((a, b) => (b[1] > a[1] ? b : a));
+      const answer = f.grid === top[1] && f.gridX === top[0];
+      rows.push({ ok: levels && scored && refined && answer, text: `${name}: ${q.scan.length} levels (${levels}), scores ${scored}; ${local.length} local peaks, ${q.refined.length} refined at ${q.refined.map((r) => r.peak).join(", ")} with ${q.refined.map((r) => r.probes.length).join(", ")} probes (${refined}); returned ${f.gridX.toFixed(7)}, the best of ${all.length} scores (${answer})` });
     }
-    check("bill", "flatJob's flat search, on Constant 0.1, Constant 0.01, and a deadline at 1: it scans exactly the levels the caption names (94, below the cap of 5), scores each with model.js's scorer, refines the up-to-three highest local peaks of those scores between their neighbors, and returns the best level it scored; in at least one case the refined level is off the scan and beats every scanned level",
-      rows.every((x) => x.ok) && offScan > 0, rows.map((x) => x.text).join("; ") + `; ${offScan} refined off the scan`);
+    check("bill", "flatJob's flat search, as it reports it, on Constant 0.1, Constant 0.01, a deadline at 1, and a drawing at 2 to time 0.2, then 0.01: its scanned levels are the caption's 94 below the cap of 5, each scored as model.js's scorer scores it; the peaks it refined are the three highest local peaks of those scores, or as many as there are, in order (more than one on at least one of the four); every level it scored inside each refined bracket lies between that peak's neighbors and is scored as the scorer scores it; and the level it returns has the highest of all those scores",
+      rows.every((x) => x.ok) && multi > 0, rows.map((x) => x.text).join("; "));
   }
   // the bill on steep schedules, against a fine midpoint rule with the same series
   {
@@ -454,9 +456,9 @@ for (const c of [0.05, 0.1, 0.3]) {
     // a bound just below the first step prints below it: Rising from 0.95 at rate 1.95, time 2.50 (bound 0.019920)
     {
       const v = valueJob({ choice: { id: "rising", params: { at: 0.95, rate: 1.95 } }, last: "far" }), k = v.times.findIndex((x) => Math.abs(x - 2.5) < 1e-9), B = S.sliceReads(v, k, most);
-      check("words", "Rising from 0.95 at rate 1.95, time 2.50, the worker's value reply and sliceReads (marker text, tile text, and sentence): the bound is between 0.0195 and 0.02, and all three print it as 0.0199, below the step the sentence compares it with, never 0.020; boundShown prints a bound within 1e-6 of the step as \"just below 0.02\"",
+      check("words", "Rising from 0.95 at rate 1.95, time 2.50, the worker's value reply and sliceReads (marker text, tile text, and sentence): the bound is between 0.0195 and 0.02, and all three print it as 0.0199, below the step the sentence compares it with, never 0.020; in boundShown, below 0.02, a bound prints with the fewest decimals from three to six that round below 0.02, and as \"just below 0.02\" when six round to 0.02: 0.0199991 prints 0.019999 and 0.0199996 prints \"just below 0.02\"",
         v.rowB[k] > 0.0195 && v.rowB[k] < 0.02 && B.marker === "threshold 0.0199" && B.tiles.bound === "0.0199" && B.say.includes("The bound, 0.0199, is below the grid's first evidence step, 0.02") && !/0\.020\b/.test(B.marker + B.tiles.bound + B.say)
-        && S.boundShown(0.0199999999) === "just below 0.02" && S.boundShown(0.0123) === "0.012" && S.boundShown(0.05) === "0.050", `bound ${v.rowB[k].toFixed(7)}: ${B.marker}; tile ${B.tiles.bound}`);
+        && S.boundShown(0.0199991) === "0.019999" && S.boundShown(0.0199996) === "just below 0.02" && S.boundShown(0.0123) === "0.012" && S.boundShown(0.05) === "0.050", `bound ${v.rowB[k].toFixed(7)}: ${B.marker}; tile ${B.tiles.bound}`);
     }
     let ok = true, d = "";
     for (const c of [0.03, 0.1, 0.3, 1]) { const B0 = M.B(c), lv = [0.7, 1, 1.3].map((k) => k * B0), top = M.slopeAxisTop(c, lv); for (const b of lv) { const v = c * (b + 0.5 * Math.sinh(2 * b)); if (v > top) { ok = false; d = `c = ${c}: dot at ${v.toFixed(3)} above ${top.toFixed(3)}`; } } }
