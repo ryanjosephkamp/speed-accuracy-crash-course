@@ -290,8 +290,11 @@ def strip_html(sid, strips, plates, n):
         f"<p class='step-no'>Step {i + 1} of {len(steps)}</p>"
         f"<p class='step-say'>{inline(say)}</p><p class='step-math'>{inline(mth)}</p></div>"
         for i, (say, mth) in enumerate(steps))
-    plate = plate_html(s["plate"], plates, n)
-    return (f"<div class='strip' id='strip-{sid}' data-strip='{sid}' data-plate='{s['plate']}' data-steps='{len(steps)}'>"
+    # a strip may stand alone (an appendix reusing a chapter's steps): then it has no plate, and a link instead
+    plate = plate_html(s["plate"], plates, n) if s.get("plate") else ""
+    if s.get("see"):
+        plate += f"<p class='strip-see'>{inline(s['see'])}</p>"
+    return (f"<div class='strip' id='strip-{sid}' data-strip='{sid}' data-plate='{s.get('plate') or ''}' data-steps='{len(steps)}'>"
             f"<div class='plate-live-stage strip-stage'><div class='grain' aria-hidden='true'></div>"
             f"<div class='strip-head'><span class='ctl-key'>Scrub the proof</span>"
             f"<input type='range' min='0' max='{len(steps) - 1}' step='1' value='0' aria-label='Proof step'></div>"
@@ -594,9 +597,10 @@ def chapter_page(i):
                 parts.append(plate_html(rest[0], PL, plate_no))
                 chips.append((rest[0], PL[rest[0]]))
             elif kind == "strip":
-                plate_no += 1
+                if ST[rest[0]].get("plate"):
+                    plate_no += 1
+                    chips.append((ST[rest[0]]["plate"], PL[ST[rest[0]]["plate"]]))
                 parts.append(strip_html(rest[0], ST, PL, plate_no))
-                chips.append((ST[rest[0]]["plate"], PL[ST[rest[0]]["plate"]]))
             elif kind == "figure":
                 parts.append(figure_html(rest[0], 1, rest[1] if len(rest) > 1 else None))
             elif kind == "table":

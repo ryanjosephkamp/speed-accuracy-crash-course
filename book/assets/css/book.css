@@ -558,3 +558,6 @@ details.answer > div { padding: 2px 14px 4px; }
 .key-guide::before { border-top: 1.5px dashed var(--print-dim); }
 /* a schedule picker that shares a row with other controls */
 .pick-dial { flex: 1 1 14rem; }
+
+/* a strip without its plate (an appendix): the link to the chapter that draws it */
+.strip-see { margin: 8px 0 1.4rem; font: 500 0.86rem/1.45 var(--sans); color: var(--ink-2); }
