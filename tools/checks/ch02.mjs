@@ -367,9 +367,9 @@ for (const t of [0.25, 1, 3]) {
   check("words", "there, the sentence says the program still waits at the center and stops at the first step, and prints the bound", /still waits at the center and stops at the first step/.test(s6) && s6.includes(`the bound is ${S.boundText(end(m6))}`) && !/stops at once/.test(s6), s6);
   // Rising from 0.95 at rate 1.95: a bound at the window's end just below the first step prints below it
   const r95 = { id: "rising", params: { at: 0.95, rate: 1.95 } }, m95 = await ask(r95), s95 = sayFor(r95, m95);
-  check("words", "Rising from 0.95 at rate 1.95, the worker's reply and yoursSay and boundText (the tile text and sentence): the bound at the window's end is between 0.0195 and 0.02, and both print it as 0.0199, below the step the sentence compares it with, never 0.020; a bound within 1e-6 of the step prints \"just below 0.02\"",
+  check("words", "Rising from 0.95 at rate 1.95, the worker's reply and yoursSay and boundText (the tile text and sentence): the bound at the window's end is between 0.0195 and 0.02, and both print it as 0.0199, below the step the sentence compares it with, never 0.020; in boundText, below 0.02, a bound prints with the fewest decimals from three to six that round below 0.02, and as \"just below 0.02\" when six round to 0.02: 0.0199991 prints 0.019999 and 0.0199996 prints \"just below 0.02\"",
     end(m95) > 0.0195 && end(m95) < 0.02 && S.boundText(end(m95)) === "0.0199" && s95.includes("the bound is 0.0199, where that probability is") && /below the grid's first evidence step, 0\.02/.test(s95) && !/0\.020\b/.test(s95)
-    && S.boundText(0.0199999999) === "just below 0.02" && S.boundText(0.0123) === "0.012", `bound ${end(m95).toFixed(7)}: ${S.boundText(end(m95))}`);
+    && S.boundText(0.0199991) === "0.019999" && S.boundText(0.0199996) === "just below 0.02" && S.boundText(0.0123) === "0.012", `bound ${end(m95).toFixed(7)}: ${S.boundText(end(m95))}`);
   // Rising from 0 at rate 2, at time 1.93: a positive bound too small for three decimals prints as < 0.001, not 0
   // (the worker sends every second step, so read the same program at 1.93 directly, as the worker runs it)
   const { exactPolicy } = await import("../../book/assets/js/model.js"), { SPARE } = await import("../../book/assets/js/schedules-book.js");
