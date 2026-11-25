@@ -3,8 +3,8 @@
 // both compute the same thing.
 import * as K from "./kernel.js";
 import { costOf, deadlineOf, VIEW } from "./schedules-book.js";
-import { line } from "./chart.js";
-import { guideInRange } from "./say-ch06.js";
+import { line, frame, axes, ticks } from "./chart.js";
+import { guideInRange, errorsVerdict, tooSmallVerdict } from "./say-ch06.js";
 import { isFlat } from "./ch01-model.js";
 
 // ---- "Shrink the change": a fixed sinusoid ----------------------------------------------------------------------
@@ -113,4 +113,38 @@ export function errorMarks(f, EPS, ePm, eFo) {
   g += line(f, EPS, ePm, "pm") + line(f, EPS, eFo, "wb");
   g += EPS.map((e, k) => (eFo[k] > 0 ? `<circle class="wb-dot" cx="${f.sx(e).toFixed(1)}" cy="${f.sy(eFo[k]).toFixed(1)}" r="3"/>` : "")).join("");
   return g;
+}
+
+/** The verdict the page prints once the errors are revealed, from bottom() and the data: with the chart shown, the
+ * measured comparison, the theory's answer, and the grade of the guesses; with it hidden below its threshold, the grade
+ * and the theory's answer all the same, then the largest error. */
+export const yoursVerdict = (b, data, guess) => (b.hidden ? tooSmallVerdict(b.largest, guess, data.outside) : errorsVerdict(guess, data.ePm, data.eFo, YOURS_EPS, data.outside));
+
+/** What the prediction box shows for a plate mode: nothing for a skipped selection (a deadline, or a cost that doesn't
+ * change), only its prompt and button for the rising cost (outside the theorem), and the two theory questions for any
+ * other schedule, however little it moves. */
+export const predictView = (mode) => ({
+  box: mode !== "deadline" && mode !== "constant",
+  questions: mode === "theory",
+  prompt: mode === "measure" ? "The rising cost is outside the theorem: show how the two errors compare." : "As ε shrinks, how fast does the theory say each shortcut's error shrinks?",
+});
+
+/** The top chart for size index sel, in a frame for el (data from take()): its vertical range pads the plotted values by
+ * 12% of their span (of their size when the span is 0, and 1e-6 when every value is 0), so a response of any size fills
+ * the chart, and its tick labels carry enough digits to tell neighboring ticks apart (powers of ten below a thousandth). */
+export function responseChart(el, data, sel) {
+  const { t, dev, beta, pmr } = data;
+  const vals = [...beta, ...pmr, ...dev[sel]].filter(Number.isFinite);
+  const lo = Math.min(...vals), hi = Math.max(...vals), span = hi - lo;
+  const pad = span > 0 ? 0.12 * span : hi !== 0 ? 0.12 * Math.abs(hi) : 1e-6;
+  const f = frame(el, { x: [0, VIEW], y: [lo - pad, hi + pad], aspect: 0.5, minH: 190, maxH: 300 });
+  // ticks are chosen on the range scaled to order 1 (chart.js's ticks round to 10 decimals), then scaled back
+  const mag = (x) => Math.floor(Math.log10(x) + 1e-9), u = 10 ** mag(hi - lo + 2 * pad);
+  const yt = ticks((lo - pad) / u, (hi + pad) / u, 4).map((v) => v * u), step = yt.length > 1 ? yt[1] - yt[0] : 2 * pad;
+  const extra = Math.abs(step / 10 ** mag(step) - 2.5) < 1e-6 ? 1 : 0;
+  const fy = (v) => (Math.abs(v) < step * 1e-6 ? "0" : Math.abs(v) >= 1e-3 ? String(+v.toFixed(Math.min(20, Math.max(3, extra - mag(step)))))
+    : v.toExponential(Math.min(20, Math.max(0, mag(Math.abs(v)) - mag(step) + extra))));
+  let g = axes(f, { yl: "(b − b₀) ÷ ε", xl: "time", grid: true, zero: true, yt, fy });
+  g += line(f, t, pmr, "pm") + line(f, t, beta, "wb") + line(f, t, dev[sel], "ex");
+  return { f, g };
 }
