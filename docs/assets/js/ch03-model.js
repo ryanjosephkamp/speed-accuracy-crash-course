@@ -3,10 +3,10 @@
 // the constant-cost problem (the value of a flat bound, the reward g(b) - c b tanh b and its slope), the standing
 // assumption checked on a schedule, and the dynamic program with its value V(t, y) kept on a grid. The page, the
 // worker, and tools/checks/ch03.mjs all import it.
-import { B, Bprime, survival, kappa, rng, OVERSHOOT } from "./kernel.js?v=9bcb592a71";
-import { belief, grid, score } from "./model.js?v=9bcb592a71";
-import { costOf, deadlineOf, paramsOf, DRAW_MIN, DRAW_MAX, VIEW } from "./schedules-book.js?v=9bcb592a71";
-import { dropAt } from "./chart.js?v=9bcb592a71";
+import { B, Bprime, survival, kappa, rng, OVERSHOOT } from "./kernel.js?v=50386feefc";
+import { belief, grid, score } from "./model.js?v=50386feefc";
+import { costOf, deadlineOf, paramsOf, DRAW_MIN, DRAW_MAX, VIEW } from "./schedules-book.js?v=50386feefc";
+import { dropAt } from "./chart.js?v=50386feefc";
 
 export { B, Bprime };
 export const g = (y) => belief(y);

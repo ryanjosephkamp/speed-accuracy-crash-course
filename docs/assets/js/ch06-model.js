@@ -1,10 +1,11 @@
 // Chapter 6's two dynamic-program plates without their pages: what "Shrink the change" measures from the scale job's
 // reply, and what "Your schedule, scaled down" does with each selection and reply, shared by the page and its check so
 // both compute the same thing.
-import * as K from "./kernel.js?v=9bcb592a71";
-import { costOf, deadlineOf, VIEW } from "./schedules-book.js?v=9bcb592a71";
-import { line } from "./chart.js?v=9bcb592a71";
-import { guideInRange } from "./say-ch06.js?v=9bcb592a71";
+import * as K from "./kernel.js?v=50386feefc";
+import { costOf, deadlineOf, VIEW } from "./schedules-book.js?v=50386feefc";
+import { line } from "./chart.js?v=50386feefc";
+import { guideInRange } from "./say-ch06.js?v=50386feefc";
+import { isFlat } from "./ch01-model.js?v=50386feefc";
 
 // ---- "Shrink the change": a fixed sinusoid ----------------------------------------------------------------------
 
@@ -48,16 +49,16 @@ export function errorRange(ePm, eFo, tiny = 1e-7) {
   return [Math.min(...vals) / 3, Math.max(...vals) * 3];
 }
 
-/** What the plate does with a selection: "deadline", and "constant" for a cost that doesn't move (a flat drawing, a
- * size of 0, whatever its preset), skip the solve; "measure" (the rising cost, outside the theorem) and "theory" solve
- * it. c0 is the cost's average over the window, from 501 times. */
+/** What the plate does with a selection: "deadline", and "constant" for a cost that is constant by value to 6 past the
+ * window (chapter 1's test: a drawing with equal knots, or a preset whose cost every 0.01 is one number: Constant,
+ * Smooth at size 0), skip the solve; "measure" (the rising cost, outside the theorem) and "theory" solve it, however
+ * little the cost moves. c0 is the cost's average over the window, from 501 times. */
 export function yoursMode(choice) {
   if (deadlineOf(choice) !== null) return { mode: "deadline", cost: null, c0: NaN };
   const cost = costOf(choice);
   const ts = Array.from({ length: 501 }, (_, i) => (i * VIEW) / 500);
   const c0 = ts.reduce((a, t) => a + cost(t), 0) / ts.length;
-  let moves = 0; for (let t = 0; t <= VIEW + 6; t += 0.01) moves = Math.max(moves, Math.abs(cost(t) - c0));
-  if (moves <= 1e-9 * c0) return { mode: "constant", cost, c0 };
+  if (isFlat(choice, VIEW + 6)) return { mode: "constant", cost, c0 };
   return { mode: choice.id === "rising" ? "measure" : "theory", cost, c0 };
 }
 

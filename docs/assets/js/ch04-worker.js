@@ -5,9 +5,9 @@
 //   { job: "cap", spec, t0, y0, n, seed, track, keepPaths } -> decisions with the cap sigma, and the means of the
 //                                                         value process and the gain stopped at the decision
 // A spec is { kind: "choice", choice } (the reader's saved schedule), { kind: "const", c }, or { kind: "step", ... }.
-import { program, costFrom, extremes, decisions, valueAt } from "./ch04-model.js?v=9bcb592a71";
-import { rng } from "./kernel.js?v=9bcb592a71";
-import { deadlineOf, VIEW, SPARE } from "./schedules-book.js?v=9bcb592a71";
+import { program, costFrom, extremes, decisions, valueAt } from "./ch04-model.js?v=50386feefc";
+import { rng } from "./kernel.js?v=50386feefc";
+import { deadlineOf, VIEW, SPARE } from "./schedules-book.js?v=50386feefc";
 
 const horizonOf = (spec) => (spec.kind === "choice" ? deadlineOf(spec.choice) : null) ?? VIEW + SPARE;
 const kept = new Map(); // one program with every value kept, per schedule (the last few)

@@ -4,7 +4,7 @@
 // undecided, the start law pi_0(y) = 4 c0 cosh^2 y, and the first-order response beta(t) = B'(c0) (w * gamma)(t).
 // tools/check_book.mjs holds these to the paper's generated numbers and to each other.
 
-import { boundForCost } from "./model.js?v=9bcb592a71";
+import { boundForCost } from "./model.js?v=50386feefc";
 
 /** The constant-cost bound: the solver's table value, polished by Newton steps on sinh(2b) + 2b = 1/c to machine
  * precision, since the identities below (pi_0 integrating to 1, the transform at 0) amplify any error in b. */

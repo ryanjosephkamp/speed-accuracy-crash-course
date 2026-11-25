@@ -69,8 +69,22 @@ export function bandSay(st) {
   return s;
 }
 
-export function noBandSay(lo, hi) {
-  return `Over the window, the best bound runs from ${f2(lo)} to ${f2(hi)}.`;
+const STEP = 0.02;   // the program's evidence step
+/** A bound as the band plate prints it, in its tile and its sentence: "< 0.001" for a positive bound that would round
+ * to 0.000, three decimals below the grid's first evidence step (where the page places a bound between y = 0, where
+ * the program waits, and that step), and two decimals otherwise. Only a bound of exactly 0 prints as 0.00. */
+export const boundText = (b) => (b > 0 && b < 0.0005 ? "< 0.001" : b > 0 && b < STEP ? f3(b) : f2(b));
+/** The tile for a schedule without a band: the bound's range over the window, from bandReveal's result. */
+export const rangeTile = (r) => `${boundText(r.lo)} to ${boundText(r.hi)}`;
+/** The sentence for a schedule without a band: the bound's range over the window, and what its lowest value means.
+ * loOpen is the lowest value while decisions are open (before a deadline's forced choice); dl the deadline or null. */
+export function noBandSay(lo, hi, { loOpen = lo, dl = null } = {}) {
+  let s = `Over the window, the best bound runs from ${boundText(lo)} to ${boundText(hi)}.`;
+  if (dl !== null && lo === 0 && loOpen > 0) s += " It is 0 only at the deadline, where the choice is forced.";
+  const before = dl !== null ? " before the deadline" : "";
+  if (loOpen === 0) s += ` Where it is 0${before}, the program stops at once at every evidence level, y = 0 included.`;
+  else if (loOpen < STEP) s += ` Its lowest value${before}, ${boundText(loOpen)}, is below the grid's first evidence step, ${STEP}: there the program still waits at y = 0 and stops one step out, and the page places the bound between the two.`;
+  return s;
 }
 
 export function sketchVerdict(drew, miss, outside, hasBand) {
@@ -86,7 +100,7 @@ export function sketchVerdict(drew, miss, outside, hasBand) {
 export function revealSay(r, drew) {
   const verdict = sketchVerdict(drew && r.cnt > 0, r.miss, r.outside, r.band);
   if (r.band) return (r.kind === "constant" ? outsideNote("constant") + " " : "") + bandSay(r.st) + " " + verdict;
-  return noBandSay(r.lo, r.hi) + " " + verdict;
+  return noBandSay(r.lo, r.hi, { loOpen: r.loOpen, dl: r.dl }) + " " + verdict;
 }
 
 // ---- a higher cost, a lower bound

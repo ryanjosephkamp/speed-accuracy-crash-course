@@ -1,12 +1,12 @@
 // Chapter 7's plates. Every number drawn comes from kernel.js (the series and the closed forms), ch07-model.js (the
 // series form of the transfer function, the scans, the closed forms behind the loss, and the forward computation),
 // the solver's workers, or the paper's Table 1; the words under each plate come from the functions in say-ch07.js.
-import * as K from "./kernel.js?v=9bcb592a71";
-import * as M from "./ch07-model.js?v=9bcb592a71";
-import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, VIEW, defaultDrawing } from "./schedules-book.js?v=9bcb592a71";
-import { getChoice, setChoice, solve, onVisible, watchVisible, liftReady, calm, seedParam, wireStrips } from "./book.js?v=9bcb592a71";
-import { frame, line, area, axes, svg, tags, fmt, keepDrawn } from "./chart.js?v=9bcb592a71";
-import * as S from "./say-ch07.js?v=9bcb592a71";
+import * as K from "./kernel.js?v=50386feefc";
+import * as M from "./ch07-model.js?v=50386feefc";
+import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, VIEW, defaultDrawing } from "./schedules-book.js?v=50386feefc";
+import { getChoice, setChoice, solve, onVisible, watchVisible, liftReady, calm, seedParam, wireStrips } from "./book.js?v=50386feefc";
+import { frame, line, area, axes, svg, tags, fmt, keepDrawn } from "./chart.js?v=50386feefc";
+import * as S from "./say-ch07.js?v=50386feefc";
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const plate = (id) => document.getElementById("plate-" + id);
@@ -460,7 +460,7 @@ function shiftPlate() {
     data = null; draw(); reads.innerHTML = ""; say.textContent = "";
     pick.value = choice.id;
     const dl = deadlineOf(choice);
-    const cost = costOf(choice), flat = dl === null && M.isFlat(cost);
+    const cost = costOf(choice), flat = dl === null && M.isFlat(choice);
     note.textContent = S.shiftNote(dl !== null ? "deadline" : flat ? "constant" : "", labelOf(choice));
     state.textContent = "Solving the dynamic program…";
     solve({ job: "bounds", choice }, { key: "ch07-shift" }).then((m) => {
@@ -724,7 +724,7 @@ let lossWorker = null, lossNext = 1;
 const lossPending = new Map(), lossCache = new Map();
 function getLossWorker() {
   if (lossWorker) return lossWorker;
-  lossWorker = new Worker(new URL("./ch07-worker.js?v=9bcb592a71", import.meta.url), { type: "module" });
+  lossWorker = new Worker(new URL("./ch07-worker.js?v=50386feefc", import.meta.url), { type: "module" });
   lossWorker.onmessage = (e) => {
     const m = e.data, p = lossPending.get(m.id);
     if (!p) return;
@@ -751,7 +751,7 @@ function lossFor(choice, onProgress) {
 }
 // what a schedule is, for the loss plates: a deadline, a flat cost (by its values, so a flat drawing or a Smooth of
 // size 0 counts), the rising cost, or one the proposition covers
-const scheduleKind = (choice) => (deadlineOf(choice) !== null ? "deadline" : M.isFlat(costOf(choice)) ? "constant" : choice.id === "rising" ? "rising" : "");
+const scheduleKind = (choice) => (deadlineOf(choice) !== null ? "deadline" : M.isFlat(choice) ? "constant" : choice.id === "rising" ? "rising" : "");
 const epsLabel = (e) => (e >= 1 ? "1" : `1/${Math.round(1 / e)}`);
 const epsDial = (id, k) => `<label class="dial"><span class="ctl-key">Size of the change, ε</span><output id="${id}-out">${epsLabel(LOSS_EPS[k])}</output>
   <input type="range" id="${id}" min="0" max="${LOSS_EPS.length - 1}" step="1" value="${k}" aria-label="Size of the change, as a power of one half"></label>`;

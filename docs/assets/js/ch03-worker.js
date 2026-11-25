@@ -8,11 +8,11 @@
 //   { job: "flat", choice, dt, h }
 //     the best flat bound on the same grid and horizon as "far" (or to a deadline), scored as the program's policy is,
 //     beside the continuous best and the earn plate's curve of averages: a like-for-like comparison of a bound held flat
-//     with the best bound that moves, and the plate's heavier sums off the page's thread
+//     with the best time-dependent policy, and the plate's heavier sums off the page's thread
 // Both answer through valueJob and flatJob, which tools/checks/ch03.mjs also runs.
-import { valueSurface, bestFlat, bestFlatOnGrid, flatOnSchedule } from "./ch03-model.js?v=9bcb592a71";
-import { boundForCost, toDiscrete } from "./model.js?v=9bcb592a71";
-import { costOf, deadlineOf, VIEW, SPARE } from "./schedules-book.js?v=9bcb592a71";
+import { valueSurface, bestFlat, bestFlatOnGrid, flatOnSchedule } from "./ch03-model.js?v=50386feefc";
+import { boundForCost, toDiscrete } from "./model.js?v=50386feefc";
+import { costOf, deadlineOf, VIEW, SPARE } from "./schedules-book.js?v=50386feefc";
 
 export function valueJob(m, progress = null) {
   const dt = m.dt ?? 0.01, h = m.h ?? 0.02;

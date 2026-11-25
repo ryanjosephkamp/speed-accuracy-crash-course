@@ -1,7 +1,7 @@
 {
  "date": "2026-11-25",
- "total": 1387,
- "passed": 1387,
+ "total": 1393,
+ "passed": 1393,
  "results": [
   {
    "file": "book",
@@ -1021,9 +1021,9 @@
   {
    "file": "ch00",
    "plate": "schedule",
-   "name": "Rising from 0 at rate 2, on the page's worker: some plotted bounds lie between the center and the first step (0.02) and some are a center stop at 0; chapter 0's text and the contents page each state both cases",
+   "name": "Rising from 0 at rate 2, on the page's worker: every plotted bound has the class the program's Bellman step gives at its time (between the center and the first step where the center waits, 0 where it stops too, at least 0.02 otherwise), with both below-step classes present; chapter 0's text and the contents page each state both cases",
    "ok": true,
-   "detail": "between at 21 times (first 1.52), 0 at 29 (first 1.94); both cases stated: true"
+   "detail": "21 times between (first 1.52), 29 center stops (first 1.94), 0 mismatched; both cases stated: true"
   },
   {
    "file": "ch01",
@@ -1420,7 +1420,7 @@
   {
    "file": "ch01",
    "plate": "fig1",
-   "name": "the panels as drawn keep the cost line inside its strip on its own scale (a constant 1, a rise to 3.2, a drawing alternating 0.5 and 2, and a drawing at 0.01 with one knot of 2 at t = 0.2), turn a drawing's path at each of its knots, and put the dot on the line (at t = 1.25, and at the sharp knot itself)",
+   "name": "the panels as drawn keep the cost line inside its strip on its own scale (a constant 1, a rise to 3.2, a drawing alternating 0.5 and 2, and a drawing at 0.01 with one knot of 2 at t = 0.2), turn a drawing's path at each of its knots, at that knot's cost, and put the dot on the line (at t = 1.25, and at the sharp knot itself)",
    "ok": true,
    "detail": "constant: 181 points from 36 to 36 inside 19–53; at t = 1.25 line 36, dot 36; jump: 181 points from 21.8 to 50.2 inside 19–53; at t = 1.25 line 21.8, dot 21.8; alternating drawing: 201 points from 24.1 to 47.9 inside 19–53; at t = 1.25 line 36, dot 36; a vertex at every knot: true; sharp knot: 201 points from 20.7 to 51.3 inside 19–53; at t = 0.2 line 20.7, dot 20.7; a vertex at every knot: true"
   },
@@ -1609,9 +1609,9 @@
   {
    "file": "ch02",
    "plate": "units",
-   "name": "both of the units plate's charts, as unitsCharts builds them for the plate, pass their frames a range that holds every value drawn (the path, the drift line, and the noise curve; the path, t, and sqrt t), at the slider's corners and Palmer's setting",
+   "name": "the helper unitsCharts returns, for each of the units plate's two charts, a range that holds every series it returns for that chart (the path, the drift line, and the noise curve; the path, t, and sqrt t), at the slider's corners and Palmer's setting",
    "ok": true,
-   "detail": "12 charts, 0 with a value outside the range passed; 2 raw charts widened past -2 to 6"
+   "detail": "12 charts, 0 with a returned value outside the returned range; 2 raw charts widened past -2 to 6"
   },
   {
    "file": "ch02",
@@ -2925,23 +2925,23 @@
   {
    "file": "ch03",
    "plate": "words",
-   "name": "a bound that earns what the best flat bound earns is called within 0.05 points of it, and the moving bound's gain on the grid is stated with the grid's horizon",
+   "name": "a bound that earns what the best flat bound earns is called within 0.05 points of it, and the time-dependent policy's gain on the grid is stated with the grid's horizon",
    "ok": true,
    "detail": "Checking the evidence continuously, your bound, 1.20, earns 0.770 on average: 0.…"
   },
   {
    "file": "ch03",
    "plate": "words",
-   "name": "the earn caption and text call the grid's flat level the best a numerical search found, say what it scans and that it doesn't score every level, and state the gain against that level",
+   "name": "the earn caption gives the search as the code runs it (odd multiples of 0.01 to 0.31, every 0.05 to 3.5, every 0.1 below the cap of 5, up to three peaks refined), says it doesn't score every level, and calls the comparison the best time-dependent policy's gain over the level found",
    "ok": true,
-   "detail": "book/content/ch03.py"
+   "detail": "caption: true; code: true"
   },
   {
    "file": "ch03",
    "plate": "words",
-   "name": "the earn verdict calls the grid's flat level the best the page's numerical search found, and states the gain from moving against that level, either way, never against every level",
+   "name": "the earn verdict calls the grid's flat level the best the page's numerical search found, and the other the best time-dependent policy on the grid, with its gain over that level, either way; never a bound that moves with the cost, and never every level",
    "ok": true,
-   "detail": "On the dynamic program's grid, which checks the evidence every 0.01 time units and forces the choice at time 8.5, the best level held flat that the page's numerical search found, 1.14, earns 0.768, and the best bound that moves with the cost earns 0.790: 2.2 points per 100 decisions more than that level."
+   "detail": "On the dynamic program's grid, which checks the evidence every 0.01 time units and forces the choice at time 8.5, the best level held flat that the page's numerical search found, 1.14, earns 0.768, and the best time-dependent policy on this grid earns 0.790: 2.2 points per 100 decisions more than that level."
   },
   {
    "file": "ch03",
@@ -3170,7 +3170,7 @@
   {
    "file": "ch03",
    "plate": "value",
-   "name": "a deadline at 0.8: the worker's plotted bound keeps the last check before it, 0.79, and the map's curve (mapCurves, which the plate draws as it comes) drops from that check's bound",
+   "name": "a deadline at 0.8: the worker's plotted bound keeps the last check before it, 0.79, and the map's curve (mapCurves, which the plate draws as it comes) drops straight down at 0.8 from that check's bound to 0",
    "ok": true,
    "detail": "0.79: 0.1933 (the program's 0.1933); 0.78: 0.2759"
   },
@@ -3184,9 +3184,9 @@
   {
    "file": "ch03",
    "plate": "words",
-   "name": "Rising from 0 at rate 1.75, time 2.20: the worker's bound is positive and would round to 0.000, so the marker and tile read \"< 0.001\", W(t, 0) reads \"< 0.001\", and the sentence says the program still waits at y = 0; at 2.25 the bound is 0 and the sentence says it decides at once",
+   "name": "Rising from 0 at rate 1.75, through the worker and sliceReads (the slice's marker, tiles, and sentence): at 2.20 the bound is positive and would round to 0.000, so the marker reads \"threshold < 0.001\", the bound and W(t, 0) tiles \"< 0.001\", and the sentence says the program still waits at y = 0; at 2.25 the bound and W(t, 0) are 0, no marker is drawn, the tiles read 0.000, and the sentence says it decides at once",
    "ok": true,
-   "detail": "bound 4.277e-4, W 1.969e-4: At time 2.20, deciding at y = 0 is a coin flip, worth 0.5; the best rule from there earns V = 0.500, so the chance to wait is worth W < 0.001, though above 0. The bound, < 0.001, is below the grid's first evidence step, 0.02: the program still waits at y = 0 and decides at y = 0.02, and the bound is where deciding starts to beat waiting, read between the grid's evidence points 0 and 0.02; at the grid points above it, V = g."
+   "detail": "bound 4.277e-4, W 1.969e-4: threshold < 0.001; tiles 0.500, < 0.001, < 0.001, 0.149; at 2.25 W 0, tiles 0.500, 0.000, 0.000, 0.149"
   },
   {
    "file": "ch03",
@@ -3597,9 +3597,16 @@
   {
    "file": "ch04",
    "plate": "words",
-   "name": "Constant 0.1 through the band plate's Show me (the worker's bounds, then bandKind, bandReveal, and revealSay, which the plate prints as they come): it gets the band, collapsed to one curve, and the constant-cost note; a drawing on the program's bound lies inside it to within 0.002, and one 0.05 above lies outside",
+   "name": "Constant 0.1 through the band plate's Show me (the worker's bounds, then bandKind, bandSeries, bandReveal, and revealSay, which the plate prints as they come): it gets the band, its two edges equal at all 251 checks in the window, and the constant-cost note; a drawing on the program's bound lies inside it to within 0.002, and one 0.05 above lies outside",
    "ok": true,
-   "detail": " 0.00 from the best bound on average, and all of it lies inside the band, to within 0.002. | ound on average, and 100% of it lies more than 0.002 outside the band."
+   "detail": "edges differ by at most 0.0e+0 over 251 checks;  0.00 from the best bound on average, and all of it lies inside the band, to within 0.002. | ound on average, and 100% of it lies more than 0.002 outside the band."
+  },
+  {
+   "file": "ch04",
+   "plate": "words",
+   "name": "the band plate without a band: on Rising from 0.6 at rate 2 the program's lowest bound is positive and below the first step, and the tile and sentence print it as 0.002 and say the program still waits at y = 0; from 0.55 the lowest is 0 and the sentence says the program stops at once; at a deadline at 1 the bound is 0 only at the forced choice, and the sentence says so",
+   "ok": true,
+   "detail": "Rising from 0.6 at rate 2: lowest 1.600e-3, tile 0.002 to 1.08; Rising from 0.55 at rate 2: lowest 0.000e+0, tile 0.00 to 1.06; a deadline at 1: lowest 0.000e+0, tile 0.00 to 1.14"
   },
   {
    "file": "ch04",
@@ -3632,9 +3639,9 @@
   {
    "file": "ch04",
    "plate": "words",
-   "name": "the decision-time text says the threshold can change during a decision and is B(c) throughout once the remaining cost is a constant c on the infinite horizon; the exercise gives the proof's bracketing only for starts below b0 - a|eps|; and the strip names the Snell envelope as what is a martingale",
+   "name": "the decision-time text and its exercise each say the threshold can change during a decision, and that when the remaining cost is a constant c, on the infinite horizon, it is B(c) for the whole decision and the decision is the first entry into [B(c), infinity); the exercise gives the proof's bracketing only for starts below b0 - a|eps|; and the strip names the Snell envelope as what is a martingale",
    "ok": true,
-   "detail": "book/content/ch04.py"
+   "detail": "text: true, exercise: true"
   },
   {
    "file": "ch05",
@@ -4542,9 +4549,16 @@
   {
    "file": "ch06",
    "plate": "scale",
-   "name": "the fixed sinusoid: the worker returns the 201 times 0, 0.02, ..., 4, a constant-cost run, and the four selectable sizes (80%, 40%, 20%, 10%), each equal to model.js's program for 0.1 (1 + ε sin 2t) at those times",
+   "name": "the fixed sinusoid: the worker returns the 201 times 0, 0.02, ..., 4, its constant-cost baseline, and the four selectable sizes (80%, 40%, 20%, 10%), the baseline equal to model.js's program at the constant cost 0.1 and each size to its program for 0.1 (1 + ε sin 2t), at every one of those times",
    "ok": true,
    "detail": "201 times, last 4, 4 runs"
+  },
+  {
+   "file": "ch06",
+   "plate": "scale",
+   "name": "the fixed sinusoid: the plate's gaps at each size, to β and to the per-moment response, equal those recomputed from model.js's paired programs at the 151 times from 0.5 to 3.5 (within 1e-12)",
+   "ok": true,
+   "detail": "0.2871, 0.4005; 0.0858, 0.3707; 0.0369, 0.3547; 0.0167, 0.3479"
   },
   {
    "file": "ch06",
@@ -4570,7 +4584,7 @@
   {
    "file": "ch06",
    "plate": "yours",
-   "name": "jump: with that reply, the revealed chart is drawn on an ordered range, and the verdict's comparison matches the count from the paired errors (every size, or the count it prints)",
+   "name": "jump: with that reply, the plate's state (yoursPlateState, not the page's drawing) reports the revealed chart as shown on an ordered range, and the verdict's comparison matches the count from the paired errors (every size, or the count it prints)",
    "ok": true,
    "detail": "first-order smaller at 3 of 6 sizes; range 1.2e-4 to 1.9e+0"
   },
@@ -4584,7 +4598,7 @@
   {
    "file": "ch06",
    "plate": "yours",
-   "name": "fall: with that reply, the revealed chart is drawn on an ordered range, and the verdict's comparison matches the count from the paired errors (every size, or the count it prints)",
+   "name": "fall: with that reply, the plate's state (yoursPlateState, not the page's drawing) reports the revealed chart as shown on an ordered range, and the verdict's comparison matches the count from the paired errors (every size, or the count it prints)",
    "ok": true,
    "detail": "first-order smaller at 6 of 6 sizes; range 3.4e-4 to 1.8e+0"
   },
@@ -4598,7 +4612,7 @@
   {
    "file": "ch06",
    "plate": "yours",
-   "name": "rising: with that reply, the revealed chart is drawn on an ordered range, and the verdict's comparison matches the count from the paired errors (every size, or the count it prints)",
+   "name": "rising: with that reply, the plate's state (yoursPlateState, not the page's drawing) reports the revealed chart as shown on an ordered range, and the verdict's comparison matches the count from the paired errors (every size, or the count it prints)",
    "ok": true,
    "detail": "first-order smaller at 2 of 6 sizes; range 2.4e-4 to 1.7e+0"
   },
@@ -4612,7 +4626,7 @@
   {
    "file": "ch06",
    "plate": "yours",
-   "name": "pulse: with that reply, the revealed chart is drawn on an ordered range, and the verdict's comparison matches the count from the paired errors (every size, or the count it prints)",
+   "name": "pulse: with that reply, the plate's state (yoursPlateState, not the page's drawing) reports the revealed chart as shown on an ordered range, and the verdict's comparison matches the count from the paired errors (every size, or the count it prints)",
    "ok": true,
    "detail": "first-order smaller at 6 of 6 sizes; range 4.1e-4 to 1.5e+0"
   },
@@ -4626,7 +4640,7 @@
   {
    "file": "ch06",
    "plate": "yours",
-   "name": "wave: with that reply, the revealed chart is drawn on an ordered range, and the verdict's comparison matches the count from the paired errors (every size, or the count it prints)",
+   "name": "wave: with that reply, the plate's state (yoursPlateState, not the page's drawing) reports the revealed chart as shown on an ordered range, and the verdict's comparison matches the count from the paired errors (every size, or the count it prints)",
    "ok": true,
    "detail": "first-order smaller at 6 of 6 sizes; range 2.4e-4 to 3.3e-1"
   },
@@ -4640,7 +4654,7 @@
   {
    "file": "ch06",
    "plate": "yours",
-   "name": "smooth: with that reply, the revealed chart is drawn on an ordered range, and the verdict's comparison matches the count from the paired errors (every size, or the count it prints)",
+   "name": "smooth: with that reply, the plate's state (yoursPlateState, not the page's drawing) reports the revealed chart as shown on an ordered range, and the verdict's comparison matches the count from the paired errors (every size, or the count it prints)",
    "ok": true,
    "detail": "first-order smaller at 6 of 6 sizes; range 1.7e-4 to 9.0e-1"
   },
@@ -4654,7 +4668,7 @@
   {
    "file": "ch06",
    "plate": "yours",
-   "name": "multistep: with that reply, the revealed chart is drawn on an ordered range, and the verdict's comparison matches the count from the paired errors (every size, or the count it prints)",
+   "name": "multistep: with that reply, the plate's state (yoursPlateState, not the page's drawing) reports the revealed chart as shown on an ordered range, and the verdict's comparison matches the count from the paired errors (every size, or the count it prints)",
    "ok": true,
    "detail": "first-order smaller at 6 of 6 sizes; range 2.0e-4 to 1.3e+0"
   },
@@ -4668,7 +4682,7 @@
   {
    "file": "ch06",
    "plate": "yours",
-   "name": "piecewise: with that reply, the revealed chart is drawn on an ordered range, and the verdict's comparison matches the count from the paired errors (every size, or the count it prints)",
+   "name": "piecewise: with that reply, the plate's state (yoursPlateState, not the page's drawing) reports the revealed chart as shown on an ordered range, and the verdict's comparison matches the count from the paired errors (every size, or the count it prints)",
    "ok": true,
    "detail": "first-order smaller at 6 of 6 sizes; range 3.4e-4 to 1.8e+0"
   },
@@ -4682,7 +4696,7 @@
   {
    "file": "ch06",
    "plate": "yours",
-   "name": "draw (the default drawing): with that reply, the revealed chart is drawn on an ordered range, and the verdict's comparison matches the count from the paired errors (every size, or the count it prints)",
+   "name": "draw (the default drawing): with that reply, the plate's state (yoursPlateState, not the page's drawing) reports the revealed chart as shown on an ordered range, and the verdict's comparison matches the count from the paired errors (every size, or the count it prints)",
    "ok": true,
    "detail": "first-order smaller at 6 of 6 sizes; range 2.6e-4 to 9.9e-1"
   },
@@ -4696,7 +4710,7 @@
   {
    "file": "ch06",
    "plate": "yours",
-   "name": "Smooth at middle cost 0.02, size 0.05: with that reply, the revealed chart is drawn on an ordered range, and the verdict's comparison matches the count from the paired errors (every size, or the count it prints)",
+   "name": "Smooth at middle cost 0.02, size 0.05: with that reply, the plate's state (yoursPlateState, not the page's drawing) reports the revealed chart as shown on an ordered range, and the verdict's comparison matches the count from the paired errors (every size, or the count it prints)",
    "ok": true,
    "detail": "first-order smaller at 6 of 6 sizes; range 2.4e-5 to 3.2e-2"
   },
@@ -4710,30 +4724,37 @@
   {
    "file": "ch06",
    "plate": "yours",
-   "name": "Smooth at middle cost 0.5, size 0.05: with that reply, the revealed chart is drawn on an ordered range, and the verdict's comparison matches the count from the paired errors (every size, or the count it prints)",
+   "name": "Smooth at middle cost 0.5, size 0.05: with that reply, the plate's state (yoursPlateState, not the page's drawing) reports the revealed chart as shown on an ordered range, and the verdict's comparison matches the count from the paired errors (every size, or the count it prints)",
    "ok": true,
    "detail": "first-order smaller at 6 of 6 sizes; range 2.1e-5 to 1.6e-2"
   },
   {
    "file": "ch06",
    "plate": "yours",
-   "name": "the plate's state on a revealed, nearly flat drawing (2 to 1.99999): the bottom chart stays hidden, and the verdict gives the largest error and says the chart opens only when one error reaches 1e-7",
+   "name": "the plate's state on revealed, nearly flat drawings (2 to 1.99999, and 2 to 1.9999622, whose largest error is just below 1e-7): it reports the bottom chart hidden, and the sentence prints the largest error rounded down, below 1e-7, and says the chart opens only when one error reaches 1e-7",
    "ok": true,
-   "detail": "largest error 2.64e-8; Every error here is below 10⁻⁷: the largest is 2.6e-8. The log chart opens only when at least one error reaches 10⁻⁷, so it stays hidden. Pick a schedule that moves more."
+   "detail": "largest errors 2.6382e-8 and 9.9692e-8; Every error here is below 10⁻⁷: the largest is 9.96e-8, rounded down. The log chart opens only when at least one error reaches 10⁻⁷, so it stays hidden. Pick a schedule that moves more."
   },
   {
    "file": "ch06",
    "plate": "yours",
-   "name": "the plate's state on a revealed drawing from 2 to 1.9999: one error reaches 1e-7, so the chart opens, and its range holds the errors below 1e-7 too (the threshold is on the largest, not on each error)",
+   "name": "the plate's state on a revealed drawing from 2 to 1.9999: one error reaches 1e-7, so it reports the chart shown, with a range that holds the errors below 1e-7 too (the threshold is on the largest, not on each error)",
    "ok": true,
    "detail": "largest 2.64e-7, 8 errors below 1e-7, range from 2.62e-9"
   },
   {
    "file": "ch06",
    "plate": "yours",
-   "name": "the plate's state: a reply that arrives after a switch to a skipped selection (Constant) is dropped, so no data and no chart remain even with the chart revealed; a deadline and a flat drawing are skipped too",
+   "name": "a drawing from 2 to 1.999999999 is solved as a moving schedule with the theory question, and its revealed chart stays hidden below 1e-7; Constant, a flat drawing, and Smooth at size 0 are the ones skipped as not changing",
    "ok": true,
-   "detail": "reply kept: false; mode after the switch constant; chart hidden: true"
+   "detail": "mode theory, largest error 2.64e-12; skipped as constant, constant, constant"
+  },
+  {
+   "file": "ch06",
+   "plate": "yours",
+   "name": "the plate's state: a reply that arrives after a switch to a skipped selection (Constant) is dropped; right after it is delivered, with the chart revealed, the state holds no data, stays on Constant, and reports the chart hidden",
+   "ok": true,
+   "detail": "reply kept: false; mode constant; chart hidden: true"
   },
   {
    "file": "ch06",
@@ -4759,7 +4780,7 @@
   {
    "file": "ch06",
    "plate": "yours",
-   "name": "the error chart as the plate draws it (420 pixels, the drawing from 2 to 1.9999): each guide's label sits at the left end of its own clipped segment; a guide entirely outside the plot is drawn without a label",
+   "name": "the error chart's marks from errorMarks, the function the plate draws them with (420 pixels, the drawing from 2 to 1.9999): both guides are drawn, slope 1 then slope 2, each labeled at the left end of its own clipped segment; guides entirely outside the plot are drawn with no label",
    "ok": true,
    "detail": "2 guides, labels slope 1 at (70.1, 142.3), slope 2 at (226.9, 176); guide starts (66.1, 148.3), (222.9, 180)"
   },
@@ -5193,9 +5214,9 @@
   {
    "file": "ch07",
    "plate": "shift",
-   "name": "a Smooth of size 0 and a flat drawing at 0.98 count as flat; the default jump and Smooth don't",
+   "name": "a Smooth of size 0 and flat drawings at 0.98, 0.01, and 2 count as flat (a drawing by its knots, a preset by its values every 0.01 to time 14); the default jump and Smooth don't, and neither does a drawing that moves only from 2 to 1.999999999, whose sentence doesn't say the cost doesn't move",
    "ok": true,
-   "detail": "by the schedule's values every 0.01 to time 14"
+   "detail": "Draw your own: over the window, the per-moment bound is on average 0.034 from the program's exported bound and the shifted one 0.034; their largest gaps are 0.034 and 0.034. Here the shift makes little difference on average."
   },
   {
    "file": "ch07",
@@ -5949,16 +5970,16 @@
   {
    "file": "ch08",
    "plate": "roots",
-   "name": "a drawing from 1 to 0.0765913: one crossing found and confirmed, and none at the close approach near 0.586, whose local maximum of T(b) − b, located by search in the separate evaluation, stays below 0 (and below 0 again with four times the panels)",
+   "name": "a drawing from 1 to 0.0765913: one crossing found and confirmed, and none at the close approach near 0.586, where the local maximum of T(b) − b in the separate evaluation, located by its own search with 256 panels per stretch and again with 1024, stays below 0 in both",
    "ok": true,
-   "detail": "0.2521; local maximum of T - b at 0.58606: -6.401e-9 (1024 panels: -9.577e-9)"
+   "detail": "0.2521; local maximum of T - b: -6.401e-9 at 0.58606 (256 panels), -9.577e-9 at 0.58606 (1024)"
   },
   {
    "file": "ch08",
    "plate": "roots",
-   "name": "a drawing from 1 to 0.0766: one crossing found and confirmed, and none at the close approach near 0.586, whose local maximum of T(b) − b, located by search in the separate evaluation, stays below 0 (and below 0 again with four times the panels)",
+   "name": "a drawing from 1 to 0.0766: one crossing found and confirmed, and none at the close approach near 0.586, where the local maximum of T(b) − b in the separate evaluation, located by its own search with 256 panels per stretch and again with 1024, stays below 0 in both",
    "ok": true,
-   "detail": "0.2521; local maximum of T - b at 0.58604: -1.839e-5 (1024 panels: -1.839e-5)"
+   "detail": "0.2521; local maximum of T - b: -1.839e-5 at 0.58604 (256 panels), -1.839e-5 at 0.58604 (1024)"
   },
   {
    "file": "ch08",
@@ -6026,9 +6047,9 @@
   {
    "file": "ch08",
    "plate": "endpoint",
-   "name": "a deadline at 0.95 with a cost of 0.5: the drawn per-moment path, in the comparison and Algorithm 1's Shift step and in Algorithm 1's Start step, ends with a vertical drop at the deadline's x from the held bound to the y of 0; without a deadline the arrays pass through unchanged",
+   "name": "a deadline at 0.95 with a cost of 0.5: the per-moment path each plate's curve builder emits (the comparison's comparisonLines, Algorithm 1's shiftLines, and its startLine) ends with a vertical drop at the deadline's x from the held bound to the y of 0; without a deadline pmPlot passes the arrays through unchanged",
    "ok": true,
-   "detail": "moved in: (348, 50) and (348, 172), deadline at x 348.0, 0 at y 172.0; start: (348, 32.5) and (348, 172), deadline at x 348.0, 0 at y 172.0"
+   "detail": "comparison: (348, 50) and (348, 172), deadline at x 348.0, 0 at y 172.0; Shift step: (348, 50) and (348, 172), deadline at x 348.0, 0 at y 172.0; Start step: (348, 32.5) and (348, 172), deadline at x 348.0, 0 at y 172.0"
   },
   {
    "file": "ch08",
@@ -6726,58 +6747,58 @@
   {
    "file": "ch09",
    "plate": "edges",
-   "name": "deadline at 0.45: the computations of the six plates that take the reader's schedule (the program, the density, a run of 2,000 trials, the coefficient, the shift, and the refinement) run; the program, the density, the coefficient's drawn curve, and the shift plot end where they should; and their numbers and sentences are clean",
+   "name": "deadline at 0.45: the computations of the six plates that take the reader's schedule (the program, the density, a run of 2,000 trials with the finer score, the coefficient, the shift, and the refinement) run; the program, the density, the coefficient's last finite point, and the shift plot end where they should; the shift sentence takes the flat branch exactly on the flat schedules; and the numbers and the seven sentences the plates make from them are clean",
    "ok": true,
-   "detail": "reward 0.7126, decided by the plot's end 1.000000, trials 0.709, losses 0.7047 0.7385 0.0166 0.0290 0.7047 0.0166 0.7156 0.0174 0.7214 0.0179, plots end at 0.45 and 0.44"
+   "detail": "reward 0.7126, decided by the plot's end 1.000000, trials 0.709, losses 0.7047 0.7385 0.0166 0.0290 0.7047 0.0166 0.7156 0.0174 0.7214 0.0179, plots end at 0.45 and 0.44 (23 of 23 coefficient points finite)"
   },
   {
    "file": "ch09",
    "plate": "edges",
-   "name": "deadline at 3 with cost 0.02: the computations of the six plates that take the reader's schedule (the program, the density, a run of 2,000 trials, the coefficient, the shift, and the refinement) run; the program, the density, the coefficient's drawn curve, and the shift plot end where they should; and their numbers and sentences are clean",
+   "name": "deadline at 3 with cost 0.02: the computations of the six plates that take the reader's schedule (the program, the density, a run of 2,000 trials with the finer score, the coefficient, the shift, and the refinement) run; the program, the density, the coefficient's last finite point, and the shift plot end where they should; the shift sentence takes the flat branch exactly on the flat schedules; and the numbers and the seven sentences the plates make from them are clean",
    "ok": true,
-   "detail": "reward 0.9211, decided by the plot's end 1.000000, trials 0.923, losses 0.2505 0.3012 0.0007 0.0074 0.2505 0.0007 0.2512 0.0007 0.2518 0.0007, plots end at 3 and 2.99"
+   "detail": "reward 0.9211, decided by the plot's end 1.000000, trials 0.923, losses 0.2505 0.3012 0.0007 0.0074 0.2505 0.0007 0.2512 0.0007 0.2518 0.0007, plots end at 3 and 2.99 (151 of 151 coefficient points finite)"
   },
   {
    "file": "ch09",
    "plate": "edges",
-   "name": "constant: the computations of the six plates that take the reader's schedule (the program, the density, a run of 2,000 trials, the coefficient, the shift, and the refinement) run; the program, the density, the coefficient's drawn curve, and the shift plot end where they should; and their numbers and sentences are clean",
+   "name": "constant: the computations of the six plates that take the reader's schedule (the program, the density, a run of 2,000 trials with the finer score, the coefficient, the shift, and the refinement) run; the program, the density, the coefficient's last finite point, and the shift plot end where they should; the shift sentence takes the flat branch exactly on the flat schedules; and the numbers and the seven sentences the plates make from them are clean",
    "ok": true,
-   "detail": "reward 0.8188, decided by the plot's end 0.922104, trials 0.816, losses 0.0002 0.0330 0.0002 0.0330 0.0002 0.0002 0.0002 0.0002 0.0002 0.0002, plots end at 2.5 and 2.50"
+   "detail": "reward 0.8188, decided by the plot's end 0.922104, trials 0.816, losses 0.0002 0.0330 0.0002 0.0330 0.0002 0.0002 0.0002 0.0002 0.0002 0.0002, plots end at 2.5 and 2.50 (126 of 126 coefficient points finite)"
   },
   {
    "file": "ch09",
    "plate": "edges",
-   "name": "flat drawing: the computations of the six plates that take the reader's schedule (the program, the density, a run of 2,000 trials, the coefficient, the shift, and the refinement) run; the program, the density, the coefficient's drawn curve, and the shift plot end where they should; and their numbers and sentences are clean",
+   "name": "flat drawing: the computations of the six plates that take the reader's schedule (the program, the density, a run of 2,000 trials with the finer score, the coefficient, the shift, and the refinement) run; the program, the density, the coefficient's last finite point, and the shift plot end where they should; the shift sentence takes the flat branch exactly on the flat schedules; and the numbers and the seven sentences the plates make from them are clean",
    "ok": true,
-   "detail": "reward 0.8188, decided by the plot's end 0.922104, trials 0.816, losses 0.0002 0.0330 0.0002 0.0330 0.0002 0.0002 0.0002 0.0002 0.0002 0.0002, plots end at 2.5 and 2.50"
+   "detail": "reward 0.8188, decided by the plot's end 0.922104, trials 0.816, losses 0.0002 0.0330 0.0002 0.0330 0.0002 0.0002 0.0002 0.0002 0.0002 0.0002, plots end at 2.5 and 2.50 (126 of 126 coefficient points finite)"
   },
   {
    "file": "ch09",
    "plate": "edges",
-   "name": "smooth at size 0: the computations of the six plates that take the reader's schedule (the program, the density, a run of 2,000 trials, the coefficient, the shift, and the refinement) run; the program, the density, the coefficient's drawn curve, and the shift plot end where they should; and their numbers and sentences are clean",
+   "name": "smooth at size 0: the computations of the six plates that take the reader's schedule (the program, the density, a run of 2,000 trials with the finer score, the coefficient, the shift, and the refinement) run; the program, the density, the coefficient's last finite point, and the shift plot end where they should; the shift sentence takes the flat branch exactly on the flat schedules; and the numbers and the seven sentences the plates make from them are clean",
    "ok": true,
-   "detail": "reward 0.8188, decided by the plot's end 0.922104, trials 0.816, losses 0.0002 0.0330 0.0002 0.0330 0.0002 0.0002 0.0002 0.0002 0.0002 0.0002, plots end at 2.5 and 2.50"
+   "detail": "reward 0.8188, decided by the plot's end 0.922104, trials 0.816, losses 0.0002 0.0330 0.0002 0.0330 0.0002 0.0002 0.0002 0.0002 0.0002 0.0002, plots end at 2.5 and 2.50 (126 of 126 coefficient points finite)"
   },
   {
    "file": "ch09",
    "plate": "edges",
-   "name": "rising: the computations of the six plates that take the reader's schedule (the program, the density, a run of 2,000 trials, the coefficient, the shift, and the refinement) run; the program, the density, the coefficient's drawn curve, and the shift plot end where they should; and their numbers and sentences are clean",
+   "name": "rising: the computations of the six plates that take the reader's schedule (the program, the density, a run of 2,000 trials with the finer score, the coefficient, the shift, and the refinement) run; the program, the density, the coefficient's last finite point, and the shift plot end where they should; the shift sentence takes the flat branch exactly on the flat schedules; and the numbers and the seven sentences the plates make from them are clean",
    "ok": true,
-   "detail": "reward 0.7534, decided by the plot's end 1.000000, trials 0.758, losses 0.6627 0.9857 0.0135 0.0331 0.6627 0.0135 0.6705 0.0125 0.6751 0.0121, plots end at 2.5 and 2.50"
+   "detail": "reward 0.7534, decided by the plot's end 1.000000, trials 0.758, losses 0.6627 0.9857 0.0135 0.0331 0.6627 0.0135 0.6705 0.0125 0.6751 0.0121, plots end at 2.5 and 2.50 (126 of 126 coefficient points finite)"
   },
   {
    "file": "ch09",
    "plate": "edges",
-   "name": "jump to 3.2 (a bound below the grid's first step): the computations of the six plates that take the reader's schedule (the program, the density, a run of 2,000 trials, the coefficient, the shift, and the refinement) run; the program, the density, the coefficient's drawn curve, and the shift plot end where they should; and their numbers and sentences are clean",
+   "name": "jump to 3.2 (a bound below the grid's first step): the computations of the six plates that take the reader's schedule (the program, the density, a run of 2,000 trials with the finer score, the coefficient, the shift, and the refinement) run; the program, the density, the coefficient's last finite point, and the shift plot end where they should; the shift sentence takes the flat branch exactly on the flat schedules; and the numbers and the seven sentences the plates make from them are clean",
    "ok": true,
-   "detail": "reward 0.7025, decided by the plot's end 1.000000, trials 0.699, losses 0.9249 1.3147 0.0238 0.0584 0.9249 0.0238 0.9497 0.0209 0.9628 0.0195, plots end at 2.5 and 2.50"
+   "detail": "reward 0.7025, decided by the plot's end 1.000000, trials 0.699, losses 0.9249 1.3147 0.0238 0.0584 0.9249 0.0238 0.9497 0.0209 0.9628 0.0195, plots end at 2.5 and 2.50 (126 of 126 coefficient points finite)"
   },
   {
    "file": "ch09",
    "plate": "edges",
-   "name": "drawing at its extremes: the computations of the six plates that take the reader's schedule (the program, the density, a run of 2,000 trials, the coefficient, the shift, and the refinement) run; the program, the density, the coefficient's drawn curve, and the shift plot end where they should; and their numbers and sentences are clean",
+   "name": "drawing at its extremes: the computations of the six plates that take the reader's schedule (the program, the density, a run of 2,000 trials with the finer score, the coefficient, the shift, and the refinement) run; the program, the density, the coefficient's last finite point, and the shift plot end where they should; the shift sentence takes the flat branch exactly on the flat schedules; and the numbers and the seven sentences the plates make from them are clean",
    "ok": true,
-   "detail": "reward 0.6528, decided by the plot's end 0.999997, trials 0.648, losses 3.4812 2.4282 6.9722 8.3496 3.4812 6.9722 3.6096 6.6117 3.6510 6.5189, plots end at 2.5 and 2.50"
+   "detail": "reward 0.6528, decided by the plot's end 0.999997, trials 0.648, losses 3.4812 2.4282 6.9722 8.3496 3.4812 6.9722 3.6096 6.6117 3.6510 6.5189, plots end at 2.5 and 2.50 (126 of 126 coefficient points finite)"
   },
   {
    "file": "ch09",
@@ -6999,9 +7020,9 @@
   {
    "file": "ch09",
    "plate": "density",
-   "name": "the rate plot's bins (rateBins, what the plate draws) cover every ordinary step once, and with the forced choice as a separate point mass reproduce the cumulative correct and wrong totals (within 1e-12), at deadlines on odd (0.45, 1.05) and even (1, 3) steps for the per-moment rule and the best bound, and on the jump to the window's end",
+   "name": "the rate plot's bins (rateBins, what the plate draws), each checked against the forward pass: in order, pairs of steps from step 1 and then the one left over, each at the mean of its steps' times, with its width and its correct and wrong mass; the forced choice apart, at the deadline's time, with its two shares; and all of it reproducing the cumulative totals (within 1e-12), at deadlines on odd (0.45, 1.05) and even (1, 3) steps for the per-moment rule and the best bound, and on the jump to the window's end",
    "ok": true,
-   "detail": "largest gap 1.1e-15; 0.45: last bin 2 steps at 0.435, forced 84.9254%; 1: last bin 1 step at 0.990, forced 46.3763%; 1.05: last bin 2 steps at 1.035, forced 43.7358%; 3: last bin 1 step at 2.990, forced 4.3567%"
+   "detail": "673 bins, 0 wrong; largest total gap 1.1e-15; 0.45: last bin 2 steps at 0.435, forced 84.9254%; 1: last bin 1 step at 0.990, forced 46.3763%; 1.05: last bin 2 steps at 1.035, forced 43.7358%; 3: last bin 1 step at 2.990, forced 4.3567%"
   },
   {
    "file": "ch09",
@@ -7013,7 +7034,7 @@
   {
    "file": "ch09",
    "plate": "overshoot",
-   "name": "the overshoot plate rings the first fine step past the bound only inside the nine checks it draws, and gives its time when it comes earlier: earlier for ?seed=19 at dt = 0.000625 (and the default seed at 0.0025), ringed for the opening run at 0.04, and the rule holds on 200 more runs",
+   "name": "firstPastMark, which decides the overshoot plate's ring or earlier-time note (the drawing itself isn't inspected): its kind, time, and window start are right on 200 runs; ?seed=19 at dt = 0.000625 (and the default seed at 0.0025) comes earlier than the window, with the time the note prints, 0.2597, the first fine step's; the opening run at 0.04 is ringed",
    "ok": true,
    "detail": "seed 19: first at 0.259714, window from 0.262500; opening run ringed at 0.7133"
   },
@@ -7030,6 +7051,13 @@
    "name": "the grid legend in points names all 8 schedules for both rules; as shares, all 8 per-moment and 6 of 8 weighted, with Smooth 4 and Step 10 named as left out, as the caption names them",
    "ok": true,
    "detail": "Per-moment, all 8 schedules; Weighted, 6 of 8 schedules (Smooth 4 and Step 10 left out)"
+  },
+  {
+   "file": "ch09",
+   "plate": "sweep",
+   "name": "the sweep's live rings: sweepTest's swing ratio is the fitted amplitude over the predicted swing eps |B'(c0)| |w|, and its phase the angle of the fitted coefficient over eps B'(c0) w (as the tagged sweep script computes it), at c0 = 0.1, omega = 1, eps/c0 = 0.05; the caption names the rings in both panels with those two references and calls the bottom chart the absolute phase residual, and the readings label the signed residual",
+   "ok": true,
+   "detail": "swing error 0.4800%, phase residual -0.1275 degrees"
   },
   {
    "file": "ch10",
@@ -7825,9 +7853,9 @@
   {
    "file": "ch11",
    "plate": "rules",
-   "name": "on 14 schedules (Table 10's eight, a fall at time 2 by 16, a late jump, a pulse, a deadline at 0.75, a drawing that rises in the middle, and a flat drawing at 0.2499999), at every time drawn the plotted plug-in bound is 0 exactly where the unshifted one is at most 0.5826 sqrt(0.005); the plate's stretches are those times, the sentence names each stretch's endpoints as drawn, and no time at a deadline is drawn",
+   "name": "on 15 schedules (Table 10's eight, a fall at time 2 by 16, a late jump, a pulse, a deadline at 0.75, a drawing that rises in the middle, a flat drawing at 0.2499999, and a drawing that alternates 0.02 and 0.6), at every time drawn the plotted plug-in bound is 0 exactly where the unshifted one is at most 0.5826 sqrt(0.005); the plate's stretches are those times; the sentence's clause on them is, word for word, the first three stretches' endpoints as drawn and the exact count of the rest; and no time at a deadline is drawn",
    "ok": true,
-   "detail": "1574 times on 14 schedules, 10 with zero stretches"
+   "detail": "1700 times on 15 schedules, 11 with zero stretches, 1 with more than three"
   },
   {
    "file": "ch11",
@@ -8135,7 +8163,7 @@
    "plate": "words",
    "name": "the plates' sentences never print NaN, undefined, Infinity, or null (random inputs and every real computation above)",
    "ok": true,
-   "detail": "19765 sentences, 0 bad"
+   "detail": "19766 sentences, 0 bad"
   },
   {
    "file": "ch11",
@@ -8756,7 +8784,7 @@
   {
    "file": "ch12",
    "plate": "control",
-   "name": "controlWindow, which the plate's reading and arrow use: at c0 = 0.03 and t = 4 it gives the reading “29%” and puts the mean, 0.618 ahead, past the chart's edge (so the plate draws the arrow); at c0 = 1 it gives no reading, with under 0.5% past the edge",
+   "name": "controlWindow, which the plate's reading and arrow use: at c0 = 0.03 and t = 4 it gives the reading “29%” and puts the mean, 0.618 ahead (as the plate prints it), past the chart's edge, the branch where the plate draws the arrow (the drawing itself isn't inspected); at c0 = 1 it gives no reading, with under 0.5% past the edge",
    "ok": true,
    "detail": "29.48% past, mean at 4.618; at c0 = 1, 2.63e-4% past, no reading"
   },
@@ -8892,6 +8920,20 @@
    "name": "a nearly flat drawing (one point raised by 10⁻⁶): the smallest size's gaps are positive and under 10⁻⁶, and the plate prints both to two significant digits (not 0.00%) in the readings and the sentence before naming the closer",
    "ok": true,
    "detail": "gaps 7.07e-9 and 2.11e-7; readings 7.1 × 10⁻⁷% and 2.1 × 10⁻⁵%; At 6.25% of its size, the smallest, the first-order urgency is off the best bound's by up to 7.1 × 10⁻⁷% of the constant cost's urgency, and the per-moment urgency by up to 2.1 × 10⁻⁵% of the constant cost's urgency, at every time drawn. There the first-order urgency, the one the prediction is about, is the closer of the two to the best bound's."
+  },
+  {
+   "file": "ch12",
+   "plate": "yours",
+   "name": "a drawing with no time at full size where all three curves are defined (the worker's run): the full-size gaps are unavailable, not 0, in both readings and the sentence, with no count of 0 times; the smaller sizes keep their gaps and the ranking; and with the smallest size unavailable too, neither urgency is ranked",
+   "ok": true,
+   "detail": "0, 80, 124 of 126 times; unavailable; At full size, no time drawn has all three curves defined: at each of the 126, a bound is at or below 0 and has no urgency, so the gaps can't be computed at that size. At the smallest size, 6.25% of its size, the gaps are 3581% and 59%, over the 124 times where all three are defined. Even there, on this grid, the first-order urgency is not the closer of the two to the best bound's. | At full size, no time drawn has all three curves defined: at each of the 126, a bound is at or below 0 and has no urgency, so the gaps can't be computed at that size. At the smallest size, 6.25% of its size, no time drawn has all three curves defined either, so the plate ranks neither urgency."
+  },
+  {
+   "file": "ch12",
+   "plate": "yours",
+   "name": "two gaps that print alike at the usual digits (13.03% at the smallest size, on a drawing ending at 0.244631958): the readings and both sentences give them to the digits that tell them apart, and the ranking says by how much and that it shows only at that precision",
+   "ok": true,
+   "detail": "0.130295744 and 0.130269516: readings 13.030% and 13.027%; At 6.25% of its size, the smallest, the first-order urgency is off the best bound's by up to 13.030% of the constant cost's urgency, and the per-moment urgency by up to 13.027% of the constant cost's urgency, at every time drawn. Even there, on this grid, the first-order urgency is not the closer of the two to the best bound's, by 2.6 × 10⁻³% of the constant cost's urgency, a margin that shows only at this precision."
   },
   {
    "file": "ch12",
@@ -9575,7 +9617,7 @@
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "the eleven schedules at their starting settings never reach a bound below the grid's first step, so every cell above was compared to 1e-6 (the edge cases below exercise that branch)",
+   "name": "the eleven schedules at their starting settings give no below-step pairs (a page bound between 0 and the first step where the tag reports 0), so every cell above, the deadline's terminal 0 on both sides included, was compared to 1e-6 (the edge cases below exercise that branch)",
    "ok": true,
    "detail": "0 below-step pairs"
   },
@@ -9673,21 +9715,21 @@
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "chapter 1's stress schedule jump32 (tools/validity/ch01.json): the worker's 126 times and exact bounds match the tag's, with the times below the first step counted as below-step pairs and every other time within 1e-6",
+   "name": "chapter 1's stress schedule jump32 (tools/validity/ch01.json): the worker's 126 times and exact bounds match the tag's; the below-step pairs are exactly the times where the program's Bellman step waits at the center and stops at the first step, the center stops are 0 on both sides, and every other time is within 1e-6",
    "ok": true,
-   "detail": "126 entries, largest difference 3.91e-9, 0 both off the cap, 106 below-step pairs"
+   "detail": "126 entries, largest difference 3.91e-9, 0 both off the cap, 106 below-step pairs; by the Bellman step 106 between and 0 center stops"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "chapter 1's stress schedule ramp2 (tools/validity/ch01.json): the worker's 126 times and exact bounds match the tag's, with the times below the first step counted as below-step pairs and every other time within 1e-6",
+   "name": "chapter 1's stress schedule ramp2 (tools/validity/ch01.json): the worker's 126 times and exact bounds match the tag's; the below-step pairs are exactly the times where the program's Bellman step waits at the center and stops at the first step, the center stops are 0 on both sides, and every other time is within 1e-6",
    "ok": true,
-   "detail": "126 entries, largest difference 4.25e-9, 0 both off the cap, 21 below-step pairs"
+   "detail": "126 entries, largest difference 4.25e-9, 0 both off the cap, 21 below-step pairs; by the Bellman step 21 between and 29 center stops"
   },
   {
    "file": "paper-code",
    "plate": "schedule",
-   "name": "a cost that falls to 1e-5 at time 1: the worker writes Infinity where the tag writes null, past the cap, and the comparator pairs them; the finite times and the per-moment bound match (within 1e-6 and 1e-10)",
+   "name": "a cost that falls to 1e-5 at time 1: the worker writes Infinity where the tag's code returns infinity (stored as null in the fixture), past the cap, and the comparator pairs them; the finite times and the per-moment bound match (within 1e-6 and 1e-10)",
    "ok": true,
    "detail": "exact: 126 entries, largest difference 5.93e-9, 58 both off the cap, 0 below-step pairs; per-moment: 126 entries, largest difference 8.69e-12, 0 both off the cap, 0 below-step pairs"
   },

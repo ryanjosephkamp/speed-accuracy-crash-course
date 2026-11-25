@@ -3,9 +3,10 @@
 // waiting value at a constant cost, the time spent past the bound), and the forward computation that scores a rule
 // and gives its decision times, for the losses on the reader's schedule. tools/checks/ch07.mjs holds these to the
 // paper's generated numbers and to model.js.
-import * as K from "./kernel.js?v=9bcb592a71";
-import { boundForCost, toDiscrete, belief } from "./model.js?v=9bcb592a71";
-import { line, dropAt } from "./chart.js?v=9bcb592a71";
+import * as K from "./kernel.js?v=50386feefc";
+import { boundForCost, toDiscrete, belief } from "./model.js?v=50386feefc";
+import { line, dropAt } from "./chart.js?v=50386feefc";
+import { isFlat as isFlatChoice } from "./ch01-model.js?v=50386feefc";
 
 /** The paper's Table 1 (tab_sinusoid at the tag), c0 = 0.1 and eps = 0.01: omega, then the swing and the lead in
  * degrees for the closed form, the dynamic program, and the weighted look-ahead. Checked cell by cell against
@@ -406,13 +407,10 @@ export const ratioAxisTop = (ratios) => Math.min(8, Math.max(2, Math.ceil(Math.m
  * all when there is no ratio. */
 export const ratioMark = (v, top) => (!Number.isFinite(v) ? "none" : v <= top ? "dot" : "arrow");
 
-/** Whether a schedule is flat: within a relative 1e-9 of its cost at time 0 at every 0.01 up to the horizon. */
-export function isFlat(cost, horizon = LOSS_HORIZON) {
-  const c0 = cost(0);
-  if (!Number.isFinite(c0)) return false;
-  for (let k = 1; k <= Math.round(horizon / 0.01); k++) { const c = cost(k * 0.01); if (!(Math.abs(c - c0) <= 1e-9 * c0)) return false; }
-  return true;
-}
+/** Whether a selection is flat, constant by value up to the horizon: chapter 1's test (ch01-model.js), which reads a
+ * drawing from its knots, since a flat drawing's interpolated costs can differ in the last binary digit, and a preset
+ * from its cost every 0.01. A cost that moves at all, however little, is not flat. */
+export const isFlat = (choice, horizon = LOSS_HORIZON) => isFlatChoice(choice, horizon);
 
 /** A display cutoff, not an error bound: a loss is drawn as a filled dot when it is at least ten times the baseline
  * (the per-moment rule's loss at the constant cost, on this grid and horizon). */

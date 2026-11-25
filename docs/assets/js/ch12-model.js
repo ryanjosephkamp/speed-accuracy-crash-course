@@ -2,7 +2,7 @@
 // rounding traps, the first-order urgency signal for a ramp and a sine wave, the kernel's quantiles, the fixed
 // kernel's average of the constant-cost bounds ahead, and the urgency gate. tools/checks/ch12.mjs holds these to the
 // paper's generated numbers, to its code at the tag, and to the closed forms they rest on.
-import * as K from "./kernel.js?v=9bcb592a71";
+import * as K from "./kernel.js?v=50386feefc";
 
 // ---------------------------------------------------------------- the Palmer observer
 /** The mean observer of Palmer, Huk, and Shadlen (2005) as the paper's figure script (paper/make_figures.py at the
@@ -172,7 +172,8 @@ export const degreeAxisTop = (guess) => (Number.isFinite(guess) && guess > 50 ? 
  * and the per-moment bound b0 + B(c0 + eps gamma) - B(c0) (both shortcuts measured from the program's constant-cost
  * bound, as chapter 6 does, so the shift for discrete checking cancels). Where a bound is 0 or below, its urgency is
  * NaN. Returns, for each size, the three curves and whether the first-order curve has a gap, and the largest gaps of
- * the first-order and per-moment urgency from the best bound's. */
+ * the first-order and per-moment urgency from the best bound's (NaN at a size with no time where all three are
+ * defined). */
 export function urgencies(t, b0, runs, cost, c0, EPS) {
   const gamma = (x) => cost(x) - c0, B0 = K.B(c0);
   const beta = K.firstOrder(gamma, t, c0);
@@ -185,8 +186,10 @@ export function urgencies(t, b0, runs, cost, c0, EPS) {
     const fo = foB.map(ratio), pm = pmB.map(ratio);
     // both gaps over the same times: those where all three curves are defined
     const joint = t.map((x, i) => Number.isFinite(best[i]) && Number.isFinite(fo[i]) && Number.isFinite(pm[i]));
-    const gap = (a) => Math.max(0, ...a.map((v, i) => (joint[i] ? Math.abs(v - best[i]) : 0)));
-    return { best, pm, fo, holes: foB.some((b) => !(b > 0)), used: joint.filter(Boolean).length, total: t.length, gFo: gap(fo), gPm: gap(pm) };
+    // with no time where all three are defined there is no gap to report: NaN, which the plate prints as unavailable
+    const used = joint.filter(Boolean).length;
+    const gap = (a) => (used ? Math.max(0, ...a.map((v, i) => (joint[i] ? Math.abs(v - best[i]) : 0))) : NaN);
+    return { best, pm, fo, holes: foB.some((b) => !(b > 0)), used, total: t.length, gFo: gap(fo), gPm: gap(pm) };
   });
   return { u, gFo: u.map((x) => x.gFo), gPm: u.map((x) => x.gPm) };
 }

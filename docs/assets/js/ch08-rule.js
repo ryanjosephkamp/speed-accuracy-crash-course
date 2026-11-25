@@ -9,10 +9,10 @@
 // jumps. The equation's map (mapExact) uses the level's own kernel, integrated with its exact cumulative weights and
 // up to a deadline, so it changes continuously with the level; its crossings approximate the equation's solutions
 // (tools/checks/ch08.mjs holds them to a separate evaluation on a finer grid).
-import { boundForCost, boundaryKernel, kernelForBound, score, toDiscrete, belief, grid } from "./model.js?v=9bcb592a71";
-import { costOf, deadlineOf, paramsOf, VIEW, SPARE, DRAW_TIMES } from "./schedules-book.js?v=9bcb592a71";
-import { dropAt } from "./chart.js?v=9bcb592a71";
-import { flux, fluxTotal, kappa } from "./kernel.js?v=9bcb592a71";
+import { boundForCost, boundaryKernel, kernelForBound, score, toDiscrete, belief, grid } from "./model.js?v=50386feefc";
+import { costOf, deadlineOf, paramsOf, VIEW, SPARE, DRAW_TIMES } from "./schedules-book.js?v=50386feefc";
+import { dropAt, line } from "./chart.js?v=50386feefc";
+import { flux, fluxTotal, kappa } from "./kernel.js?v=50386feefc";
 
 export const UPDATES = 30;
 
@@ -325,6 +325,23 @@ export function codeStretches(r) {
 /** The per-moment curve as the plates draw it: on a deadline it drops straight down at the forced choice, instead of
  * sloping across the last step (chart.js's dropAt). */
 export const pmPlot = (t, pm, deadline) => dropAt(t, pm, deadline);
+
+// The three plates' curves, as the page draws them into a frame f (SVG paths). Each draws the per-moment curve through
+// pmPlot. compareRules' result r holds continuous-monitoring rules; these are moved in for checking every 0.01.
+const movedIn = (a) => a.map((v) => toDiscrete(v, 0.01));
+/** "Two answers": the averaged-cost rule as the paper's code computes it (when withCode), the averaged-cost, per-moment,
+ * and weighted rules moved in, and the program's bound. */
+export const comparisonLines = (f, r, withCode) => (withCode ? line(f, r.t, movedIn(r.avgCode), "avg-code") : "")
+  + line(f, r.t, movedIn(r.avg), "avg") + line(f, ...pmPlot(r.t, movedIn(r.pm), r.deadline), "pm") + line(f, r.t, movedIn(r.wb), "wb") + line(f, r.t, r.exact, "ex");
+/** Algorithm 1's Start step: the per-moment bound B(c(t)) at 251 times over the window (0 from a deadline on). */
+export function startSeries(cost, deadline, view) {
+  const ts = Array.from({ length: 251 }, (_, i) => (view * i) / 250);
+  return { ts, pm: ts.map((t) => (deadline !== null && t >= deadline - 1e-9 ? 0 : boundForCost(cost(t)))) };
+}
+export const startLine = (f, ts, pm, deadline) => line(f, ...pmPlot(ts, pm, deadline), "pm");
+/** Algorithm 1's Shift step: the per-moment rule moved in, the weighted rule before and after the move, and the
+ * program's bound. */
+export const shiftLines = (f, r) => line(f, ...pmPlot(r.t, movedIn(r.pm), r.deadline), "pm") + line(f, r.t, r.wb, "wb-thin") + line(f, r.t, movedIn(r.wb), "wb") + line(f, r.t, r.exact, "ex");
 
 /** How far `iterations` damped updates move the bound from where 30 left it, at the times 0, step, ... before
  * min(6, deadline), as the paper measures it (Appendix C): the largest move and the time where it happens. */

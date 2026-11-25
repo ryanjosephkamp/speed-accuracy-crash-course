@@ -1,12 +1,12 @@
 // Chapter 4's plates. The bounds and values come from the dynamic program in ch04-worker.js (model.js's program, with
 // its values kept); the decisions are sampled against that bound with a fixed seed; the continuous flat bounds come from
 // kernel.js. The words under each plate come from say-ch04.js, which takes numbers and returns sentences.
-import { B, rng } from "./kernel.js?v=9bcb592a71";
-import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, VIEW, SPARE, defaultDrawing } from "./schedules-book.js?v=9bcb592a71";
-import { getChoice, setChoice, solve, onVisible, liftReady, seedParam, wireStrips } from "./book.js?v=9bcb592a71";
-import { frame, line, area, axes, svg, tags, fmt, keepDrawn, dropAt } from "./chart.js?v=9bcb592a71";
-import * as M from "./ch04-model.js?v=9bcb592a71";
-import * as S from "./say-ch04.js?v=9bcb592a71";
+import { B, rng } from "./kernel.js?v=50386feefc";
+import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, VIEW, SPARE, defaultDrawing } from "./schedules-book.js?v=50386feefc";
+import { getChoice, setChoice, solve, onVisible, liftReady, seedParam, wireStrips } from "./book.js?v=50386feefc";
+import { frame, line, area, axes, svg, tags, fmt, keepDrawn, dropAt } from "./chart.js?v=50386feefc";
+import * as M from "./ch04-model.js?v=50386feefc";
+import * as S from "./say-ch04.js?v=50386feefc";
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const plate = (id) => document.getElementById("plate-" + id);
@@ -40,7 +40,7 @@ const edgeLabels = (f, up, dn, upText, dnText) => {
 const minus = (s) => String(s).replace(/^-/, "−");
 
 // ---- the worker: one program per schedule and job, shared by the plates that ask for it
-const WORKER = new URL("./ch04-worker.js?v=9bcb592a71", import.meta.url);
+const WORKER = new URL("./ch04-worker.js?v=50386feefc", import.meta.url);
 const memo = new Map();
 function work(key, job, opts = {}) {
   if (key && memo.has(key)) return memo.get(key);
@@ -303,7 +303,7 @@ function bandPlate() {
         <div><dt>Closest to the upper edge</dt><dd>${fmt(st.gapUp, 3)}<small>at time ${fmt(st.atUp, 2)}</small></dd></div>
         <div><dt>Continuous edges, moved in</dt><dd>${fmt(st.shiftGap, 3)}<small>largest distance from the band's edges</small></dd></div>
         <div class="k-pm"><dt>Below the per-moment bound</dt><dd>${Math.round(st.below * 100)}%<small>of the checks, by more than 0.002; above it at ${Math.round(st.above * 100)}%</small></dd></div>`;
-    } else reads.innerHTML = `<div><dt>Best bound over the window</dt><dd>${fmt(r.lo, 2)} to ${fmt(r.hi, 2)}</dd></div>`;
+    } else reads.innerHTML = `<div><dt>Best bound over the window</dt><dd>${S.rangeTile(r)}</dd></div>`;
     say.textContent = S.revealSay(r, drew);
     liftReady(fig);
   };

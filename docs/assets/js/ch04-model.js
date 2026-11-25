@@ -1,9 +1,9 @@
 // Chapter 4's model, with no DOM: model.js's dynamic program with its values kept, a schedule's lowest and highest
 // cost over all time, two starts driven by the same noise, and decisions sampled against a computed bound. The
 // worker (ch04-worker.js) runs the program; the page and tools/checks/ch04.mjs run the rest.
-import { grid, belief } from "./model.js?v=9bcb592a71";
-import { costOf, deadlineOf } from "./schedules-book.js?v=9bcb592a71";
-import { B } from "./kernel.js?v=9bcb592a71";
+import { grid, belief } from "./model.js?v=50386feefc";
+import { costOf, deadlineOf } from "./schedules-book.js?v=50386feefc";
+import { B } from "./kernel.js?v=50386feefc";
 
 export const DT = 0.01, H = 0.02, CAP = 5;
 export const OVERSHOOT = 0.5826; // the program, checking every dt, stops about this many sqrt(dt) inside the continuous bound
@@ -218,7 +218,9 @@ export function bandReveal({ kind, sketch, view, data, flats, cost, dl, ext }) {
     if (up && (v > up[k] + 0.002 || v < dn[k] - 0.002)) out++;
   });
   const band = hasBand(kind) && up !== null;
-  return { kind, band, cnt, miss: cnt ? miss / cnt : NaN, outside: cnt ? out / cnt : 0, lo: Math.min(...bs), hi: Math.max(...bs),
+  // the bound's lowest value while a decision is still open: before a deadline's forced choice, where it is 0
+  const open = dl !== null && bs.length > 1 ? bs.slice(0, -1) : bs;
+  return { kind, band, dl: dl ?? null, cnt, miss: cnt ? miss / cnt : NaN, outside: cnt ? out / cnt : 0, lo: Math.min(...bs), hi: Math.max(...bs), loOpen: Math.min(...open),
     st: band ? bandStats(ts, bs, up, dn, flatOnGrid(ext.lo), flatOnGrid(ext.hi), pm) : null };
 }
 

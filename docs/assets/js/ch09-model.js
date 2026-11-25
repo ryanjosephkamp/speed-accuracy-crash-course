@@ -4,8 +4,8 @@
 // checked every dt; the paper's two tests of the first-order theory (the sinusoid of Section 6.2 and the wider
 // sweep of Table 2), run on this page's grid; and the rules scored with and without the monitoring shift and on
 // finer grids. tools/checks/ch09.mjs holds these to model.js, to the paper's tables, and to each other.
-import { grid, belief, boundForCost, toDiscrete, OVERSHOOT, exactPolicy, score, perMoment, weightedBound } from "./model.js?v=9bcb592a71";
-import * as K from "./kernel.js?v=9bcb592a71";
+import { grid, belief, boundForCost, toDiscrete, OVERSHOOT, exactPolicy, score, perMoment, weightedBound } from "./model.js?v=50386feefc";
+import * as K from "./kernel.js?v=50386feefc";
 
 export { OVERSHOOT };
 export const DT = 0.01, H = 0.02, CAP = 5;   // this page's grid, as every chapter's program uses it
@@ -423,6 +423,34 @@ export function shiftCoef(cost, horizon, { dtC = 0.01, dtF = 0.0025, h = 0.01, c
     k.push(Number.isFinite(a) && Number.isFinite(b) && a > 0 && b > 0 ? (b - a) / den : NaN);
   }
   return { t, k, bC, bF, dtC, dtF, h };
+}
+
+/** What the coefficient plate prints from a shiftCoef run m on the schedule cost (deadline dl or null): the times it
+ * draws (up to 2.5 or the deadline) and how many have a finite coefficient, the time of the last of those, the range
+ * where the cost holds steady (within 2% in log over 0.3 time units either side, and not in the last 0.1 before a
+ * deadline; null with fewer than 5 such times), the range over all drawn times (null if none is finite), and the value
+ * at the last check before a deadline. */
+export function coefSummary(m, cost, dl) {
+  const view = dl ?? WINDOW;
+  const steadyAt = (x) => { const c = cost(x); for (let u = Math.max(0, x - 0.3); u <= x + 0.3 + 1e-9; u += 0.01) { if (dl !== null && u > dl - 0.1) return false; if (!(Math.abs(Math.log(cost(u) / c)) < 0.02)) return false; } return true; };
+  const drawn = m.t.map((x, i) => i).filter((i) => m.t[i] <= view + 1e-9), inView = drawn.filter((i) => Number.isFinite(m.k[i]));
+  const st = inView.filter((i) => steadyAt(m.t[i])).map((i) => m.k[i]);
+  const steady = st.length >= 5 ? [Math.min(...st), Math.max(...st)] : null;
+  let all = null;
+  for (const i of inView) {
+    if (!all) all = { lo: Infinity, hi: -Infinity, tLo: 0, tHi: 0 };
+    if (m.k[i] < all.lo) { all.lo = m.k[i]; all.tLo = m.t[i]; }
+    if (m.k[i] > all.hi) { all.hi = m.k[i]; all.tHi = m.t[i]; }
+  }
+  const lastK = dl !== null && inView.length ? m.k[inView[inView.length - 1]] : null;
+  return { view, drawn: drawn.length, finite: inView.length, lastT: inView.length ? m.t[inView[inView.length - 1]] : null, steady, all, lastK, flat: isFlat(cost) };
+}
+
+/** Whether a schedule's cost never moves (a flat drawing, Smooth at size 0, Constant): checked every 0.01 to 8.5. */
+export function isFlat(cost) {
+  const c0 = cost(0);
+  for (let t = 0.01; t <= WINDOW + SPARE + 1e-9; t += 0.01) if (!(Math.abs(cost(t) - c0) <= 1e-9 * c0)) return false;
+  return Number.isFinite(c0);
 }
 
 /** A rule's bound turned into what is scored: moved in by the monitoring shift for checking every dt (and clipped at

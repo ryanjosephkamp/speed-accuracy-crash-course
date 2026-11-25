@@ -17,7 +17,7 @@
 // tools/checks/ch05.mjs compares the bounds with model.js's exactPolicy and the left side with the paper's own test,
 // tests/test_exact_equation.py, on its grid, cases, and tolerances.
 
-import { boundForCost } from "./model.js?v=9bcb592a71";
+import { boundForCost } from "./model.js?v=50386feefc";
 
 export const OVERSHOOT = 0.5826; // -zeta(1/2) / sqrt(2 pi): the continuous bound sits this many sqrt(dt) outside the grid's
 

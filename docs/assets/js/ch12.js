@@ -1,12 +1,12 @@
 // Chapter 12's plates. Every number drawn comes from kernel.js (the series and the closed forms), ch12-model.js (the
 // Palmer observer, the ramp's exact look-ahead, the kernel's quantiles, the averaged bounds, the gate), or the solver's
 // worker; the words under each plate come from say-ch12.js, which takes numbers and returns sentences.
-import * as K from "./kernel.js?v=9bcb592a71";
-import * as M from "./ch12-model.js?v=9bcb592a71";
-import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, VIEW, SPARE, defaultDrawing } from "./schedules-book.js?v=9bcb592a71";
-import { getChoice, setChoice, solve, onVisible, watchVisible, liftReady, calm, seedParam, wireStrips } from "./book.js?v=9bcb592a71";
-import { frame, line, area, axes, svg, fmt, keepDrawn } from "./chart.js?v=9bcb592a71";
-import * as S from "./say-ch12.js?v=9bcb592a71";
+import * as K from "./kernel.js?v=50386feefc";
+import * as M from "./ch12-model.js?v=50386feefc";
+import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, VIEW, SPARE, defaultDrawing } from "./schedules-book.js?v=50386feefc";
+import { getChoice, setChoice, solve, onVisible, watchVisible, liftReady, calm, seedParam, wireStrips } from "./book.js?v=50386feefc";
+import { frame, line, area, axes, svg, fmt, keepDrawn } from "./chart.js?v=50386feefc";
+import * as S from "./say-ch12.js?v=50386feefc";
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const plate = (id) => document.getElementById("plate-" + id);
@@ -312,7 +312,7 @@ function yoursPlate() {
     if (!data) return;
     const T = S.yoursText(data, EPS, sel);
     if (data.kind === "scale") {
-      reads.innerHTML = `<div class="k-wb"><dt>First order vs best, largest gap</dt><dd>${T.fo}<small>of the constant cost's urgency, ${T.over}</small></dd></div>
+      reads.innerHTML = `<div class="k-wb"><dt>First order vs best, largest gap</dt><dd>${T.fo}<small>${T.note}</small></dd></div>
         <div class="k-pm"><dt>Per-moment vs best, largest gap</dt><dd>${T.pm}<small>the same times</small></dd></div>
         <div><dt>Middle cost, c₀</dt><dd>${fmt(data.c0, 3)}<small>the window's average</small></dd></div>`;
     } else reads.innerHTML = `<div class="k-ex"><dt>Best bound's urgency, last time drawn</dt><dd>${fmt(data.ratio, 1)}×<small>the per-moment urgency then</small></dd></div>`;

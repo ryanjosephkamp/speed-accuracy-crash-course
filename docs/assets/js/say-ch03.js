@@ -1,6 +1,6 @@
 // The sentences chapter 3's plates print, as pure functions of the numbers they show. tools/checks/ch03.mjs runs them
 // over random inputs and on the plates' own numbers.
-import { B } from "./kernel.js?v=9bcb592a71";
+import { B } from "./kernel.js?v=50386feefc";
 const fx = (x, d) => { const s = x.toFixed(d); return /^-0\.?0*$/.test(s) ? s.slice(1) : s; };
 const f2 = (x) => fx(x, 2), f3 = (x) => fx(x, 3);
 /** A cost as the book prints it: two significant figures, no trailing zeros. */
@@ -25,8 +25,9 @@ export function pathSay(o) {
 }
 
 /** After Show me: the reader's flat bound against the best flat bound (both with continuous monitoring), and then, on
- * the dynamic program's own grid, the best threshold held flat against the best bound that moves. flat is the worker's
- * flat job ({ horizon, gridX, grid }); dp is V(0, 0) from the same grid and horizon. */
+ * the dynamic program's own grid, the best threshold held flat that the search found against the best time-dependent
+ * policy (a bound that can change with the time, from the cost ahead or the time left before a forced choice). flat is
+ * the worker's flat job ({ horizon, gridX, grid }); dp is V(0, 0) from the same grid and horizon. */
 export function earnVerdict({ b, mine, best, dp, flat, deadline }) {
   const gap = best.net - mine.net;
   let s = `Checking the evidence continuously, your bound, ${f2(b)}, earns ${f3(mine.net)} on average: ${f3(mine.reward)} for being right, minus ${f3(mine.bill)} for time. `;
@@ -35,8 +36,8 @@ export function earnVerdict({ b, mine, best, dp, flat, deadline }) {
   if (Number.isFinite(dp) && flat && Number.isFinite(flat.grid)) {
     const more = dp - flat.grid;
     s += ` On the dynamic program's grid, which checks the evidence every 0.01 time units and forces the choice at time ${ft(flat.horizon)}, the best level held flat that the page's numerical search found, ${f2(flat.gridX)}, earns ${f3(flat.grid)}`;
-    s += more >= 5e-4 ? `, and the best bound that moves with the cost earns ${f3(dp)}: ${pts(more)} points per 100 decisions more than that level.`
-      : `, and the best bound that moves earns ${f3(dp)}: on this schedule, moving gains less than 0.05 points per 100 decisions over that level.`;
+    s += more >= 5e-4 ? `, and the best time-dependent policy on this grid earns ${f3(dp)}: ${pts(more)} points per 100 decisions more than that level.`
+      : `, and the best time-dependent policy on this grid earns ${f3(dp)}: on this schedule, it gains less than 0.05 points per 100 decisions over that level.`;
   }
   return s;
 }
@@ -98,6 +99,18 @@ export function sliceSay(t, b, V0, W0, forced = false, h = 0.02) {
   const s = `At time ${f2(t)}, deciding at y = 0 is a coin flip, worth 0.5; the best rule from there earns V = ${f3(V0)}, so the chance to wait is worth ${wIs(W0)}. `;
   if (b < h) return s + `The bound, ${boundShown(b)}, is below the grid's first evidence step, ${h}: the program still waits at y = 0 and decides at y = ${h}, and the bound is where deciding starts to beat waiting, read between the grid's evidence points 0 and ${h}; at the grid points above it, V = g.`;
   return s + `The bound, ${boundShown(b)}, is where deciding starts to beat waiting, read between the grid's evidence points; at the grid points above it, V = g.`;
+}
+
+/** What the value plate prints for the slice at kept row i of the worker's value reply m: the threshold marker's text
+ * (null where the bound is 0 or missing, so no marker is drawn), the four tiles, and the sentence. W(t, 0) is V at the
+ * center less g(0). best is the map's largest W, { W }. */
+export function sliceReads(m, i, best) {
+  const t = m.times[i], bt = m.rowB[i], V0 = m.V[i][0], W0 = V0 - m.gy[0];
+  return {
+    marker: bt !== null && bt > 0 ? `threshold ${boundShown(bt)}` : null,
+    tiles: { V: f3(V0), W: wShown(W0), bound: bt === null ? "–" : boundShown(bt), most: wShown(best.W) },
+    say: sliceSay(t, bt ?? 0, V0, W0, Math.abs(t - m.horizon) < 1e-9, m.h),
+  };
 }
 
 /** The value plate's state line, once the program has run: its grid, the forced-choice time it used, as set (ft), the
