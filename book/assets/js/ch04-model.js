@@ -17,20 +17,30 @@ export function costFrom(spec) {
   return costOf(spec.choice);
 }
 
-/** The lowest and highest cost over [0, upto], scanned every `step`, and the first time the cost comes within 0.5% of
- * each (a schedule may only approach its extreme). Every schedule in the book has made its last change, or run a whole
+/** The lowest and highest cost over [0, upto]: a scan every `step`, then a golden-section search on the two steps
+ * around each scanned extreme, and the first time the cost comes within 0.5% of each (a schedule may only approach
+ * its extreme, as Figure 1(a)'s does 1.6). Every schedule in the book has made its last change, or run a whole
  * period, by time 100, so the default scan covers all t >= 0. */
 export function extremes(cost, upto = 100, step = 0.001) {
-  let lo = Infinity, hi = -Infinity;
+  let lo = Infinity, hi = -Infinity, iLo = 0, iHi = 0;
   const n = Math.round(upto / step);
-  for (let i = 0; i <= n; i++) { const c = cost(i * step); if (c < lo) lo = c; if (c > hi) hi = c; }
+  for (let i = 0; i <= n; i++) { const c = cost(i * step); if (c < lo) { lo = c; iLo = i; } if (c > hi) { hi = c; iHi = i; } }
+  const golden = (f, a, b) => {
+    const r = (Math.sqrt(5) - 1) / 2;
+    let c = b - r * (b - a), d = a + r * (b - a);
+    for (let k = 0; k < 60; k++) { if (f(c) < f(d)) b = d; else a = c; c = b - r * (b - a); d = a + r * (b - a); }
+    return (a + b) / 2;
+  };
+  let tMin = iLo * step, tMax = iHi * step;
+  if (Number.isFinite(lo)) { const t = golden(cost, Math.max(0, (iLo - 1) * step), Math.min(upto, (iLo + 1) * step)); if (cost(t) < lo) { lo = cost(t); tMin = t; } }
+  if (Number.isFinite(hi)) { const t = golden((u) => -cost(u), Math.max(0, (iHi - 1) * step), Math.min(upto, (iHi + 1) * step)); if (cost(t) > hi) { hi = cost(t); tMax = t; } }
   let tLo = NaN, tHi = NaN;
   for (let i = 0; i <= n && (Number.isNaN(tLo) || Number.isNaN(tHi)); i++) {
     const c = cost(i * step);
     if (Number.isNaN(tLo) && c <= lo * 1.005) tLo = i * step;
     if (Number.isNaN(tHi) && c >= hi * 0.995) tHi = i * step;
   }
-  return { lo, hi, tLo, tHi };
+  return { lo, hi, tLo, tHi, tMin, tMax };
 }
 
 /** The flat bound B(c) moved in by the shift for checking every dt, as the program sees it. */
@@ -69,7 +79,9 @@ export function program(cost, horizon, { dt = DT, h = H, cap = CAP, keep = "none
     for (let i = m + 1; i < n; i++) {
       const d = decide[i] - wait[i];
       if (d > 0) {
-        if (i === m + 1) { b = 0; break; }
+        // as model.js: the first step out stops, so the bound is below it; where the center still waits, place it between
+        // the center and that step (the paper's code reports 0 here)
+        if (i === m + 1) { const dc = decide[m] - wait[m]; b = dc < 0 ? x[m] - (dc * (x[i] - x[m])) / (d - dc) : 0; break; }
         const dp = decide[i - 1] - wait[i - 1];
         b = x[i - 1] - (dp * (x[i] - x[i - 1])) / (d - dp);
         break;
@@ -156,6 +168,37 @@ export function decisions(P, k0, y0, n, R, { keepPaths = 0, cap = null, track = 
     Object.assign(out, { meanM: mean(sumM), meanG: mean(sumG), seM: se(sumM, sqM), seG: se(sumG, sqG) });
   }
   return out;
+}
+
+/** The band plate's numbers, over the checks ts of the window: the program's bound bs against its own flat bounds
+ * for the lowest cost (up) and the highest (dn), the band on the grid that part (b) guarantees; the continuous edges
+ * upC and dnC (B moved in by the monitoring shift) against those; and the share of checks where bs is below or above
+ * the per-moment bound pm by more than tol. */
+export function bandStats(ts, bs, up, dn, upC, dnC, pm, tol = 0.002, h = H) {
+  let gapUp = Infinity, atUp = 0, gapDn = Infinity, atDn = 0, shiftGap = 0, pull = 0, below = 0, above = 0, sub = false;
+  for (let k = 0; k < ts.length; k++) {
+    if (up[k] - bs[k] < gapUp) { gapUp = up[k] - bs[k]; atUp = ts[k]; }
+    if (bs[k] - dn[k] < gapDn) { gapDn = bs[k] - dn[k]; atDn = ts[k]; }
+    shiftGap = Math.max(shiftGap, Math.abs(upC - up[k]), Math.abs(dnC - dn[k]));
+    pull = Math.max(pull, upC - up[k]);
+    if (dn[k] < h) sub = true;
+    if (bs[k] < pm[k] - tol) below++;
+    if (bs[k] > pm[k] + tol) above++;
+  }
+  return { up: up[0], dn: dn[0], gapUp, atUp, gapDn, atDn, shiftGap, horizonPull: pull > tol, subStep: sub, below: below / ts.length, above: above / ts.length };
+}
+
+/** The moments of decision counted in bins of width bw from xMin, with a moment at the right edge xMax counted in
+ * the last bin (a deadline's forced choice lands there), and the number past xMax, which the chart doesn't show. */
+export function decisionBins(moments, xMin, xMax, bw) {
+  const nb = Math.max(1, Math.ceil((xMax - xMin) / bw - 1e-9)), counts = new Array(nb).fill(0);
+  let beyond = 0, before = 0;
+  for (const v of moments) {
+    if (v > xMax + 1e-9) { beyond++; continue; }
+    if (v < xMin - 1e-9) { before++; continue; }
+    counts[Math.min(nb - 1, Math.max(0, Math.floor((v - xMin) / bw + 1e-9)))]++;
+  }
+  return { counts, beyond, before };
 }
 
 /** The integral of a cost over [a, b], by the midpoint rule on steps of at most 0.0005 (0 if b <= a). */

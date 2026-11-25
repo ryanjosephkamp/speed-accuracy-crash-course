@@ -15,3 +15,4 @@
 .chart .cone-fill { fill: var(--accent-print); opacity: 0.1; stroke: none; }
 .chart .path-after { stroke: var(--print-dim); stroke-width: 1; fill: none; opacity: 0.45; stroke-dasharray: 2 3; }
 .key-after::before { border-top: 1.5px dashed var(--print-dim); opacity: 0.6; }
+.key-guide::before { border-top: 1.5px dashed var(--print-dim); }
