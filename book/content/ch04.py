@@ -134,7 +134,7 @@ STRIPS = {
             ("The capped gain is bounded by something with a finite mean.",
              r"$\class{lit}{|G_{s \wedge \sigma}| \le 1 + c_{\max}\sigma}$, and $\E_y\sigma = \bar b\tanh\bar b - y\tanh y < \infty$ for $y \le \bar b$."),
             ("Now the theorem applies: the first entry into the stopping set is optimal.",
-             r"By the Markov property of $(t + s, Y_s)$, the Snell envelope of the capped gain is $V(t + s, Y_s) - \int_0^s c(t + u)\dd u$ up to $\sigma$. The theorem says its first meeting with the gain, which is $\class{lit}{\tau^*_{t,y}}$ and comes no later than $\sigma$, so it is finite, is optimal, and that the value process stopped there is a martingale."),
+             r"By the Markov property of $(t + s, Y_s)$, the Snell envelope of the capped gain is $V(t + s, Y_s) - \int_0^s c(t + u)\dd u$ up to $\sigma$. The theorem says its first meeting with the gain, which is $\class{lit}{\tau^*_{t,y}}$ and comes no later than $\sigma$, so it is finite, is optimal, and that the Snell envelope, stopped there, is a martingale."),
         ],
     },
 }
@@ -219,7 +219,7 @@ With one level at each moment, the best rule has a plain form. From a start at t
 
 $$\tau^*_{t,y} = \inf\{s \ge 0 : Y_s \ge b(t + s)\}, \qquad Y_0 = y.$$
 
-It is a random time, one for each path, and a start at or above the bound stops at once. The bound moves while the decision is open (for a constant cost, it is the fixed flat bound $B(c)$), so $\tau^*$ is the first entry across a time-dependent threshold, which reduces to the hitting time of $B(c)$ at a constant cost. The cost at that moment, $c(t + \tau^*)$, is what chapter 5's exact equation is about.
+It is a random time, one for each path, and a start at or above the bound stops at once. The bound can change while the decision is open, so $\tau^*$ is in general the first entry across a time-dependent threshold. On the infinite horizon, the bound at a time depends only on the cost from that time on, so when the remaining cost $s \mapsto c(t + s)$ is a constant $c$ (a constant schedule, or a start after a drawing's last change), the threshold is the flat bound $B(c)$ for the whole decision, and $\tau^*$ is the hitting time of $B(c)$. The cost at that moment, $c(t + \tau^*)$, is what chapter 5's exact equation is about.
 
 The plate runs decisions on your schedule against the bound the program computed for it. Guess first: drag the orange line to where you think half the decisions from the start have ended.
 """),
@@ -281,7 +281,7 @@ $V(t, \cdot)$ is the value for the cost $s \mapsto c(t + s)$, which never looks 
 """),
                 (r"Why is $\tau^*_{t,y}$ in general the first entry across a moving level rather than the hitting time of a fixed one, and where does the paper replace it with fixed levels?",
                  r"""
-When the cost changes, the bound $b(t + s)$ changes with time, so $\tau^*$ is the first time the path meets a time-dependent threshold; at a constant cost, it reduces to the hitting time of $B(c)$. In the proof of {{ref:thm:main}}, the paper brackets it between the hitting times of the two fixed levels $b_0 \pm a|\varepsilon|$, which is possible because {{ref:lem:structure}}(c) keeps the whole bound inside that band for a small change.
+When the cost from $t$ on changes, the bound $b(t + s)$ can change during the decision, so $\tau^*$ is the first time the path meets a time-dependent threshold. When the remaining cost $s \mapsto c(t + s)$ is a constant $c$, on the infinite horizon, the bound is $B(c)$ for the whole decision and $\tau^*$ is the hitting time of $B(c)$: that covers a constant schedule, and a start after a schedule's last change. In the proof of {{ref:thm:main}}, the paper brackets $\tau^*$ between the hitting times of the two fixed levels $b_0 \pm a|\varepsilon|$, for starts below the lower level, $y < b_0 - a|\varepsilon|$. That is possible because {{ref:lem:structure}}(c) keeps the whole bound inside that band for a small change: a path from below meets the bound no sooner than it reaches $b_0 - a|\varepsilon|$, and no later than it reaches $b_0 + a|\varepsilon|$.
 """),
                 (r"Why is stopping at $\bar b = B(c_{\min})$ never worse than continuing?",
                  r"""

@@ -7,7 +7,9 @@ import { exactPolicy, score } from "../../book/assets/js/model.js";
 import { costOf, PRESETS, paramsOf, defaultDrawing, VIEW, SPARE } from "../../book/assets/js/schedules-book.js";
 import * as M from "../../book/assets/js/ch04-model.js";
 import * as S from "../../book/assets/js/say-ch04.js";
-import { check, N, asPrinted, runWorker } from "./lib.mjs";
+import { check, N, asPrinted, runWorker, ROOT } from "./lib.mjs";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 const HOR = VIEW + SPARE, KV = Math.round(VIEW / M.DT);
 const meanOf = (a) => a.reduce((x, y) => x + y, 0) / a.length;
@@ -285,7 +287,7 @@ const flatProg = (c) => { const k = c.toPrecision(15); if (!flatMemo.has(k)) fla
   }
   {
     const tolSay = [S.sketchVerdict(true, 0.1, 0, true), S.sketchVerdict(true, 0.1, 1, true)];
-    check("words", "the sketch verdict states the 0.002 tolerance either way, and the plate applies it to a collapsed band too (Constant has a band)", /to within 0\.002/.test(tolSay[0]) && /more than 0\.002 outside/.test(tolSay[1]), tolSay[1]);
+    check("words", "the sketch verdict (sketchVerdict) states the 0.002 tolerance either way", /to within 0\.002/.test(tolSay[0]) && /more than 0\.002 outside/.test(tolSay[1]), tolSay[1]);
     const pts = new Array(26).fill(0.1); pts[25] = 0.10001;
     const cost = costOf({ id: "draw", points: pts }), e = M.extremes(cost), note = S.extremesNote("Draw your own", e.lo, e.tLo, e.hi, e.tHi, VIEW);
     let first = NaN; for (let i = 0; i <= 100000 && Number.isNaN(first); i++) if (cost(i * 0.001) >= e.hi * 0.995) first = i * 0.001;
@@ -293,7 +295,37 @@ const flatProg = (c) => { const k = c.toPrecision(15); if (!flatMemo.has(k)) fla
     check("words", "the cap plate's fallback note says a deadline's cost is infinite after it, and the decision sentence charges a forced decision the cost at the deadline itself", /infinite cost after its deadline/.test(S.capFallback("Deadline", "deadline")) && /cost at the deadline itself/.test(S.decideSay({ n: 2000, t0: 0.4, y0: 0, median: 0.05, mean: 0.04, se: 0.001, ec: 0.1, c0: 0.1, atOnce: 0, forced: 0.64, beyond: 0, xMax: 0.45 })), S.capFallback("Deadline", "deadline"));
     check("words", "the constant-cost note calls the band the constant-cost program's bound and says it isn't flat on the grid", /constant-cost program's bound/.test(S.outsideNote("constant")) && /isn't flat/.test(S.outsideNote("constant")) && !/flat bound/.test(S.bandSay({ dn: 1, up: 1, gapDn: 0, atDn: 0, gapUp: 0, atUp: 0, shiftGap: 0.016, horizonPull: true, subStep: false, below: 1, above: 0 })), S.outsideNote("constant"));
   }
+  {
+    // Constant through the band plate's Show me: the worker's bounds, then bandKind, bandReveal, and revealSay, whose
+    // results the plate prints as they come. Constant has a band, collapsed to one curve (c_min = c_max)
+    const ch = { id: "constant", params: { c: 0.1 } }, kind = M.bandKind(ch), cost = costOf(ch), ext = M.extremes(cost);
+    const W = (spec) => runWorker("../../book/assets/js/ch04-worker.js", { job: "values", spec, keep: "none" });
+    const data = await W({ kind: "choice", choice: ch });
+    const flats = M.hasBand(kind) ? { lo: await W({ kind: "const", c: ext.lo }), hi: await W({ kind: "const", c: ext.hi }) } : null;
+    const n = 51, on = Array.from({ length: n }, (_, i) => data.bounds[Math.round(((i / (n - 1)) * VIEW) / data.dt)]), off = on.map((v) => v + 0.05);
+    const rOn = M.bandReveal({ kind, sketch: on, view: VIEW, data, flats, cost, dl: null, ext }), rOff = M.bandReveal({ kind, sketch: off, view: VIEW, data, flats, cost, dl: null, ext });
+    const sOn = S.revealSay(rOn, true), sOff = S.revealSay(rOff, true);
+    check("words", "Constant 0.1 through the band plate's Show me (the worker's bounds, then bandKind, bandReveal, and revealSay, which the plate prints as they come): it gets the band, collapsed to one curve, and the constant-cost note; a drawing on the program's bound lies inside it to within 0.002, and one 0.05 above lies outside",
+      kind === "constant" && rOn.band && rOn.cnt === n && Math.abs(rOn.st.up - rOn.st.dn) < 1e-12 && sOn.startsWith(S.outsideNote("constant")) && /all of it lies inside the band, to within 0\.002\.$/.test(sOn) && /100% of it lies more than 0\.002 outside the band\.$/.test(sOff),
+      `${sOn.slice(-90)} | ${sOff.slice(-70)}`);
+  }
   check("words", "a guess after the median reads late, and one before it early", /late/.test(S.decideVerdict(1.2, 0.8)) && /early/.test(S.decideVerdict(0.5, 0.8)) && /within 0.05/.test(S.decideVerdict(0.82, 0.8)), "checked");
   check("words", "the hero names the flat bounds for the highest and the lowest cost", S.heroLabel("Cost jumps", costOf(M.FIG1A)(0), 1.6) === "Cost jumps: the bound stays between B(1.6) and B(0.1)", S.heroLabel("Cost jumps", costOf(M.FIG1A)(0), 1.6));
   check("words", "a deadline's forced decisions are named in the decision sentence, and the deadline note says the cost is infinite after it", /forced at the deadline/.test(S.decideSay({ n: 2000, t0: 0.4, y0: 0, median: 0.05, mean: 0.04, se: 0.001, ec: 0.1, c0: 0.1, atOnce: 0, forced: 0.64, beyond: 0, xMax: 0.45 })) && /infinite after the deadline/.test(S.outsideNote("deadline")), "checked");
+}
+
+// ---- the decision time: a fixed threshold once the remaining cost is constant, and the proof's starting condition ----
+{
+  // on the grid, the bound from a time on depends only on the cost from then on: a drawing that varies to 2.5 and is 0.2
+  // after has, at each check from 2.5 to 3, the bound of the constant-0.2 program with the same time left
+  const pts = defaultDrawing(); pts[25] = 0.2;
+  const P = M.program(costOf({ id: "draw", points: pts }), HOR), Q = M.program(() => 0.2, HOR - VIEW), k0 = Math.round(VIEW / M.DT);
+  let d = 0; for (let j = 0; j <= 50; j++) d = Math.max(d, Math.abs(P.bounds[k0 + j] - Q.bounds[j]));
+  const moved = Math.abs(P.bounds[0] - P.bounds[k0]) > 0.05;
+  check("program", "a drawing that changes until 2.5 and stays at 0.2 after: at each check from 2.5 to 3, the program's bound is the constant-0.2 program's with the same time left (within 1e-9), though it moved before 2.5; the bound depends only on the cost from that time on",
+    d < 1e-9 && moved, `largest difference ${d.toExponential(1)}; bound ${P.bounds[0].toFixed(3)} at 0, ${P.bounds[k0].toFixed(3)} at 2.5`);
+  const text = readFileSync(join(ROOT, "book/content/ch04.py"), "utf8");
+  check("words", "the decision-time text says the threshold can change during a decision and is B(c) throughout once the remaining cost is a constant c on the infinite horizon; the exercise gives the proof's bracketing only for starts below b0 - a|eps|; and the strip names the Snell envelope as what is a martingale",
+    /The bound can change while the decision is open/.test(text) && /when the remaining cost \$s \\mapsto c\(t \+ s\)\$ is a constant \$c\$/.test(text) && /for starts below the lower level, \$y < b_0 - a\|\\varepsilon\|\$/.test(text)
+    && /the Snell envelope, stopped there, is a martingale/.test(text) && !/The bound moves while the decision is open/.test(text) && !/the value process stopped there/.test(text), "book/content/ch04.py");
 }

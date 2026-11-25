@@ -53,7 +53,7 @@ const keyOf = (choice) => JSON.stringify(norm(choice));
 const specOf = (choice) => ({ kind: "choice", choice: norm(choice) });
 /** The program for a schedule, with the bound at every check (and V at the steps in keep). */
 const bounds = (spec, keep = "none") => work(JSON.stringify([spec, keep]), { job: "values", spec, keep });
-const kindOf = (choice) => (deadlineOf(choice) !== null ? "deadline" : choice.id === "rising" ? "rising" : choice.id === "constant" ? "constant" : "ok");
+const kindOf = M.bandKind;
 
 const FIG1A = M.FIG1A, FIG1A_SPEC = specOf(FIG1A), FIG1A_COST = costOf(FIG1A);
 const pickerHTML = (id) => {
@@ -242,13 +242,9 @@ function bandPlate() {
   const pick = $("#bd-pick", el), note = $("#bd-note", el), costEl = $("#bd-cost", el), chart = $("#bd-chart", el);
   const key = $("#bd-key", el), reads = $("#bd-reads", el), say = $("#bd-say", el), state = $("#bd-state", el);
   const xs = range(0, 1, N);
-  const hasBand = () => kind === "ok" || kind === "constant";
-  const pmAt = (t) => (dl !== null && t >= dl - 1e-9 ? 0 : M.flatOnGrid(cost(t)));
-  const series = () => {
-    const k = Math.round(view / data.dt), ts = Array.from({ length: k + 1 }, (_, j) => j * data.dt);
-    const cut = (P) => (P ? Array.from(P.bounds.subarray(0, k + 1)) : null);
-    return { ts, bs: cut(data), pm: ts.map(pmAt), up: cut(flats?.lo), dn: cut(flats?.hi) };
-  };
+  const hasBand = () => M.hasBand(kind);
+  const pmAt = (t) => M.pmOnGrid(cost, dl)(t);
+  const series = () => M.bandSeries(data, flats, view, cost, dl);
   const stateLine = () => {
     const sub = data && (Array.from(data.bounds).some((v) => v > 0 && v < M.H) || (flats && flats.hi.bounds[0] < M.H));
     const base = dl !== null ? "Time step 0.01, evidence step 0.02, a forced choice at the deadline; the dashed curve is B(c(t)) moved in by 0.5826√0.01, the leading term of the monitoring shift."
@@ -298,28 +294,17 @@ function bandPlate() {
   const reveal = () => {
     shown = true; drawBound();
     if (!data) { say.textContent = "Solving the best bound…"; return; }
-    const { ts, bs, pm, up, dn } = series();
     // the drawing against the bound, and against the band on the grid, where it was drawn
-    let miss = 0, cnt = 0, out = 0;
-    xs.forEach((u, i) => {
-      if (!Number.isFinite(sketch[i])) return;
-      const k = Math.min(bs.length - 1, Math.round((u * view) / data.dt));
-      miss += Math.abs(sketch[i] - bs[k]); cnt++;
-      if (up && (sketch[i] > up[k] + 0.002 || sketch[i] < dn[k] - 0.002)) out++;
-    });
-    const verdict = S.sketchVerdict(drew && cnt > 0, cnt ? miss / cnt : NaN, cnt ? out / cnt : 0, hasBand());
-    if (hasBand()) {
-      const st = M.bandStats(ts, bs, up, dn, M.flatOnGrid(ext.lo), M.flatOnGrid(ext.hi), pm);
+    const r = M.bandReveal({ kind, sketch, view, data, flats, cost, dl, ext });
+    if (r.band) {
+      const st = r.st;
       reads.innerHTML = `<div><dt>Band on the grid</dt><dd>${fmt(st.dn, 3)} to ${fmt(st.up, 3)}<small>the constant-cost programs' bounds at time 0</small></dd></div>
         <div><dt>Closest to the lower edge</dt><dd>${fmt(st.gapDn, 3)}<small>at time ${fmt(st.atDn, 2)}</small></dd></div>
         <div><dt>Closest to the upper edge</dt><dd>${fmt(st.gapUp, 3)}<small>at time ${fmt(st.atUp, 2)}</small></dd></div>
         <div><dt>Continuous edges, moved in</dt><dd>${fmt(st.shiftGap, 3)}<small>largest distance from the band's edges</small></dd></div>
         <div class="k-pm"><dt>Below the per-moment bound</dt><dd>${Math.round(st.below * 100)}%<small>of the checks, by more than 0.002; above it at ${Math.round(st.above * 100)}%</small></dd></div>`;
-      say.textContent = (kind === "constant" ? S.outsideNote("constant") + " " : "") + S.bandSay(st) + " " + verdict;
-    } else {
-      reads.innerHTML = `<div><dt>Best bound over the window</dt><dd>${fmt(Math.min(...bs), 2)} to ${fmt(Math.max(...bs), 2)}</dd></div>`;
-      say.textContent = S.noBandSay(Math.min(...bs), Math.max(...bs)) + " " + verdict;
-    }
+    } else reads.innerHTML = `<div><dt>Best bound over the window</dt><dd>${fmt(r.lo, 2)} to ${fmt(r.hi, 2)}</dd></div>`;
+    say.textContent = S.revealSay(r, drew);
     liftReady(fig);
   };
   let down = false, last = null;
