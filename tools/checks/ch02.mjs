@@ -344,3 +344,41 @@ for (const t of [0.25, 1, 3]) {
   for (const b of [0, 0.005, 0.0199, 0.02, 0.5, 1.9]) for (const d of [null, 1]) for (const s of [S.boundText(b), S.boundNote(b, M.g), S.yoursState(d), S.factNote(b > 1 ? 3 : 2, b === 0), S.yoursSay({ label: "Pulse", unitMs: d ? 553.6 : null, view: d ?? 2.5, b0: 1, b1: b, deadline: d, g: M.g })]) if (/NaN|undefined|Infinity|null/.test(s)) bad++;
   check("words", "the new readings and notes never print NaN, undefined, Infinity, or null", bad === 0, `${bad} bad`);
 }
+
+// ---- round 3: a zero bound without a deadline, a bound that rounds to 0, the dashed curve's terminal value, and the
+// speed density's normalization ---------------------------------------------------------------------------------------
+{
+  const ask = (choice) => runWorker("../../book/assets/js/dp-worker.js", { job: "bounds", choice });
+  const end = (m) => m.exact[m.exact.length - 1];
+  const sayFor = (choice, m) => S.yoursSay({ label: "Rising", unitMs: null, view: VIEW, b0: m.exact[0], b1: end(m), deadline: deadlineOf(choice), g: M.g });
+  // Rising from 0 at rate 2: the cost at 2.5 is 5.1, and the program stops at the center too
+  const r0 = { id: "rising", params: { at: 0, rate: 2 } }, m0 = await ask(r0), s0 = sayFor(r0, m0);
+  check("yours", "Rising from 0 at rate 2: the worker's bound at the window's end is exactly 0 (the program stops at the center), with no deadline", end(m0) === 0 && deadlineOf(r0) === null && Math.abs(costOf(r0)(VIEW) - 5.1) < 1e-12, `bound ${end(m0)}, cost ${costOf(r0)(VIEW)}`);
+  check("words", "there, the sentence says the program stops at once at every evidence level, and neither that it waits at the center nor that the choice is forced", /bound is 0, though there is no deadline: the program stops at once at every evidence level, the center included/.test(s0) && !/waits at the center/.test(s0) && !/forced/.test(s0) && S.boundNote(end(m0), M.g) === "the program stops at once, at 0 too", s0);
+  // Rising from 0.6 at rate 2: a positive bound below the first step, where the center waits
+  const r6 = { id: "rising", params: { at: 0.6, rate: 2 } }, m6 = await ask(r6), s6 = sayFor(r6, m6);
+  check("yours", "Rising from 0.6 at rate 2: the worker's bound at the window's end is above 0 and below the grid's first step", end(m6) > 0 && end(m6) < 0.02, `bound ${end(m6).toFixed(6)}`);
+  check("words", "there, the sentence says the program still waits at the center and stops at the first step, and prints the bound", /still waits at the center and stops at the first step/.test(s6) && s6.includes(`the bound is ${S.boundText(end(m6))}`) && !/stops at once/.test(s6), s6);
+  // Rising from 0 at rate 2, at time 1.93: a positive bound too small for three decimals prints as < 0.001, not 0
+  // (the worker sends every second step, so read the same program at 1.93 directly, as the worker runs it)
+  const { exactPolicy } = await import("../../book/assets/js/model.js"), { SPARE } = await import("../../book/assets/js/schedules-book.js");
+  const full = exactPolicy(costOf(r0), VIEW + SPARE), k = full.ts.findIndex((t) => Math.abs(t - 1.93) < 1e-9), tiny = full.bounds[k];
+  check("yours", "the same program, read at the worker's own times, agrees with the worker's reply (Rising from 0 at rate 2)", m0.t.every((t, i) => Math.abs(full.bounds[Math.round(t / 0.01)] - m0.exact[i]) < 1e-12), `${m0.t.length} times`);
+  check("words", "a positive bound below 0.0005 (Rising from 0 at rate 2, time 1.93) prints as < 0.001, never as 0", tiny > 0 && tiny < 0.0005 && S.boundText(tiny) === "< 0.001" && S.boundText(0) === "0.00", `bound ${tiny} prints ${S.boundText(tiny)}`);
+  // a deadline at 0.45: the dashed curve is the shifted formula before the deadline; at it the formula is finite, the display 0
+  const d = { id: "deadline", params: { at: 0.45, c: 0.1 } }, md = await ask(d), n = md.pm.length;
+  const formula = Math.max((await import("../../book/assets/js/model.js")).boundForCost(costOf(d)(0.45)) - 0.5826 * Math.sqrt(0.01), 0);
+  check("yours", "a deadline at 0.45: before it the dashed values are the shifted formula; at it the formula is still finite, and the worker's terminal 0 is the forced choice", Math.abs(md.pm[n - 2] - formula) < 1e-9 && formula > 1 && md.pm[n - 1] === 0 && md.t[n - 1] === 0.45, `formula ${formula.toFixed(6)}, dashed ${md.pm[n - 2].toFixed(6)} then ${md.pm[n - 1]}`);
+  const text = (await import("node:fs")).readFileSync(new URL("../../book/content/ch02.py", import.meta.url), "utf8");
+  check("words", "the schedule caption names the shifted formula, its finite value at the deadline, the substituted 0, and the zero bound without a deadline", /B\(c\(t\)\) - 0\.5826\\sqrt\{0\.01\}/.test(text) && /the formula still has its finite value/.test(text) && /the display substitutes 0 for both curves/.test(text) && /every trial stops at once, with or without a deadline/.test(text), "caption of #plate-yours");
+  // the speed density: s' = exp(-int 2 tanh) = sech^2 y, m = 2/s' = 2 cosh^2 y, twice the weight, and (f'/s')' = m L f
+  let w = 0;
+  for (const y of [0.3, 1, 2.2]) {
+    const sp = Math.exp(-simpson((u) => 2 * Math.tanh(u), 0, y, 2000)), m = 2 / sp;
+    w = Math.max(w, Math.abs(sp * Math.cosh(y) ** 2 - 1), Math.abs(m / Math.cosh(y) ** 2 - 2));
+    const q = M.TESTS[1], h = 1e-4, P = (v) => q.f1(v) * Math.cosh(v) ** 2;   // f'/s' with s' = sech^2
+    w = Math.max(w, Math.abs((P(y + h) - P(y - h)) / (2 * h) - m * M.Lop(y, q.f1(y), q.f2(y))) / Math.max(1, Math.abs(m * M.Lop(y, q.f1(y), q.f2(y)))));
+  }
+  check("facts", "the scale density exp(-int 2 tanh) is sech^2 y, the speed density m = 2/s' is 2 cosh^2 y, twice the weight, and (f'/s')' = m L f (within 1e-7)", w < 1e-7, `largest difference ${w.toExponential(1)}`);
+  check("words", "the text calls cosh^2 y half the speed density, as the paper's remark does", /\$\\cosh\^2 y\$ is half the speed density of \$Y\$, \$m = 2\\cosh\^2 y\$/.test(text) && !/the same weight as the speed density/.test(text), "fold section");
+}

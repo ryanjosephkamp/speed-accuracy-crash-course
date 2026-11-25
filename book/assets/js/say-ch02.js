@@ -35,22 +35,27 @@ export function palmerVerdict(guess, ms) {
 const STEP = 0.02; // the program's evidence step
 const units = (v) => `${v} time ${v === 1 ? "unit" : "units"}`;
 /** A bound as the plate prints it: three decimals below the grid's first step (the page places a bound there where
- * its program waits at the center), two otherwise. */
-export const boundText = (b) => (b > 0 && b < STEP ? b.toFixed(3) : f2(b));
-/** What a bound means for a decision made at it. */
-export function boundNote(b, g) {
-  if (b === 0) return "the choice is forced";
-  return `deciding at this evidence: right with probability ${f2(g(b))}${b < STEP ? "; below the grid's first step" : ""}`;
+ * its program waits at the center), "< 0.001" for a positive bound that would round to 0, two decimals otherwise. */
+export const boundText = (b) => (b > 0 && b < 0.0005 ? "< 0.001" : b > 0 && b < STEP ? b.toFixed(3) : f2(b));
+/** What a bound means for a decision made at it. A bound of 0 away from a deadline means the program stops at once at
+ * every evidence level, the center included; a positive bound below the first step means it waits at the center. */
+export function boundNote(b, g, forced = false) {
+  if (b === 0) return forced ? "the choice is forced" : "the program stops at once, at 0 too";
+  return `deciding at this evidence: right with probability ${f2(g(b))}${b < STEP ? "; below the grid's first step, and the program waits at 0" : ""}`;
 }
+const stopsAtOnce = "the program stops at once at every evidence level, the center included, and a trial that stops with evidence x is right with probability g(|x|)";
 /** The schedule plate's sentence. unitMs is one time unit in ms, or null for the paper's units. */
 export function yoursSay({ label, unitMs, view, b0, b1, deadline, g }) {
   const span = unitMs === null ? units(view) : `${units(view)}, ${num(view * unitMs)} ms`;
-  let s = `For your schedule (${label}), the window is ${span}. The best bound starts at ${boundText(b0)}, and a decision made at that evidence is right with probability ${f2(g(b0))}.`;
+  let s = `For your schedule (${label}), the window is ${span}. `;
+  s += b0 === 0 ? `The best bound starts at 0: ${stopsAtOnce}.` : `The best bound starts at ${boundText(b0)}, and a decision made at that evidence is right with probability ${f2(g(b0))}.`;
   if (deadline !== null && deadline !== undefined) {
     s += " At the deadline, the choice is forced: every trial still open stops with the evidence x it has and is right with probability g(|x|), which is ½ only at x = 0.";
+  } else if (b1 === 0) {
+    s += ` At the end of the window, the bound is 0, though there is no deadline: ${stopsAtOnce}.`;
   } else {
     s += ` At the end of the window, the bound is ${boundText(b1)}, where that probability is ${f2(g(b1))}`;
-    s += b1 < STEP ? `; this is below the grid's first evidence step, ${STEP}, where the program still waits at the center.` : ".";
+    s += b1 < STEP ? `; this is below the grid's first evidence step, ${STEP}: the program still waits at the center and stops at the first step.` : ".";
   }
   return s;
 }
