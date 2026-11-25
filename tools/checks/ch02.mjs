@@ -53,19 +53,25 @@ for (const [mu, sigma] of [[0.6, 1.5], [1.8, 0.7]]) {
   const DT = 0.0005, xp = M.evidence(1, 0, M.increments(rng(2026 + 1), Math.round(64 / DT), DT), DT);
   const ts = Array.from({ length: 401 }, (_, i) => (4 * i) / 400);
   const settings = [[0.5, 0.5], [0.5, 2], [2, 0.5], [2, 2], [1, 1], [21 * 0.064, 1]];
-  let back = 0, clipped = 0, mid = 0;
+  let back = 0, clipped = 0, mid = 0, widened = 0, charts = 0;
+  // every value a chart draws, inside the range the plate passes to that chart's frame (unitsCharts, which the plate
+  // draws from as it comes)
+  const holds = ([lo, hi], ...series) => series.every((a) => a.length === 401 && a.every((v) => Number.isFinite(v) && v >= lo && v <= hi));
   for (const [mu, sigma] of settings) {
-    const k = (mu * mu) / (sigma * sigma), zs = M.rawSamples(xp, DT, mu, sigma, ts);
+    const k = (mu * mu) / (sigma * sigma), C = M.unitsCharts(xp, DT, mu, sigma, 4), zs = C.raw.zs;
+    if (C.raw.ts.some((t, i) => Math.abs(t - ts[i]) > 1e-12)) clipped++;
     zs.forEach((z, i) => { back = Math.max(back, Math.abs((mu * z) / (sigma * sigma) - M.pathAt(xp, DT, k * ts[i]))); });
-    const [lo, hi] = M.unitsRange([...zs, mu * 4, sigma * 2]);
-    if (zs.some((z) => z < lo || z > hi) || mu * 4 > hi) clipped++;
+    charts += 2;
+    if (!holds(C.raw.y, C.raw.zs, C.raw.drift, C.raw.noise)) clipped++;
+    if (!holds(C.paper.y, C.paper.xs, C.paper.line, C.paper.sqrt)) clipped++;
+    if (C.raw.y[1] > 6 || C.raw.y[0] < -2) widened++;
+    if (Math.abs(C.raw.drift[400] - mu * 4) > 1e-12 || Math.abs(C.raw.noise[400] - sigma * 2) > 1e-12) clipped++;
   }
-  const xs = ts.map((t) => M.pathAt(xp, DT, t)), [plo, phi] = M.unitsRange([...xs, 4]);
-  if (xs.some((x) => x < plo || x > phi)) clipped++;
   // between two steps the path is read linearly: halfway, it is the mean of the two steps
   for (const k of [10, 3613, 70000]) mid = Math.max(mid, Math.abs(M.pathAt(xp, DT, (k + 0.5) * DT) - 0.5 * (xp[k] + xp[k + 1])));
   check("units", "the units plate's raw samples, read back through x = mu Z / sigma^2, are the paper path at t' = mu^2 t / sigma^2, read the same way (six settings, within 1e-12)", back < 1e-12 && mid < 1e-12, `largest difference ${back.toExponential(1)}`);
-  check("units", "both of the units plate's charts widen their range to hold every value drawn, at the slider's corners and Palmer's setting", clipped === 0, `${clipped} charts clipped`);
+  check("units", "both of the units plate's charts, as unitsCharts builds them for the plate, pass their frames a range that holds every value drawn (the path, the drift line, and the noise curve; the path, t, and sqrt t), at the slider's corners and Palmer's setting",
+    clipped === 0 && widened > 0, `${charts} charts, ${clipped} with a value outside the range passed; ${widened} raw charts widened past -2 to 6`);
 }
 {
   const ms = 1000 * M.unitSeconds(0.064);
@@ -365,10 +371,15 @@ for (const t of [0.25, 1, 3]) {
   const full = exactPolicy(costOf(r0), VIEW + SPARE), k = full.ts.findIndex((t) => Math.abs(t - 1.93) < 1e-9), tiny = full.bounds[k];
   check("yours", "the same program, read at the worker's own times, agrees with the worker's reply (Rising from 0 at rate 2)", m0.t.every((t, i) => Math.abs(full.bounds[Math.round(t / 0.01)] - m0.exact[i]) < 1e-12), `${m0.t.length} times`);
   check("words", "a positive bound below 0.0005 (Rising from 0 at rate 2, time 1.93) prints as < 0.001, never as 0", tiny > 0 && tiny < 0.0005 && S.boundText(tiny) === "< 0.001" && S.boundText(0) === "0.00", `bound ${tiny} prints ${S.boundText(tiny)}`);
-  // a deadline at 0.45: the dashed curve is the shifted formula before the deadline; at it the formula is finite, the display 0
+  // a deadline at 0.45: the dashed curve is the shifted formula at every time before the deadline; at it the formula is
+  // finite, and the worker sends 0 for both curves
   const d = { id: "deadline", params: { at: 0.45, c: 0.1 } }, md = await ask(d), n = md.pm.length;
-  const formula = Math.max((await import("../../book/assets/js/model.js")).boundForCost(costOf(d)(0.45)) - 0.5826 * Math.sqrt(0.01), 0);
-  check("yours", "a deadline at 0.45: before it the dashed values are the shifted formula; at it the formula is still finite, and the worker's terminal 0 is the forced choice", Math.abs(md.pm[n - 2] - formula) < 1e-9 && formula > 1 && md.pm[n - 1] === 0 && md.t[n - 1] === 0.45, `formula ${formula.toFixed(6)}, dashed ${md.pm[n - 2].toFixed(6)} then ${md.pm[n - 1]}`);
+  const { boundForCost: Bc } = await import("../../book/assets/js/model.js"), formula = (t) => Math.max(Bc(costOf(d)(t)) - 0.5826 * Math.sqrt(0.01), 0);
+  let off = 0; for (let i = 0; i < n - 1; i++) off = Math.max(off, Math.abs(md.pm[i] - formula(md.t[i])));
+  const before = n === 24 && md.t.slice(0, n - 1).every((t, i) => Math.abs(t - 0.02 * i) < 1e-9 && t < 0.45);
+  check("yours", "a deadline at 0.45: at each of the 23 plotted times before it (every 0.02 from 0 to 0.44), the dashed value is the shifted formula; at 0.45 the formula is still finite, and both the dashed and the best bound are the worker's terminal 0, the forced choice",
+    before && off < 1e-9 && formula(0.45) > 1 && md.pm[n - 1] === 0 && md.exact[n - 1] === 0 && md.t[n - 1] === 0.45 && md.pm.length === md.exact.length,
+    `${n - 1} times before the deadline, largest difference ${off.toExponential(1)}; formula at 0.45 ${formula(0.45).toFixed(6)}; terminal ${md.pm[n - 1]} and ${md.exact[n - 1]}`);
   const text = (await import("node:fs")).readFileSync(new URL("../../book/content/ch02.py", import.meta.url), "utf8");
   check("words", "the schedule caption names the shifted formula, its finite value at the deadline, the substituted 0, and the zero bound without a deadline", /B\(c\(t\)\) - 0\.5826\\sqrt\{0\.01\}/.test(text) && /the formula still has its finite value/.test(text) && /the display substitutes 0 for both curves/.test(text) && /every trial stops at once, with or without a deadline/.test(text), "caption of #plate-yours");
   // the speed density: s' = exp(-int 2 tanh) = sech^2 y, m = 2/s' = 2 cosh^2 y, twice the weight, and (f'/s')' = m L f
