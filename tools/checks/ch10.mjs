@@ -169,8 +169,10 @@ check("data", "90 development and 210 held-out schedules, 30 per family, and 36 
   check("scaling", "the text, run on the page's grid: at the three smallest amplitudes its weighted losses differ from the paper's grid in sign or by more than half, at 0.4 and 0.8 they don't, and the per-moment loss at the constant cost is negative",
     off.join() === "0.05,0.1,0.2" && on.join() === "0.4,0.8" && page[0].pm < 0, `apart at ${off.join(", ")}; within half at ${on.join(", ")}; constant cost ${page[0].pm.toExponential(2)}`);
   const sp = S.scalingPage(page, sc.rows.map((r) => ({ a: r.amplitude, pm: r.paper.per_moment, wb: r.paper.weighted })));
-  check("words", "the scaling plate's page-grid sentence gives the constant-cost loss with its sign as one difference, not an error bound, and names the amplitudes this grid can't resolve",
-    /−1\.8 × 10⁻⁴/.test(sp) && /not an error bound/.test(sp) && /at a = 0\.05, 0\.1, and 0\.2, this grid and the paper's differ/.test(sp) && !/NaN|undefined/.test(sp), sp);
+  const offRows = page.filter((r) => [0.05, 0.1, 0.2].includes(r.a)), listOf = (xs) => `${xs[0]}, ${xs[1]}, and ${xs[2]}`;
+  check("words", "the scaling plate's page-grid sentence gives the constant-cost loss with its sign as one difference, not an error bound, and where the two grids differ in sign or by more than half (a = 0.05, 0.1, and 0.2) gives both grids' signed losses, with no claim about what a grid resolves",
+    /−1\.8 × 10⁻⁴/.test(sp) && /not an error bound/.test(sp) && /at a = 0\.05, 0\.1, and 0\.2, the two grids differ in sign or by more than half/.test(sp)
+    && sp.includes(`this grid gives ${listOf(offRows.map((r) => S.num(r.wb)))}, the paper's ${listOf(offRows.map((r) => S.num(paperWb(r.a))))}`) && !/resolves/.test(sp) && !/NaN|undefined/.test(sp), sp);
   const r1 = sc.rows.find((r) => r.amplitude === 0.1), rel = (r) => Math.abs(r.fine.weighted / r.paper.weighted - 1);
   check("scaling", "the text: at a = 0.1 the paper's two grids agree on the weighted loss more closely than at 0.2, on a loss under 1e-6 points, and at 0.05 they differ in sign",
     rel(r1) < rel(two) && Math.max(r1.paper.weighted, r1.fine.weighted) < 1e-6 && Math.sign(sc.rows[0].paper.weighted) !== Math.sign(sc.rows[0].fine.weighted),
@@ -182,8 +184,9 @@ check("data", "90 development and 210 held-out schedules, 30 per family, and 36 
 // min(4, deadline), where the gap statistic is measured). The two may differ in one kind of cell only: where the page
 // places a bound below the grid's first step (between 0 and h) because its program still waits at the center, and the
 // paper's code reports 0 (model.js; chapter 9). Each rule's gap statistic is then recomputed against the paper's own
-// program bound and must match the paper's to 1e-6; the page's displayed statistic may differ from the paper's only when
-// such cells exist, and by at most h.
+// program bound and must match the paper's to 1e-6; and the page's displayed statistic, recomputed here from the page's
+// own time-indexed bounds (the rule's bound as scored and the page's program bound, both capped at 4, at the grid times
+// before min(4, deadline)), must match it to 1e-6, with no allowance for the sub-step cells.
 {
   const cmp = (name, r, ref, rules) => {
     const ts = r.raw.ts, early = Math.min(4, r.horizon), h = r.h;
@@ -196,22 +199,25 @@ check("data", "90 development and 210 held-out schedules, 30 per family, and 36 
       if (!Number.isFinite(a) && !Number.isFinite(b)) continue;
       dEx = Math.max(dEx, Math.abs(a - b));
     }
-    let worst = 0, dxPaper = 0, dxShown = 0;
+    let worst = 0, dxPaper = 0, dxShown = 0, dxPaperShown = 0;
     for (const k of rules) {
       const a = r.rules[k], b = ref[k];
       worst = Math.max(worst, Math.abs(a.loss - b.loss), 100 * Math.abs(a.p - b.p), 100 * Math.abs(a.rt - b.rt));
       dxPaper = Math.max(dxPaper, Math.abs(M.maxGap(ts, r.raw.rules[k], paperEx, r.horizon) - b.max_dx));
-      dxShown = Math.max(dxShown, Math.abs(a.maxDx - b.max_dx));
+      let mine = 0;
+      for (let j = 0; j < ts.length && ts[j] < early; j++) mine = Math.max(mine, Math.abs(Math.min(r.raw.rules[k][j], 4) - Math.min(r.raw.exact[j], 4)));
+      dxShown = Math.max(dxShown, Math.abs(a.maxDx - mine));
+      dxPaperShown = Math.max(dxPaperShown, Math.abs(a.maxDx - b.max_dx));
     }
     const ex = Math.max(Math.abs(r.exact.reward - ref.exact.reward), Math.abs(r.exact.p - ref.exact.p), Math.abs(r.exact.rt - ref.exact.rt));
     const x = rules.includes("best_constant") ? Math.abs(r.x - ref.best_constant.x) : 0;
-    const shownOk = dxShown < 1e-6 || (sub > 0 && dxShown <= h);
-    check("rules", `${name}: the page's program matches the paper's code at every grid time before min(4, deadline) within 1e-6, except cells below the grid's first step where the paper's reports 0; its ${rules.length} rules' losses, accuracy, and decision time within 1e-5 points; their gap statistic within 1e-6 against the paper's program bound; tuned bound within 1e-6`,
+    const shownOk = dxShown < 1e-6 && (sub > 0 || dxPaperShown < 1e-6);
+    check("rules", `${name}: the page's program matches the paper's code at every grid time before min(4, deadline) within 1e-6, except cells below the grid's first step where the paper's reports 0; its ${rules.length} rules' losses, accuracy, and decision time within 1e-5 points; their gap statistic within 1e-6 against the paper's program bound; each displayed gap within 1e-6 of the gap recomputed from the page's own bounds (and of the paper's where no sub-step cell exists); tuned bound within 1e-6`,
       paperEx.length === nEarly && dEx < 1e-6 && worst < 1e-5 && dxPaper < 1e-6 && shownOk && ex < 1e-7 && x < 1e-6,
-      `program bound ${dEx.toExponential(1)} (${sub} sub-step cells of ${nEarly}), loss etc. ${worst.toExponential(1)}, gap statistic ${dxPaper.toExponential(1)} (as shown ${dxShown.toExponential(1)}), program value ${ex.toExponential(1)}, tuned bound ${x.toExponential(1)}`);
+      `program bound ${dEx.toExponential(1)} (${sub} sub-step cells of ${nEarly}), loss etc. ${worst.toExponential(1)}, gap statistic ${dxPaper.toExponential(1)} (as shown, against the page's bounds ${dxShown.toExponential(1)}, against the paper's ${dxPaperShown.toExponential(1)}), program value ${ex.toExponential(1)}, tuned bound ${x.toExponential(1)}`);
     return sub;
   };
-  let subTotal = 0;
+  let subTotal = 0, sub150 = null;
   for (const ch of CHOICES) {
     const s = spec(ch), r = M.runRules(costFromSpec(s), s.kind === "deadline" ? s.at : null, { raw: true });
     subTotal += cmp(`preset ${s.id}`, r, REF.pageGrid.presets[s.id], M.RULES);
@@ -220,12 +226,14 @@ check("data", "90 development and 210 held-out schedules, 30 per family, and 36 
   for (const [set, rows] of [["dev", DATA.dev], ["held", DATA.held]]) {
     for (const [i, ref] of Object.entries(REF.pageGrid[set])) {
       const row = rows[+i], r = M.runRules(M.familyCost(row.f, row.p), M.familyDeadline(row.f, row.p), { raw: true });
-      subTotal += cmp(`${set === "dev" ? "development" : "held-out"} schedule ${i} (${row.f})`, r, ref, M.RULES);
+      const nSub = cmp(`${set === "dev" ? "development" : "held-out"} schedule ${i} (${row.f})`, r, ref, M.RULES);
+      subTotal += nSub;
+      if (set === "held" && +i === 150) sub150 = nSub;
       const paper = set === "dev" ? { pm: row.pm, wb: row.wb } : { pm: M.lossOf(row, 0), wb: M.lossOf(row, 1) };
       grid.push({ name: `${set} ${i}`, pm: [r.rules.per_moment.loss, paper.pm], wb: [r.rules.weighted.loss, paper.wb] });
     }
   }
-  check("rules", "the exception above is used: some compared schedule reaches a bound below the grid's first step (held-out schedule 150 does), so the time-by-time rule is tested", subTotal > 0, `${subTotal} such cells in all`);
+  check("rules", "the exception above is used: held-out schedule 150, compared on its own, reaches a bound below the grid's first step, so the time-by-time rule is tested", sub150 !== null && sub150 > 0, `${sub150} such cells on held-out schedule 150, ${subTotal} in all`);
   const pmRel = Math.max(...grid.map((g) => Math.abs(g.pm[0] / g.pm[1] - 1)));
   check("grid", "the text: on the paper's schedules the checks run, the page's per-moment losses are within 5% of the paper's", pmRel <= 0.05, `largest relative difference ${(100 * pmRel).toFixed(1)}% over ${grid.length} schedules`);
   const big = grid.filter((g) => g.wb[1] >= 0.001), wbRel = Math.max(...big.map((g) => Math.abs(g.wb[0] / g.wb[1] - 1)));
@@ -300,8 +308,9 @@ check("data", "90 development and 210 held-out schedules, 30 per family, and 36 
   const h = S.heldVerdict(0.5, 0.983, 0.904, 0.558, 180);
   check("words", "the held-out verdict says how far a guess is from the median, in points, and gives the median's scope", /48\.3 points low/.test(h) && /180 schedules where the per-moment rule loses at least 0\.01/.test(h), h);
   check("words", "the share avoided is printed only where the per-moment loss is at least 0.01", /under 0\.01/.test(S.heldTap("x", 0.005, 0.0001)) && /avoids 98\.0%/.test(S.heldTap("x", 0.5, 0.01)), S.heldTap("x", 0.005, 0.0001));
-  const a1 = S.agree("weighted", 1.2e-5, -2.5e-5), a2 = S.agree("per-moment", 0.169, 0.168);
-  check("words", "two grids that differ in sign are read as below the page's resolution; two that agree say within how much", /even in sign/.test(a1) && /within 1%/.test(a2), `${a1} | ${a2}`);
+  const a1 = S.agree("weighted", 1.2e-5, -2.5e-5), a2 = S.agree("per-moment", 0.169, 0.168), a3 = S.agree("weighted", 1e-4, 2.6e-4);
+  check("words", "two grids that differ in sign say so, two more than half apart say by how much of the paper's, and two that agree say within how much; none claims what a grid resolves",
+    /differ on the weighted loss even in sign/.test(a1) && /within 1%/.test(a2) && /by 160% of the paper's/.test(a3) && ![a1, a2, a3].some((x) => /resolves/.test(x)), `${a1} | ${a2} | ${a3}`);
   const sv = S.shareVerdict(0.01, 0.0016);
   check("words", "the share verdict says how many times too high a guess is", /about 6\.3 times too high/.test(sv), sv);
   check("words", "small losses print in powers of ten, with the minus sign", S.num(-2.5e-5) === "−2.5 × 10⁻⁵" && S.num(9.96e-5) === "1.0 × 10⁻⁴" && S.num(0.0123) === "0.012" && S.num(42.64) === "42.6", `${S.num(-2.5e-5)}, ${S.num(9.96e-5)}, ${S.num(0.0123)}, ${S.num(42.64)}`);

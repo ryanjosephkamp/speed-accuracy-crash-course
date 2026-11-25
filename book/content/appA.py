@@ -154,8 +154,8 @@ CHAPTER = {
         "still": _ORDER.index("thm:main"),
     },
     "readings": [
-        ("MaxLookAhead", "the largest mean look-ahead over all costs, in time units, from the one step of the proofs done numerically rather than proved"),
-        ("MaxLookAheadCost", "the cost at which that largest look-ahead falls, from the same numerical step"),
+        ("MaxLookAhead", "the largest mean look-ahead over all costs, in time units, which Corollary 9's proof finds numerically rather than proving it"),
+        ("MaxLookAheadCost", "the cost at which that largest look-ahead falls, found the same way"),
     ],
     "intro": r"""
 The exact equation rests on every result before it in Appendix A, and Theorem 7 needs only two more: the kernel's lemma and the slope of the flat bound.

@@ -562,7 +562,7 @@ function envelopePlate() {
         <div class="k-wb"><dt>δℓ, first order</dt><dd>${fmt(n.dlFo, 4)}</dd></div>
         <div class="k-acc"><dt>δℓ, Appendix B</dt><dd>${fmt(n.dlEx, 4)}</dd></div>`;
       head.textContent = `Step 3: the slope of V − G (ink) and of V − G − δc·E_xτ with δc = ${dc} (green), with its straight-line approximation at each bound (dashed), which crosses 0 at the first-order bound (dot).`;
-      label = "The slope of the value of waiting minus the reward for deciding, before and after a small change in the cost, with the bounds where each is zero";
+      label = "Near each bound, the slope of the value of waiting minus the reward for deciding, before and after a small change in the cost; the after-change slope's straight-line approximation at each bound, which crosses 0 at the first-order bound; the old and the first-order bounds (dots); and Appendix B's bounds after the change (ticks)";
     } else {
       const ss = logRange(0.005, 6, 200);
       const kh = ss.map((s) => o.bk.flux("hi", s) / o.th), kl = ss.map((s) => o.bk.flux("lo", s) / o.tl);

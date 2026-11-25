@@ -77,6 +77,17 @@ export function gridMoves(rows = RESULTS12) {
   return { pmAbs, wbAbs, pmRel, wbRel };
 }
 /** Table 12's four grids, (dt, h), from its caption; the paper's is the second. */
+/** The grid plate's legend for Table 12's moves, in points (abs) or as shares of the loss on grid 2 (rel): as shares,
+ * a loss under SHARE_FLOOR on grid 2 isn't drawn, and the legend names it. */
+export function gridKey(rows = RESULTS12, unit = "abs") {
+  const tot = rows.length;
+  const say = (who, j) => {
+    const out = unit === "rel" ? rows.filter((r) => !(r[j][1] >= SHARE_FLOOR)).map((r) => r[0]) : [];
+    return out.length ? `${who}, ${tot - out.length} of ${tot} schedules (${out.join(" and ")} left out)` : `${who}, all ${tot} schedules`;
+  };
+  return { pm: say("Per-moment", 1), wb: say("Weighted", 2) };
+}
+
 export const PAPER_GRIDS = [[0.004, 0.007], [0.002, 0.005], [0.001, 0.0035], [0.0005, 0.0025]];
 
 /** This page's grids for refining a schedule's losses: each halves the time step and divides the evidence step by
@@ -214,6 +225,22 @@ export function decidedBy(F, k, forcedK = null) {
   return { up, lo, forced };
 }
 
+/** The density plate's rate of deciding, per unit time, correctly (up) and wrongly (lo), from a forward pass F on the
+ * times ts, through step kEnd: bins of two steps (k - 1, k), each at the mean of its two times, and, where a deadline
+ * at step forcedK leaves one ordinary step unpaired before it (an even forcedK), a last bin of that one step, at its
+ * time. The forced choice at forcedK is a point mass, returned apart as shares (forced.up, forced.lo), not as a rate.
+ * w holds each bin's width in steps, so the bins' rate times width times dt, summed, plus the forced shares, is what
+ * decidedBy counts. */
+export function rateBins(F, ts, kEnd, forcedK = null) {
+  const dt = ts[1] - ts[0], last = forcedK === null ? kEnd : Math.min(kEnd, forcedK - 1);
+  const t = [], up = [], lo = [], w = [];
+  let k = 2;
+  for (; k <= last; k += 2) { t.push((ts[k - 1] + ts[k]) / 2); up.push((F.upAt[k - 1] + F.upAt[k]) / (2 * dt)); lo.push((F.loAt[k - 1] + F.loAt[k]) / (2 * dt)); w.push(2); }
+  if (k - 1 === last && last >= 1) { t.push(ts[last]); up.push(F.upAt[last] / dt); lo.push(F.loAt[last] / dt); w.push(1); }
+  const forced = forcedK !== null && kEnd >= forcedK ? { k: forcedK, t: ts[forcedK], up: F.upAt[forcedK] + F.endUp, lo: F.loAt[forcedK] + F.endLo } : null;
+  return { t, up, lo, w, dt, forced };
+}
+
 // ---- trials with the same checks and bound, simulated ----------------------------------------------------------------
 
 /** A finer evidence step, a quarter of the page's, at which the page also scores a policy, to show how far the
@@ -286,6 +313,15 @@ export function onePath(b, dt, R, sub = 24) {
   // the first time the fine path itself reached the bound
   const first = path.find((p) => Math.abs(p[1]) >= b);
   return { path, checks, stop: checks[checks.length - 1], first: first || path[path.length - 1], side: Math.sign(x) || 1 };
+}
+
+/** What the overshoot plate marks for a run P checked every dt, drawn over its last nine checks (from tBeg): "ring" when
+ * the first fine step past the bound comes before the check that sees it and inside that window, "earlier" when it
+ * comes before the window (the plate gives its time instead), and null when it is the stopping check's own step. */
+export function firstPastMark(P, dt) {
+  const tBeg = Math.max(0, P.stop[0] - 9 * dt);
+  if (!(P.first[0] < P.stop[0] - 1e-12)) return { kind: null, t: P.first[0], tBeg };
+  return { kind: P.first[0] >= tBeg - 1e-12 ? "ring" : "earlier", t: P.first[0], tBeg };
 }
 
 // ---- the paper's sinusoid test, on a grid ---------------------------------------------------------------------------

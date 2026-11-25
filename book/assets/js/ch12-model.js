@@ -113,6 +113,15 @@ export function averagedBound(cost, t, c0) {
   return acc;
 }
 
+/** The control plate's window at time t, for a chart that ends at xEnd: the kernel's weight past the edge, where its
+ * mean falls and whether that is inside the chart (else the plate draws an arrow at the edge), and the reading the
+ * plate prints, a whole percent, shown only when at least PAST_SHOWN of the weight is past the edge. */
+export const PAST_SHOWN = 0.005;
+export function controlWindow(t, c0, xEnd) {
+  const past = 1 - kernelCdf(xEnd - t, c0), meanAt = t + K.meanLookAhead(c0);
+  return { past, meanAt, meanInside: meanAt <= xEnd, reading: past >= PAST_SHOWN ? `${Math.round(past * 100)}%` : null };
+}
+
 // ---------------------------------------------------------------- the urgency gate (Smith and Ratcliff, 2022)
 /** One path of the evidence X(t) = t + W(t) (the correct choice is +1), in Euler steps of dt from 0, until |X| first
  * reaches the bound b(t) or time tMax. Returns the times, the path, the crossing time (read between the two steps by a
@@ -145,6 +154,15 @@ export function gateDisplay(g, bound, keep = 5) {
   return { ts, xs, gated: xs.map((x, k) => x / bound(ts[k])) };
 }
 
+/** The moving bound as the gate plate draws it: n even times from 0 to the chart's end (15% past the crossing, or 4),
+ * with the crossing time added in order when there is one, so the drawn bound passes through the marked crossing. */
+export function gateBoundLine(g, bound, n = 160) {
+  const end = Number.isFinite(g.hit) ? g.hit * 1.15 + 0.05 : 4;
+  const even = Array.from({ length: n }, (_, i) => (end * i) / (n - 1));
+  const ts = Number.isFinite(g.hit) && !even.includes(g.hit) ? [...even.filter((t) => t < g.hit), g.hit, ...even.filter((t) => t > g.hit)] : even;
+  return { end, ts, b: ts.map(bound) };
+}
+
 /** The top of the degree axis for a guess: 50, or 90 when the guess is above 50. */
 export const degreeAxisTop = (guess) => (Number.isFinite(guess) && guess > 50 ? 90 : 50);
 
@@ -171,6 +189,14 @@ export function urgencies(t, b0, runs, cost, c0, EPS) {
     return { best, pm, fo, holes: foB.some((b) => !(b > 0)), used: joint.filter(Boolean).length, total: t.length, gFo: gap(fo), gPm: gap(pm) };
   });
   return { u, gFo: u.map((x) => x.gFo), gPm: u.map((x) => x.gPm) };
+}
+
+/** What the urgency plate holds for a schedule whose cost doesn't move (the Constant preset, a flat drawing, Smooth at
+ * size 0): at every size, three identical flat urgencies and two gaps of 0. flat marks it, so the sentence says so at
+ * every size the reader picks. */
+export function flatUrgency(t, c0, EPS) {
+  return { kind: "scale", flat: true, t, cost: t.map(() => c0), c0, outside: false, gFo: EPS.map(() => 0), gPm: EPS.map(() => 0),
+    u: EPS.map(() => ({ best: t.map(() => 1), fo: t.map(() => 1), pm: t.map(() => 1), holes: false, used: t.length, total: t.length })) };
 }
 
 /** Whether a schedule's cost moves at all over the window and the solver's spare time: a flat drawing or a size of 0
