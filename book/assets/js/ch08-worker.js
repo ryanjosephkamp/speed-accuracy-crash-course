@@ -21,8 +21,8 @@ self.onmessage = (e) => {
       return;
     }
     if (m.job === "roots") {
-      const cost = m.choice ? scheduleFor(m.choice, null).cost : spikeCost;
-      self.postMessage({ id: m.id, ok: true, t: m.t, ...rootsAt(cost, m.t) });
+      const { cost, deadline } = m.choice ? scheduleFor(m.choice, null) : { cost: spikeCost, deadline: null };
+      self.postMessage({ id: m.id, ok: true, t: m.t, ...rootsAt(cost, m.t, 160, deadline) });
       return;
     }
     if (m.job === "prop13") {
