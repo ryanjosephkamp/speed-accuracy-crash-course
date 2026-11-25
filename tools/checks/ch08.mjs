@@ -223,17 +223,17 @@ const movesOf = (r) => { const ch = []; for (let k = 1; k < r.updates.length; k+
 
 // ---- two levels that both fit ---------------------------------------------------------------------------------------
 // A separate evaluation of the equation's map, to hold the page's to: Simpson's rule on the kernel's density (kernel.js's
-// series) between the breaks (a drawing's knots, a deadline), 256 panels per stretch, with the first stretch in u =
-// sqrt(s) to take out the density's s^(-1/2); past the last break the cost is flat (or infinite past a deadline), so
-// that tail is B times the exact tail weight. A different method from the page's (moments of the kernel on a fixed
-// geometric grid).
+// series) between the breaks (a drawing's knots, the start of Rising's rise, a deadline), P panels per stretch (256
+// unless given), with the first stretch in u = sqrt(s) to take out the density's s^(-1/2). A drawing is flat past its
+// last knot (and every cost is infinite past a deadline), so that tail is B times the exact tail weight; any other
+// schedule is also cut every 0.25 time units to 3 and every 2 to 40, and only the kernel's weight past 39 is treated
+// as flat. A different method from the page's (moments of the kernel on a fixed geometric grid).
 function refMap(b, t, cost, deadline = null, breaks = [], P = 256) {
   const lv = Math.max(b, 1e-3), w = (x) => K.flux(x, lv) / K.fluxTotal(lv), f = (x) => boundForCost(cost(t + x));
   const cut = deadline === null ? Infinity : deadline - t;
   if (cut <= 0) return 0;
-  // without breaks, stretches of 0.25 to 12 time units, then a flat-cost tail is not assumed: integrate to 40
   let cuts = [...breaks.map((k) => k - t), cut].filter((x) => x > 0 && x < 40);
-  if (!breaks.length) for (let x = 0.25; x < 40; x += x < 3 ? 0.25 : 2) cuts.push(x);
+  if (breaks !== DRAW_TIMES) for (let x = 0.25; x < 40; x += x < 3 ? 0.25 : 2) cuts.push(x);
   cuts = [...new Set(cuts.filter((x) => x <= cut + 1e-12))].sort((a, c) => a - c);
   const simpson = (g, a, c) => { const h = (c - a) / P; let sum = g(a) + g(c); for (let i = 1; i < P; i++) sum += g(a + i * h) * (i % 2 ? 4 : 2); return (sum * h) / 3; };
   // the first stretch, in u = sqrt(s): w(u^2) 2u tends to 2 sqrt(2/pi) / (tanh b + b sech^2 b) at u = 0
@@ -254,6 +254,7 @@ function verified(roots, t, cost, deadline, breaks) {
 {
   const draw = (pts) => ({ id: "draw", points: DRAW_TIMES.map((t) => (t <= 0.2 + 1e-9 ? 1 : pts)) });
   const alt = { id: "draw", points: DRAW_TIMES.map((t, i) => (i % 2 ? 0.01 : 2)) };
+  const RS = R.scheduleFor({ id: "rising", params: { at: 2, rate: 2 } });
   const CASES = [
     ["the brief spike at 0", R.spikeCost, null, [], 0],
     ["a drawing from 1 to 0.0766 at 0", costOf(draw(0.0766)), null, DRAW_TIMES, 0],
@@ -263,10 +264,20 @@ function verified(roots, t, cost, deadline, breaks) {
     ["the jump at 0.3", costOf({ id: "jump" }), null, [], 0.3],
     ["the pulse at 0.8", costOf({ id: "pulse" }), null, [], 0.8],
     ["the multi-step at 0.2", costOf({ id: "multistep" }), null, [], 0.2],
+    ["Rising from 2 at rate 2, at 0", RS.cost, null, RS.breaks, 0],
   ];
+  const diffs = [];
   let worst = 0, where = "";
-  for (const [name, cost, dl, br, t] of CASES) for (let b = 0.05; b <= 2.4; b += 0.25) { const d = Math.abs(R.mapExact(b, t, cost, dl, br) - refMap(b, t, cost, dl, br)); if (d > worst) { worst = d; where = `${name}, level ${b.toFixed(2)}`; } }
-  check("roots", "the page's map agrees with the separate evaluation (Simpson's rule on the density) within 1e-6, the caption's figure, on eight schedules at the levels 0.05, 0.30, ..., 2.30", worst < 1e-6, `largest difference ${worst.toExponential(2)} (${where})`);
+  for (const [name, cost, dl, br, t] of CASES) for (let b = 0.05; b <= 2.4; b += 0.25) { const d = Math.abs(R.mapExact(b, t, cost, dl, br) - refMap(b, t, cost, dl, br)); diffs.push(d); if (!(d <= worst)) { worst = d; where = `${name}, level ${b.toFixed(2)}`; } }
+  check("roots", `the page's map agrees with the separate evaluation (Simpson's rule on the density) within 1e-6, the caption's figure, on ${CASES.length} schedules at the levels 0.05, 0.30, ..., 2.30: all ${CASES.length * 10} differences finite and below it`,
+    diffs.length === CASES.length * 10 && diffs.every((d) => Number.isFinite(d) && d < 1e-6), `${diffs.length} differences, largest ${worst.toExponential(2)} (${where})`);
+  // Rising has a corner where the rise starts: the page's map splits its integral there (scheduleFor's breaks). Its
+  // crossing at time 0 is confirmed by the separate evaluation; without that split it misses by more than 1e-6
+  const rr = R.rootsAt(RS.cost, 0, 160, null, RS.breaks), vr = verified(rr.roots, 0, RS.cost, null, RS.breaks);
+  const unsplit = R.rootsAt(RS.cost, 0, 160, null, []), vu = verified(unsplit.roots, 0, RS.cost, null, RS.breaks);
+  check("roots", "Rising from 2 at rate 2, seen from 0: the map splits at the start of the rise, and its one crossing is confirmed by the separate evaluation (residual below 1e-6, with a sign change); the same map without that split misses it by more than 1e-6",
+    RS.breaks.length === 1 && RS.breaks[0] === 2 && rr.roots.length === 1 && vr.every((v) => Math.abs(v.residual) < 1e-6 && v.signChange) && vu.length === 1 && Math.abs(vu[0].residual) > 1e-6,
+    `${rr.roots.map((q, i) => `${q.b.toFixed(9)} (separate residual ${vr[i].residual.toExponential(1)})`).join(", ")}; without the split ${unsplit.roots.map((q, i) => `${q.b.toFixed(9)} (${vu[i].residual.toExponential(1)})`).join(", ")}`);
   const r = R.rootsAt(R.spikeCost, 0);
   const s = r.roots.map((q) => q.slope), vs = verified(r.roots, 0, R.spikeCost, null, []);
   check("roots", "the brief spike: three crossings found, each confirmed by the separate evaluation (residual below 1e-6 and a sign change within 1e-3), the local test toward the outer two and away from the middle one", r.roots.length === 3 && vs.every((v) => Math.abs(v.residual) < 1e-6 && v.signChange) && s[0] < 1 && s[0] > -3 && s[2] < 1 && s[2] > -3 && s[1] > 1, r.roots.map((q, i) => `${q.b.toFixed(4)} (slope ${q.slope.toFixed(2)}, separate residual ${vs[i].residual.toExponential(0)})`).join(", "));
@@ -276,16 +287,26 @@ function verified(roots, t, cost, deadline, breaks) {
   // the alternating drawing the audit found, seen from 0.02: the plate's crossing (with the knots split) is confirmed
   const sa = R.scheduleFor(alt), ra = R.rootsAt(sa.cost, 0.02, 160, null, sa.breaks), va = verified(ra.roots, 0.02, sa.cost, null, DRAW_TIMES);
   check("roots", "a drawing alternating costs 2 and 0.01, seen from 0.02: each crossing found is confirmed by the separate evaluation (residual below 1e-6)", ra.roots.length >= 1 && va.every((v) => Math.abs(v.residual) < 1e-6 && v.signChange), ra.roots.map((q, i) => `${q.b.toFixed(6)} (separate residual ${va[i].residual.toExponential(1)})`).join(", "));
-  // near-tangent drawings: at 0.0765913 the separate evaluation stays below the diagonal near 0.586, and the plate finds
-  // one crossing; at 0.0766 likewise
+  // near-tangent drawings: at 0.0765913 and 0.0766 the separate evaluation comes close to the diagonal near 0.586 without
+  // crossing it, and the plate finds one crossing. The close approach is located, not sampled: T(b) - b is scanned every
+  // 0.005 from 0.55 to 0.62, the largest value must be inside, and a golden-section search from its neighbors finds the
+  // local maximum, which stays below 0 in the separate evaluation with 256 panels per stretch and again with 1024
   for (const low of [0.0765913, 0.0766]) {
     const sl = R.scheduleFor(draw(low)), dl = R.rootsAt(sl.cost, 0, 160, null, sl.breaks), vl = verified(dl.roots, 0, sl.cost, null, DRAW_TIMES);
-    const near = Math.max(...[0.582, 0.584, 0.586, 0.588, 0.59].map((x) => refMap(x, 0, sl.cost, null, DRAW_TIMES) - x));
-    check("roots", `a drawing from 1 to ${low}: one crossing found and confirmed, and none near the close approach at 0.586, where the separate evaluation stays below the diagonal`, dl.roots.length === 1 && vl.every((v) => Math.abs(v.residual) < 1e-6 && v.signChange) && near < 0, `${dl.roots.map((q) => q.b.toFixed(4)).join(", ")}; largest T - b near 0.586: ${near.toExponential(2)}`);
+    const g = (x, P = 256) => refMap(x, 0, sl.cost, null, DRAW_TIMES, P) - x;
+    const xs = Array.from({ length: 15 }, (_, i) => 0.55 + 0.005 * i), gs = xs.map((x) => g(x)), k = gs.indexOf(Math.max(...gs));
+    let a = xs[Math.max(k - 1, 0)], c = xs[Math.min(k + 1, xs.length - 1)];
+    const phi = (Math.sqrt(5) - 1) / 2;
+    for (let i = 0; i < 60; i++) { const x1 = c - phi * (c - a), x2 = a + phi * (c - a); if (g(x1) > g(x2)) c = x2; else a = x1; }
+    const top = (a + c) / 2, peak = g(top), peakFine = g(top, 1024);
+    check("roots", `a drawing from 1 to ${low}: one crossing found and confirmed, and none at the close approach near 0.586, whose local maximum of T(b) − b, located by search in the separate evaluation, stays below 0 (and below 0 again with four times the panels)`,
+      dl.roots.length === 1 && vl.every((v) => Math.abs(v.residual) < 1e-6 && v.signChange) && k > 0 && k < xs.length - 1 && peak < 0 && peakFine < 0,
+      `${dl.roots.map((q) => q.b.toFixed(4)).join(", ")}; local maximum of T - b at ${top.toFixed(5)}: ${peak.toExponential(3)} (1024 panels: ${peakFine.toExponential(3)})`);
   }
   const s766 = R.scheduleFor(draw(0.0766)), say586 = S.rootsSay(0.586, R.mapExact(0.586, 0, s766.cost, null, s766.breaks), 0, 0);
   check("words", "on the near-tangent drawing at the level 0.586, the sentence gives the signed gap to the diagonal and says the level doesn't fit", /below the level, so it doesn't fit/.test(say586), say586);
-  check("words", "a gap below 1e-6 reads as within the computed map's resolution, not as a fit", /as close as this computed map can resolve/.test(S.rootsSay(1, 1 + 5e-7, 0, 0)) && !/fits/.test(S.rootsSay(1, 1 + 5e-7, 0, 0)), S.rootsSay(1, 1 + 5e-7, 0, 0));
+  const say5 = S.rootsSay(1, 1 + 5e-7, 0, 0);
+  check("words", "a gap below 1e-6 reads as within 10⁻⁶ in this computed map, the threshold for reporting a fit, and not as the map's resolution", /within 10⁻⁶ of the level in this computed map, the threshold this page uses to report a fit/.test(say5) && !/resolve/.test(say5), say5);
   // the deadline case the audit found: the root matches B(c0) times the exact share before the deadline
   const c02 = R.scheduleFor({ id: "deadline", params: { at: 1, c: 0.02 } }), r02 = R.rootsAt(c02.cost, 0.98, 160, c02.deadline);
   const exact = (() => { let lo = 0.3, hi = 0.8; for (let i = 0; i < 60; i++) { const m = (lo + hi) / 2; if (boundForCost(0.02) * R.shareExact(m, 0.02) - m > 0) lo = m; else hi = m; } return (lo + hi) / 2; })();
@@ -318,12 +339,24 @@ function verified(roots, t, cost, deadline, breaks) {
   const rs = R.scheduleFor({ id: "rising", params: { at: 0, rate: 2 } }, 2), rr = R.compareRules(rs.cost, rs.deadline), low = rr.exact.findIndex((v, i) => v > 0 && v < 0.02 && rr.t[i] < 2 - 1e-9);
   const fig = FIG1.map((id) => { const { cost, deadline } = fig1(id); return R.compareRules(cost, deadline).subStep; });
   check("program", "rising from 0 at rate 2 with a deadline added at 2: plotted bounds between 0 and 0.02 appear (from 1.52), and the count is positive; on Figure 1's four schedules there are none", low >= 0 && Math.abs(rr.t[low] - 1.52) < 1e-9 && rr.subStep > 0 && fig.every((n) => n === 0), `first at ${rr.t[low]}, ${rr.subStep} times; Figure 1: ${fig.join(", ")}`);
-  // the per-moment curve on an odd deadline drops straight down at the forced choice in the drawn path
+  // the per-moment curve on an odd deadline drops straight down at the forced choice, in each plate that draws it: the
+  // two-rules comparison and Algorithm 1's Shift step (the rule moved in, at the program's times), and Algorithm 1's
+  // Start step (the bound itself, at 251 times). The predicate: the path's last two points sit at the deadline's x, the
+  // first at the held bound's y and the last at 0's y (to the path's 0.1-pixel rounding)
   const d95 = R.scheduleFor({ id: "deadline", params: { at: 0.95, c: 0.5 } }), r95 = R.compareRules(d95.cost, d95.deadline);
-  const f95 = frame({ clientWidth: 360 }, { x: [0, 0.95], y: [0, 0.5] }), path = line(f95, ...R.pmPlot(r95.t, r95.pm.map((v) => toDiscrete(v, 0.01)), 0.95), "pm");
-  const nums = path.match(/[ML]([\d.]+) ([\d.]+)/g).map((p) => p.slice(1).split(" ").map(Number)), [x1, y1] = nums[nums.length - 2], [x2, y2] = nums[nums.length - 1];
+  const drop = (f, path, dl, held) => {
+    const pts = (path.match(/[ML]-?[\d.]+ -?[\d.]+/g) || []).map((p) => p.slice(1).split(" ").map(Number));
+    if (pts.length < 2) return { ok: false, last: "no path" };
+    const [a, b] = pts.slice(-2), X = f.sx(dl), close = (u, v) => Math.abs(u - v) < 0.051;
+    return { ok: close(a[0], X) && close(b[0], X) && close(a[1], f.sy(held)) && close(b[1], f.sy(0)), last: `(${a.join(", ")}) and (${b.join(", ")}), deadline at x ${X.toFixed(1)}, 0 at y ${f.sy(0).toFixed(1)}` };
+  };
+  const held = toDiscrete(boundForCost(0.5), 0.01), f95 = frame({ clientWidth: 360 }, { x: [0, 0.95], y: [0, 0.5] });
+  const moved = r95.pm.map((v) => toDiscrete(v, 0.01)), compare95 = drop(f95, line(f95, ...R.pmPlot(r95.t, moved, 0.95), "pm"), 0.95, held);
+  const ts251 = Array.from({ length: 251 }, (_, i) => (0.95 * i) / 250), pm251 = ts251.map((t) => (t >= 0.95 - 1e-9 ? 0 : boundForCost(d95.cost(t))));
+  const start95 = drop(f95, line(f95, ...R.pmPlot(ts251, pm251, 0.95), "pm"), 0.95, boundForCost(0.5));
   const untouched = R.pmPlot(r95.t, r95.pm, null);
-  check("endpoint", "a deadline at 0.95 with a cost of 0.5: the drawn per-moment path ends with a vertical drop at the deadline, from the held bound to 0; without a deadline the arrays pass through unchanged", x1 === x2 && y2 > y1 && Math.abs(f95.iy(y1) - toDiscrete(boundForCost(0.5), 0.01)) < 0.01 && untouched[0] === r95.t && untouched[1] === r95.pm, `last two points (${x1}, ${y1}) and (${x2}, ${y2})`);
+  check("endpoint", "a deadline at 0.95 with a cost of 0.5: the drawn per-moment path, in the comparison and Algorithm 1's Shift step and in Algorithm 1's Start step, ends with a vertical drop at the deadline's x from the held bound to the y of 0; without a deadline the arrays pass through unchanged",
+    compare95.ok && start95.ok && untouched[0] === r95.t && untouched[1] === r95.pm, `moved in: ${compare95.last}; start: ${start95.last}`);
 }
 
 // ---- Algorithm 1's kernel bins ------------------------------------------------------------------------------------

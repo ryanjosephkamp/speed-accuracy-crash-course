@@ -1,9 +1,12 @@
-// Chapter 0: the flat-bound strip's closed forms, the moment the guessing plate asks about, and the sentences.
+// Chapter 0: the flat-bound strip's closed forms, the moment the guessing plate asks about, the schedule plate's two cases
+// below the grid's first step, and the sentences.
 import { B } from "../../book/assets/js/kernel.js";
 import { belief, reward, boundForCost, toDiscrete } from "../../book/assets/js/model.js";
 import { PRESETS, costOf, deadlineOf, VIEW } from "../../book/assets/js/schedules-book.js";
 import * as S from "../../book/assets/js/say-ch00.js";
-import { check } from "./lib.mjs";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { check, ROOT, runWorker } from "./lib.mjs";
 
 // ---- the flat bound: V(y) = g(b) - c (b tanh b - y tanh y) below b ------------------------------------------------
 const V = (y, b, c) => belief(b) - c * (b * Math.tanh(b) - y * Math.tanh(y));
@@ -58,4 +61,16 @@ for (const p of PRESETS) {
   check("words", "a guess above the best bound is called too high, below it too low, with the right gap to the per-moment rule",
     /0\.20 too high/.test(hi) && /0\.20 too low/.test(lo) && /0\.10 below the per-moment rule's 0\.80/.test(hi), hi);
   check("words", "the flat-bound sentence states both sides of the equation", /= 10\.00, which is 1\/c = 10\.00/.test(S.flatSay(0.1, B(0.1))), S.flatSay(0.1, B(0.1)));
+}
+
+// ---- below the grid's first step: the schedule plate's two cases, on the page's worker, and the words for both -------
+{
+  // Rising at its largest rate, from time 0: late in the window the worker's bound falls below the first step, 0.02,
+  // and is placed between the center and the step at some times and is a genuine center stop (0) at others
+  const m = await runWorker("../../book/assets/js/dp-worker.js", { job: "bounds", choice: { id: "rising", params: { at: 0, rate: 2 } } });
+  const between = m.t.filter((t, i) => m.exact[i] > 0 && m.exact[i] < 0.02), stops = m.t.filter((t, i) => m.exact[i] === 0);
+  const words = ["ch00.py", "book.py"].map((f) => readFileSync(join(ROOT, "book/content", f), "utf8"));
+  const both = words.every((w) => /places it between the center and the step if the program still waits at the center, and at 0 if it decides at the center too/.test(w) && /reports 0 in both cases/.test(w));
+  check("schedule", "Rising from 0 at rate 2, on the page's worker: some plotted bounds lie between the center and the first step (0.02) and some are a center stop at 0; chapter 0's text and the contents page each state both cases",
+    between.length > 0 && stops.length > 0 && both, `between at ${between.length} times (first ${between[0]}), 0 at ${stops.length} (first ${stops[0]}); both cases stated: ${both}`);
 }

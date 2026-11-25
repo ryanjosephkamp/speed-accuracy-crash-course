@@ -503,11 +503,12 @@ function chapterSay(ch) {
   const L = chapterLinks(ch), back = L.uses.filter((x) => x < ch), ahead = L.uses.filter((x) => x > ch);
   const n = D.chapters.find((c) => c.num === ch).items.length;
   const chs = (xs) => (xs.length === 1 ? `chapter ${xs[0]}` : `chapters ${andList(xs.map(String))}`);
-  let t = `Chapter ${ch}, ${chTitle(ch)}: its ${n} claims `;
-  if (back.length) t += `use claims from ${chs(back)}`;
-  if (ahead.length) t += back.length ? `, and from ${chs(ahead)}, taught later` : `use claims taught later, in ${chs(ahead)}`;
-  if (!back.length && !ahead.length) t += "use no other chapter's claims";
-  t += L.usedBy.length ? `. ${chs(L.usedBy).replace(/^c/, "C")} use${L.usedBy.length === 1 ? "s" : ""} them.` : ". No other chapter uses them.";
+  let t = `Chapter ${ch}, ${chTitle(ch)}: its ${n === 1 ? "1 entry" : n + " entries"} `;
+  if (back.length) t += `use${n === 1 ? "s" : ""} entries from ${chs(back)}`;
+  if (ahead.length) t += back.length ? `, and from ${chs(ahead)}, taught later` : `use${n === 1 ? "s" : ""} entries taught later, in ${chs(ahead)}`;
+  if (!back.length && !ahead.length) t += `use${n === 1 ? "s" : ""} no other chapter's entries`;
+  const them = n === 1 ? "it" : "them";
+  t += L.usedBy.length ? `. ${chs(L.usedBy).replace(/^c/, "C")} use${L.usedBy.length === 1 ? "s" : ""} ${them}.` : `. No other chapter uses ${them}.`;
   return t;
 }
 function makeOptions(start) {

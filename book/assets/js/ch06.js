@@ -2,11 +2,11 @@
 // the dynamic program in the worker; the words under each plate come from the functions in say-ch06.js, which take
 // numbers and return sentences.
 import * as K from "./kernel.js";
-import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, VIEW, defaultDrawing } from "./schedules-book.js";
+import { labelOf, PRESETS, DRAW, paramsOf, VIEW, defaultDrawing } from "./schedules-book.js";
 import { getChoice, setChoice, solve, onVisible, watchVisible, liftReady, calm, seedParam } from "./book.js";
 import { frame, line, area, axes, svg, tags, fmt, keepDrawn } from "./chart.js";
 import * as S from "./say-ch06.js";
-import { yoursErrors, errorRange } from "./ch06-model.js";
+import { SCALE, scaleJob, scaleGaps, YOURS_EPS, yoursPlateState, errorMarks } from "./ch06-model.js";
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const plate = (id) => document.getElementById("plate-" + id);
@@ -75,9 +75,7 @@ function hero() {
 function scalePlate() {
   const fig = plate("scale"), el = rootOf("scale");
   if (!el) return;
-  const c0 = 0.1, om = 2, amp = 0.1, VIEW4 = 4;
-  const EPS = [0.8, 0.4, 0.2, 0.1];
-  const gamma = (t) => amp * Math.sin(om * t);
+  const EPS = SCALE.eps, VIEW4 = SCALE.view;
   el.innerHTML = `<div class="controls">${segHTML("sc-eps", EPS.map((e) => [e, Math.round(e * 100) + "%"]), 0.1, "Size of the change, ε")}
     <div class="actions"><button class="btn" type="button" id="sc-play" aria-pressed="false">Play</button></div></div>
     <div class="chart-wrap" id="sc-chart"></div>
@@ -87,7 +85,7 @@ function scalePlate() {
   let data = null, sel = 3, timer = 0;
   const draw = () => {
     if (!data) return;
-    const { t, dev, beta, pmr } = data;
+    const { t, dev, beta, pmr, gFo: gFoAll, gPm: gPmAll } = data;
     const all = [...beta, ...pmr, ...dev.flat()].filter(Number.isFinite);
     const lim = Math.max(...all.map(Math.abs)) * 1.12;
     const f = frame(chart, { x: [0, VIEW4], y: [-lim, lim], aspect: 0.5, minH: 190, maxH: 300 });
@@ -95,24 +93,16 @@ function scalePlate() {
     dev.forEach((d, k) => { if (k !== sel) s += line(f, t, d, "ex-thin"); });
     s += line(f, t, pmr, "pm") + line(f, t, beta, "wb") + line(f, t, dev[sel], "ex");
     chart.innerHTML = svg(f, s, `The bound's move divided by epsilon for a ${Math.round(EPS[sel] * 100)}% change, beside the first-order and per-moment responses`);
-    const win = t.map((x, i) => (x >= 0.5 && x <= 3.5 ? i : -1)).filter((i) => i >= 0);
-    const gFo = Math.max(...win.map((i) => Math.abs(dev[sel][i] - beta[i])));
-    const gPm = Math.max(...win.map((i) => Math.abs(dev[sel][i] - pmr[i])));
-    const gFoAll = dev.map((d) => Math.max(...win.map((i) => Math.abs(d[i] - beta[i]))));
-    const gPmAll = dev.map((d) => Math.max(...win.map((i) => Math.abs(d[i] - pmr[i]))));
-    reads.innerHTML = `<div class="k-wb"><dt>Largest gap to β</dt><dd>${fmt(gFo, 3)}<small>between times 0.5 and 3.5</small></dd></div>
+    const gFo = gFoAll[sel], gPm = gPmAll[sel];
+    reads.innerHTML = `<div class="k-wb"><dt>Largest gap to β</dt><dd>${fmt(gFo, 3)}<small>between times ${SCALE.lo} and ${SCALE.hi}</small></dd></div>
       <div class="k-pm"><dt>Largest gap to per-moment</dt><dd>${fmt(gPm, 3)}<small>same window</small></dd></div>
       <div><dt>Swing of β</dt><dd>${fmt(maxAbs(beta), 3)}<small>for comparison</small></dd></div>`;
     say.textContent = S.scaleSay(EPS[sel], gFo, gPm, gFoAll, EPS, gPmAll);
     liftReady(fig);
   };
   const run = () => {
-    solve({ job: "scale", wave: { amp, omega: om }, c0, eps: EPS, view: VIEW4 }, { progress: (p) => { state.textContent = `Solving four dynamic programs… ${Math.round(p * 4)} of 4`; } }).then((m) => {
-      const t = m.t;
-      const dev = m.runs.map((r, k) => r.map((v, i) => (v - m.b0[i]) / EPS[k]));
-      const beta = Array.from(K.firstOrder(gamma, t, c0));
-      const pmr = Array.from(K.perMomentResponse(gamma, t, c0));
-      data = { t, dev, beta, pmr };
+    solve(scaleJob(), { progress: (p) => { state.textContent = `Solving four dynamic programs… ${Math.round(p * 4)} of 4`; } }).then((m) => {
+      data = scaleGaps(m);
       state.textContent = "Time step 0.01, evidence step 0.02, 6 time units past the window.";
       keepDrawn(chart, draw);
       startPlay();
@@ -494,8 +484,8 @@ function bracketPlate() {
 function yoursPlate() {
   const fig = plate("yours"), el = rootOf("yours");
   if (!el) return;
-  const EPS = [1, 0.5, 0.25, 0.125, 0.0625, 0.03125];
-  let choice = getChoice(), data = null, sel = 2, guess = { pm: null, fo: null }, reveal = false, gen = 0;
+  const EPS = YOURS_EPS, P = yoursPlateState();
+  let choice = getChoice(), sel = 2, guess = { pm: null, fo: null };
   const groups = [...new Set(PRESETS.map((p) => p.group))];
   el.innerHTML = `<div class="controls"><label class="dial" style="flex:1 1 14rem"><span class="ctl-key">Your schedule</span><span></span>
       <select class="pick" id="yo-pick">${groups.map((g) => `<optgroup label="${g}">${PRESETS.filter((p) => p.group === g).map((p) => `<option value="${p.id}">${p.label}</option>`).join("")}</optgroup>`).join("")}<optgroup label="Yours"><option value="draw">${DRAW.label}</option></optgroup></select></label>
@@ -512,6 +502,7 @@ function yoursPlate() {
     <dl class="reads" id="yo-reads"></dl><p class="fine" id="yo-state" aria-live="polite"></p>`;
   const pick = $("#yo-pick", el), note = $("#yo-note", el), top = $("#yo-top", el), bot = $("#yo-bot", el), reads = $("#yo-reads", el), state = $("#yo-state", el), verdict = $("#yo-verdict", el);
   const drawTop = () => {
+    const data = P.state.data;
     if (!data) { top.innerHTML = ""; return; }
     const { t, dev, beta, pmr } = data;
     const all = [...beta, ...pmr, ...dev[sel]].filter(Number.isFinite);
@@ -523,23 +514,13 @@ function yoursPlate() {
     liftReady(fig);
   };
   const drawBot = () => {
-    if (!data || !reveal) { bot.hidden = true; return; }
-    const { ePm, eFo } = data, yr = errorRange(ePm, eFo);
-    if (!yr) { bot.hidden = true; reads.innerHTML = ""; verdict.textContent = S.tooSmallSay(Math.max(...ePm, ...eFo)); return; }
+    const data = P.state.data, b = P.bottom();
+    if (b.hidden) { bot.hidden = true; if (data && P.state.reveal) { reads.innerHTML = ""; verdict.textContent = S.tooSmallSay(b.largest); } return; }
     bot.hidden = false;
-    const [yLo, yHi] = yr;
+    const { ePm, eFo } = data, [yLo, yHi] = b.range;
     const f = frame(bot, { x: [EPS[EPS.length - 1] / 1.3, 1.3], y: [yLo, yHi], xlog: true, ylog: true, aspect: 0.5, minH: 180, maxH: 280 });
-    let g = axes(f, { yl: "largest error in the bound", xl: "ε", grid: true });
-    // guide lines of slope 1 and 2 through the per-moment error at the largest epsilon: guides only
-    const e0 = EPS[0], y0 = ePm[0] || yHi / 3;
-    // each guide is a straight line in log-log; clip it to the plot in x as well as y, so its slope stays true
-    const guide = (ya, p) => { const seg = S.guideInRange(e0, ya, p, EPS[EPS.length - 1], e0, yLo, yHi); return seg ? line(f, seg[0], seg[1], "guide") : ""; };
-    g += guide(y0, 1) + guide(y0 / 3, 2);
-    const xl = EPS[EPS.length - 1] * 1.6, lx = f.sx(xl);
-    g += `<text class="tk" x="${lx.toFixed(1)}" y="${(f.sy(y0 * xl / e0) - 6).toFixed(1)}">slope 1</text>`;
-    g += `<text class="tk" x="${lx.toFixed(1)}" y="${Math.min(f.H - f.b - 4, f.sy((y0 / 3) * (xl / e0) ** 2) + 14).toFixed(1)}">slope 2</text>`;
-    g += line(f, EPS, ePm, "pm") + line(f, EPS, eFo, "wb");
-    g += EPS.map((e, k) => (eFo[k] > 0 ? `<circle class="wb-dot" cx="${f.sx(e).toFixed(1)}" cy="${f.sy(eFo[k]).toFixed(1)}" r="3"/>` : "")).join("");
+    // guide lines of slope 1 and 2 through the per-moment error at the largest epsilon (guides only), then the errors
+    const g = axes(f, { yl: "largest error in the bound", xl: "ε", grid: true }) + errorMarks(f, EPS, ePm, eFo);
     bot.innerHTML = svg(f, g, "The largest error of each shortcut's bound against epsilon, on log axes, with guide lines of slope 1 and 2");
     const ratios = S.errorRatios(ePm, eFo);
     reads.innerHTML = `<div class="k-pm"><dt>Per-moment error</dt><dd>${ePm[ePm.length - 1].toExponential(1)}<small>at the smallest ε; ${ePm[0].toExponential(1)} at the largest</small></dd></div>
@@ -556,31 +537,19 @@ function yoursPlate() {
     box.querySelector("p").textContent = mode === "measure" ? "The rising cost is outside the theorem: show how the two errors compare." : "As ε shrinks, how fast does the theory say each shortcut's error shrinks?";
   };
   const run = () => {
-    const my = ++gen;   // a newer selection makes this run's answer stale
-    data = null; verdict.textContent = ""; reads.innerHTML = ""; drawTop(); drawBot();
+    // a newer selection makes an earlier selection's reply stale (yoursPlateState drops it)
+    const { my, job } = P.select(choice), mode = P.state.mode;
+    verdict.textContent = ""; reads.innerHTML = ""; drawTop(); drawBot();
     pick.value = choice.id;
-    const dl = deadlineOf(choice);
-    if (dl !== null) { setPredict("none"); note.textContent = S.outsideNote("deadline"); state.textContent = ""; return; }
-    const cost = costOf(choice);
-    const tsAvg = range(0, VIEW, 501);
-    const c0 = tsAvg.reduce((a, t) => a + cost(t), 0) / tsAvg.length;
-    // a cost that doesn't move (a flat drawing, a size of 0) has nothing to shrink, whatever its preset
-    let moves = 0; for (let t = 0; t <= VIEW + 6; t += 0.01) moves = Math.max(moves, Math.abs(cost(t) - c0));
-    if (moves <= 1e-9 * c0) { setPredict("none"); note.textContent = S.outsideNote("constant"); state.textContent = ""; return; }
-    const outside = choice.id === "rising";
-    setPredict(outside ? "measure" : "theory");
-    note.textContent = outside ? S.outsideNote("rising") : S.insideNote(labelOf(choice));
+    setPredict(mode === "deadline" || mode === "constant" ? "none" : mode);
+    note.textContent = mode === "theory" ? S.insideNote(labelOf(choice)) : S.outsideNote(mode === "measure" ? "rising" : mode);
+    if (!job) { state.textContent = ""; return; }
     state.textContent = "Solving seven dynamic programs…";
-    solve({ job: "scale", choice, c0, eps: EPS, view: VIEW }, { key: "yours", progress: (p) => { if (my === gen) state.textContent = `Solving seven dynamic programs… ${1 + Math.round(p * 6)} of 7`; } }).then((m) => {
-      if (my !== gen) return;
-      const t = m.t, gamma = (x) => cost(x) - c0;
-      const { beta, ePm, eFo } = yoursErrors(m, cost, c0, EPS);
-      const pmr = Array.from(K.perMomentResponse(gamma, t, c0));
-      const dev = m.runs.map((r, k) => r.map((v, i) => (v - m.b0[i]) / EPS[k]));
-      data = { t, dev, beta, pmr, ePm, eFo, c0, outside };
+    solve(job, { key: "yours", progress: (p) => { if (P.current(my)) state.textContent = `Solving seven dynamic programs… ${1 + Math.round(p * 6)} of 7`; } }).then((m) => {
+      if (!P.take(my, m)) return;
       state.textContent = "Time step 0.01, evidence step 0.02, 6 time units past the window; errors measured from the program's own constant-cost bound.";
       drawTop(); drawBot();
-    }).catch((e) => { if (e.message !== "superseded" && my === gen) state.textContent = "The solver stopped: " + e.message; });
+    }).catch((e) => { if (e.message !== "superseded" && P.current(my)) state.textContent = "The solver stopped: " + e.message; });
   };
   pick.addEventListener("change", () => {
     if (pick.value === "draw") { const c = getChoice(); choice = c.id === "draw" && Array.isArray(c.points) ? c : { id: "draw", points: defaultDrawing() }; }
@@ -590,7 +559,7 @@ function yoursPlate() {
   onSeg(el, "yo-eps", (v) => { sel = +v; drawTop(); });
   onSeg(el, "yo-gpm", (v) => { guess.pm = +v; });
   onSeg(el, "yo-gfo", (v) => { guess.fo = +v; });
-  $("#yo-show", el).addEventListener("click", () => { reveal = true; drawBot(); });
+  $("#yo-show", el).addEventListener("click", () => { P.show(); drawBot(); });
   keepDrawn(top, drawTop); keepDrawn(bot, drawBot);
   run();
 }

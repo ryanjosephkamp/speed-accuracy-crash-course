@@ -465,7 +465,7 @@ function shiftPlate() {
     state.textContent = "Solving the dynamic program…";
     solve({ job: "bounds", choice }, { key: "ch07-shift" }).then((m) => {
       const t = m.t, view = dl ?? VIEW;
-      const sh = t.map((x) => (dl !== null && x >= dl - 1e-9 ? 0 : M.shiftedBound(cost, x)));
+      const sh = M.shiftSeries(cost, t, dl);
       data = { t, exact: m.exact, pm: m.pm, sh, c: m.cost, view, dl };
       const n = t.length, G = M.shiftGaps(m.exact, m.pm, sh);
       reads.innerHTML = `<div class="k-pm"><dt>Per-moment: average gap</dt><dd>${fmt(G.avgPm, 3)}<small>largest ${fmt(G.maxPm, 3)}</small></dd></div>

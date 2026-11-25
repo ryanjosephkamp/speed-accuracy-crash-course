@@ -36,6 +36,7 @@ for (const c of [0.05, 0.1, 0.5]) {
   const [t, v] = dropAt([0.42, 0.44, 0.45], [1.2854, 1.2854, 0], 0.45);
   check("schedule", "at a deadline the per-moment curve holds its value up to the forced choice and drops there",
     t.length === 4 && t[2] === 0.45 && v[2] === 1.2854 && t[3] === 0.45 && v[3] === 0, `${t.join(", ")} / ${v.join(", ")}`);
-  const [t2] = dropAt([0, 1, 2], [1, 1, 1], null);
-  check("schedule", "without a deadline the curve is unchanged", t2.length === 3, String(t2.length));
+  const xs = [0, 1, 2], ys = [1, 0.8, 0.6], [t2, v2] = dropAt(xs, ys, null), [t3, v3] = dropAt(xs, ys, 1.5);
+  check("schedule", "without a deadline, or with one that isn't the curve's last time, both arrays come back unchanged",
+    t2 === xs && v2 === ys && t3 === xs && v3 === ys && t2.join() === "0,1,2" && v2.join() === "1,0.8,0.6", `${t2.join(", ")} / ${v2.join(", ")}`);
 }
