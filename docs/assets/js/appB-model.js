@@ -2,7 +2,7 @@
 // The evidence grid is model.js's exactPolicy (the port of the paper's known.backward_induction_x); the belief grid is
 // a port of the paper's known.backward_induction (belief_grid, transition_matrix, bound_from_values), at this page's
 // time step. tools/checks/appB.mjs holds both to the paper's code at the book's tag (tools/validity/appB.json).
-import { exactPolicy, boundForCost } from "./model.js?v=355988b29e";
+import { exactPolicy, boundForCost } from "./model.js?v=d73958033e";
 
 export const DT = 0.01, H = 0.02, CAP = 5;   // this page's evidence grid, as chapter 9's
 export const LONG = 30;                       // the longest forced choice the page solves

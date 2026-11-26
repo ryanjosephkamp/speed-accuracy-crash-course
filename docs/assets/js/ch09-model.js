@@ -4,8 +4,8 @@
 // checked every dt; the paper's two tests of the first-order theory (the sinusoid of Section 6.2 and the wider
 // sweep of Table 2), run on this page's grid; and the rules scored with and without the monitoring shift and on
 // finer grids. tools/checks/ch09.mjs holds these to model.js, to the paper's tables, and to each other.
-import { grid, belief, boundForCost, toDiscrete, OVERSHOOT, exactPolicy, score, perMoment, weightedBound } from "./model.js?v=355988b29e";
-import * as K from "./kernel.js?v=355988b29e";
+import { grid, belief, boundForCost, toDiscrete, OVERSHOOT, exactPolicy, score, perMoment, weightedBound } from "./model.js?v=d73958033e";
+import * as K from "./kernel.js?v=d73958033e";
 
 export { OVERSHOOT };
 export const DT = 0.01, H = 0.02, CAP = 5;   // this page's grid, as every chapter's program uses it

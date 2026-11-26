@@ -1,9 +1,9 @@
 // Chapter 4's model, with no DOM: model.js's dynamic program with its values kept, a schedule's lowest and highest
 // cost over all time, two starts driven by the same noise, and decisions sampled against a computed bound. The
 // worker (ch04-worker.js) runs the program; the page and tools/checks/ch04.mjs run the rest.
-import { grid, belief } from "./model.js?v=355988b29e";
-import { costOf, deadlineOf } from "./schedules-book.js?v=355988b29e";
-import { B } from "./kernel.js?v=355988b29e";
+import { grid, belief } from "./model.js?v=d73958033e";
+import { costOf, deadlineOf } from "./schedules-book.js?v=d73958033e";
+import { B } from "./kernel.js?v=d73958033e";
 
 export const DT = 0.01, H = 0.02, CAP = 5;
 export const OVERSHOOT = 0.5826; // the program, checking every dt, stops about this many sqrt(dt) inside the continuous bound

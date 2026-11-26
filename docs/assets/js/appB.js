@@ -1,15 +1,15 @@
 // Appendix B's hero and plates. The programs run in appB-worker.js (appB-model.js: model.js's evidence-grid program
 // and a port of the paper's belief-grid value iteration); tools/checks/appB.mjs holds both to the paper's code at the
 // book's tag. The words under each plate come from say-appB.js.
-import * as M from "./appB-model.js?v=355988b29e";
-import { solve, onVisible, liftReady } from "./book.js?v=355988b29e";
-import { frame, line, axes, svg, fmt, keepDrawn } from "./chart.js?v=355988b29e";
-import * as S from "./say-appB.js?v=355988b29e";
+import * as M from "./appB-model.js?v=d73958033e";
+import { solve, onVisible, liftReady } from "./book.js?v=d73958033e";
+import { frame, line, axes, svg, fmt, keepDrawn } from "./chart.js?v=d73958033e";
+import * as S from "./say-appB.js?v=d73958033e";
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const plate = (id) => document.getElementById("plate-" + id);
 const rootOf = (id) => plate(id)?.querySelector(".demo-root");
-const WORKER = new URL("./appB-worker.js?v=355988b29e", import.meta.url);
+const WORKER = new URL("./appB-worker.js?v=d73958033e", import.meta.url);
 const run = (job, opts = {}) => solve(job, { worker: WORKER, ...opts });
 const fail = (state, e) => { if (e.message !== "superseded") state.textContent = "The solver stopped: " + e.message; };
 const segHTML = (name, opts, cur, legend) => `<fieldset class="seg"><legend>${legend}</legend><div class="seg-row">${opts.map(([v, lbl]) =>

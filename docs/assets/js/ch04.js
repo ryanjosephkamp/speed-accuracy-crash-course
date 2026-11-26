@@ -1,12 +1,12 @@
 // Chapter 4's plates. The bounds and values come from the dynamic program in ch04-worker.js (model.js's program, with
 // its values kept); the decisions are sampled against that bound with a fixed seed; the continuous flat bounds come from
 // kernel.js. The words under each plate come from say-ch04.js, which takes numbers and returns sentences.
-import { B, rng } from "./kernel.js?v=355988b29e";
-import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, VIEW, SPARE, defaultDrawing } from "./schedules-book.js?v=355988b29e";
-import { getChoice, setChoice, solve, onVisible, liftReady, seedParam, wireStrips } from "./book.js?v=355988b29e";
-import { frame, line, area, axes, svg, tags, fmt, keepDrawn, dropAt } from "./chart.js?v=355988b29e";
-import * as M from "./ch04-model.js?v=355988b29e";
-import * as S from "./say-ch04.js?v=355988b29e";
+import { B, rng } from "./kernel.js?v=d73958033e";
+import { costOf, deadlineOf, labelOf, PRESETS, DRAW, paramsOf, VIEW, SPARE, defaultDrawing } from "./schedules-book.js?v=d73958033e";
+import { getChoice, setChoice, solve, onVisible, liftReady, seedParam, wireStrips } from "./book.js?v=d73958033e";
+import { frame, line, area, axes, svg, tags, fmt, keepDrawn, dropAt } from "./chart.js?v=d73958033e";
+import * as M from "./ch04-model.js?v=d73958033e";
+import * as S from "./say-ch04.js?v=d73958033e";
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const plate = (id) => document.getElementById("plate-" + id);
@@ -40,7 +40,7 @@ const edgeLabels = (f, up, dn, upText, dnText) => {
 const minus = (s) => String(s).replace(/^-/, "−");
 
 // ---- the worker: one program per schedule and job, shared by the plates that ask for it
-const WORKER = new URL("./ch04-worker.js?v=355988b29e", import.meta.url);
+const WORKER = new URL("./ch04-worker.js?v=d73958033e", import.meta.url);
 const memo = new Map();
 function work(key, job, opts = {}) {
   if (key && memo.has(key)) return memo.get(key);

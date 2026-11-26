@@ -5,8 +5,8 @@
 //   { job: "schedule", choice, dt, h, horizon }  the reader's schedule: the bound, the left side and its per-moment
 //                     version every 0.01 time units to the horizon, u(t, .) every 0.05 over the window 0 to 2.5, the
 //                     cost's range sampled to the horizon, and its bounds for all time from its formula
-import { solveSchedule, costRange, costBounds, testStep, FIXED } from "./ch05-model.js?v=355988b29e";
-import { costOf, paramsOf, VIEW } from "./schedules-book.js?v=355988b29e";
+import { solveSchedule, costRange, costBounds, testStep, FIXED } from "./ch05-model.js?v=d73958033e";
+import { costOf, paramsOf, VIEW } from "./schedules-book.js?v=d73958033e";
 
 self.onmessage = (e) => {
   const m = e.data;

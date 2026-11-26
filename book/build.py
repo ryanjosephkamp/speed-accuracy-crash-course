@@ -508,14 +508,14 @@ HEAD_SCRIPT = """<script>
 
 def shell(*, title, desc, body, depth, leaf, current, bar_title, thumbs_html, scripts, turn="", page_ink=None, css=""):
     a = "../" * depth
+    ROBOTS_META = "" if BOOK.PUBLIC else '<meta name="robots" content="noindex, nofollow">\n'
     style = f' style="--spot-d:{page_ink[0]};--spot-n:{page_ink[1]}"' if page_ink else ""
     return f"""<!doctype html>
 <html lang="en" data-book="speed-accuracy-crash-course" data-leaf="{leaf}"{style}>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="robots" content="noindex, nofollow">
-<title>{html.escape(title)}</title>
+{ROBOTS_META}<title>{html.escape(title)}</title>
 <meta name="description" content="{html.escape(desc)}">
 <meta name="theme-color" content="#eef0f2" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0d0e0f" media="(prefers-color-scheme: dark)">
@@ -700,14 +700,14 @@ def contents_page():
             rows.append(f"<li class='soon' id='ch-{num}'><div class='row'><span class='n'>{num}</span>"
                         f"<span class='t'>{html.escape(title)}</span><span class='st'>Coming</span>"
                         f"<span class='d'>{inline(line)}</span></div></li>")
+    byline = "" if book.PUBLIC else f'<p class="byline">{inline(book.DRAFT.format(built=built_list()))}</p>\n'
     body = f"""<div class="col">
 <header class="title-page">
 <p class="kicker">Ryan Kamp</p>
 <h1>{html.escape(book.TITLE)}<span class="sub">{html.escape(book.SUBTITLE)}</span></h1>
 <p class="lede">{inline(book.LEDE)}</p>
-<p class="byline">{inline(book.DRAFT.format(built=built_list()))}</p>
-</header>
-<section class="sec" id="schedule" aria-labelledby="h-schedule">
+{byline}</header>
+{film_html()}<section class="sec" id="schedule" aria-labelledby="h-schedule">
 <h2 id="h-schedule">Your schedule</h2>
 <p>{inline(book.SCHEDULE_INTRO)}</p>
 <figure class="plate-live is-wide" id="plate-schedule" data-demo="schedule" aria-label="Live: your schedule and its best bound">
@@ -736,6 +736,40 @@ def contents_page():
     return shell(title=f"{book.TITLE}: {book.SUBTITLE}", desc=plain_text(book.LEDE), body=body, depth=0, leaf=0,
                  current="contents", bar_title=html.escape(book.SHORT), thumbs_html=thumbs(None, "contents", 0),
                  scripts="<script type='module' src='assets/js/contents.js'></script>", turn=turn_html(None, nxt))
+
+
+SITE = "https://ryanjosephkamp.github.io/speed-accuracy-crash-course/"
+
+
+def film_html():
+    """The paper's film under the title page: a privacy-enhanced YouTube embed, loaded only when scrolled to."""
+    vid = BOOK.MOVIE_YOUTUBE_ID
+    if not vid:
+        return ""
+    title, line = BOOK.FILM
+    return f"""<section class="sec" id="film" aria-labelledby="h-film">
+<h2 id="h-film">{html.escape(title)}</h2>
+<p>{inline(line)}</p>
+<figure class="film-embed">
+<div class="film-embed-frame">
+<iframe src="https://www.youtube-nocookie.com/embed/{vid}?rel=0" title="Waiting, weighted: the paper in six minutes" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+</div>
+<figcaption><b>Film.</b> <span class="cap">With captions. Also on <a href="https://www.youtube.com/watch?v={vid}">YouTube</a>.</span></figcaption>
+</figure>
+</section>
+"""
+
+
+def robots_and_sitemap(pages):
+    """robots.txt, and a sitemap of every page once the book is public."""
+    if not BOOK.PUBLIC:
+        (OUT / "robots.txt").write_text("User-agent: *\nDisallow: /\n")
+        return
+    (OUT / "robots.txt").write_text(f"User-agent: *\nAllow: /\nSitemap: {SITE}sitemap.xml\n")
+    urls = [SITE + ("" if p.parent == OUT else p.parent.name + "/") for p in pages]
+    (OUT / "sitemap.xml").write_text('<?xml version="1.0" encoding="UTF-8"?>\n'
+                                     '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+                                     + "".join(f"  <url><loc>{u}</loc></url>\n" for u in urls) + "</urlset>\n")
 
 
 def asset_version():
@@ -768,7 +802,7 @@ def main():
         pages.append(d / "index.html")
     for js in (OUT / "assets/js").glob("*.js"):
         js.write_text(re.sub(r"([\"'])\./([\w.-]+\.js)\1", lambda m: f"{m.group(1)}./{m.group(2)}?v={version}{m.group(1)}", js.read_text()))
-    (OUT / "robots.txt").write_text("User-agent: *\nDisallow: /\n")
+    robots_and_sitemap(pages)
     (OUT / ".nojekyll").write_text("")
     if "--no-math" not in sys.argv:
         subprocess.run(["node", str(ROOT / "tools/math/render.mjs"), *map(str, pages)], check=True)

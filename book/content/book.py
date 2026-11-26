@@ -9,6 +9,13 @@ LEDE = r"""How the best moment to decide moves when the cost of time changes, wo
 
 DRAFT = r"""**Working draft.** Built so far: {built}. The rest are listed as coming."""
 
+# PUBLIC: the book is released. False brings back the draft byline above and turns indexing off again.
+PUBLIC = True
+
+# the paper's film on YouTube, shown on the contents page under the title page; None shows nothing
+MOVIE_YOUTUBE_ID = "OhTQqcrWGbk"
+FILM = ("The film", r"""The paper in six minutes, before you start the book.""")
+
 SCHEDULE_INTRO = r"""Pick a schedule for the cost of time, or draw one. The book keeps it and uses it in every chapter. Under it is the best bound for your schedule, solved in this page by dynamic programming, beside the per-moment rule's bound. When the grid's first step past the center already decides, the bound is below that step: the page places it between the center and the step if the program still waits at the center, and at 0 if it decides at the center too (the paper's code reports 0 in both cases)."""
 
 MAP_SLOT = (

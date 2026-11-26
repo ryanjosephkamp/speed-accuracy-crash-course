@@ -1,8 +1,8 @@
 // The contents page's plate: the reader's schedule (a preset, its two settings, or a drawing) and, under it, the
 // best bound for it from the dynamic program, beside the per-moment rule's bound.
-import { PRESETS, DRAW, DRAW_TIMES, DRAW_MIN, DRAW_MAX, costOf, defaultDrawing, paramsOf, deadlineOf, VIEW, labelOf } from "./schedules-book.js?v=355988b29e";
-import { getChoice, setChoice, solve, onVisible, liftReady } from "./book.js?v=355988b29e";
-import { frame, line, axes, svg, tags, fmt, keepDrawn, dropAt } from "./chart.js?v=355988b29e";
+import { PRESETS, DRAW, DRAW_TIMES, DRAW_MIN, DRAW_MAX, costOf, defaultDrawing, paramsOf, deadlineOf, VIEW, labelOf } from "./schedules-book.js?v=d73958033e";
+import { getChoice, setChoice, solve, onVisible, liftReady } from "./book.js?v=d73958033e";
+import { frame, line, axes, svg, tags, fmt, keepDrawn, dropAt } from "./chart.js?v=d73958033e";
 
 const fig = document.getElementById("plate-schedule");
 const rootEl = fig?.querySelector(".demo-root");
